@@ -12,6 +12,13 @@ function resolvePersonName(personId: string | undefined, included?: ProductiveIn
   return `${first} ${last}`.trim() || undefined;
 }
 
+function resolveWorkflowStatus(task: { relationships?: Record<string, any> }, included?: ProductiveIncludedResource[]): string | undefined {
+  const statusId = task.relationships?.workflow_status?.data?.id;
+  if (!statusId || !included) return undefined;
+  const status = included.find(item => item.type === 'workflow_statuses' && item.id === statusId);
+  return status?.attributes?.name || undefined;
+}
+
 const listTasksSchema = z.object({
   project_id: z.string().optional(),
   assignee_id: z.string().optional(),
@@ -55,7 +62,9 @@ export async function listTasksTool(
       const projectId = task.relationships?.project?.data?.id;
       const assigneeId = task.relationships?.assignee?.data?.id;
       const assigneeName = resolvePersonName(assigneeId, response.included);
-      const statusText = task.attributes.status === 1 ? 'open' : task.attributes.status === 2 ? 'closed' : `status ${task.attributes.status}`;
+      const workflowStatusName = resolveWorkflowStatus(task, response.included);
+      const fallbackStatus = task.attributes.status === 1 ? 'open' : task.attributes.status === 2 ? 'closed' : `status ${task.attributes.status}`;
+      const statusText = workflowStatusName || fallbackStatus;
       const assigneeDisplay = assigneeName
         ? `Assignee: ${assigneeName} (ID: ${assigneeId})`
         : assigneeId ? `Assignee ID: ${assigneeId}` : 'Unassigned';
@@ -115,7 +124,9 @@ export async function getProjectTasksTool(
     const tasksText = response.data.filter(task => task && task.attributes).map(task => {
       const assigneeId = task.relationships?.assignee?.data?.id;
       const assigneeName = resolvePersonName(assigneeId, response.included);
-      const statusText = task.attributes.status === 1 ? 'open' : task.attributes.status === 2 ? 'closed' : `status ${task.attributes.status}`;
+      const workflowStatusName = resolveWorkflowStatus(task, response.included);
+      const fallbackStatus = task.attributes.status === 1 ? 'open' : task.attributes.status === 2 ? 'closed' : `status ${task.attributes.status}`;
+      const statusText = workflowStatusName || fallbackStatus;
       const assigneeDisplay = assigneeName
         ? `Assignee: ${assigneeName} (ID: ${assigneeId})`
         : assigneeId ? `Assignee ID: ${assigneeId}` : 'Unassigned';
@@ -160,7 +171,7 @@ export async function getTaskTool(
     const config = await import('../config/index.js').then(m => m.getConfig());
     
     // Create URL with task_list included
-    const url = `${config.PRODUCTIVE_API_BASE_URL}tasks/${params.task_id}?include=task_list,assignee`;
+    const url = `${config.PRODUCTIVE_API_BASE_URL}tasks/${params.task_id}?include=task_list,assignee,workflow_status`;
     
     // Create request with proper headers from config
     const response = await fetch(url, {
@@ -182,9 +193,11 @@ export async function getTaskTool(
     const assigneeId = task.relationships?.assignee?.data?.id;
     const taskListId = task.relationships?.task_list?.data?.id;
     
-    // Handle status using the 'closed' field from actual API response
-    const statusText = task.attributes.closed === false ? 'open' : task.attributes.closed === true ? 'closed' : 'unknown';
-    
+    // Resolve workflow status name from included data, fall back to closed boolean
+    const workflowStatusName = resolveWorkflowStatus(task, data.included);
+    const fallbackStatus = task.attributes.closed === false ? 'open' : task.attributes.closed === true ? 'closed' : 'unknown';
+    const statusText = workflowStatusName || fallbackStatus;
+
     let text = `Task Details:\n\n`;
     text += `Title: ${task.attributes.title}\n`;
     text += `ID: ${task.id}\n`;

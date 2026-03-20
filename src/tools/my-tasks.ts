@@ -2,6 +2,14 @@ import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { Config } from '../config/index.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { ProductiveIncludedResource } from '../api/types.js';
+
+function resolveWorkflowStatus(task: { relationships?: Record<string, any> }, included?: ProductiveIncludedResource[]): string | undefined {
+  const statusId = task.relationships?.workflow_status?.data?.id;
+  if (!statusId || !included) return undefined;
+  const status = included.find(item => item.type === 'workflow_statuses' && item.id === statusId);
+  return status?.attributes?.name || undefined;
+}
 
 const myTasksSchema = z.object({
   status: z.enum(['open', 'closed']).optional(),
@@ -43,8 +51,10 @@ export async function myTasksTool(
     
     const tasksText = response.data.filter(task => task && task.attributes).map(task => {
       const projectId = task.relationships?.project?.data?.id;
+      const workflowStatusName = resolveWorkflowStatus(task, response.included);
+      const fallbackStatus = task.attributes.status === 1 ? 'open' : task.attributes.status === 2 ? 'closed' : `status ${task.attributes.status}`;
       const statusIcon = task.attributes.status === 2 ? '✓' : '○';
-      const statusText = task.attributes.status === 1 ? 'open' : task.attributes.status === 2 ? 'closed' : `status ${task.attributes.status}`;
+      const statusText = workflowStatusName || fallbackStatus;
       
       return `${statusIcon} ${task.attributes.title} (ID: ${task.id})
   Status: ${statusText}

@@ -134,8 +134,8 @@ export class ProductiveAPIClient {
   }): Promise<ProductiveResponse<ProductiveTask>> {
     const queryParams = new URLSearchParams();
 
-    // Include assignee data so we can resolve names
-    queryParams.append('include', 'assignee');
+    // Include assignee and workflow status so we can resolve names
+    queryParams.append('include', 'assignee,workflow_status');
 
     if (params?.project_id) {
       queryParams.append('filter[project_id]', params.project_id);
