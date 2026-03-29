@@ -19,6 +19,7 @@ import { listWorkflowStatusesTool, listWorkflowStatusesDefinition } from './tool
 import { listTimeEntresTool, createTimeEntryTool, listServicesTool, getProjectServicesTool, listProjectDealsTool, listDealServicesTool, listTimeEntriesDefinition, createTimeEntryDefinition, listServicesDefinition, getProjectServicesDefinition, listProjectDealsDefinition, listDealServicesDefinition } from './tools/time-entries.js';
 import { updateTimeEntryTool, updateTimeEntryDefinition } from './tools/time-entry-update.js';
 import { approveTimeEntryTool, approveTimeEntryDefinition, unapproveTimeEntryTool, unapproveTimeEntryDefinition, rejectTimeEntryTool, rejectTimeEntryDefinition, unrejectTimeEntryTool, unrejectTimeEntryDefinition } from './tools/time-entry-approval.js';
+import { getTimerTool, getTimerDefinition, startTimerTool, startTimerDefinition, stopTimerTool, stopTimerDefinition } from './tools/timers.js';
 import { updateTaskSprint, updateTaskSprintTool } from './tools/task-sprint.js';
 import { moveTaskToList, moveTaskToListTool } from './tools/task-list-move.js';
 import { addToBacklog, addToBacklogTool } from './tools/task-backlog.js';
@@ -78,6 +79,9 @@ export async function createServer() {
       unapproveTimeEntryDefinition,
       rejectTimeEntryDefinition,
       unrejectTimeEntryDefinition,
+      getTimerDefinition,
+      startTimerDefinition,
+      stopTimerDefinition,
       updateTaskSprintTool,
       moveTaskToListTool,
       addToBacklogTool,
@@ -178,6 +182,15 @@ export async function createServer() {
 
       case 'unreject_time_entry':
         return await unrejectTimeEntryTool(apiClient, args);
+
+      case 'get_timer':
+        return await getTimerTool(apiClient, args);
+
+      case 'start_timer':
+        return await startTimerTool(apiClient, args);
+
+      case 'stop_timer':
+        return await stopTimerTool(apiClient, args);
 
       case 'update_task_sprint':
         return await updateTaskSprint(apiClient, args);
