@@ -3,8 +3,18 @@ import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTimeEntryCreate } from '../api/types.js';
 
+// Helper function to format minutes into a human-readable display string
+export function formatMinutesDisplay(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  return `${minutes}m`;
+}
+
 // Helper function to parse time input into minutes
-function parseTimeToMinutes(timeInput: string): number {
+export function parseTimeToMinutes(timeInput: string): number {
   const input = timeInput.toLowerCase().trim();
   
   // Handle hour formats: "2h", "2.5h", "2 hours"
@@ -29,7 +39,7 @@ function parseTimeToMinutes(timeInput: string): number {
 }
 
 // Helper function to parse date input
-function parseDate(dateInput: string): string {
+export function parseDate(dateInput: string): string {
   const input = dateInput.toLowerCase().trim();
   const today = new Date();
   
@@ -139,20 +149,11 @@ export async function listTimeEntresTool(
       const taskId = entry.relationships?.task?.data?.id;
       const projectId = entry.relationships?.project?.data?.id;
       
-      const hours = Math.floor(entry.attributes.time / 60);
-      const minutes = entry.attributes.time % 60;
-      const timeDisplay = hours > 0 
-        ? (minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`)
-        : `${minutes}m`;
-      
+      const timeDisplay = formatMinutesDisplay(entry.attributes.time);
+
       let billableDisplay = '';
       if (entry.attributes.billable_time !== undefined && entry.attributes.billable_time !== entry.attributes.time) {
-        const billableHours = Math.floor(entry.attributes.billable_time / 60);
-        const billableMinutes = entry.attributes.billable_time % 60;
-        const billableTimeDisplay = billableHours > 0 
-          ? (billableMinutes > 0 ? `${billableHours}h ${billableMinutes}m` : `${billableHours}h`)
-          : `${billableMinutes}m`;
-        billableDisplay = ` (Billable: ${billableTimeDisplay})`;
+        billableDisplay = ` (Billable: ${formatMinutesDisplay(entry.attributes.billable_time)})`;
       }
       
       return `• Time Entry (ID: ${entry.id})
@@ -166,11 +167,7 @@ export async function listTimeEntresTool(
     }).join('\n\n');
     
     const totalMinutes = response.data.reduce((sum, entry) => sum + entry.attributes.time, 0);
-    const totalHours = Math.floor(totalMinutes / 60);
-    const totalMins = totalMinutes % 60;
-    const totalDisplay = totalHours > 0 
-      ? (totalMins > 0 ? `${totalHours}h ${totalMins}m` : `${totalHours}h`)
-      : `${totalMins}m`;
+    const totalDisplay = formatMinutesDisplay(totalMinutes);
     
     const summary = `Found ${response.data.length} time entr${response.data.length !== 1 ? 'ies' : 'y'}${response.meta?.total_count ? ` (showing ${response.data.length} of ${response.meta.total_count})` : ''}:\n\nTotal Time: ${totalDisplay}\n\n${entriesText}`;
     
@@ -252,20 +249,11 @@ export async function createTimeEntryTool(
     
     // If not confirmed, show confirmation details
     if (!params.confirm) {
-      const hours = Math.floor(timeInMinutes / 60);
-      const minutes = timeInMinutes % 60;
-      const timeDisplay = hours > 0 
-        ? (minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`)
-        : `${minutes}m`;
-      
+      const timeDisplay = formatMinutesDisplay(timeInMinutes);
+
       let billableDisplay = '';
       if (billableTimeInMinutes !== undefined) {
-        const billableHours = Math.floor(billableTimeInMinutes / 60);
-        const billableMins = billableTimeInMinutes % 60;
-        const billableTimeDisplay = billableHours > 0 
-          ? (billableMins > 0 ? `${billableHours}h ${billableMins}m` : `${billableHours}h`)
-          : `${billableMins}m`;
-        billableDisplay = `\nBillable Time: ${billableTimeDisplay}`;
+        billableDisplay = `\nBillable Time: ${formatMinutesDisplay(billableTimeInMinutes)}`;
       }
       
       return {
@@ -323,20 +311,11 @@ To create this time entry, call this tool again with the same parameters and add
     
     const response = await client.createTimeEntry(timeEntryData);
     
-    const hours = Math.floor(response.data.attributes.time / 60);
-    const minutes = response.data.attributes.time % 60;
-    const timeDisplay = hours > 0 
-      ? (minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`)
-      : `${minutes}m`;
-    
+    const timeDisplay = formatMinutesDisplay(response.data.attributes.time);
+
     let billableDisplay = '';
     if (response.data.attributes.billable_time !== undefined && response.data.attributes.billable_time !== response.data.attributes.time) {
-      const billableHours = Math.floor(response.data.attributes.billable_time / 60);
-      const billableMins = response.data.attributes.billable_time % 60;
-      const billableTimeDisplay = billableHours > 0 
-        ? (billableMins > 0 ? `${billableHours}h ${billableMins}m` : `${billableHours}h`)
-        : `${billableMins}m`;
-      billableDisplay = `\nBillable Time: ${billableTimeDisplay}`;
+      billableDisplay = `\nBillable Time: ${formatMinutesDisplay(response.data.attributes.billable_time)}`;
     }
     
     let text = `Time entry created successfully!

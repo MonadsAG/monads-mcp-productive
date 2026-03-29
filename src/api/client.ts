@@ -20,7 +20,8 @@ import {
   ProductiveTaskListCreate,
   ProductiveCommentCreate,
   ProductiveTimeEntryCreate,
-  ProductiveError 
+  ProductiveTimeEntryUpdate,
+  ProductiveError
 } from './types.js';
 
 export class ProductiveAPIClient {
@@ -632,6 +633,71 @@ export class ProductiveAPIClient {
    */
   async getTimeEntry(timeEntryId: string): Promise<ProductiveSingleResponse<ProductiveTimeEntry>> {
     return this.makeRequest<ProductiveSingleResponse<ProductiveTimeEntry>>(`time_entries/${timeEntryId}`);
+  }
+
+  /**
+   * Update an existing time entry's attributes
+   *
+   * @param timeEntryId - The ID of the time entry to update
+   * @param timeEntryData - The update payload
+   * @returns Promise resolving to the updated time entry
+   */
+  async updateTimeEntry(
+    timeEntryId: string,
+    timeEntryData: ProductiveTimeEntryUpdate
+  ): Promise<ProductiveSingleResponse<ProductiveTimeEntry>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTimeEntry>>(
+      `time_entries/${timeEntryId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(timeEntryData),
+      }
+    );
+  }
+
+  /**
+   * Approve a time entry
+   */
+  async approveTimeEntry(timeEntryId: string): Promise<ProductiveSingleResponse<ProductiveTimeEntry>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTimeEntry>>(
+      `time_entries/${timeEntryId}/approve`,
+      { method: 'PATCH' }
+    );
+  }
+
+  /**
+   * Unapprove a time entry (reverse approval)
+   */
+  async unapproveTimeEntry(timeEntryId: string): Promise<ProductiveSingleResponse<ProductiveTimeEntry>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTimeEntry>>(
+      `time_entries/${timeEntryId}/unapprove`,
+      { method: 'PATCH' }
+    );
+  }
+
+  /**
+   * Reject a time entry
+   */
+  async rejectTimeEntry(timeEntryId: string, rejectedReason?: string): Promise<ProductiveSingleResponse<ProductiveTimeEntry>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTimeEntry>>(
+      `time_entries/${timeEntryId}/reject`,
+      {
+        method: 'PATCH',
+        body: rejectedReason
+          ? JSON.stringify({ data: { type: 'time_entries', id: timeEntryId, attributes: { rejected_reason: rejectedReason } } })
+          : undefined,
+      }
+    );
+  }
+
+  /**
+   * Unreject a time entry (reverse rejection)
+   */
+  async unrejectTimeEntry(timeEntryId: string): Promise<ProductiveSingleResponse<ProductiveTimeEntry>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTimeEntry>>(
+      `time_entries/${timeEntryId}/unreject`,
+      { method: 'PATCH' }
+    );
   }
 
   /**
