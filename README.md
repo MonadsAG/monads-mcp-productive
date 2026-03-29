@@ -339,6 +339,95 @@ Parameters:
 - `limit` (optional): Maximum number of people to return (default: 50, max: 100)
 - `page` (optional): Page number for pagination (default: 1)
 
+### Time Management Tools
+
+Time entries track work performed against projects and services. Each entry belongs to a person, a service (within a deal/budget), and optionally a task. Time entries follow an approval workflow: they can be approved, unapproved, rejected (with a reason), or unrejected. To create a time entry, you need to follow the hierarchy: Project -> Deal/Budget -> Service -> Time Entry.
+
+#### list_time_entries
+View existing time entries with detailed information including service and budget relationships.
+
+Parameters:
+- `date` (optional): Filter by specific date (YYYY-MM-DD format)
+- `after` (optional): Filter entries after this date (YYYY-MM-DD format)
+- `before` (optional): Filter entries before this date (YYYY-MM-DD format)
+- `person_id` (optional): Filter by person ID (use "me" if PRODUCTIVE_USER_ID is configured)
+- `project_id` (optional): Filter by project ID
+- `task_id` (optional): Filter by task ID
+- `service_id` (optional): Filter by service ID
+- `limit` (optional): Number of time entries to return (1-200, default: 30)
+
+#### create_time_entry
+Create a time entry with detailed work description. Requires confirmation before creating.
+
+Parameters:
+- `date` (required): Date for the time entry ("today", "yesterday", or YYYY-MM-DD)
+- `time` (required): Time duration ("2h", "120m", "2.5h", or "2.5")
+- `person_id` (required): ID of the person logging time (use "me" if configured)
+- `service_id` (required): ID of the service being performed
+- `note` (required): Detailed description of work performed (minimum 10 characters)
+- `task_id` (optional): ID of the task being worked on
+- `billable_time` (optional): Billable time duration, same formats as time
+- `confirm` (optional): Set to true to confirm and create the entry
+
+#### update_time_entry
+Update an existing time entry. All fields except time_entry_id are optional — only provided fields will be updated.
+
+Parameters:
+- `time_entry_id` (required): ID of the time entry to update
+- `date` (optional): New date ("today", "yesterday", or YYYY-MM-DD)
+- `time` (optional): New time duration ("2h", "120m", "2.5h", or "2.5")
+- `billable_time` (optional): New billable time duration
+- `note` (optional): Updated work description
+
+#### approve_time_entry
+Approve a time entry.
+
+Parameters:
+- `time_entry_id` (required): ID of the time entry to approve
+
+#### unapprove_time_entry
+Reverse approval of a time entry.
+
+Parameters:
+- `time_entry_id` (required): ID of the time entry to unapprove
+
+#### reject_time_entry
+Reject a time entry with an optional reason.
+
+Parameters:
+- `time_entry_id` (required): ID of the time entry to reject
+- `rejected_reason` (optional): Reason for rejecting the time entry
+
+#### unreject_time_entry
+Reverse rejection of a time entry.
+
+Parameters:
+- `time_entry_id` (required): ID of the time entry to unreject
+
+### Budget & Service Tools
+
+#### list_project_deals
+Get deals/budgets for a specific project. Step 2 of the timesheet workflow.
+
+Parameters:
+- `project_id` (required): The ID of the project
+- `budget_type` (optional): Filter by budget type (1 = deal, 2 = budget)
+- `limit` (optional): Number of deals/budgets to return (1-200, default: 30)
+
+#### list_deal_services
+Get services for a specific deal/budget. Step 3 of the timesheet workflow.
+
+Parameters:
+- `deal_id` (required): The ID of the deal/budget
+- `limit` (optional): Number of services to return (1-200, default: 30)
+
+#### list_services
+List all services in the organization.
+
+Parameters:
+- `company_id` (optional): Filter services by company ID
+- `limit` (optional): Number of services to return (1-200, default: 30)
+
 ### Activity & Updates Tools
 
 #### list_activities
@@ -364,6 +453,35 @@ Parameters:
 
 ## Common Workflows
 
+### Creating a Time Entry
+
+To create a time entry, follow the hierarchy: Project -> Deal/Budget -> Service -> Time Entry.
+
+1. **Find the project**: `list_projects`
+2. **Get deals/budgets**: `list_project_deals { "project_id": "..." }`
+3. **Get services**: `list_deal_services { "deal_id": "..." }`
+4. **Optionally find a task**: `get_project_tasks { "project_id": "..." }`
+5. **Create the entry**:
+   ```
+   create_time_entry {
+     "date": "today",
+     "time": "2h",
+     "person_id": "me",
+     "service_id": "...",
+     "task_id": "...",
+     "note": "Implemented feature X with unit tests"
+   }
+   ```
+
+### Managing Time Entry Approvals
+
+```
+approve_time_entry { "time_entry_id": "123" }
+unapprove_time_entry { "time_entry_id": "123" }
+reject_time_entry { "time_entry_id": "123", "rejected_reason": "Wrong project" }
+unreject_time_entry { "time_entry_id": "123" }
+```
+
 ### Updating Task Status
 
 To update a task's status, you need to use workflow status IDs rather than simple "open"/"closed" values:
@@ -387,6 +505,8 @@ To update a task's status, you need to use workflow status IDs rather than simpl
 When `PRODUCTIVE_USER_ID` is configured, you can use "me" in several tools:
 - `create_task` with `"assignee_id": "me"`
 - `update_task_assignment` with `"assignee_id": "me"`
+- `list_time_entries` with `"person_id": "me"`
+- `create_time_entry` with `"person_id": "me"`
 - `my_tasks` to get your assigned tasks
 - `whoami` to verify your configured user context
 
