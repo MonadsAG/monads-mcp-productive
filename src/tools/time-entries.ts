@@ -3,8 +3,18 @@ import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTimeEntryCreate } from '../api/types.js';
 
+// Helper function to format minutes into a human-readable display string
+export function formatMinutesDisplay(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  return `${minutes}m`;
+}
+
 // Helper function to parse time input into minutes
-function parseTimeToMinutes(timeInput: string): number {
+export function parseTimeToMinutes(timeInput: string): number {
   const input = timeInput.toLowerCase().trim();
   
   // Handle hour formats: "2h", "2.5h", "2 hours"
@@ -29,7 +39,7 @@ function parseTimeToMinutes(timeInput: string): number {
 }
 
 // Helper function to parse date input
-function parseDate(dateInput: string): string {
+export function parseDate(dateInput: string): string {
   const input = dateInput.toLowerCase().trim();
   const today = new Date();
   
