@@ -428,6 +428,25 @@ Parameters:
 - `company_id` (optional): Filter services by company ID
 - `limit` (optional): Number of services to return (1-200, default: 30)
 
+#### start_timer
+Start a new timer for real-time time tracking. Provide either a service_id (creates a new time entry automatically) or a time_entry_id (attaches to an existing time entry).
+
+Parameters:
+- `service_id` (optional): Service ID to track time against (required if no time_entry_id)
+- `time_entry_id` (optional): Existing time entry ID to attach timer to (required if no service_id)
+
+#### stop_timer
+Stop a running timer. The tracked time will be added to the associated time entry.
+
+Parameters:
+- `timer_id` (required): ID of the timer to stop
+
+#### get_timer
+Get a timer's current status to check if it is still running.
+
+Parameters:
+- `timer_id` (required): ID of the timer to check
+
 ### Activity & Updates Tools
 
 #### list_activities
