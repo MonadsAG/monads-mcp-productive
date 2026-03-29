@@ -17,6 +17,8 @@ import { addTaskCommentTool, addTaskCommentDefinition } from './tools/comments.j
 import { updateTaskStatusTool, updateTaskStatusDefinition } from './tools/task-status.js';
 import { listWorkflowStatusesTool, listWorkflowStatusesDefinition } from './tools/workflow-statuses.js';
 import { listTimeEntresTool, createTimeEntryTool, listServicesTool, getProjectServicesTool, listProjectDealsTool, listDealServicesTool, listTimeEntriesDefinition, createTimeEntryDefinition, listServicesDefinition, getProjectServicesDefinition, listProjectDealsDefinition, listDealServicesDefinition } from './tools/time-entries.js';
+import { updateTimeEntryTool, updateTimeEntryDefinition } from './tools/time-entry-update.js';
+import { approveTimeEntryTool, approveTimeEntryDefinition, unapproveTimeEntryTool, unapproveTimeEntryDefinition, rejectTimeEntryTool, rejectTimeEntryDefinition, unrejectTimeEntryTool, unrejectTimeEntryDefinition } from './tools/time-entry-approval.js';
 import { updateTaskSprint, updateTaskSprintTool } from './tools/task-sprint.js';
 import { moveTaskToList, moveTaskToListTool } from './tools/task-list-move.js';
 import { addToBacklog, addToBacklogTool } from './tools/task-backlog.js';
@@ -71,6 +73,11 @@ export async function createServer() {
       listDealServicesDefinition,
       listServicesDefinition,
       getProjectServicesDefinition,
+      updateTimeEntryDefinition,
+      approveTimeEntryDefinition,
+      unapproveTimeEntryDefinition,
+      rejectTimeEntryDefinition,
+      unrejectTimeEntryDefinition,
       updateTaskSprintTool,
       moveTaskToListTool,
       addToBacklogTool,
@@ -156,7 +163,22 @@ export async function createServer() {
         
       case 'get_project_services':
         return await getProjectServicesTool(apiClient, args);
-        
+
+      case 'update_time_entry':
+        return await updateTimeEntryTool(apiClient, args);
+
+      case 'approve_time_entry':
+        return await approveTimeEntryTool(apiClient, args);
+
+      case 'unapprove_time_entry':
+        return await unapproveTimeEntryTool(apiClient, args);
+
+      case 'reject_time_entry':
+        return await rejectTimeEntryTool(apiClient, args);
+
+      case 'unreject_time_entry':
+        return await unrejectTimeEntryTool(apiClient, args);
+
       case 'update_task_sprint':
         return await updateTaskSprint(apiClient, args);
         
