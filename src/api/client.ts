@@ -21,6 +21,8 @@ import {
   ProductiveCommentCreate,
   ProductiveTimeEntryCreate,
   ProductiveTimeEntryUpdate,
+  ProductiveTimer,
+  ProductiveTimerCreate,
   ProductiveError
 } from './types.js';
 
@@ -696,6 +698,33 @@ export class ProductiveAPIClient {
   async unrejectTimeEntry(timeEntryId: string): Promise<ProductiveSingleResponse<ProductiveTimeEntry>> {
     return this.makeRequest<ProductiveSingleResponse<ProductiveTimeEntry>>(
       `time_entries/${timeEntryId}/unreject`,
+      { method: 'PATCH' }
+    );
+  }
+
+  /**
+   * Get a timer by ID
+   */
+  async getTimer(timerId: string): Promise<ProductiveSingleResponse<ProductiveTimer>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTimer>>(`timers/${timerId}`);
+  }
+
+  /**
+   * Create and start a new timer
+   */
+  async createTimer(timerData: ProductiveTimerCreate): Promise<ProductiveSingleResponse<ProductiveTimer>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTimer>>('timers', {
+      method: 'POST',
+      body: JSON.stringify(timerData),
+    });
+  }
+
+  /**
+   * Stop a running timer
+   */
+  async stopTimer(timerId: string): Promise<ProductiveSingleResponse<ProductiveTimer>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTimer>>(
+      `timers/${timerId}/stop`,
       { method: 'PATCH' }
     );
   }

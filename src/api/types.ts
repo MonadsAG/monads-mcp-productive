@@ -535,6 +535,61 @@ export interface ProductiveTimeEntryUpdate {
   };
 }
 
+/**
+ * Timer entity interface for Productive API
+ * Represents a time tracking session on a time entry
+ */
+export interface ProductiveTimer {
+  id: string;
+  type: 'timers';
+  attributes: {
+    person_id: number;
+    started_at: string;
+    stopped_at: string | null;
+    total_time: number;
+  };
+  relationships?: {
+    organization?: {
+      data: {
+        id: string;
+        type: 'organizations';
+      };
+    };
+    time_entry?: {
+      meta?: { included: boolean };
+      data?: {
+        id: string;
+        type: 'time_entries';
+      };
+    };
+  };
+}
+
+/**
+ * Timer creation interface for Productive API
+ * Requires either a time_entry or service relationship
+ */
+export interface ProductiveTimerCreate {
+  data: {
+    type: 'timers';
+    attributes: Record<string, never>;
+    relationships: {
+      time_entry?: {
+        data: {
+          id: string;
+          type: 'time_entries';
+        };
+      };
+      service?: {
+        data: {
+          id: string;
+          type: 'services';
+        };
+      };
+    };
+  };
+}
+
 export interface ProductiveError {
   errors: Array<{
     status?: string;
