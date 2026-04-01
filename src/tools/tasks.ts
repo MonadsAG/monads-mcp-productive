@@ -764,3 +764,52 @@ export const updateTaskDetailsDefinition = {
     required: ['task_id'],
   },
 };
+
+const deleteTaskSchema = z.object({
+  task_id: z.string().min(1, 'Task ID is required'),
+});
+
+export async function deleteTaskTool(
+  client: ProductiveAPIClient,
+  args: unknown
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  try {
+    const params = deleteTaskSchema.parse(args);
+
+    await client.deleteTask(params.task_id);
+
+    return {
+      content: [{
+        type: 'text',
+        text: `Task ${params.task_id} has been successfully deleted.`,
+      }],
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Invalid parameters: ${error.errors.map(e => e.message).join(', ')}`
+      );
+    }
+
+    throw new McpError(
+      ErrorCode.InternalError,
+      error instanceof Error ? error.message : 'Unknown error occurred'
+    );
+  }
+}
+
+export const deleteTaskDefinition = {
+  name: 'delete_task',
+  description: 'Delete a task from Productive.io by its ID',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      task_id: {
+        type: 'string',
+        description: 'The ID of the task to delete (required)',
+      },
+    },
+    required: ['task_id'],
+  },
+};
