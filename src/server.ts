@@ -26,6 +26,7 @@ import { listFolders, listFoldersTool, getFolder, getFolderTool, createFolder, c
 import { listSubtasksTool, listSubtasksDefinition, createSubtaskTool, createSubtaskDefinition } from './tools/subtasks.js';
 import { listTodosTool, listTodosDefinition, getTodoTool, getTodoDefinition, createTodoTool, createTodoDefinition, updateTodoTool, updateTodoDefinition, deleteTodoTool, deleteTodoDefinition } from './tools/todos.js';
 import { listPagesTool, listPagesDefinition, getPageTool, getPageDefinition, createPageTool, createPageDefinition, updatePageTool, updatePageDefinition, deletePageTool, deletePageDefinition, movePageTool, movePageDefinition, copyPageTool, copyPageDefinition } from './tools/pages.js';
+import { listTaskDependenciesTool, listTaskDependenciesDefinition, getTaskDependencyTool, getTaskDependencyDefinition, createTaskDependencyTool, createTaskDependencyDefinition, deleteTaskDependencyTool, deleteTaskDependencyDefinition } from './tools/task-dependencies.js';
 
 export async function createServer() {
   // Initialize API client and config early to check user context
@@ -119,6 +120,11 @@ export async function createServer() {
       deletePageDefinition,
       movePageDefinition,
       copyPageDefinition,
+      // Task Dependencies
+      listTaskDependenciesDefinition,
+      getTaskDependencyDefinition,
+      createTaskDependencyDefinition,
+      deleteTaskDependencyDefinition,
     ],
   }));
   
@@ -303,6 +309,16 @@ export async function createServer() {
         return await movePageTool(apiClient, args);
       case 'copy_page':
         return await copyPageTool(apiClient, args);
+
+      // Task Dependencies
+      case 'list_task_dependencies':
+        return await listTaskDependenciesTool(apiClient, args);
+      case 'get_task_dependency':
+        return await getTaskDependencyTool(apiClient, args);
+      case 'create_task_dependency':
+        return await createTaskDependencyTool(apiClient, args);
+      case 'delete_task_dependency':
+        return await deleteTaskDependencyTool(apiClient, args);
 
       default:
         throw new Error(`Unknown tool: ${name}`);
