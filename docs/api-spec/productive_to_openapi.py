@@ -325,14 +325,24 @@ def parse_resource_page(slug: str) -> list[dict]:
 
 # --- OpenAPI builder ----------------------------------------------------------
 
+def _is_bulk_tag(tags: list[str]) -> bool:
+    return any("bulk" in t.lower() for t in tags)
+
+
 def build_openapi(operations: list[dict]) -> dict:
     paths: dict = {}
-    for op in operations:
+    # Sort for deterministic output regardless of thread completion order
+    for op in sorted(operations, key=lambda o: (o["path"], o["method"])):
         path, method = op["path"], op["method"]
         entry = {k: op[k] for k in
                  ("summary", "operationId", "tags", "parameters", "responses") if k in op}
         if "requestBody" in op:
             entry["requestBody"] = op["requestBody"]
+        # Non-bulk operations take precedence over bulk duplicates
+        existing = paths.get(path, {}).get(method)
+        if existing and not _is_bulk_tag(existing.get("tags", [])):
+            if _is_bulk_tag(entry.get("tags", [])):
+                continue
         paths.setdefault(path, {})[method] = entry
 
     return {
