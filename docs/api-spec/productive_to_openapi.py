@@ -19,6 +19,7 @@ import json
 import time
 import argparse
 from datetime import date
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from pathlib import Path
 from bs4 import BeautifulSoup, Tag
@@ -28,6 +29,7 @@ BASE_URL    = "https://developer.productive.io"
 API_BASE    = "https://api.productive.io/api/v2"
 DEFAULT_OUT       = Path(__file__).parent / "productive-openapi.yaml"
 DEFAULT_CHANGELOG = Path(__file__).parent / "CHANGELOG.md"
+MAX_WORKERS       = 10
 
 
 # --- Helpers ------------------------------------------------------------------
@@ -589,9 +591,10 @@ def main():
     print(f"\nScraping {len(slugs)} resource(s)...\n", file=sys.stderr)
 
     operations: list[dict] = []
-    for slug in slugs:
-        operations.extend(parse_resource_page(slug))
-        time.sleep(0.2)
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        futures = {pool.submit(parse_resource_page, slug): slug for slug in slugs}
+        for future in as_completed(futures):
+            operations.extend(future.result())
 
     spec     = build_openapi(operations)
     out_path = Path(args.out)

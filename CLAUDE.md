@@ -2,6 +2,28 @@
 
 This file provides comprehensive guidance to Claude Code when working with Next.js 15 applications with React 19 and TypeScript.
 
+## Productive.io MCP Server
+
+### Domain Hierarchies
+
+- **Project hierarchy:** Customers → Projects → Boards → Task Lists → Tasks
+- **Timesheet hierarchy:** Projects → Deals/Budgets → Services → Tasks → Time Entries
+
+### MCP Protocol Constraints
+
+- stdout is **RESERVED EXCLUSIVELY** for JSON-RPC messages
+- ANY non-protocol stdout output **BREAKS** the connection
+- ALL debug/log/error output **MUST** use stderr
+- Messages are newline-delimited JSON, each on a single line
+
+### API Spec
+
+Detailed API documentation is generated in `docs/api-spec/`:
+
+1. **Index lesen:** `docs/api-spec/resources/_index.yaml` — all resources + endpoints
+2. **Detail lesen:** `docs/api-spec/resources/{resource}.yaml` — full spec for one resource
+3. **Nicht direkt lesen:** `docs/api-spec/productive-openapi.yaml` — full spec, only for codegen
+
 ## Core Development Philosophy
 
 ### KISS (Keep It Simple, Stupid)
