@@ -9,11 +9,11 @@ const addTaskCommentSchema = z.object({
 
 export async function addTaskCommentTool(
   client: ProductiveAPIClient,
-  args: unknown
+  args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     const params = addTaskCommentSchema.parse(args);
-    
+
     const commentData = {
       data: {
         type: 'comments' as const,
@@ -30,9 +30,9 @@ export async function addTaskCommentTool(
         },
       },
     };
-    
+
     const response = await client.createComment(commentData);
-    
+
     let text = `Comment added successfully!\n`;
     text += `Task ID: ${params.task_id}\n`;
     text += `Comment: ${response.data.attributes.body}\n`;
@@ -40,24 +40,26 @@ export async function addTaskCommentTool(
     if (response.data.attributes.created_at) {
       text += `\nCreated at: ${response.data.attributes.created_at}`;
     }
-    
+
     return {
-      content: [{
-        type: 'text',
-        text: text,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: text,
+        },
+      ],
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => e.message).join(', ')}`
+        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
-    
+
     throw new McpError(
       ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred'
+      error instanceof Error ? error.message : 'Unknown error occurred',
     );
   }
 }
@@ -74,7 +76,8 @@ export const addTaskCommentDefinition = {
       },
       comment: {
         type: 'string',
-        description: 'Comment content (required). Supports HTML formatting with tags like <div>, <p>, <strong>, <em>, <ul>, <li>, <a href="">.',
+        description:
+          'Comment content (required). Supports HTML formatting with tags like <div>, <p>, <strong>, <em>, <ul>, <li>, <a href="">.',
       },
     },
     required: ['task_id', 'comment'],

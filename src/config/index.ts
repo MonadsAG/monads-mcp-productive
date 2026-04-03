@@ -22,11 +22,11 @@ export type Config = z.infer<typeof configSchema>;
 
 export function getConfig(): Config {
   const result = configSchema.safeParse(process.env);
-  
+
   if (!result.success) {
     console.error('Configuration validation failed:', result.error.format());
     throw new Error('Invalid configuration. Please check your environment variables.');
   }
-  
+
   return result.data;
 }

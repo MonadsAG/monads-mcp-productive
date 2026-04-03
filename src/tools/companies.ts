@@ -9,55 +9,62 @@ const listCompaniesSchema = z.object({
 
 export async function listCompaniesTool(
   client: ProductiveAPIClient,
-  args: unknown
+  args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     const params = listCompaniesSchema.parse(args || {});
-    
+
     const response = await client.listCompanies({
       status: params.status,
       limit: params.limit,
     });
-    
+
     if (!response || !response.data || response.data.length === 0) {
       return {
-        content: [{
-          type: 'text',
-          text: 'No companies found matching the criteria.',
-        }],
+        content: [
+          {
+            type: 'text',
+            text: 'No companies found matching the criteria.',
+          },
+        ],
       };
     }
-    
-    const companiesText = response.data.filter(company => company && company.attributes).map(company => {
-      const tags = company.attributes.tag_list?.length 
-        ? `Tags: ${company.attributes.tag_list.join(', ')}` 
-        : '';
-      
-      return `• ${company.attributes.name} (ID: ${company.id})
+
+    const companiesText = response.data
+      .filter((company) => company && company.attributes)
+      .map((company) => {
+        const tags = company.attributes.tag_list?.length
+          ? `Tags: ${company.attributes.tag_list.join(', ')}`
+          : '';
+
+        return `• ${company.attributes.name} (ID: ${company.id})
   ${company.attributes.domain ? `Domain: ${company.attributes.domain}` : 'No domain'}
   ${company.attributes.description ? `Description: ${company.attributes.description}` : ''}
   ${tags}`;
-    }).join('\n\n');
-    
+      })
+      .join('\n\n');
+
     const summary = `Found ${response.data.length} compan${response.data.length !== 1 ? 'ies' : 'y'}${response.meta?.total_count ? ` (showing ${response.data.length} of ${response.meta.total_count})` : ''}:\n\n${companiesText}`;
-    
+
     return {
-      content: [{
-        type: 'text',
-        text: summary,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: summary,
+        },
+      ],
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => e.message).join(', ')}`
+        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
-    
+
     throw new McpError(
       ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred'
+      error instanceof Error ? error.message : 'Unknown error occurred',
     );
   }
 }

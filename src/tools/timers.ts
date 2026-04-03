@@ -1,11 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import {
-  ProductiveTimer,
-  ProductiveTimerCreate,
-  ProductiveTimeEntryUpdate,
-} from '../api/types.js';
+import { ProductiveTimer, ProductiveTimerCreate, ProductiveTimeEntryUpdate } from '../api/types.js';
 import { formatMinutesDisplay } from './time-entries.js';
 
 const getTimerSchema = z.object({
@@ -51,7 +47,7 @@ function formatTimerResponse(
 function formatServicesList(
   services: Array<{ id: string; attributes: { name: string; [key: string]: unknown } }>,
 ): string {
-  return services.map(s => `• ${s.attributes.name} (ID: ${s.id})`).join('\n');
+  return services.map((s) => `• ${s.attributes.name} (ID: ${s.id})`).join('\n');
 }
 
 export async function getTimerTool(
@@ -70,7 +66,7 @@ export async function getTimerTool(
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => e.message).join(', ')}`,
+        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
 
@@ -101,10 +97,12 @@ export async function startTimerTool(
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: `Please choose a service and call start_timer again with the service_id:\n\n${formatServicesList(services.data)}`,
-        }],
+        content: [
+          {
+            type: 'text',
+            text: `Please choose a service and call start_timer again with the service_id:\n\n${formatServicesList(services.data)}`,
+          },
+        ],
       };
     }
 
@@ -166,7 +164,7 @@ export async function startTimerTool(
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => e.message).join(', ')}`,
+        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
 
@@ -193,7 +191,7 @@ export async function stopTimerTool(
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => e.message).join(', ')}`,
+        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
 
@@ -221,13 +219,15 @@ export const getTimerDefinition = {
 
 export const startTimerDefinition = {
   name: 'start_timer',
-  description: 'Start a new timer for time tracking. If no service_id is provided, returns a list of available services with open budgets for the user to choose from. A work description (note) is always required.',
+  description:
+    'Start a new timer for time tracking. If no service_id is provided, returns a list of available services with open budgets for the user to choose from. A work description (note) is always required.',
   inputSchema: {
     type: 'object',
     properties: {
       service_id: {
         type: 'string',
-        description: 'Service ID to track time against. If not provided, a list of available services will be returned.',
+        description:
+          'Service ID to track time against. If not provided, a list of available services will be returned.',
       },
       time_entry_id: {
         type: 'string',

@@ -10,53 +10,60 @@ const listProjectsSchema = z.object({
 
 export async function listProjectsTool(
   client: ProductiveAPIClient,
-  args: unknown
+  args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     const params = listProjectsSchema.parse(args || {});
-    
+
     const response = await client.listProjects({
       status: params.status,
       company_id: params.company_id,
       limit: params.limit,
     });
-    
+
     if (!response || !response.data || response.data.length === 0) {
       return {
-        content: [{
-          type: 'text',
-          text: 'No projects found matching the criteria.',
-        }],
+        content: [
+          {
+            type: 'text',
+            text: 'No projects found matching the criteria.',
+          },
+        ],
       };
     }
-    
-    const projectsText = response.data.filter(project => project && project.attributes).map(project => {
-      const companyId = project.relationships?.company?.data?.id;
-      return `• ${project.attributes.name} (ID: ${project.id})
+
+    const projectsText = response.data
+      .filter((project) => project && project.attributes)
+      .map((project) => {
+        const companyId = project.relationships?.company?.data?.id;
+        return `• ${project.attributes.name} (ID: ${project.id})
   Status: ${project.attributes.status}
   ${companyId ? `Company ID: ${companyId}` : ''}
   ${project.attributes.description ? `Description: ${project.attributes.description}` : 'No description'}`;
-    }).join('\n\n');
-    
+      })
+      .join('\n\n');
+
     const summary = `Found ${response.data.length} project${response.data.length !== 1 ? 's' : ''}${response.meta?.total_count ? ` (showing ${response.data.length} of ${response.meta.total_count})` : ''}:\n\n${projectsText}`;
-    
+
     return {
-      content: [{
-        type: 'text',
-        text: summary,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: summary,
+        },
+      ],
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => e.message).join(', ')}`
+        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
-    
+
     throw new McpError(
       ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred'
+      error instanceof Error ? error.message : 'Unknown error occurred',
     );
   }
 }

@@ -17,11 +17,11 @@ const ListActivitiesRequestSchema = z.object({
 
 export async function listActivities(
   client: ProductiveAPIClient,
-  args: unknown
+  args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     const params = ListActivitiesRequestSchema.parse(args);
-    
+
     // Helper: Convert days_back to 'after' parameter
     let after = params.after;
     if (params.days_back && !after) {
@@ -29,7 +29,7 @@ export async function listActivities(
       date.setDate(date.getDate() - params.days_back);
       after = date.toISOString();
     }
-    
+
     const response = await client.listActivities({
       task_id: params.task_id,
       project_id: params.project_id,
@@ -44,17 +44,17 @@ export async function listActivities(
 
     const activities = response.data;
     let output = `Found ${activities.length} activities`;
-    
+
     if (response.meta?.total_count) {
       output += ` (${response.meta.total_count} total)`;
     }
-    
+
     if (params.days_back) {
       output += ` from the last ${params.days_back} days`;
     } else if (after || params.before) {
       output += ` within specified date range`;
     }
-    
+
     output += ':\n\n';
 
     if (activities.length === 0) {
@@ -65,20 +65,20 @@ export async function listActivities(
         const event = activity.attributes.event;
         const itemType = activity.attributes.item_type;
         const itemId = activity.attributes.item_id;
-        
+
         output += `• ${createdAt} - ${event} ${itemType} (ID: ${itemId})`;
-        
+
         if (activity.attributes.changes && Object.keys(activity.attributes.changes).length > 0) {
           const changes = Object.entries(activity.attributes.changes)
             .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
             .join(', ');
           output += `\n  Changes: ${changes}`;
         }
-        
+
         if (activity.relationships?.creator?.data?.id) {
           output += `\n  Creator: Person ID ${activity.relationships.creator.data.id}`;
         }
-        
+
         output += '\n\n';
       }
     }
@@ -99,20 +99,21 @@ export async function listActivities(
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
       );
     }
-    
+
     throw new McpError(
       ErrorCode.InternalError,
-      `Failed to list activities: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to list activities: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
   }
 }
 
 export const listActivitiesTool = {
   name: 'list_activities',
-  description: 'List activities (changes/updates) from Productive.io with filtering options for tracking recent work',
+  description:
+    'List activities (changes/updates) from Productive.io with filtering options for tracking recent work',
   inputSchema: {
     type: 'object',
     properties: {
@@ -121,7 +122,7 @@ export const listActivitiesTool = {
         description: 'Filter activities for a specific task ID',
       },
       project_id: {
-        type: 'string', 
+        type: 'string',
         description: 'Filter activities for a specific project ID',
       },
       person_id: {
@@ -138,7 +139,8 @@ export const listActivitiesTool = {
       },
       after: {
         type: 'string',
-        description: 'Filter activities after this date (ISO 8601 format, e.g., "2024-01-01T00:00:00Z")',
+        description:
+          'Filter activities after this date (ISO 8601 format, e.g., "2024-01-01T00:00:00Z")',
       },
       before: {
         type: 'string',

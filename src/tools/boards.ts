@@ -9,66 +9,67 @@ const ListBoardsSchema = z.object({
 
 export async function listBoards(
   client: ProductiveAPIClient,
-  args: unknown
+  args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     const params = ListBoardsSchema.parse(args || {});
-    
+
     const response = await client.listBoards({
       project_id: params.project_id,
       limit: params.limit,
     });
-    
+
     // Add defensive checks for response structure
     if (!response || !response.data || response.data.length === 0) {
       const filterText = params.project_id ? ` for project ${params.project_id}` : '';
       return {
-        content: [{
-          type: 'text',
-          text: `No boards found${filterText}`,
-        }],
+        content: [
+          {
+            type: 'text',
+            text: `No boards found${filterText}`,
+          },
+        ],
       };
     }
-    
-    const boardsText = response.data.filter(board => board && board.attributes).map(board => {
-      let text = `Board: ${board.attributes.name} (ID: ${board.id})`;
-      if (board.attributes.description) {
-        text += `\nDescription: ${board.attributes.description}`;
-      }
-      if (board.attributes.position !== undefined) {
-        text += `\nPosition: ${board.attributes.position}`;
-      }
-      if (board.relationships?.project?.data?.id) {
-        text += `\nProject ID: ${board.relationships.project.data.id}`;
-      }
-      return text;
-    }).join('\n\n');
-    
+
+    const boardsText = response.data
+      .filter((board) => board && board.attributes)
+      .map((board) => {
+        let text = `Board: ${board.attributes.name} (ID: ${board.id})`;
+        if (board.attributes.description) {
+          text += `\nDescription: ${board.attributes.description}`;
+        }
+        if (board.attributes.position !== undefined) {
+          text += `\nPosition: ${board.attributes.position}`;
+        }
+        if (board.relationships?.project?.data?.id) {
+          text += `\nProject ID: ${board.relationships.project.data.id}`;
+        }
+        return text;
+      })
+      .join('\n\n');
+
     return {
-      content: [{
-        type: 'text',
-        text: boardsText,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: boardsText,
+        },
+      ],
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
       );
     }
-    
+
     if (error instanceof Error) {
-      throw new McpError(
-        ErrorCode.InternalError,
-        `API error: ${error.message}`
-      );
+      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      'Unknown error occurred while fetching boards'
-    );
+
+    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching boards');
   }
 }
 
@@ -99,11 +100,11 @@ const CreateBoardSchema = z.object({
 
 export async function createBoard(
   client: ProductiveAPIClient,
-  args: unknown
+  args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     const params = CreateBoardSchema.parse(args || {});
-    
+
     const boardData = {
       data: {
         type: 'boards' as const,
@@ -121,9 +122,9 @@ export async function createBoard(
         },
       },
     };
-    
+
     const response = await client.createBoard(boardData);
-    
+
     let text = `Board created successfully!\n`;
     text += `Name: ${response.data.attributes.name} (ID: ${response.data.id})`;
     if (response.data.attributes.description) {
@@ -133,32 +134,28 @@ export async function createBoard(
     if (response.data.attributes.created_at) {
       text += `\nCreated at: ${response.data.attributes.created_at}`;
     }
-    
+
     return {
-      content: [{
-        type: 'text',
-        text: text,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: text,
+        },
+      ],
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
       );
     }
-    
+
     if (error instanceof Error) {
-      throw new McpError(
-        ErrorCode.InternalError,
-        `API error: ${error.message}`
-      );
+      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
     }
-    
-    throw new McpError(
-      ErrorCode.InternalError,
-      'Unknown error occurred while creating board'
-    );
+
+    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while creating board');
   }
 }
 

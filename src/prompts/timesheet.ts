@@ -24,11 +24,11 @@ export async function generateTimesheetPrompt(args: unknown): Promise<{
 }> {
   try {
     const params = timesheetPromptSchema.parse(args);
-    
+
     const projectHint = params.project_name ? `for project "${params.project_name}"` : '';
     const dateHint = params.date ? ` on ${params.date}` : '';
     const timeHint = params.time ? ` (${params.time})` : '';
-    
+
     const workflowGuidance = `I'll help you create a timesheet entry${projectHint}${dateHint}${timeHint}. 
 
 **TIMESHEET WORKFLOW OVERVIEW:**
@@ -54,16 +54,16 @@ Let's start the workflow:`;
         role: 'user',
         content: {
           type: 'text',
-          text: `Please help me create a timesheet entry${projectHint}${dateHint}${timeHint}${params.work_description ? ` for: ${params.work_description}` : ''}`
-        }
+          text: `Please help me create a timesheet entry${projectHint}${dateHint}${timeHint}${params.work_description ? ` for: ${params.work_description}` : ''}`,
+        },
       },
       {
         role: 'assistant',
         content: {
           type: 'text',
-          text: workflowGuidance
-        }
-      }
+          text: workflowGuidance,
+        },
+      },
     ];
 
     // Add project-specific guidance if project name provided
@@ -79,8 +79,8 @@ Since you mentioned "${params.project_name}", let me search for matching project
 I'll use: list_projects to find projects matching "${params.project_name}"
 \`\`\`
 
-Once we find your project, we'll move to budget selection.`
-        }
+Once we find your project, we'll move to budget selection.`,
+        },
       });
     } else {
       messages.push({
@@ -94,8 +94,8 @@ First, let's find the project you worked on:
 I'll use: list_projects to show available projects
 \`\`\`
 
-Please tell me which project you worked on, or I can list all active projects for you to choose from.`
-        }
+Please tell me which project you worked on, or I can list all active projects for you to choose from.`,
+        },
       });
     }
 
@@ -129,35 +129,36 @@ Before any time is logged, you'll see:
 Only after you explicitly confirm will the time entry be created.
 
 **READY TO START?** 
-Tell me the project name or say "list projects" to see all available projects.`
-      }
+Tell me the project name or say "list projects" to see all available projects.`,
+      },
     });
 
     return {
       description: `Guided timesheet entry workflow${projectHint}${dateHint}${timeHint}`,
-      messages
+      messages,
     };
-
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid prompt arguments: ${error.errors.map(e => e.message).join(', ')}`
+        `Invalid prompt arguments: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
-    
+
     throw new McpError(
       ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred'
+      error instanceof Error ? error.message : 'Unknown error occurred',
     );
   }
 }
 
 // Schema for quick timesheet prompt
 const quickTimesheetSchema = z.object({
-  step: z.enum(['project', 'budget', 'service', 'task', 'create']).describe('Current step in workflow'),
+  step: z
+    .enum(['project', 'budget', 'service', 'task', 'create'])
+    .describe('Current step in workflow'),
   project_id: z.string().optional().describe('Selected project ID'),
-  deal_id: z.string().optional().describe('Selected deal/budget ID'),  
+  deal_id: z.string().optional().describe('Selected deal/budget ID'),
   service_id: z.string().optional().describe('Selected service ID'),
   task_id: z.string().optional().describe('Selected task ID'),
 });
@@ -177,33 +178,39 @@ export async function generateQuickTimesheetPrompt(args: unknown): Promise<{
 }> {
   try {
     const params = quickTimesheetSchema.parse(args);
-    
+
     let stepGuidance = '';
     let nextAction = '';
-    
+
     switch (params.step) {
       case 'project':
-        stepGuidance = '**STEP 1: 🏢 PROJECT SELECTION**\nI need to find the project you worked on.';
-        nextAction = 'Use: `list_projects` to see available projects, then tell me the project name or ID.';
+        stepGuidance =
+          '**STEP 1: 🏢 PROJECT SELECTION**\nI need to find the project you worked on.';
+        nextAction =
+          'Use: `list_projects` to see available projects, then tell me the project name or ID.';
         break;
-        
+
       case 'budget':
-        stepGuidance = '**STEP 2: 💰 BUDGET/DEAL SELECTION**\nNow I need to find the correct budget or deal for this project.';
+        stepGuidance =
+          '**STEP 2: 💰 BUDGET/DEAL SELECTION**\nNow I need to find the correct budget or deal for this project.';
         nextAction = `Use: \`list_project_deals project_id="${params.project_id}"\` to see available budgets/deals.`;
         break;
-        
+
       case 'service':
-        stepGuidance = '**STEP 3: ⚙️ SERVICE SELECTION**\nTime to pick the specific service type for your work.';
+        stepGuidance =
+          '**STEP 3: ⚙️ SERVICE SELECTION**\nTime to pick the specific service type for your work.';
         nextAction = `Use: \`list_deal_services deal_id="${params.deal_id}"\` to see services for this budget.`;
         break;
-        
+
       case 'task':
-        stepGuidance = '**STEP 4: 📋 TASK SELECTION (Recommended)**\nLet\'s link your time to a specific task.';
+        stepGuidance =
+          "**STEP 4: 📋 TASK SELECTION (Recommended)**\nLet's link your time to a specific task.";
         nextAction = `Use: \`get_project_tasks project_id="${params.project_id}"\` to see available tasks.`;
         break;
-        
+
       case 'create':
-        stepGuidance = '**STEP 5: 📝 CREATE TIME ENTRY WITH CONFIRMATION**\nReady to preview and confirm your time entry before creation.';
+        stepGuidance =
+          '**STEP 5: 📝 CREATE TIME ENTRY WITH CONFIRMATION**\nReady to preview and confirm your time entry before creation.';
         nextAction = `Use: \`create_time_entry\` with service_id="${params.service_id}"${params.task_id ? `, task_id="${params.task_id}"` : ''}, detailed notes, date, and time.\n\n**IMPORTANT CONFIRMATION PROCESS:**\n1. First call without \`confirm: true\` - Shows preview of what will be created\n2. Review the details carefully\n3. If correct, call again with \`confirm: true\` to actually create the entry\n\nThis two-step process prevents accidental time entries.`;
         break;
     }
@@ -215,8 +222,8 @@ export async function generateQuickTimesheetPrompt(args: unknown): Promise<{
           role: 'user',
           content: {
             type: 'text',
-            text: `Help me with timesheet entry step: ${params.step}`
-          }
+            text: `Help me with timesheet entry step: ${params.step}`,
+          },
         },
         {
           role: 'assistant',
@@ -233,23 +240,22 @@ ${nextAction}
 - ✅ Valid service_id from the project → budget → service hierarchy
 - ✅ Detailed work description (minimum 10 characters)
 - ✅ Specific date and time duration
-- 📝 Optional but recommended: task_id for better tracking`
-          }
-        }
-      ]
+- 📝 Optional but recommended: task_id for better tracking`,
+          },
+        },
+      ],
     };
-
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid prompt arguments: ${error.errors.map(e => e.message).join(', ')}`
+        `Invalid prompt arguments: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
-    
+
     throw new McpError(
       ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred'
+      error instanceof Error ? error.message : 'Unknown error occurred',
     );
   }
 }
@@ -257,17 +263,22 @@ ${nextAction}
 function getProgressIndicator(currentStep: string): string {
   const steps = ['project', 'budget', 'service', 'task', 'create'];
   const currentIndex = steps.indexOf(currentStep);
-  
-  return steps.map((_, index) => {
-    if (index < currentIndex) return '✅';
-    if (index === currentIndex) return '🔄';
-    return '⏳';
-  }).join(' ') + ` (Step ${currentIndex + 1}/5)`;
+
+  return (
+    steps
+      .map((_, index) => {
+        if (index < currentIndex) return '✅';
+        if (index === currentIndex) return '🔄';
+        return '⏳';
+      })
+      .join(' ') + ` (Step ${currentIndex + 1}/5)`
+  );
 }
 
 export const timesheetPromptDefinition = {
   name: 'timesheet_entry',
-  description: 'Guided workflow for creating timesheet entries in Productive.io. Walks you through project → budget → service → task → time entry selection with proper validation.',
+  description:
+    'Guided workflow for creating timesheet entries in Productive.io. Walks you through project → budget → service → task → time entry selection with proper validation.',
   arguments: [
     {
       name: 'project_name',
@@ -294,7 +305,8 @@ export const timesheetPromptDefinition = {
 
 export const quickTimesheetPromptDefinition = {
   name: 'timesheet_step',
-  description: 'Step-by-step guidance for timesheet workflow. Use this to get specific help for each step: project, budget, service, task, or create.',
+  description:
+    'Step-by-step guidance for timesheet workflow. Use this to get specific help for each step: project, budget, service, task, or create.',
   arguments: [
     {
       name: 'step',

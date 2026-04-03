@@ -14,7 +14,7 @@ const updateTimeEntrySchema = z.object({
 
 export async function updateTimeEntryTool(
   client: ProductiveAPIClient,
-  args: unknown
+  args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     const params = updateTimeEntrySchema.parse(args);
@@ -27,7 +27,7 @@ export async function updateTimeEntryTool(
       } catch (error) {
         throw new McpError(
           ErrorCode.InvalidParams,
-          error instanceof Error ? error.message : 'Invalid date format'
+          error instanceof Error ? error.message : 'Invalid date format',
         );
       }
     }
@@ -38,7 +38,7 @@ export async function updateTimeEntryTool(
       } catch (error) {
         throw new McpError(
           ErrorCode.InvalidParams,
-          error instanceof Error ? error.message : 'Invalid time format'
+          error instanceof Error ? error.message : 'Invalid time format',
         );
       }
     }
@@ -49,7 +49,7 @@ export async function updateTimeEntryTool(
       } catch (error) {
         throw new McpError(
           ErrorCode.InvalidParams,
-          `Invalid billable time format: ${error instanceof Error ? error.message : 'Invalid time format'}`
+          `Invalid billable time format: ${error instanceof Error ? error.message : 'Invalid time format'}`,
         );
       }
     }
@@ -61,7 +61,7 @@ export async function updateTimeEntryTool(
     if (Object.keys(attributes).length === 0) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        'At least one field to update must be provided (date, time, billable_time, or note)'
+        'At least one field to update must be provided (date, time, billable_time, or note)',
       );
     }
 
@@ -81,7 +81,10 @@ export async function updateTimeEntryTool(
     text += `Date: ${entry.attributes.date}\n`;
     text += `Time: ${formatMinutesDisplay(entry.attributes.time)}`;
 
-    if (entry.attributes.billable_time !== undefined && entry.attributes.billable_time !== entry.attributes.time) {
+    if (
+      entry.attributes.billable_time !== undefined &&
+      entry.attributes.billable_time !== entry.attributes.time
+    ) {
       text += ` (Billable: ${formatMinutesDisplay(entry.attributes.billable_time)})`;
     }
 
@@ -104,20 +107,21 @@ export async function updateTimeEntryTool(
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map(e => e.message).join(', ')}`
+        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
       );
     }
 
     throw new McpError(
       ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred'
+      error instanceof Error ? error.message : 'Unknown error occurred',
     );
   }
 }
 
 export const updateTimeEntryDefinition = {
   name: 'update_time_entry',
-  description: 'Update an existing time entry in Productive.io. All fields except time_entry_id are optional - only provided fields will be updated. Use list_time_entries to find the time entry ID first.',
+  description:
+    'Update an existing time entry in Productive.io. All fields except time_entry_id are optional - only provided fields will be updated. Use list_time_entries to find the time entry ID first.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -131,7 +135,8 @@ export const updateTimeEntryDefinition = {
       },
       time: {
         type: 'string',
-        description: 'New time duration. Accepts formats like "2h", "120m", "2.5h", or "2.5" (assumed hours)',
+        description:
+          'New time duration. Accepts formats like "2h", "120m", "2.5h", or "2.5" (assumed hours)',
       },
       billable_time: {
         type: 'string',
