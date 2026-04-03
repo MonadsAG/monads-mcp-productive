@@ -24,6 +24,12 @@ import {
   ProductiveTimer,
   ProductiveTimerCreate,
   ProductiveError,
+  ProductiveDocumentType,
+  ProductiveTaxRate,
+  ProductiveInvoice,
+  ProductiveInvoiceCreate,
+  ProductiveLineItemGenerate,
+  ProductivePaymentCreate,
 } from './types.js';
 
 export class ProductiveAPIClient {
@@ -836,6 +842,109 @@ export class ProductiveAPIClient {
     return this.listTimeEntries({
       date: today,
       ...additionalParams,
+    });
+  }
+
+  async listDocumentTypes(params?: {
+    limit?: number;
+  }): Promise<ProductiveResponse<ProductiveDocumentType>> {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) {
+      queryParams.append('page[size]', params.limit.toString());
+    }
+    const queryString = queryParams.toString();
+    const path = `document_types${queryString ? `?${queryString}` : ''}`;
+    return this.makeRequest<ProductiveResponse<ProductiveDocumentType>>(path);
+  }
+
+  async listTaxRates(params?: { limit?: number }): Promise<ProductiveResponse<ProductiveTaxRate>> {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) {
+      queryParams.append('page[size]', params.limit.toString());
+    }
+    const queryString = queryParams.toString();
+    const path = `tax_rates${queryString ? `?${queryString}` : ''}`;
+    return this.makeRequest<ProductiveResponse<ProductiveTaxRate>>(path);
+  }
+
+  async listInvoices(params?: {
+    company_id?: string;
+    project_id?: string;
+    deal_id?: string;
+    invoice_state?: number;
+    invoice_status?: number;
+    payment_status?: number;
+    after?: string;
+    before?: string;
+    full_query?: string;
+    limit?: number;
+    page?: number;
+  }): Promise<ProductiveResponse<ProductiveInvoice>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('include', 'company');
+    if (params?.company_id) queryParams.append('filter[company_id]', params.company_id);
+    if (params?.project_id) queryParams.append('filter[project_id]', params.project_id);
+    if (params?.deal_id) queryParams.append('filter[deal_id]', params.deal_id);
+    if (params?.invoice_state)
+      queryParams.append('filter[invoice_state]', params.invoice_state.toString());
+    if (params?.invoice_status)
+      queryParams.append('filter[invoice_status]', params.invoice_status.toString());
+    if (params?.payment_status)
+      queryParams.append('filter[payment_status]', params.payment_status.toString());
+    if (params?.after) queryParams.append('filter[after]', params.after);
+    if (params?.before) queryParams.append('filter[before]', params.before);
+    if (params?.full_query) queryParams.append('filter[full_query]', params.full_query);
+    if (params?.limit) queryParams.append('page[size]', params.limit.toString());
+    if (params?.page) queryParams.append('page[number]', params.page.toString());
+    queryParams.append('sort', '-invoiced_on');
+    const queryString = queryParams.toString();
+    const path = `invoices${queryString ? `?${queryString}` : ''}`;
+    return this.makeRequest<ProductiveResponse<ProductiveInvoice>>(path);
+  }
+
+  async getInvoice(id: string): Promise<ProductiveSingleResponse<ProductiveInvoice>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveInvoice>>(
+      `invoices/${id}?include=line_items,company`,
+    );
+  }
+
+  async createInvoice(
+    data: ProductiveInvoiceCreate,
+  ): Promise<ProductiveSingleResponse<ProductiveInvoice>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveInvoice>>('invoices', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async generateLineItems(data: ProductiveLineItemGenerate): Promise<ProductiveResponse<unknown>> {
+    return this.makeRequest<ProductiveResponse<unknown>>('line_items/generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async finalizeInvoice(id: string): Promise<ProductiveSingleResponse<ProductiveInvoice>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveInvoice>>(
+      `invoices/${id}/finalize`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ data: { type: 'invoices', attributes: {} } }),
+      },
+    );
+  }
+
+  async exportInvoice(id: string): Promise<ProductiveSingleResponse<ProductiveInvoice>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveInvoice>>(`invoices/${id}/export`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data: { type: 'invoices', attributes: {} } }),
+    });
+  }
+
+  async createPayment(data: ProductivePaymentCreate): Promise<ProductiveSingleResponse<unknown>> {
+    return this.makeRequest<ProductiveSingleResponse<unknown>>('payments', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
