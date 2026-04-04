@@ -954,13 +954,6 @@ export class ProductiveAPIClient {
     );
   }
 
-  async exportInvoice(id: string): Promise<ProductiveSingleResponse<ProductiveInvoice>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveInvoice>>(`invoices/${id}/export`, {
-      method: 'PATCH',
-      body: JSON.stringify({ data: { type: 'invoices', attributes: {} } }),
-    });
-  }
-
   async createPayment(data: ProductivePaymentCreate): Promise<ProductiveSingleResponse<unknown>> {
     return this.makeRequest<ProductiveSingleResponse<unknown>>('payments', {
       method: 'POST',

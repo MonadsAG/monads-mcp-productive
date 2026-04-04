@@ -50,7 +50,7 @@ export async function finalizeInvoiceTool(
             `Number: ${attrs.number ?? 'N/A'}`,
             `Total: ${(parseInt(attrs.amount_with_tax ?? '0', 10) / 100).toFixed(2)} ${attrs.currency ?? ''}`,
             ``,
-            `Next steps: Use export_invoice to generate a PDF, or mark_invoice_paid once payment is received.`,
+            `Next step: Use mark_invoice_paid once payment is received.`,
           ].join('\n'),
         },
       ],
@@ -83,89 +83,6 @@ export const finalizeInvoiceDefinition = {
       confirm: {
         type: 'boolean',
         description: 'Must be true to execute the irreversible finalization',
-      },
-    },
-    required: ['invoice_id'],
-  },
-};
-
-// ─── export_invoice ──────────────────────────────────────────────────────────
-
-const exportInvoiceSchema = z.object({
-  invoice_id: z.string().min(1),
-});
-
-/**
- * Export an invoice as a PDF.
- *
- * Triggers PDF generation and returns the download URL when available.
- *
- * @param client - Productive API client
- * @param args - Tool arguments matching exportInvoiceSchema
- * @returns MCP content response with PDF URL
- */
-export async function exportInvoiceTool(
-  client: ProductiveAPIClient,
-  args: unknown,
-): Promise<{ content: Array<{ type: string; text: string }> }> {
-  try {
-    const params = exportInvoiceSchema.parse(args);
-    const response = await client.exportInvoice(params.invoice_id);
-    const attrs = response.data.attributes;
-
-    if (attrs.export_invoice_url) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: [
-              `Invoice export ready!`,
-              ``,
-              `PDF URL: ${attrs.export_invoice_url}`,
-              ``,
-              `The link is time-limited. Download the PDF promptly.`,
-            ].join('\n'),
-          },
-        ],
-      };
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: [
-            `Export triggered for invoice ${params.invoice_id}.`,
-            ``,
-            `The PDF is being generated. Use get_invoice to check the export_invoice_url attribute once it becomes available.`,
-          ].join('\n'),
-        },
-      ],
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
-  }
-}
-
-export const exportInvoiceDefinition = {
-  name: 'export_invoice',
-  description:
-    'Export an invoice to an external integration. Requires an export integration to be configured in Productive. Returns export_invoice_url if available.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      invoice_id: {
-        type: 'string',
-        description: 'ID of the invoice to export',
       },
     },
     required: ['invoice_id'],
