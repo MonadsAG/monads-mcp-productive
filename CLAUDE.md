@@ -26,7 +26,7 @@ src/
 │   ├── tasks.ts      # CRUD + assignment + details
 │   ├── time-entries.ts  # Time entries, services, deals
 │   ├── timers.ts     # Start/stop/get timer
-│   └── ...           # 20 tool files total
+│   └── ...           # 23 tool files total
 ├── prompts/          # MCP prompt templates
 │   └── timesheet.ts  # Guided timesheet workflow
 docs/api-spec/        # Generated API specs (see below)
@@ -36,6 +36,7 @@ docs/api-spec/        # Generated API specs (see below)
 
 - **Project:** Customers -> Projects -> Boards -> Task Lists -> Tasks
 - **Timesheet:** Projects -> Deals/Budgets -> Services -> Tasks -> Time Entries
+- **Invoice:** Company -> Budgets -> Invoice -> Line Items -> Finalize -> Pay
 
 ## MCP Protocol Constraints
 
@@ -43,6 +44,12 @@ docs/api-spec/        # Generated API specs (see below)
 - ANY non-protocol stdout output **BREAKS** the connection
 - ALL debug/log/error output **MUST** use stderr
 - Messages are newline-delimited JSON, each on a single line
+
+## Invoice Workflow
+
+`list_companies` -> `list_company_budgets` -> `create_invoice` -> `generate_line_items` -> `finalize_invoice` -> `mark_invoice_paid`
+
+Smart Defaults: `document_type_id`, `tax_rate_id`, `subsidiary_id` are auto-resolved if only one active option exists.
 
 ## Adding New Tools
 
@@ -64,11 +71,18 @@ Generated docs in `docs/api-spec/`:
 Regenerate: `cd docs/api-spec && python productive_to_openapi.py`
 Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_to_openapi.py`
 
+## Gotchas
+
+- **Amounts in cents**: API returns amounts as integer strings (e.g. "2506569" = 25065.69). Divide by 100 for display, send cents to API.
+- **Org ID for PDF URLs**: `PRODUCTIVE_ORG_ID` must include the slug (e.g. `43059-monads-ag`, not just `43059`) for PDF URL generation.
+- **generate_line_items**: Uses a FLAT payload, not JSON API envelope. `invoicing_method` is hardcoded to `uninvoiced_time_and_expenses`.
+- **Line items not includable**: `get_invoice` cannot use `?include=line_items`. Fetch separately via `listLineItems`.
+
 ## Environment Variables
 
 ```bash
 PRODUCTIVE_API_TOKEN=...    # Required. Settings -> API integrations
-PRODUCTIVE_ORG_ID=...       # Required
+PRODUCTIVE_ORG_ID=...       # Required. Must include slug for PDF URLs (e.g. 43059-monads-ag)
 PRODUCTIVE_USER_ID=...      # Optional. For "my tasks" features
 ```
 
