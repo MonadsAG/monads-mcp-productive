@@ -102,6 +102,8 @@ import {
   getInvoiceDefinition,
   createInvoiceTool,
   createInvoiceDefinition,
+  updateInvoiceTool,
+  updateInvoiceDefinition,
   generateLineItemsTool,
   generateLineItemsDefinition,
 } from './tools/invoices.js';
@@ -179,6 +181,7 @@ export async function createServer() {
       listInvoicesDefinition,
       getInvoiceDefinition,
       createInvoiceDefinition,
+      updateInvoiceDefinition,
       generateLineItemsDefinition,
       finalizeInvoiceDefinition,
       exportInvoiceDefinition,
@@ -319,6 +322,9 @@ export async function createServer() {
 
       case 'create_invoice':
         return await createInvoiceTool(apiClient, args);
+
+      case 'update_invoice':
+        return await updateInvoiceTool(apiClient, args);
 
       case 'generate_line_items':
         return await generateLineItemsTool(apiClient, args);

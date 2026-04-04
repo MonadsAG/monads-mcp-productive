@@ -48,7 +48,7 @@ export async function finalizeInvoiceTool(
           text: [
             `Invoice finalized!`,
             `Number: ${attrs.number ?? 'N/A'}`,
-            `Total: ${attrs.amount_with_tax ?? 'N/A'}`,
+            `Total: ${(parseInt(attrs.amount_with_tax ?? '0', 10) / 100).toFixed(2)} ${attrs.currency ?? ''}`,
             ``,
             `Next steps: Use export_invoice to generate a PDF, or mark_invoice_paid once payment is received.`,
           ].join('\n'),
@@ -159,7 +159,7 @@ export async function exportInvoiceTool(
 export const exportInvoiceDefinition = {
   name: 'export_invoice',
   description:
-    'Export an invoice as a PDF. Returns a download URL for the generated PDF file. If the URL is not immediately available, use get_invoice to check later.',
+    'Export an invoice to an external integration. Requires an export integration to be configured in Productive. Returns export_invoice_url if available.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -201,16 +201,19 @@ export async function markInvoicePaidTool(
     const invoiceResponse = await client.getInvoice(params.invoice_id);
     const attrs = invoiceResponse.data.attributes;
 
-    const amountWithTax = parseFloat(attrs.amount_with_tax ?? '0');
-    const amountPaid = parseFloat(attrs.amount_paid ?? '0');
-    const remaining = amountWithTax - amountPaid;
+    // Amounts from API are in cents (integer strings)
+    const amountWithTaxCents = parseInt(attrs.amount_with_tax ?? '0', 10);
+    const remainingCents = parseInt(attrs.amount_unpaid ?? '0', 10);
+    const currency = attrs.currency ?? '';
 
-    if (remaining <= 0) {
+    const fmtAmount = (cents: number): string => (cents / 100).toFixed(2);
+
+    if (remainingCents <= 0) {
       return {
         content: [
           {
             type: 'text',
-            text: `Invoice ${params.invoice_id} is already fully paid (total: ${attrs.amount_with_tax ?? '0'}, paid: ${attrs.amount_paid ?? '0'}).`,
+            text: `Invoice ${params.invoice_id} is already fully paid (total: ${fmtAmount(amountWithTaxCents)} ${currency}).`,
           },
         ],
       };
@@ -225,7 +228,7 @@ export async function markInvoicePaidTool(
             type: 'text',
             text: [
               `Payment preview for invoice ${params.invoice_id}:`,
-              `  Will pay: ${remaining.toFixed(2)} (of total ${amountWithTax.toFixed(2)})`,
+              `  Will pay: ${fmtAmount(remainingCents)} ${currency} (of total ${fmtAmount(amountWithTaxCents)} ${currency})`,
               `  Date: ${paidOn}`,
               params.note ? `  Note: ${params.note}` : null,
               ``,
@@ -242,7 +245,7 @@ export async function markInvoicePaidTool(
       data: {
         type: 'payments',
         attributes: {
-          amount: remaining.toFixed(2),
+          amount: remainingCents.toString(),
           paid_on: paidOn,
           ...(params.note !== undefined && { note: params.note }),
         },
@@ -261,7 +264,7 @@ export async function markInvoicePaidTool(
           text: [
             `Payment recorded successfully!`,
             `  Invoice: ${params.invoice_id}`,
-            `  Amount paid: ${remaining.toFixed(2)}`,
+            `  Amount paid: ${fmtAmount(remainingCents)} ${currency}`,
             `  Date: ${paidOn}`,
             params.note ? `  Note: ${params.note}` : null,
           ]
@@ -287,7 +290,7 @@ export async function markInvoicePaidTool(
 export const markInvoicePaidDefinition = {
   name: 'mark_invoice_paid',
   description:
-    'Record a payment for an invoice. Fetches the current invoice to calculate the remaining balance and creates a payment record. Requires confirm: true to execute.',
+    'Mark an invoice as fully paid. Automatically calculates the remaining unpaid amount and creates a payment for that exact amount. Requires confirm: true to execute.',
   inputSchema: {
     type: 'object',
     properties: {

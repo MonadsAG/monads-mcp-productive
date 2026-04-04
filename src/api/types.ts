@@ -250,6 +250,7 @@ export interface ProductiveTaskUpdate {
 
 export interface ProductiveSingleResponse<T> {
   data: T;
+  included?: ProductiveIncludedResource[];
 }
 
 export interface ProductivePerson {
@@ -629,10 +630,11 @@ export interface ProductiveTaxRate {
   type: 'tax_rates';
   attributes: {
     name: string;
-    tax: string;
-    status?: string;
-    created_at: string;
-    updated_at: string;
+    primary_component_value: string;
+    primary_component_name?: string;
+    secondary_component_value?: string | null;
+    secondary_component_name?: string | null;
+    archived_at?: string | null;
     [key: string]: any;
   };
 }
@@ -654,10 +656,7 @@ export interface ProductiveInvoice {
     amount_paid?: string;
     amount_unpaid?: string;
     amount_tax?: string;
-    invoice_state?: number;
-    invoice_status?: number;
     invoice_type_id?: number;
-    payment_status?: number;
     note?: string;
     footer?: string;
     payment_terms?: number;
@@ -695,20 +694,50 @@ export interface ProductiveInvoiceCreate {
   };
 }
 
+export interface ProductiveLineItem {
+  id: string;
+  type: 'line_items';
+  attributes: {
+    description?: string;
+    quantity?: number;
+    unit_price?: string;
+    amount?: string;
+    discount?: string;
+    position?: number;
+    [key: string]: any;
+  };
+}
+
+/** Flat payload — this endpoint does NOT use JSON API envelope */
 export interface ProductiveLineItemGenerate {
   data: {
-    type: 'line_items';
-    attributes: {
-      invoicing_method: string;
-      display_format: string;
-      date_from?: string;
-      date_to?: string;
-      invoicing_by?: string;
-    };
-    relationships: {
-      invoice: { data: { id: string; type: 'invoices' } };
-      deals: { data: Array<{ id: string; type: 'deals' }> };
-      tax_rate: { data: { id: string; type: 'tax_rates' } };
+    invoice_id: number;
+    budget_ids: number[];
+    tax_rate_id: number;
+    invoicing_method: string;
+    display_format: string;
+    date_from?: string;
+    date_to?: string;
+    invoicing_by?: string;
+    locale?: string;
+  };
+}
+
+export interface ProductiveInvoiceUpdate {
+  data: {
+    type: 'invoices';
+    id: string;
+    attributes?: {
+      subject?: string;
+      note?: string;
+      footer?: string;
+      invoiced_on?: string;
+      pay_on?: string;
+      delivery_on?: string;
+      currency?: string;
+      payment_terms?: number;
+      number?: string;
+      purchase_order_number?: string;
     };
   };
 }

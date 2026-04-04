@@ -80,7 +80,10 @@ export async function listTaxRatesTool(
     }
 
     const text = response.data
-      .map((tr) => `• ${tr.attributes.name} — ${tr.attributes.tax}% (ID: ${tr.id})`)
+      .map(
+        (tr) =>
+          `• ${tr.attributes.name} — ${tr.attributes.primary_component_value}% (ID: ${tr.id})`,
+      )
       .join('\n');
 
     return {

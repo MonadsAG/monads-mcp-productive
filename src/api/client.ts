@@ -30,6 +30,9 @@ import {
   ProductiveInvoiceCreate,
   ProductiveLineItemGenerate,
   ProductivePaymentCreate,
+  ProductiveInvoiceUpdate,
+  ProductiveIncludedResource,
+  ProductiveLineItem,
 } from './types.js';
 
 export class ProductiveAPIClient {
@@ -61,9 +64,6 @@ export class ProductiveAPIClient {
 
       if (!response.ok) {
         const errorData = (await response.json()) as ProductiveError;
-        // Debug: Log full error response
-        console.error('API Error Response:', JSON.stringify(errorData, null, 2));
-        console.error('Request was to:', url);
         const errorMessage =
           errorData.errors?.[0]?.detail || `API request failed with status ${response.status}`;
         throw new Error(errorMessage);
@@ -508,8 +508,6 @@ export class ProductiveAPIClient {
   async createTimeEntry(
     timeEntryData: ProductiveTimeEntryCreate,
   ): Promise<ProductiveSingleResponse<ProductiveTimeEntry>> {
-    // Debug: Log the request body
-    console.error('Creating time entry with data:', JSON.stringify(timeEntryData, null, 2));
     return this.makeRequest<ProductiveSingleResponse<ProductiveTimeEntry>>('time_entries', {
       method: 'POST',
       body: JSON.stringify(timeEntryData),
@@ -904,7 +902,19 @@ export class ProductiveAPIClient {
 
   async getInvoice(id: string): Promise<ProductiveSingleResponse<ProductiveInvoice>> {
     return this.makeRequest<ProductiveSingleResponse<ProductiveInvoice>>(
-      `invoices/${id}?include=line_items,company`,
+      `invoices/${id}?include=company`,
+    );
+  }
+
+  async listLineItems(params: {
+    invoice_id: string;
+    limit?: number;
+  }): Promise<ProductiveResponse<ProductiveLineItem>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('filter[invoice_id]', params.invoice_id);
+    if (params.limit) queryParams.append('page[size]', params.limit.toString());
+    return this.makeRequest<ProductiveResponse<ProductiveLineItem>>(
+      `line_items?${queryParams.toString()}`,
     );
   }
 
@@ -913,6 +923,16 @@ export class ProductiveAPIClient {
   ): Promise<ProductiveSingleResponse<ProductiveInvoice>> {
     return this.makeRequest<ProductiveSingleResponse<ProductiveInvoice>>('invoices', {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateInvoice(
+    id: string,
+    data: ProductiveInvoiceUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveInvoice>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveInvoice>>(`invoices/${id}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
