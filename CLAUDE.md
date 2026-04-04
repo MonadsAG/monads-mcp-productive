@@ -74,7 +74,7 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 ## Gotchas
 
 - **Amounts in cents**: API returns amounts as integer strings (e.g. "2506569" = 25065.69). Divide by 100 for display, send cents to API.
-- **Org ID for PDF URLs**: `PRODUCTIVE_ORG_ID` must include the slug (e.g. `43059-monads-ag`, not just `43059`) for PDF URL generation.
+- **Org ID for PDF URLs**: `PRODUCTIVE_ORG_ID` must include the slug (e.g. `12345-company-name`, not just `12345`) for PDF URL generation.
 - **generate_line_items**: Uses a FLAT payload, not JSON API envelope. `invoicing_method` is hardcoded to `uninvoiced_time_and_expenses`.
 - **Line items not includable**: `get_invoice` cannot use `?include=line_items`. Fetch separately via `listLineItems`.
 
@@ -82,7 +82,7 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 
 ```bash
 PRODUCTIVE_API_TOKEN=...    # Required. Settings -> API integrations
-PRODUCTIVE_ORG_ID=...       # Required. Must include slug for PDF URLs (e.g. 43059-monads-ag)
+PRODUCTIVE_ORG_ID=...       # Required. Must include slug for PDF URLs (e.g. 12345-company-name)
 PRODUCTIVE_USER_ID=...      # Optional. For "my tasks" features
 ```
 
