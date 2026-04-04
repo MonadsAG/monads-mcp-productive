@@ -962,6 +962,19 @@ export class ProductiveAPIClient {
     return this.makeRequest<ProductiveResponse<ProductiveIncludedResource>>('subsidiaries');
   }
 
+  async listCompanyBudgets(params: {
+    company_id: string;
+    limit?: number;
+  }): Promise<ProductiveResponse<ProductiveDeal>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('filter[type]', '2');
+    queryParams.append('filter[status]', '1');
+    queryParams.append('filter[company_id]', params.company_id);
+    queryParams.append('include', 'project');
+    if (params.limit) queryParams.append('page[size]', params.limit.toString());
+    return this.makeRequest<ProductiveResponse<ProductiveDeal>>(`deals?${queryParams.toString()}`);
+  }
+
   async createPayment(data: ProductivePaymentCreate): Promise<ProductiveSingleResponse<unknown>> {
     return this.makeRequest<ProductiveSingleResponse<unknown>>('payments', {
       method: 'POST',

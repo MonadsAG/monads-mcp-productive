@@ -92,6 +92,8 @@ import {
 import {
   listInvoicesTool,
   listInvoicesDefinition,
+  listCompanyBudgetsTool,
+  listCompanyBudgetsDefinition,
   getInvoiceTool,
   getInvoiceDefinition,
   createInvoiceTool,
@@ -171,6 +173,7 @@ export async function createServer() {
       addToBacklogTool,
       taskRepositionDefinition,
       listInvoicesDefinition,
+      listCompanyBudgetsDefinition,
       getInvoiceDefinition,
       createInvoiceDefinition,
       updateInvoiceDefinition,
@@ -302,6 +305,9 @@ export async function createServer() {
 
       case 'list_invoices':
         return await listInvoicesTool(apiClient, args);
+
+      case 'list_company_budgets':
+        return await listCompanyBudgetsTool(apiClient, args);
 
       case 'get_invoice':
         return await getInvoiceTool(apiClient, args);

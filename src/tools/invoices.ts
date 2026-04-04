@@ -131,7 +131,7 @@ export async function listInvoicesTool(
 export const listInvoicesDefinition = {
   name: 'list_invoices',
   description:
-    'List invoices with optional filters. Returns number, company, date, amount, state, and payment status. Use list_companies to get company_id, list_project_deals to get deal_id.',
+    'List invoices with optional filters. Returns number, company, date, amount, state, and payment status. Use list_companies to get company_id, list_company_budgets to get deal_id.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -162,6 +162,85 @@ export const listInvoicesDefinition = {
       limit: {
         type: 'number',
         description: 'Max results (1-200, default 30)',
+        minimum: 1,
+        maximum: 200,
+      },
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Tool: list_company_budgets
+// ---------------------------------------------------------------------------
+
+const listCompanyBudgetsSchema = z.object({
+  company_id: z.string().describe('Company ID (use list_companies to find)'),
+  limit: z.number().min(1).max(200).default(50).optional(),
+});
+
+export async function listCompanyBudgetsTool(
+  client: ProductiveAPIClient,
+  args: unknown,
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  try {
+    const params = listCompanyBudgetsSchema.parse(args || {});
+    const response = await client.listCompanyBudgets({
+      company_id: params.company_id,
+      limit: params.limit,
+    });
+
+    if (!response?.data?.length) {
+      return { content: [{ type: 'text', text: 'No budgets found for this company.' }] };
+    }
+
+    const text = response.data
+      .map((deal) => {
+        const project = response.included?.find(
+          (r) => r.type === 'projects' && r.id === deal.relationships?.project?.data?.id,
+        );
+        const projectName = project ? (project.attributes.name as string) : '';
+        return `• ${deal.attributes.name} (ID: ${deal.id})${projectName ? `\n  Project: ${projectName}` : ''}`;
+      })
+      .join('\n\n');
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Found ${response.data.length} budget(s):\n\n${text}`,
+        },
+      ],
+    };
+  } catch (error) {
+    if (error instanceof McpError) throw error;
+    if (error instanceof z.ZodError) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
+      );
+    }
+    throw new McpError(
+      ErrorCode.InternalError,
+      error instanceof Error ? error.message : 'Unknown error',
+    );
+  }
+}
+
+export const listCompanyBudgetsDefinition = {
+  name: 'list_company_budgets',
+  description:
+    'List budgets for a company. Use list_companies to get company_id. Returns budget IDs needed for generate_line_items.',
+  inputSchema: {
+    type: 'object',
+    required: ['company_id'],
+    properties: {
+      company_id: {
+        type: 'string',
+        description: 'Company ID (use list_companies)',
+      },
+      limit: {
+        type: 'number',
+        description: 'Max results (1-200, default 50)',
         minimum: 1,
         maximum: 200,
       },
@@ -600,7 +679,7 @@ export async function generateLineItemsTool(
 export const generateLineItemsDefinition = {
   name: 'generate_line_items',
   description:
-    'Generate line items from uninvoiced time and expenses for a given period. Defaults to last month. Use list_project_deals for budget_ids. tax_rate_id is auto-resolved if omitted.',
+    'Generate line items from uninvoiced time and expenses for a given period. Defaults to last month. Use list_company_budgets for budget_ids. tax_rate_id is auto-resolved if omitted.',
   inputSchema: {
     type: 'object',
     required: ['invoice_id', 'budget_ids'],
