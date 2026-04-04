@@ -402,7 +402,7 @@ export async function getTimesheetReportUrlTool(
 export const getTimesheetReportUrlDefinition = {
   name: 'get_timesheet_report_url',
   description:
-    'Generate a PDF timesheet report URL for a budget and date range. Columns, title, grouping, and sorting are all configurable. URL must be opened in a browser where the user is logged into Productive.',
+    'Generate a PDF timesheet/time-entry report URL for a specific budget. Shows billable time entries with configurable columns, grouping, and sorting. NOT for invoice PDFs — use get_invoice_pdf_url for that. Use list_company_budgets to get budget_id. URL must be opened in a browser where the user is logged into Productive.',
   inputSchema: {
     type: 'object',
     required: ['budget_id', 'date_from', 'date_to', 'columns', 'name', 'title'],
@@ -413,7 +413,7 @@ export const getTimesheetReportUrlDefinition = {
       columns: {
         type: 'string',
         description:
-          'Comma-separated columns: day, person, note, billable-time, task, service, etc.',
+          'Comma-separated columns. Available: "day", "person", "note", "billable-time", "task", "service"',
       },
       name: { type: 'string', description: 'PDF filename (e.g. "Zeitnachweis_20260011")' },
       title: { type: 'string', description: 'Title shown in PDF header' },
