@@ -12,17 +12,30 @@ import {
   ProductiveService,
   ProductiveTimeEntry,
   ProductiveDeal,
+  ProductiveFolder,
+  ProductiveTodo,
+  ProductivePage,
   ProductiveResponse,
   ProductiveSingleResponse,
   ProductiveTaskCreate,
   ProductiveTaskUpdate,
   ProductiveBoardCreate,
   ProductiveTaskListCreate,
+  ProductiveTaskListUpdate,
   ProductiveCommentCreate,
+  ProductiveCommentUpdate,
   ProductiveTimeEntryCreate,
   ProductiveTimeEntryUpdate,
   ProductiveTimer,
   ProductiveTimerCreate,
+  ProductiveFolderCreate,
+  ProductiveFolderUpdate,
+  ProductiveTodoCreate,
+  ProductiveTodoUpdate,
+  ProductivePageCreate,
+  ProductivePageUpdate,
+  ProductiveTaskDependency,
+  ProductiveTaskDependencyCreate,
   ProductiveError,
   ProductiveDocumentType,
   ProductiveTaxRate,
@@ -79,6 +92,29 @@ export class ProductiveAPIClient {
         throw error;
       }
       throw new Error('Unknown error occurred while making API request');
+    }
+  }
+
+  private async makeVoidRequest(path: string, options?: RequestInit): Promise<void> {
+    const url = `${this.config.PRODUCTIVE_API_BASE_URL}${path}`;
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...this.getHeaders(),
+        ...options?.headers,
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = `API request failed with status ${response.status}`;
+      try {
+        const errorData = (await response.json()) as ProductiveError;
+        errorMessage = errorData.errors?.[0]?.detail || errorMessage;
+      } catch {
+        /* no JSON body */
+      }
+      throw new Error(errorMessage);
     }
   }
 
@@ -1080,5 +1116,358 @@ export class ProductiveAPIClient {
       console.error('Error repositioning task:', error);
       throw error;
     }
+  }
+
+  // ---- Folder methods ----
+
+  async listFolders(params?: {
+    project_id?: string;
+    status?: number;
+    limit?: number;
+    page?: number;
+  }): Promise<ProductiveResponse<ProductiveFolder>> {
+    const q = new URLSearchParams();
+    if (params?.project_id) q.append('filter[project_id]', params.project_id);
+    if (params?.status) q.append('filter[status]', params.status.toString());
+    if (params?.limit) q.append('page[size]', params.limit.toString());
+    if (params?.page) q.append('page[number]', params.page.toString());
+    const qs = q.toString();
+    return this.makeRequest<ProductiveResponse<ProductiveFolder>>(`folders${qs ? `?${qs}` : ''}`);
+  }
+
+  async getFolder(folderId: string): Promise<ProductiveSingleResponse<ProductiveFolder>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveFolder>>(`folders/${folderId}`);
+  }
+
+  async createFolder(
+    data: ProductiveFolderCreate,
+  ): Promise<ProductiveSingleResponse<ProductiveFolder>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveFolder>>('folders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateFolder(
+    folderId: string,
+    data: ProductiveFolderUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveFolder>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveFolder>>(`folders/${folderId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async archiveFolder(folderId: string): Promise<void> {
+    return this.makeVoidRequest(`folders/${folderId}/archive`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data: { type: 'folders' } }),
+    });
+  }
+
+  async restoreFolder(folderId: string): Promise<void> {
+    return this.makeVoidRequest(`folders/${folderId}/restore`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data: { type: 'folders' } }),
+    });
+  }
+
+  // ---- Task List extended methods ----
+
+  async getTaskList(taskListId: string): Promise<ProductiveSingleResponse<ProductiveTaskList>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTaskList>>(
+      `task_lists/${taskListId}`,
+    );
+  }
+
+  async updateTaskList(
+    taskListId: string,
+    data: ProductiveTaskListUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveTaskList>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTaskList>>(
+      `task_lists/${taskListId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    );
+  }
+
+  async archiveTaskList(taskListId: string): Promise<void> {
+    return this.makeVoidRequest(`task_lists/${taskListId}/archive`, { method: 'PATCH' });
+  }
+
+  async restoreTaskList(taskListId: string): Promise<void> {
+    return this.makeVoidRequest(`task_lists/${taskListId}/restore`, { method: 'PATCH' });
+  }
+
+  async copyTaskList(params: {
+    name: string;
+    template_id: string;
+    project_id: string;
+    board_id: string;
+    copy_open_tasks?: boolean;
+    copy_assignees?: boolean;
+  }): Promise<ProductiveSingleResponse<ProductiveTaskList>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTaskList>>('task_lists/copy', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: {
+          type: 'task_lists',
+          attributes: {
+            name: params.name,
+            template_id: params.template_id,
+            project_id: params.project_id,
+            board_id: params.board_id,
+            copy_open_tasks: params.copy_open_tasks,
+            copy_assignees: params.copy_assignees,
+          },
+        },
+      }),
+    });
+  }
+
+  async moveTaskList(taskListId: string, boardId: string): Promise<void> {
+    return this.makeVoidRequest(`task_lists/${taskListId}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { type: 'task_lists', attributes: { board_id: boardId } },
+      }),
+    });
+  }
+
+  async repositionTaskList(taskListId: string, moveBeforeId: string): Promise<void> {
+    return this.makeVoidRequest(`task_lists/${taskListId}/reposition`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { type: 'task_lists', attributes: { move_before_id: moveBeforeId } },
+      }),
+    });
+  }
+
+  // ---- Task extended methods ----
+
+  async deleteTask(taskId: string): Promise<void> {
+    return this.makeVoidRequest(`tasks/${taskId}`, { method: 'DELETE' });
+  }
+
+  // ---- Comment extended methods ----
+
+  async listComments(params?: {
+    task_id?: string;
+    project_id?: string;
+    discussion_id?: string;
+    page_id?: string;
+    limit?: number;
+    page?: number;
+  }): Promise<ProductiveResponse<ProductiveComment>> {
+    const q = new URLSearchParams();
+    q.append('include', 'creator');
+    if (params?.task_id) q.append('filter[task_id]', params.task_id);
+    if (params?.project_id) q.append('filter[project_id]', params.project_id);
+    if (params?.discussion_id) q.append('filter[discussion_id]', params.discussion_id);
+    if (params?.page_id) q.append('filter[page_id]', params.page_id);
+    if (params?.limit) q.append('page[size]', params.limit.toString());
+    if (params?.page) q.append('page[number]', params.page.toString());
+    const qs = q.toString();
+    return this.makeRequest<ProductiveResponse<ProductiveComment>>(`comments${qs ? `?${qs}` : ''}`);
+  }
+
+  async getComment(commentId: string): Promise<ProductiveSingleResponse<ProductiveComment>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveComment>>(
+      `comments/${commentId}?include=creator`,
+    );
+  }
+
+  async updateComment(
+    commentId: string,
+    data: ProductiveCommentUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveComment>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveComment>>(`comments/${commentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteComment(commentId: string): Promise<void> {
+    return this.makeVoidRequest(`comments/${commentId}`, { method: 'DELETE' });
+  }
+
+  async pinComment(commentId: string): Promise<void> {
+    return this.makeVoidRequest(`comments/${commentId}/pin`, { method: 'PATCH' });
+  }
+
+  async unpinComment(commentId: string): Promise<void> {
+    return this.makeVoidRequest(`comments/${commentId}/unpin`, { method: 'PATCH' });
+  }
+
+  async addCommentReaction(commentId: string, reaction: string): Promise<void> {
+    return this.makeVoidRequest(`comments/${commentId}/add_reaction`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { type: 'comments', attributes: { reaction } },
+      }),
+    });
+  }
+
+  // ---- Todo methods ----
+
+  async listTodos(params?: {
+    task_id?: string;
+    deal_id?: string;
+    assignee_id?: string;
+    status?: number;
+    limit?: number;
+    page?: number;
+  }): Promise<ProductiveResponse<ProductiveTodo>> {
+    const q = new URLSearchParams();
+    if (params?.task_id) q.append('filter[task_id]', params.task_id);
+    if (params?.deal_id) q.append('filter[deal_id]', params.deal_id);
+    if (params?.assignee_id) q.append('filter[assignee_id]', params.assignee_id);
+    if (params?.status) q.append('filter[status]', params.status.toString());
+    if (params?.limit) q.append('page[size]', params.limit.toString());
+    if (params?.page) q.append('page[number]', params.page.toString());
+    const qs = q.toString();
+    return this.makeRequest<ProductiveResponse<ProductiveTodo>>(`todos${qs ? `?${qs}` : ''}`);
+  }
+
+  async getTodo(todoId: string): Promise<ProductiveSingleResponse<ProductiveTodo>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTodo>>(`todos/${todoId}`);
+  }
+
+  async createTodo(data: ProductiveTodoCreate): Promise<ProductiveSingleResponse<ProductiveTodo>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTodo>>('todos', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateTodo(
+    todoId: string,
+    data: ProductiveTodoUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveTodo>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTodo>>(`todos/${todoId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteTodo(todoId: string): Promise<void> {
+    return this.makeVoidRequest(`todos/${todoId}`, { method: 'DELETE' });
+  }
+
+  // ---- Page methods ----
+
+  async listPages(params?: {
+    project_id?: string;
+    creator_id?: string;
+    sort?: string;
+    limit?: number;
+    page?: number;
+  }): Promise<ProductiveResponse<ProductivePage>> {
+    const q = new URLSearchParams();
+    if (params?.project_id) q.append('filter[project_id]', params.project_id);
+    if (params?.creator_id) q.append('filter[creator_id]', params.creator_id);
+    if (params?.sort) q.append('sort', params.sort);
+    if (params?.limit) q.append('page[size]', params.limit.toString());
+    if (params?.page) q.append('page[number]', params.page.toString());
+    const qs = q.toString();
+    return this.makeRequest<ProductiveResponse<ProductivePage>>(`pages${qs ? `?${qs}` : ''}`);
+  }
+
+  async getPage(pageId: string): Promise<ProductiveSingleResponse<ProductivePage>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductivePage>>(
+      `pages/${pageId}?include=creator,project`,
+    );
+  }
+
+  async createPage(data: ProductivePageCreate): Promise<ProductiveSingleResponse<ProductivePage>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductivePage>>('pages', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePage(
+    pageId: string,
+    data: ProductivePageUpdate,
+  ): Promise<ProductiveSingleResponse<ProductivePage>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductivePage>>(`pages/${pageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePage(pageId: string): Promise<void> {
+    return this.makeVoidRequest(`pages/${pageId}`, { method: 'DELETE' });
+  }
+
+  async movePage(pageId: string, targetDocId: string): Promise<void> {
+    return this.makeVoidRequest(`pages/${pageId}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { type: 'pages', attributes: { target_doc_id: targetDocId } },
+      }),
+    });
+  }
+
+  async copyPage(
+    templateId: string,
+    projectId?: string,
+  ): Promise<ProductiveSingleResponse<ProductivePage>> {
+    const attributes: Record<string, string> = { template_id: templateId };
+    if (projectId) attributes.project_id = projectId;
+    return this.makeRequest<ProductiveSingleResponse<ProductivePage>>('pages/copy', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: { type: 'pages', attributes },
+      }),
+    });
+  }
+
+  // ---- Task Dependency methods ----
+
+  async listTaskDependencies(params?: {
+    task_id?: string;
+    dependent_task_id?: string;
+    type_id?: number;
+    limit?: number;
+    page?: number;
+  }): Promise<ProductiveResponse<ProductiveTaskDependency>> {
+    const q = new URLSearchParams();
+    q.append('include', 'task,dependent_task');
+    if (params?.task_id) q.append('filter[task_id]', params.task_id);
+    if (params?.dependent_task_id) q.append('filter[dependent_task_id]', params.dependent_task_id);
+    if (params?.type_id) q.append('filter[type_id]', params.type_id.toString());
+    if (params?.limit) q.append('page[size]', params.limit.toString());
+    if (params?.page) q.append('page[number]', params.page.toString());
+    const qs = q.toString();
+    return this.makeRequest<ProductiveResponse<ProductiveTaskDependency>>(
+      `task_dependencies${qs ? `?${qs}` : ''}`,
+    );
+  }
+
+  async getTaskDependency(
+    dependencyId: string,
+  ): Promise<ProductiveSingleResponse<ProductiveTaskDependency>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTaskDependency>>(
+      `task_dependencies/${dependencyId}?include=task,dependent_task`,
+    );
+  }
+
+  async createTaskDependency(
+    data: ProductiveTaskDependencyCreate,
+  ): Promise<ProductiveSingleResponse<ProductiveTaskDependency>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTaskDependency>>(
+      'task_dependencies',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    );
+  }
+
+  async deleteTaskDependency(dependencyId: string): Promise<void> {
+    return this.makeVoidRequest(`task_dependencies/${dependencyId}`, { method: 'DELETE' });
   }
 }

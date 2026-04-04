@@ -591,6 +591,202 @@ export interface ProductiveTimerCreate {
   };
 }
 
+// ---- Folder types ----
+
+export interface ProductiveFolder {
+  id: string;
+  type: 'folders';
+  attributes: {
+    name: string;
+    position?: number;
+    placement?: number;
+    archived_at?: string | null;
+    hidden?: boolean;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+  };
+  relationships?: {
+    project?: { data: { id: string; type: 'projects' } };
+    [key: string]: unknown;
+  };
+}
+
+export interface ProductiveFolderCreate {
+  data: {
+    type: 'folders';
+    attributes: { name: string };
+    relationships: {
+      project: { data: { id: string; type: 'projects' } };
+    };
+  };
+}
+
+export interface ProductiveFolderUpdate {
+  data: {
+    type: 'folders';
+    id: string;
+    attributes?: { name?: string };
+  };
+}
+
+// ---- Task List Update ----
+
+export interface ProductiveTaskListUpdate {
+  data: {
+    type: 'task_lists';
+    id: string;
+    attributes?: { name?: string };
+  };
+}
+
+// ---- Todo types ----
+
+export interface ProductiveTodo {
+  id: string;
+  type: 'todos';
+  attributes: {
+    description: string;
+    closed?: boolean;
+    closed_at?: string;
+    due_date?: string;
+    due_time?: string;
+    created_at: string;
+    todoable_type?: string;
+    position?: number;
+    [key: string]: unknown;
+  };
+  relationships?: {
+    task?: { data: { id: string; type: 'tasks' } };
+    deal?: { data: { id: string; type: 'deals' } };
+    assignee?: { data: { id: string; type: 'people' } };
+    [key: string]: unknown;
+  };
+}
+
+export interface ProductiveTodoCreate {
+  data: {
+    type: 'todos';
+    attributes: {
+      description: string;
+      due_date?: string;
+    };
+    relationships: {
+      task?: { data: { id: string; type: 'tasks' } };
+      deal?: { data: { id: string; type: 'deals' } };
+      assignee?: { data: { id: string; type: 'people' } };
+    };
+  };
+}
+
+export interface ProductiveTodoUpdate {
+  data: {
+    type: 'todos';
+    id: string;
+    attributes?: {
+      description?: string;
+      closed?: boolean;
+      due_date?: string;
+    };
+  };
+}
+
+// ---- Page types ----
+
+export interface ProductivePage {
+  id: string;
+  type: 'pages';
+  attributes: {
+    title: string;
+    body?: string;
+    public_access?: boolean;
+    version_number?: number;
+    parent_page_id?: number;
+    root_page_id?: number;
+    created_at: string;
+    updated_at: string;
+    edited_at?: string;
+    last_activity_at?: string;
+    [key: string]: unknown;
+  };
+  relationships?: {
+    project?: { data: { id: string; type: 'projects' } };
+    parent_page?: { data: { id: string; type: 'pages' } };
+    creator?: { data: { id: string; type: 'people' } };
+    [key: string]: unknown;
+  };
+}
+
+export interface ProductivePageCreate {
+  data: {
+    type: 'pages';
+    attributes: {
+      title: string;
+      body?: string;
+      parent_page_id?: number;
+      root_page_id?: number;
+    };
+    relationships: {
+      project: { data: { id: string; type: 'projects' } };
+    };
+  };
+}
+
+export interface ProductivePageUpdate {
+  data: {
+    type: 'pages';
+    id: string;
+    attributes?: {
+      title?: string;
+      body?: string;
+    };
+  };
+}
+
+// ---- Comment Update ----
+
+export interface ProductiveCommentUpdate {
+  data: {
+    type: 'comments';
+    id: string;
+    attributes?: {
+      body?: string;
+    };
+  };
+}
+
+// ---- Task Dependency types ----
+
+export interface ProductiveTaskDependency {
+  id: string;
+  type: 'task_dependencies';
+  attributes: {
+    type_id: number;
+    created_at?: string;
+    updated_at?: string;
+    [key: string]: unknown;
+  };
+  relationships?: {
+    task?: { data: { id: string; type: 'tasks' } };
+    dependent_task?: { data: { id: string; type: 'tasks' } };
+    reverse_dependency?: { data: { id: string; type: 'task_dependencies' } };
+    [key: string]: unknown;
+  };
+}
+
+export interface ProductiveTaskDependencyCreate {
+  data: {
+    type: 'task_dependencies';
+    attributes: {
+      task_id: string;
+      dependent_task_id: string;
+      type_id: string;
+    };
+  };
+}
+
+// ---- Error types ----
+
 export interface ProductiveError {
   errors: Array<{
     status?: string;
