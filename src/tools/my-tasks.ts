@@ -123,4 +123,5 @@ export const myTasksDefinition = {
       },
     },
   },
+  annotations: { readOnlyHint: true },
 };

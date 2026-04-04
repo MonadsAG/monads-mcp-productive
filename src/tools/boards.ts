@@ -90,6 +90,7 @@ export const listBoardsTool = {
       },
     },
   },
+  annotations: { readOnlyHint: true },
 };
 
 const CreateBoardSchema = z.object({

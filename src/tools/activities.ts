@@ -166,4 +166,5 @@ export const listActivitiesTool = {
     },
     additionalProperties: false,
   },
+  annotations: { readOnlyHint: true },
 };

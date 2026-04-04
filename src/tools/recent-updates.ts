@@ -148,4 +148,5 @@ export const getRecentUpdatesTool = {
     },
     additionalProperties: false,
   },
+  annotations: { readOnlyHint: true },
 };

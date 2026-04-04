@@ -89,4 +89,5 @@ export const listCompaniesDefinition = {
       },
     },
   },
+  annotations: { readOnlyHint: true },
 };

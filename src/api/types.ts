@@ -250,6 +250,7 @@ export interface ProductiveTaskUpdate {
 
 export interface ProductiveSingleResponse<T> {
   data: T;
+  included?: ProductiveIncludedResource[];
 }
 
 export interface ProductivePerson {
@@ -610,4 +611,147 @@ export interface TaskReposition {
   move_before_id?: string; // Move task before specified task ID
   move_after_id?: string; // Move task after specified task ID
   placement?: number; // Legacy parameter, not recommended
+}
+
+export interface ProductiveDocumentType {
+  id: string;
+  type: 'document_types';
+  attributes: {
+    name: string;
+    status?: string;
+    created_at: string;
+    updated_at: string;
+    [key: string]: any;
+  };
+}
+
+export interface ProductiveTaxRate {
+  id: string;
+  type: 'tax_rates';
+  attributes: {
+    name: string;
+    primary_component_value: string;
+    primary_component_name?: string;
+    secondary_component_value?: string | null;
+    secondary_component_name?: string | null;
+    archived_at?: string | null;
+    [key: string]: any;
+  };
+}
+
+export interface ProductiveInvoice {
+  id: string;
+  type: 'invoices';
+  attributes: {
+    number?: string;
+    subject?: string;
+    invoiced_on?: string;
+    pay_on?: string;
+    delivery_on?: string;
+    paid_on?: string;
+    finalized_at?: string;
+    currency?: string;
+    amount?: string;
+    amount_with_tax?: string;
+    amount_paid?: string;
+    amount_unpaid?: string;
+    amount_tax?: string;
+    invoice_type_id?: number;
+    note?: string;
+    footer?: string;
+    payment_terms?: number;
+    export_invoice_url?: string;
+    exported?: boolean;
+    created_at: string;
+    updated_at: string;
+    [key: string]: any;
+  };
+  relationships?: {
+    company?: { data: { id: string; type: 'companies' } };
+    document_type?: { data: { id: string; type: 'document_types' } };
+    [key: string]: any;
+  };
+}
+
+export interface ProductiveInvoiceCreate {
+  data: {
+    type: 'invoices';
+    attributes: {
+      invoiced_on: string;
+      currency: string;
+      pay_on?: string;
+      delivery_on?: string;
+      subject?: string;
+      note?: string;
+      footer?: string;
+      payment_terms?: number;
+    };
+    relationships: {
+      company: { data: { id: string; type: 'companies' } };
+      document_type: { data: { id: string; type: 'document_types' } };
+      subsidiary?: { data: { id: string; type: 'subsidiaries' } };
+    };
+  };
+}
+
+export interface ProductiveLineItem {
+  id: string;
+  type: 'line_items';
+  attributes: {
+    description?: string;
+    quantity?: number;
+    unit_price?: string;
+    amount?: string;
+    discount?: string;
+    position?: number;
+    [key: string]: any;
+  };
+}
+
+/** Flat payload — this endpoint does NOT use JSON API envelope */
+export interface ProductiveLineItemGenerate {
+  data: {
+    invoice_id: number;
+    budget_ids: number[];
+    tax_rate_id: number;
+    invoicing_method: string;
+    display_format: string;
+    date_from?: string;
+    date_to?: string;
+    invoicing_by?: string;
+    locale?: string;
+  };
+}
+
+export interface ProductiveInvoiceUpdate {
+  data: {
+    type: 'invoices';
+    id: string;
+    attributes?: {
+      subject?: string;
+      note?: string;
+      footer?: string;
+      invoiced_on?: string;
+      pay_on?: string;
+      delivery_on?: string;
+      currency?: string;
+      payment_terms?: number;
+      number?: string;
+      purchase_order_number?: string;
+    };
+  };
+}
+
+export interface ProductivePaymentCreate {
+  data: {
+    type: 'payments';
+    attributes: {
+      amount: string;
+      paid_on: string;
+      note?: string;
+    };
+    relationships: {
+      invoice: { data: { id: string; type: 'invoices' } };
+    };
+  };
 }

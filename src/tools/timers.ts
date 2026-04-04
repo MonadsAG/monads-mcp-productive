@@ -215,6 +215,7 @@ export const getTimerDefinition = {
     },
     required: ['timer_id'],
   },
+  annotations: { readOnlyHint: true },
 };
 
 export const startTimerDefinition = {

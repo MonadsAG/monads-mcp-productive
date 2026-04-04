@@ -90,6 +90,7 @@ export const listTaskListsTool = {
       },
     },
   },
+  annotations: { readOnlyHint: true },
 };
 
 const CreateTaskListSchema = z.object({

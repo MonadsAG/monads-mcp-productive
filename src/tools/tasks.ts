@@ -372,6 +372,7 @@ export const listTasksDefinition = {
       },
     },
   },
+  annotations: { readOnlyHint: true },
 };
 
 export const getProjectTasksDefinition = {
@@ -393,6 +394,7 @@ export const getProjectTasksDefinition = {
     },
     required: ['project_id'],
   },
+  annotations: { readOnlyHint: true },
 };
 
 export const getTaskDefinition = {
@@ -408,6 +410,7 @@ export const getTaskDefinition = {
     },
     required: ['task_id'],
   },
+  annotations: { readOnlyHint: true },
 };
 
 const createTaskSchema = z.object({

@@ -101,4 +101,5 @@ export const listWorkflowStatusesDefinition = {
       },
     },
   },
+  annotations: { readOnlyHint: true },
 };

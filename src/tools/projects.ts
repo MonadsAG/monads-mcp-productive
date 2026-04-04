@@ -92,4 +92,5 @@ export const listProjectsDefinition = {
       },
     },
   },
+  annotations: { readOnlyHint: true },
 };

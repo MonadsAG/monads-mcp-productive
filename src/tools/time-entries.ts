@@ -561,6 +561,7 @@ export const listTimeEntriesDefinition = {
     },
     required: [],
   },
+  annotations: { readOnlyHint: true },
 };
 
 export const createTimeEntryDefinition = {
@@ -643,6 +644,7 @@ export const listServicesDefinition = {
     },
     required: [],
   },
+  annotations: { readOnlyHint: true },
 };
 
 // Zod schema for list project deals/budgets
@@ -820,6 +822,7 @@ export const listProjectDealsDefinition = {
     },
     required: ['project_id'],
   },
+  annotations: { readOnlyHint: true },
 };
 
 export const listDealServicesDefinition = {
@@ -843,6 +846,7 @@ export const listDealServicesDefinition = {
     },
     required: ['deal_id'],
   },
+  annotations: { readOnlyHint: true },
 };
 
 export const getProjectServicesDefinition = {
@@ -866,4 +870,5 @@ export const getProjectServicesDefinition = {
     },
     required: ['project_id'],
   },
+  annotations: { readOnlyHint: true },
 };

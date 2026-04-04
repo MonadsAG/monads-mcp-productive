@@ -83,4 +83,5 @@ export const whoAmITool = {
     type: 'object',
     properties: {},
   },
+  annotations: { readOnlyHint: true },
 };

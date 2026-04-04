@@ -89,6 +89,32 @@ import {
   generateQuickTimesheetPrompt,
   quickTimesheetPromptDefinition,
 } from './prompts/timesheet.js';
+import {
+  listInvoicesTool,
+  listInvoicesDefinition,
+  listCompanyBudgetsTool,
+  listCompanyBudgetsDefinition,
+  getInvoiceTool,
+  getInvoiceDefinition,
+  createInvoiceTool,
+  createInvoiceDefinition,
+  updateInvoiceTool,
+  updateInvoiceDefinition,
+  generateLineItemsTool,
+  generateLineItemsDefinition,
+} from './tools/invoices.js';
+import {
+  finalizeInvoiceTool,
+  finalizeInvoiceDefinition,
+  getInvoicePdfUrlTool,
+  getInvoicePdfUrlDefinition,
+  deleteInvoiceTool,
+  deleteInvoiceDefinition,
+  getTimesheetReportUrlTool,
+  getTimesheetReportUrlDefinition,
+  markInvoicePaidTool,
+  markInvoicePaidDefinition,
+} from './tools/invoice-actions.js';
 
 export async function createServer() {
   // Initialize API client and config early to check user context
@@ -150,6 +176,17 @@ export async function createServer() {
       moveTaskToListTool,
       addToBacklogTool,
       taskRepositionDefinition,
+      listInvoicesDefinition,
+      listCompanyBudgetsDefinition,
+      getInvoiceDefinition,
+      createInvoiceDefinition,
+      updateInvoiceDefinition,
+      generateLineItemsDefinition,
+      finalizeInvoiceDefinition,
+      getInvoicePdfUrlDefinition,
+      deleteInvoiceDefinition,
+      getTimesheetReportUrlDefinition,
+      markInvoicePaidDefinition,
     ],
   }));
 
@@ -271,6 +308,39 @@ export async function createServer() {
           throw new Error('taskId is required for task repositioning');
         }
         return await taskRepositionTool(apiClient, args as z.infer<typeof taskRepositionSchema>);
+
+      case 'list_invoices':
+        return await listInvoicesTool(apiClient, args);
+
+      case 'list_company_budgets':
+        return await listCompanyBudgetsTool(apiClient, args);
+
+      case 'get_invoice':
+        return await getInvoiceTool(apiClient, args);
+
+      case 'create_invoice':
+        return await createInvoiceTool(apiClient, args);
+
+      case 'update_invoice':
+        return await updateInvoiceTool(apiClient, args);
+
+      case 'generate_line_items':
+        return await generateLineItemsTool(apiClient, args);
+
+      case 'finalize_invoice':
+        return await finalizeInvoiceTool(apiClient, args);
+
+      case 'get_invoice_pdf_url':
+        return await getInvoicePdfUrlTool(apiClient, args, config);
+
+      case 'delete_invoice':
+        return await deleteInvoiceTool(apiClient, args);
+
+      case 'get_timesheet_report_url':
+        return await getTimesheetReportUrlTool(apiClient, args, config);
+
+      case 'mark_invoice_paid':
+        return await markInvoicePaidTool(apiClient, args);
 
       default:
         throw new Error(`Unknown tool: ${name}`);
