@@ -983,13 +983,18 @@ export class ProductiveAPIClient {
       headers: this.getHeaders(),
     });
     if (!response.ok) {
-      const errorData = (await response.json()) as ProductiveError;
-      const errorMessages = (errorData.errors ?? [])
-        .map((e) => {
-          const field = e.source?.pointer ? ` (${e.source.pointer})` : '';
-          return `${e.detail || e.title || 'Unknown error'}${field}`;
-        })
-        .join('; ');
+      let errorMessages = '';
+      try {
+        const errorData = (await response.json()) as ProductiveError;
+        errorMessages = (errorData.errors ?? [])
+          .map((e) => {
+            const field = e.source?.pointer ? ` (${e.source.pointer})` : '';
+            return `${e.detail || e.title || 'Unknown error'}${field}`;
+          })
+          .join('; ');
+      } catch {
+        // non-JSON error body — fall through to status message
+      }
       throw new Error(errorMessages || `Delete failed with status ${response.status}`);
     }
   }

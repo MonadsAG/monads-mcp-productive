@@ -230,6 +230,7 @@ export async function deleteInvoiceTool(
       ],
     };
   } catch (error) {
+    if (error instanceof McpError) throw error;
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
