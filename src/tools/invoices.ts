@@ -114,6 +114,7 @@ export async function listInvoicesTool(
       ],
     };
   } catch (error) {
+    if (error instanceof McpError) throw error;
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
@@ -240,6 +241,7 @@ export async function getInvoiceTool(
 
     return { content: [{ type: 'text', text }] };
   } catch (error) {
+    if (error instanceof McpError) throw error;
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
@@ -302,11 +304,10 @@ export async function createInvoiceTool(
     const params = createInvoiceSchema.parse(args || {});
     const today = new Date().toISOString().slice(0, 10);
 
-    // Auto-resolve defaults if not provided
-    const defaults =
-      !params.document_type_id || !params.subsidiary_id
-        ? await resolveInvoiceDefaults(client)
-        : null;
+    // Auto-resolve defaults (always needed for note/footer templates)
+    const needsDefaults =
+      !params.document_type_id || !params.subsidiary_id || !params.note || !params.footer;
+    const defaults = needsDefaults ? await resolveInvoiceDefaults(client) : null;
 
     const documentTypeId = params.document_type_id ?? defaults?.document_type_id;
     const subsidiaryId = params.subsidiary_id ?? defaults?.subsidiary_id;
@@ -358,6 +359,7 @@ export async function createInvoiceTool(
       ],
     };
   } catch (error) {
+    if (error instanceof McpError) throw error;
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
@@ -581,6 +583,7 @@ export async function generateLineItemsTool(
       ],
     };
   } catch (error) {
+    if (error instanceof McpError) throw error;
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
