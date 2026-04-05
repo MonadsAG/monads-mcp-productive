@@ -36,7 +36,9 @@ async function resolveWorkflowStatuses(taskId: string): Promise<{
   if (!taskRes.ok) {
     throw new Error(`Failed to fetch task ${taskId}: ${taskRes.status}`);
   }
-  const taskData = await taskRes.json();
+  const taskData = (await taskRes.json()) as {
+    data?: { relationships?: Record<string, any> };
+  };
   const projectId = taskData.data?.relationships?.project?.data?.id;
   if (!projectId) {
     throw new Error('Task has no project assigned');
@@ -50,7 +52,9 @@ async function resolveWorkflowStatuses(taskId: string): Promise<{
   if (!projRes.ok) {
     throw new Error(`Failed to fetch project ${projectId}: ${projRes.status}`);
   }
-  const projData = await projRes.json();
+  const projData = (await projRes.json()) as {
+    data?: { relationships?: Record<string, any> };
+  };
   const workflowId = projData.data?.relationships?.workflow?.data?.id;
   if (!workflowId) {
     throw new Error('Project has no workflow configured');
@@ -64,7 +68,9 @@ async function resolveWorkflowStatuses(taskId: string): Promise<{
   if (!statusRes.ok) {
     throw new Error(`Failed to fetch workflow statuses: ${statusRes.status}`);
   }
-  const statusData = await statusRes.json();
+  const statusData = (await statusRes.json()) as {
+    data: ProductiveIncludedResource[];
+  };
 
   const statuses = statusData.data.map((s: ProductiveIncludedResource) => ({
     id: s.id,

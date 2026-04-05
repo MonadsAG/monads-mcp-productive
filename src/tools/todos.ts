@@ -13,7 +13,7 @@ const coerceBoolean = z.preprocess(
 const listTodosSchema = z.object({
   task_id: z.string().optional(),
   status: z.enum(['open', 'closed']).optional(),
-  limit: z.number().min(1).max(200).default(50).optional(),
+  limit: z.coerce.number().min(1).max(200).default(50).optional(),
 });
 
 const getTodoSchema = z.object({

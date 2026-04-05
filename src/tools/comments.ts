@@ -111,7 +111,7 @@ export const addTaskCommentDefinition = {
 const listCommentsSchema = z.object({
   task_id: z.string().optional(),
   project_id: z.string().optional(),
-  limit: z.number().optional(),
+  limit: z.coerce.number().optional(),
 });
 
 export async function listCommentsTool(

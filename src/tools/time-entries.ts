@@ -87,7 +87,7 @@ const listTimeEntriesSchema = z.object({
   project_id: z.string().optional(),
   task_id: z.string().optional(),
   service_id: z.string().optional(),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 const createTimeEntrySchema = z.object({
@@ -111,13 +111,13 @@ const createTimeEntrySchema = z.object({
 
 const listServicesSchema = z.object({
   company_id: z.string().optional(),
-  budget_status: z.number().min(1).max(2).optional(),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  budget_status: z.coerce.number().min(1).max(2).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 const getProjectServicesSchema = z.object({
   project_id: z.string().min(1, 'Project ID is required'),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 export async function listTimeEntresTool(
@@ -663,7 +663,7 @@ const listProjectDealsSchema = z.object({
     .max(2)
     .optional()
     .describe('Budget type: 1 = deal, 2 = budget'),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 // Tool function for list project deals/budgets
@@ -741,7 +741,7 @@ export async function listProjectDealsTool(
 // Zod schema for list deal services
 const listDealServicesSchema = z.object({
   deal_id: z.string().min(1, 'Deal/Budget ID is required'),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 // Tool function for list deal services

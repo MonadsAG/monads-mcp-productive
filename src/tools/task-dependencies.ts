@@ -33,7 +33,7 @@ const listTaskDependenciesSchema = z.object({
     .string()
     .optional()
     .describe('Filter by dependent task ID (the blocked task)'),
-  limit: z.number().min(1).max(200).default(50).optional(),
+  limit: z.coerce.number().min(1).max(200).default(50).optional(),
 });
 
 const getTaskDependencySchema = z.object({

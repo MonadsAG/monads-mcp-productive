@@ -16,7 +16,7 @@ function resolveWorkflowStatus(
 
 const myTasksSchema = z.object({
   status: z.enum(['open', 'closed']).optional(),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 export async function myTasksTool(
