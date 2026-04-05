@@ -9,6 +9,7 @@
 import type { AuthRequest, OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../config/worker-config.js';
+import { LOGO_SVG } from './logo.js';
 import {
   addApprovedClient,
   bindStateToSession,
@@ -139,6 +140,17 @@ function redirectToEntra(
 }
 
 // --- Routes ---
+
+app.get('/favicon.ico', (c) => {
+  return c.body(null, 302, { Location: '/favicon.svg' });
+});
+
+app.get('/favicon.svg', (c) => {
+  return c.body(LOGO_SVG, 200, {
+    'Content-Type': 'image/svg+xml',
+    'Cache-Control': 'public, max-age=86400',
+  });
+});
 
 app.get('/authorize', async (c) => {
   const oauthReqInfo = await c.env.OAUTH_PROVIDER.parseAuthRequest(c.req.raw);
