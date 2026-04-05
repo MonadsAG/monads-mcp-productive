@@ -1,531 +1,255 @@
-# Productive.io MCP Server
+# Productive.io Remote MCP Server
 
-[![npm version](https://badge.fury.io/js/productive-mcp.svg)](https://www.npmjs.com/package/productive-mcp)
+A **remote MCP server** for [Productive.io](https://productive.io) running on **Cloudflare Workers**. Connects Claude Desktop, Claude Code, and other MCP-compatible clients to your Productive.io workspace — no local installation, no API keys on client machines.
 
-An MCP (Model Context Protocol) server that enables Claude Desktop, Claude Code, and other MCP-compatible clients to interact with the Productive.io API.
+## Highlights
 
-## Features
+- **Remote-first** — runs on Cloudflare Workers, clients connect via URL
+- **Microsoft Entra ID** — OAuth 2.1 with your organization's identity provider (SSO + MFA)
+- **Auto user resolution** — maps Entra email to Productive user ID automatically
+- **70+ tools** — projects, tasks, time tracking, invoicing, comments, pages, and more
+- **Zero client setup** — just add one URL to Claude Desktop or Claude Code
 
-- **Companies & Projects**: List companies and projects with status filtering
-- **Folders**: Full CRUD with archive/restore for organizing project content
-- **Task Lists**: Full lifecycle management — create, update, archive/restore, copy, move, reposition
-- **Task Management**: List, create, update, delete tasks with various filters
-- **Subtasks**: Create and list subtasks under parent tasks
-- **Task Operations**: Comments, status updates, sprint assignment, repositioning
-- **Comments**: Full CRUD with pin/unpin and reactions
-- **Todos**: Checklist items on tasks — create, update, close/reopen, delete
-- **Pages/Docs**: Full document management with nested page hierarchies, move, and copy
-- **People Management**: List people in your organization with filtering options
-- **Workflow Management**: List and work with workflow statuses for proper task status updates
-- **Time Tracking**: List and create time entries with service/deal integration
-- **User Context**: Supports "me" references when PRODUCTIVE_USER_ID is configured
-- **Activity Tracking**: View activities and recent updates across your organization
+## Quick Start
 
-## Installation
+If someone in your organization has already deployed this server, you only need to configure your MCP client:
 
-### Via npm (Recommended)
+### Claude Desktop
 
-Install globally:
-```bash
-npm install -g productive-mcp
-```
-
-Or run directly with npx (no installation required):
-```bash
-npx productive-mcp
-```
-
-### From Source
-
-1. Clone this repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Build the project:
-   ```bash
-   npm run build
-   ```
-
-## Configuration
-
-### Getting Your Credentials
-
-To obtain your Productive.io credentials:
-1. Log in to Productive.io
-2. Go to Settings → API integrations
-3. Generate a new token (choose read-only for safety, or full access for task creation)
-4. Copy the token and organization ID
-
-To find your user ID:
-- You can use the API to list people and find your ID
-- Or check the URL when viewing your profile in Productive.io
-
-### Environment Variables
-
-The server requires the following environment variables:
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `PRODUCTIVE_API_TOKEN` | Yes | Your Productive.io API token |
-| `PRODUCTIVE_ORG_ID` | Yes | Your organization ID |
-| `PRODUCTIVE_USER_ID` | No | Your user ID (required for `my_tasks` tool) |
-
-## Usage with Claude Desktop
-
-Add the server to your Claude Desktop configuration file:
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-### Using npx (Recommended)
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "productive": {
       "command": "npx",
-      "args": ["-y", "productive-mcp"],
-      "env": {
-        "PRODUCTIVE_API_TOKEN": "your_api_token_here",
-        "PRODUCTIVE_ORG_ID": "your_organization_id_here",
-        "PRODUCTIVE_USER_ID": "your_user_id_here"
-      }
+      "args": ["-y", "mcp-remote", "https://<your-worker>.<your-subdomain>.workers.dev/mcp"]
     }
   }
 }
 ```
 
-### Using Global Installation
+Restart Claude Desktop. A browser window opens for Entra ID login on first connect. The session persists — you only sign in once.
 
-```json
-{
-  "mcpServers": {
-    "productive": {
-      "command": "productive-mcp",
-      "env": {
-        "PRODUCTIVE_API_TOKEN": "your_api_token_here",
-        "PRODUCTIVE_ORG_ID": "your_organization_id_here",
-        "PRODUCTIVE_USER_ID": "your_user_id_here"
-      }
-    }
-  }
-}
-```
-
-### Using Local Build
-
-```json
-{
-  "mcpServers": {
-    "productive": {
-      "command": "node",
-      "args": ["/path/to/productive-mcp/build/index.js"],
-      "env": {
-        "PRODUCTIVE_API_TOKEN": "your_api_token_here",
-        "PRODUCTIVE_ORG_ID": "your_organization_id_here",
-        "PRODUCTIVE_USER_ID": "your_user_id_here"
-      }
-    }
-  }
-}
-```
-
-**Note**: `PRODUCTIVE_USER_ID` is optional but required for the `my_tasks` tool to work.
-
-After adding the configuration, restart Claude Desktop.
-
-## Usage with Claude Code
-
-Add the server to your Claude Code configuration using the CLI:
+### Claude Code
 
 ```bash
-claude mcp add productive -- npx -y productive-mcp
+claude mcp add productive -- npx -y mcp-remote https://<your-worker>.<your-subdomain>.workers.dev/mcp
 ```
 
-Then set your environment variables. You can either:
+## Deploy Your Own
 
-**Option 1**: Add to your shell profile (`~/.zshrc` or `~/.bashrc`):
+### Prerequisites
+
+- [Cloudflare account](https://dash.cloudflare.com/sign-up) with Workers (free tier works)
+- [Microsoft Entra ID](https://entra.microsoft.com) tenant with App Registration rights
+- Node.js 18+ and npm
+
+### 1. Clone and install
+
 ```bash
-export PRODUCTIVE_API_TOKEN="your_api_token_here"
-export PRODUCTIVE_ORG_ID="your_organization_id_here"
-export PRODUCTIVE_USER_ID="your_user_id_here"
+git clone https://github.com/MonadsAG/monads-mcp-productive.git
+cd monads-mcp-productive
+npm install
 ```
 
-**Option 2**: Create a wrapper script and add it as an MCP server:
+### 2. Create Cloudflare KV namespaces
 
-1. Create a script file (e.g., `~/scripts/productive-mcp.sh`):
-   ```bash
-   #!/bin/bash
-   export PRODUCTIVE_API_TOKEN="your_api_token_here"
-   export PRODUCTIVE_ORG_ID="your_organization_id_here"
-   export PRODUCTIVE_USER_ID="your_user_id_here"
-   npx -y productive-mcp
-   ```
-
-2. Make it executable:
-   ```bash
-   chmod +x ~/scripts/productive-mcp.sh
-   ```
-
-3. Add to Claude Code:
-   ```bash
-   claude mcp add productive ~/scripts/productive-mcp.sh
-   ```
-
-**Option 3**: Edit the Claude Code settings file directly at `~/.claude/settings.json`:
-```json
-{
-  "mcpServers": {
-    "productive": {
-      "command": "npx",
-      "args": ["-y", "productive-mcp"],
-      "env": {
-        "PRODUCTIVE_API_TOKEN": "your_api_token_here",
-        "PRODUCTIVE_ORG_ID": "your_organization_id_here",
-        "PRODUCTIVE_USER_ID": "your_user_id_here"
-      }
-    }
-  }
-}
+```bash
+npx wrangler login
+npx wrangler kv namespace create "OAUTH_KV"
+npx wrangler kv namespace create "USER_MAPPING_KV"
 ```
 
-Restart Claude Code after configuration.
+Copy the namespace IDs into `wrangler.jsonc`.
+
+### 3. Register an Entra ID application
+
+```bash
+# Login to your Entra tenant
+az login --tenant <your-tenant-id> --allow-no-subscriptions
+
+# Create the app registration (single tenant)
+az ad app create \
+  --display-name "Productive MCP" \
+  --sign-in-audience "AzureADMyOrg" \
+  --web-redirect-uris "https://<your-worker>.<your-subdomain>.workers.dev/callback"
+
+# Note the appId from the output, then add API permissions
+az ad app permission add \
+  --id <app-id> \
+  --api 00000003-0000-0000-c000-000000000000 \
+  --api-permissions \
+    37f7f235-527c-4136-accd-4a02d197296e=Scope \
+    14dad69e-099b-42c9-810b-d002981feec1=Scope \
+    64a6cdd6-aab1-4aaf-94b8-3cc8405e90d0=Scope \
+    e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
+
+# Grant admin consent
+az ad app permission admin-consent --id <app-id>
+
+# Generate a client secret (2-year expiry)
+az ad app credential reset \
+  --id <app-id> \
+  --append \
+  --display-name "Cloudflare Worker" \
+  --years 2
+```
+
+The permission IDs correspond to: `openid`, `profile`, `email`, `User.Read` (delegated).
+
+### 4. Set Cloudflare secrets
+
+```bash
+npx wrangler secret put PRODUCTIVE_API_TOKEN     # from Productive.io Settings → API integrations
+npx wrangler secret put PRODUCTIVE_ORG_ID         # your org ID with slug (e.g. 12345-company-name)
+npx wrangler secret put PRODUCTIVE_API_BASE_URL   # https://api.productive.io/api/v2/ (or sandbox URL)
+npx wrangler secret put ENTRA_CLIENT_ID           # app (client) ID from step 3
+npx wrangler secret put ENTRA_CLIENT_SECRET       # client secret from step 3
+npx wrangler secret put ENTRA_TENANT_ID           # your Entra directory (tenant) ID
+openssl rand -hex 32 | npx wrangler secret put COOKIE_ENCRYPTION_KEY
+```
+
+### 5. Deploy
+
+```bash
+npm run worker:deploy
+```
+
+### 6. Connect
+
+Configure Claude Desktop or Claude Code as shown in [Quick Start](#quick-start), replacing the placeholder URL with your Worker URL.
+
+## Architecture
+
+```
+┌─────────────────┐    Streamable HTTP    ┌──────────────────────────────┐
+│  Claude Desktop  │ ◄──────────────────► │  Cloudflare Worker           │
+│  / Claude Code   │                      │                              │
+│  (via mcp-remote)│                      │  OAuthProvider (OAuth 2.1)   │
+└─────────────────┘                       │       ↓                      │
+                                          │  Entra ID (OIDC login)       │
+       Browser ←── login redirect ───────→│       ↓                      │
+                                          │  McpAgent (Durable Object)   │
+                                          │       ↓                      │
+                                          │  ProductiveAPIClient         │
+                                          └──────────────┬───────────────┘
+                                                         ↓
+                                                  Productive.io API
+```
 
 ## Available Tools
 
-### User & Context Tools
+### Company & Project
 
-| Tool | Description |
-|------|-------------|
-| `whoami` | Get current user context and configured user ID |
+| Tool             | Description                         |
+| ---------------- | ----------------------------------- |
+| `whoami`         | Get current user context            |
+| `list_companies` | List companies/customers            |
+| `list_projects`  | List projects with status filtering |
 
-### Company & Project Tools
+### Folders, Boards & Task Lists
 
-| Tool | Description |
-|------|-------------|
-| `list_companies` | List companies/customers. Filter by `status` (active/archived), `limit` |
-| `list_projects` | List projects. Filter by `status`, `company_id`, `limit` |
+| Tool                                                                                                     | Description          |
+| -------------------------------------------------------------------------------------------------------- | -------------------- |
+| `list_folders` / `get_folder` / `create_folder` / `update_folder`                                        | Folder CRUD          |
+| `archive_folder` / `restore_folder`                                                                      | Folder lifecycle     |
+| `list_boards` / `create_board`                                                                           | Board management     |
+| `list_task_lists` / `create_task_list` / `get_task_list` / `update_task_list`                            | Task list CRUD       |
+| `archive_task_list` / `restore_task_list` / `copy_task_list` / `move_task_list` / `reposition_task_list` | Task list operations |
 
-### Folder Tools
+### Tasks
 
-| Tool | Description |
-|------|-------------|
-| `list_folders` | List folders in a project. Filter by `project_id`, `status` (1=active, 2=archived), `limit` |
-| `get_folder` | Get folder details by `folder_id` |
-| `create_folder` | Create a folder. Requires `project_id`, `name` |
-| `update_folder` | Rename a folder. Requires `folder_id`, optional `name` |
-| `archive_folder` | Archive a folder by `folder_id` |
-| `restore_folder` | Restore an archived folder by `folder_id` |
+| Tool                                                                           | Description        |
+| ------------------------------------------------------------------------------ | ------------------ |
+| `list_tasks` / `get_task` / `get_project_tasks` / `my_tasks`                   | Query tasks        |
+| `create_task` / `update_task_details` / `delete_task`                          | Task CRUD          |
+| `update_task_assignment` / `update_task_status` / `update_task_sprint`         | Task state changes |
+| `move_task_to_list` / `add_to_backlog` / `reposition_task`                     | Task positioning   |
+| `list_subtasks` / `create_subtask`                                             | Subtask management |
+| `list_task_dependencies` / `create_task_dependency` / `delete_task_dependency` | Dependencies       |
 
-### Board & Task List Tools
+### Comments & Todos
 
-| Tool | Description |
-|------|-------------|
-| `list_boards` | List boards. Filter by `project_id`, `limit` |
-| `create_board` | Create a board. Requires `project_id`, `name` |
-| `list_task_lists` | List task lists. Filter by `board_id`, `limit` |
-| `create_task_list` | Create a task list. Requires `board_id`, `project_id`, `name` |
-| `get_task_list` | Get task list details by `task_list_id` |
-| `update_task_list` | Rename a task list. Requires `task_list_id`, optional `name` |
-| `archive_task_list` | Archive a task list by `task_list_id` |
-| `restore_task_list` | Restore an archived task list by `task_list_id` |
-| `copy_task_list` | Copy a task list. Requires `name`, `template_id`, `project_id`, `board_id`. Optional `copy_open_tasks`, `copy_assignees` |
-| `move_task_list` | Move a task list to another board. Requires `task_list_id`, `board_id` |
-| `reposition_task_list` | Reorder a task list. Requires `task_list_id`, `move_before_id` |
+| Tool                                                                                       | Description     |
+| ------------------------------------------------------------------------------------------ | --------------- |
+| `add_task_comment` / `list_comments` / `get_comment` / `update_comment` / `delete_comment` | Comment CRUD    |
+| `pin_comment` / `unpin_comment` / `add_comment_reaction`                                   | Comment actions |
+| `list_todos` / `get_todo` / `create_todo` / `update_todo` / `delete_todo`                  | Todo management |
 
-### Task Management Tools
+### Pages & Documents
 
-| Tool | Description |
-|------|-------------|
-| `list_tasks` | List tasks. Filter by `project_id`, `assignee_id`, `status` (open/closed), `limit` |
-| `get_project_tasks` | Get all tasks for a project. Requires `project_id`, optional `status` |
-| `get_task` | Get task details by `task_id` |
-| `create_task` | Create a task. Requires `title`. Optional `project_id`, `board_id`, `task_list_id`, `assignee_id` ("me" supported), `due_date`, `status` |
-| `update_task_assignment` | Assign/unassign a task. Requires `task_id`, `assignee_id` ("me" or "null" supported) |
-| `update_task_details` | Update title/description. Requires `task_id`, optional `title`, `description`, `description_html` |
-| `update_task_status` | Set workflow status by name or ID. Requires `task_id` and either `status_name` (e.g. "In Progress", "On Hold") or `workflow_status_id`. Automatically resolves the task's project workflow, supports custom statuses |
-| `delete_task` | Delete a task by `task_id` |
-| `my_tasks` | Get tasks assigned to you. Optional `status`, `limit` |
-| `reposition_task` | Reorder a task within a list |
-| `update_task_sprint` | Move task to a sprint/task list |
-| `move_task_to_list` | Move a task to a different task list |
-| `add_to_backlog` | Move a task to the backlog |
+| Tool                                                                      | Description     |
+| ------------------------------------------------------------------------- | --------------- |
+| `list_pages` / `get_page` / `create_page` / `update_page` / `delete_page` | Page CRUD       |
+| `move_page` / `copy_page`                                                 | Page operations |
 
-### Task Dependency Tools
+### Time Tracking
 
-| Tool | Description |
-|------|-------------|
-| `list_task_dependencies` | List dependencies for a task. Filter by `task_id` (what it blocks) or `dependent_task_id` (what blocks it) |
-| `get_task_dependency` | Get dependency details by `dependency_id` |
-| `create_task_dependency` | Create a dependency. Requires `task_id` (blocker), `dependent_task_id` (blocked). Optional `type_id`: 1 = blocks (default), 2 = is blocked by, 3 = related to |
-| `delete_task_dependency` | Remove a dependency by `dependency_id` |
+| Tool                                                                                        | Description             |
+| ------------------------------------------------------------------------------------------- | ----------------------- |
+| `list_time_entries` / `create_time_entry` / `update_time_entry`                             | Time entry CRUD         |
+| `approve_time_entry` / `unapprove_time_entry` / `reject_time_entry` / `unreject_time_entry` | Approval workflow       |
+| `start_timer` / `stop_timer` / `get_timer`                                                  | Real-time timers        |
+| `list_services` / `get_project_services` / `list_project_deals` / `list_deal_services`      | Budget & service lookup |
 
-### Subtask Tools
+### Invoicing
 
-| Tool | Description |
-|------|-------------|
-| `list_subtasks` | List subtasks of a parent task. Requires `parent_task_id`, optional `limit` |
-| `create_subtask` | Create a subtask. Requires `parent_task_id`, `title`. Optional `project_id`, `task_list_id`, `assignee_id`, `due_date`, `description` |
+| Tool                                                                                      | Description      |
+| ----------------------------------------------------------------------------------------- | ---------------- |
+| `list_invoices` / `get_invoice` / `create_invoice` / `update_invoice` / `delete_invoice`  | Invoice CRUD     |
+| `list_company_budgets` / `generate_line_items` / `finalize_invoice` / `mark_invoice_paid` | Invoice workflow |
+| `get_invoice_pdf_url` / `get_timesheet_report_url`                                        | Document URLs    |
 
-### Comment Tools
+### Activity & Workflow
 
-| Tool | Description |
-|------|-------------|
-| `add_task_comment` | Add a comment to a task. Requires `task_id`, `comment` (supports HTML) |
-| `list_comments` | List comments. Filter by `task_id`, `project_id`, `limit` |
-| `get_comment` | Get full comment details by `comment_id` |
-| `update_comment` | Edit a comment. Requires `comment_id`, `body` |
-| `delete_comment` | Delete a comment by `comment_id` |
-| `pin_comment` | Pin a comment by `comment_id` |
-| `unpin_comment` | Unpin a comment by `comment_id` |
-| `add_comment_reaction` | Add a reaction. Requires `comment_id`, `reaction` (e.g. "like") |
-
-### Todo Tools
-
-| Tool | Description |
-|------|-------------|
-| `list_todos` | List todos on a task. Filter by `task_id`, `status` (open/closed), `limit` |
-| `get_todo` | Get todo details by `todo_id` |
-| `create_todo` | Create a todo. Requires `description`. Optional `task_id`, `deal_id`, `assignee_id`, `due_date` |
-| `update_todo` | Update a todo. Requires `todo_id`. Optional `description`, `closed` (boolean), `due_date` |
-| `delete_todo` | Delete a todo by `todo_id` |
-
-### Page/Document Tools
-
-| Tool | Description |
-|------|-------------|
-| `list_pages` | List pages. Filter by `project_id`, `sort` (title/created_at/edited_at/updated_at), `limit` |
-| `get_page` | Get full page content by `page_id` |
-| `create_page` | Create a page. Requires `project_id`, `title`. Optional `body` (HTML), `parent_page_id`, `root_page_id` |
-| `update_page` | Update a page. Requires `page_id`. Optional `title`, `body` |
-| `delete_page` | Delete a page by `page_id` |
-| `move_page` | Move page under another. Requires `page_id`, `target_doc_id` |
-| `copy_page` | Copy a page. Requires `template_id`. Optional `project_id` |
-
-### Workflow Tools
-
-| Tool | Description |
-|------|-------------|
-| `list_workflow_statuses` | List workflow statuses. Filter by `workflow_id`, `category_id` (1=Not Started, 2=Started, 3=Closed), `limit` |
-
-### Time Tracking Tools
-
-| Tool | Description |
-|------|-------------|
-| `list_time_entries` | List time entries. Filter by `date`, `after`, `before`, `person_id`, `project_id`, `task_id`, `service_id` |
-| `create_time_entry` | Create a time entry. Requires `date`, `time` (minutes), `person_id`, `service_id`. Optional `task_id`, `note` |
-| `list_services` | List services. Filter by `company_id`, `limit` |
-| `get_project_services` | Get services for a project |
-| `list_project_deals` | List deals/budgets for a project |
-| `list_deal_services` | List services for a deal/budget |
-
-### Time Management Tools
-
-Time entries track work performed against projects and services. Each entry belongs to a person, a service (within a deal/budget), and optionally a task. Time entries follow an approval workflow: they can be approved, unapproved, rejected (with a reason), or unrejected. To create a time entry, you need to follow the hierarchy: Project -> Deal/Budget -> Service -> Time Entry.
-
-#### list_time_entries
-View existing time entries with detailed information including service and budget relationships.
-
-Parameters:
-- `date` (optional): Filter by specific date (YYYY-MM-DD format)
-- `after` (optional): Filter entries after this date (YYYY-MM-DD format)
-- `before` (optional): Filter entries before this date (YYYY-MM-DD format)
-- `person_id` (optional): Filter by person ID (use "me" if PRODUCTIVE_USER_ID is configured)
-- `project_id` (optional): Filter by project ID
-- `task_id` (optional): Filter by task ID
-- `service_id` (optional): Filter by service ID
-- `limit` (optional): Number of time entries to return (1-200, default: 30)
-
-#### create_time_entry
-Create a time entry with detailed work description. Requires confirmation before creating.
-
-Parameters:
-- `date` (required): Date for the time entry ("today", "yesterday", or YYYY-MM-DD)
-- `time` (required): Time duration ("2h", "120m", "2.5h", or "2.5")
-- `person_id` (required): ID of the person logging time (use "me" if configured)
-- `service_id` (required): ID of the service being performed
-- `note` (required): Detailed description of work performed (minimum 10 characters)
-- `task_id` (optional): ID of the task being worked on
-- `billable_time` (optional): Billable time duration, same formats as time
-- `confirm` (optional): Set to true to confirm and create the entry
-
-#### update_time_entry
-Update an existing time entry. All fields except time_entry_id are optional — only provided fields will be updated.
-
-Parameters:
-- `time_entry_id` (required): ID of the time entry to update
-- `date` (optional): New date ("today", "yesterday", or YYYY-MM-DD)
-- `time` (optional): New time duration ("2h", "120m", "2.5h", or "2.5")
-- `billable_time` (optional): New billable time duration
-- `note` (optional): Updated work description
-
-#### approve_time_entry
-Approve a time entry.
-
-Parameters:
-- `time_entry_id` (required): ID of the time entry to approve
-
-#### unapprove_time_entry
-Reverse approval of a time entry.
-
-Parameters:
-- `time_entry_id` (required): ID of the time entry to unapprove
-
-#### reject_time_entry
-Reject a time entry with an optional reason.
-
-Parameters:
-- `time_entry_id` (required): ID of the time entry to reject
-- `rejected_reason` (optional): Reason for rejecting the time entry
-
-#### unreject_time_entry
-Reverse rejection of a time entry.
-
-Parameters:
-- `time_entry_id` (required): ID of the time entry to unreject
-
-### Budget & Service Tools
-
-#### list_project_deals
-Get deals/budgets for a specific project. Step 2 of the timesheet workflow.
-
-Parameters:
-- `project_id` (required): The ID of the project
-- `budget_type` (optional): Filter by budget type (1 = deal, 2 = budget)
-- `limit` (optional): Number of deals/budgets to return (1-200, default: 30)
-
-#### list_deal_services
-Get services for a specific deal/budget. Step 3 of the timesheet workflow.
-
-Parameters:
-- `deal_id` (required): The ID of the deal/budget
-- `limit` (optional): Number of services to return (1-200, default: 30)
-
-#### list_services
-List all services in the organization.
-
-Parameters:
-- `company_id` (optional): Filter services by company ID
-- `limit` (optional): Number of services to return (1-200, default: 30)
-
-#### start_timer
-Start a new timer for real-time time tracking. Provide either a service_id (creates a new time entry automatically) or a time_entry_id (attaches to an existing time entry).
-
-Parameters:
-- `service_id` (optional): Service ID to track time against (required if no time_entry_id)
-- `time_entry_id` (optional): Existing time entry ID to attach timer to (required if no service_id)
-
-#### stop_timer
-Stop a running timer. The tracked time will be added to the associated time entry.
-
-Parameters:
-- `timer_id` (required): ID of the timer to stop
-
-#### get_timer
-Get a timer's current status to check if it is still running.
-
-Parameters:
-- `timer_id` (required): ID of the timer to check
-
-### Activity & Updates Tools
-
-| Tool | Description |
-|------|-------------|
-| `list_activities` | List activities. Filter by `task_id`, `project_id`, `person_id`, `item_type`, `event`, `after`, `before` |
-| `get_recent_updates` | Get recent updates. Optional `limit`, `hours` |
+| Tool                     | Description                  |
+| ------------------------ | ---------------------------- |
+| `list_activities`        | List activities with filters |
+| `get_recent_updates`     | Get recent updates           |
+| `list_workflow_statuses` | List workflow statuses       |
 
 ## Common Workflows
 
-### Creating a Time Entry
+### Time Entry
 
-To create a time entry, follow the hierarchy: Project -> Deal/Budget -> Service -> Time Entry.
-
-1. **Find the project**: `list_projects`
-2. **Get deals/budgets**: `list_project_deals { "project_id": "..." }`
-3. **Get services**: `list_deal_services { "deal_id": "..." }`
-4. **Optionally find a task**: `get_project_tasks { "project_id": "..." }`
-5. **Create the entry**:
-   ```
-   create_time_entry {
-     "date": "today",
-     "time": "2h",
-     "person_id": "me",
-     "service_id": "...",
-     "task_id": "...",
-     "note": "Implemented feature X with unit tests"
-   }
-   ```
-
-### Managing Time Entry Approvals
+Follow the hierarchy: Project → Deal/Budget → Service → Time Entry.
 
 ```
-approve_time_entry { "time_entry_id": "123" }
-unapprove_time_entry { "time_entry_id": "123" }
-reject_time_entry { "time_entry_id": "123", "rejected_reason": "Wrong project" }
-unreject_time_entry { "time_entry_id": "123" }
+list_projects → list_project_deals → list_deal_services → create_time_entry
 ```
 
-### Updating Task Status
+### Task Status Update
 
-You can update a task's status by name — no need to look up IDs:
+Update by name — no ID lookup needed:
 
-```
-update_task_status {
-  "task_id": "12399194",
-  "status_name": "On Hold"
-}
+```json
+{ "task_id": "123", "status_name": "In Progress" }
 ```
 
-The tool automatically resolves the task's project workflow and matches the status name (case-insensitive, supports partial matching). This works with custom workflow statuses too.
-
-If the name doesn't match or is ambiguous, it returns the available statuses for that project:
+### Invoice
 
 ```
-No workflow status matching "banana" found.
-
-Available statuses:
-  • "Pending" (ID: 102305) — Not Started
-  • "Open" (ID: 102291) — Started
-  • "On Hold" (ID: 102306) — Started
-  • "Waiting" (ID: 102307) — Started
-  • "Closed" (ID: 102292) — Closed
+list_companies → list_company_budgets → create_invoice → generate_line_items → finalize_invoice → mark_invoice_paid
 ```
-
-You can also pass `workflow_status_id` directly if you already know the ID.
-
-### Working with "me" Context
-
-When `PRODUCTIVE_USER_ID` is configured, you can use "me" in several tools:
-- `create_task` with `"assignee_id": "me"`
-- `update_task_assignment` with `"assignee_id": "me"`
-- `list_time_entries` with `"person_id": "me"`
-- `create_time_entry` with `"person_id": "me"`
-- `my_tasks` to get your assigned tasks
-- `whoami` to verify your configured user context
-
-### Creating Complete Task Workflows
-
-1. **Create a folder**: `create_folder`
-2. **Create task lists**: `create_task_list`
-3. **Create tasks**: `create_task`
-4. **Break down work**: `create_subtask` for sub-items, `create_todo` for checklists
-5. **Add comments**: `add_task_comment`
-6. **Update status**: `update_task_status` with `status_name` (e.g. "Open", "On Hold", "Closed")
-7. **Track progress**: Use `list_activities` or `get_recent_updates`
-
-### Building Documentation
-
-1. **Create a root page**: `create_page` with `project_id` and `title`
-2. **Add child pages**: `create_page` with `parent_page_id` and `root_page_id` set to the root
-3. **Nest deeper**: Set `parent_page_id` to the parent and `root_page_id` to the root page
-4. **Reorganize**: Use `move_page` to reparent pages, `copy_page` to duplicate
 
 ## Development
 
-- Run in development mode: `npm run dev`
-- Build: `npm run build`
-- Start built server: `npm start`
+```bash
+npm run worker:dev     # local dev on port 8788 (requires .dev.vars with secrets)
+npm run worker:deploy  # deploy to Cloudflare
+npm run build          # compile TypeScript (for local stdio fallback)
+npm run format         # prettier
+```
+
+Create a `.dev.vars` file (gitignored) with the same variables as the Cloudflare secrets for local development.
 
 ## License
 
-ISC
+[Apache 2.0](LICENSE)
+
+Originally based on [productive-mcp](https://github.com/berwickgeek/productive-mcp) by [jayat3dn](https://github.com/berwickgeek) (ISC). See [NOTICE](NOTICE) for attribution details.
+
+---
+
+Maintained by [Monads AG](https://monads.ch)
