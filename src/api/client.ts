@@ -123,10 +123,11 @@ export class ProductiveAPIClient {
     limit?: number;
     page?: number;
   }): Promise<ProductiveResponse<ProductiveCompany>> {
+    const statusMap: Record<string, string> = { active: '1', archived: '2' };
     const queryParams = new URLSearchParams();
 
     if (params?.status) {
-      queryParams.append('filter[status]', params.status);
+      queryParams.append('filter[status]', statusMap[params.status]);
     }
 
     if (params?.limit) {
