@@ -22,7 +22,7 @@ import { LOGO_DATA_URI } from './auth/logo.js';
 export class ProductiveMCP extends McpAgent<WorkerEnv, Record<string, never>, EntraProps> {
   server = new Server(
     {
-      name: 'productive-mcp',
+      name: 'Productive Remote MCP',
       version: '1.1.0',
       icons: [{ src: LOGO_DATA_URI, mimeType: 'image/svg+xml', sizes: ['any'] }],
     },
