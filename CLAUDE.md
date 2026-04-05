@@ -16,7 +16,7 @@ npm run format             # prettier
 
 ```
 src/
-├── worker.ts             # Cloudflare Worker entry point (McpAgent + OAuthProvider)
+├── worker.ts             # Cloudflare Worker entry point (createMcpHandler + OAuthProvider)
 ├── index.ts              # Stdio entry point (legacy fallback)
 ├── server.ts             # Stdio server setup (uses shared registry)
 ├── api/
@@ -36,7 +36,7 @@ src/
 ├── prompts/
 │   └── timesheet.ts      # Guided timesheet workflow
 docs/api-spec/            # Generated API specs (see below)
-wrangler.jsonc            # Cloudflare Worker config (DO, KV bindings)
+wrangler.jsonc            # Cloudflare Worker config (KV bindings)
 tsconfig.json             # Stdio TypeScript config (excludes worker files)
 tsconfig.worker.json      # Worker TypeScript config (all files)
 ```
@@ -81,6 +81,7 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 - **generate_line_items**: Uses a FLAT payload, not JSON API envelope. `invoicing_method` is hardcoded to `uninvoiced_time_and_expenses`.
 - **Line items not includable**: `get_invoice` cannot use `?include=line_items`. Fetch separately via `listLineItems`.
 - **McpServer vs Server**: The Worker uses the low-level `Server` class (not `McpServer`) because tool definitions use raw JSON Schema, which `McpServer.registerTool()` does not accept.
+- **Streamable HTTP transport**: The Worker uses `createMcpHandler` (stateless, no Durable Object). Each request creates a fresh `Server` instance. Do NOT use `McpAgent` — it requires persistent SSE connections that get killed by Worker timeouts.
 
 ## Environment Variables
 
@@ -104,3 +105,8 @@ All secrets are set via `wrangler secret put` (production) or `.dev.vars` (local
 - **JSON API spec** -- all requests/responses follow jsonapi.org format
 - Max 500 lines per file, max 50 lines per function
 - Semantic commits: `feat:`, `fix:`, `refactor:`, `chore:`
+
+## Git Workflow
+
+- **Origin**: `MonadsAG/monads-mcp-productive` — all PRs go here
+- **Upstream**: `berwickgeek/productive-mcp` — fork source, do NOT create PRs here

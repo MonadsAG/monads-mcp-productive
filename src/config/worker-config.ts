@@ -14,7 +14,6 @@ export interface WorkerEnv {
   COOKIE_ENCRYPTION_KEY: string;
   OAUTH_KV: KVNamespace;
   USER_MAPPING_KV: KVNamespace;
-  MCP_OBJECT: DurableObjectNamespace;
 }
 
 const workerConfigSchema = z.object({
