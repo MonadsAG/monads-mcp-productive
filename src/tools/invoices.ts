@@ -66,13 +66,13 @@ const listInvoicesSchema = z.object({
   company_id: z.string().optional(),
   project_id: z.string().optional(),
   deal_id: z.string().optional(),
-  invoice_state: z.number().optional(),
-  invoice_status: z.number().optional(),
-  payment_status: z.number().optional(),
+  invoice_state: z.coerce.number().optional(),
+  invoice_status: z.coerce.number().optional(),
+  payment_status: z.coerce.number().optional(),
   after: z.string().optional(),
   before: z.string().optional(),
   full_query: z.string().optional(),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 /**
@@ -181,7 +181,7 @@ const listCompanyBudgetsSchema = z.object({
     .default(false)
     .optional()
     .describe('Include closed budgets (default: false, only open)'),
-  limit: z.number().min(1).max(200).default(50).optional(),
+  limit: z.coerce.number().min(1).max(200).default(50).optional(),
 });
 
 export async function listCompanyBudgetsTool(
@@ -384,7 +384,7 @@ const createInvoiceSchema = z.object({
   subject: z.string().optional(),
   note: z.string().optional(),
   footer: z.string().optional(),
-  payment_terms: z.number().default(30).optional().describe('Payment terms in days (default: 30)'),
+  payment_terms: z.coerce.number().default(30).optional().describe('Payment terms in days (default: 30)'),
   purchase_order_number: z.string().optional().describe('PO number for the invoice'),
   subsidiary_id: z.string().optional().describe('Auto-resolved if omitted'),
 });
@@ -551,7 +551,7 @@ const updateInvoiceSchema = z.object({
   pay_on: z.string().optional().describe('Due date YYYY-MM-DD'),
   delivery_on: z.string().optional().describe('Delivery date YYYY-MM-DD'),
   currency: z.string().optional(),
-  payment_terms: z.number().optional().describe('Payment terms in days'),
+  payment_terms: z.coerce.number().optional().describe('Payment terms in days'),
   number: z.string().optional().describe('Invoice number'),
   purchase_order_number: z.string().optional(),
 });

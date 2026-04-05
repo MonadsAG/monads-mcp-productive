@@ -10,7 +10,7 @@ const coerceBoolean = z.preprocess(
 
 const ListTaskListsSchema = z.object({
   board_id: z.string().optional().describe('Filter task lists by board ID'),
-  limit: z.number().optional().default(30).describe('Number of task lists to return (max 200)'),
+  limit: z.coerce.number().optional().default(30).describe('Number of task lists to return (max 200)'),
 });
 
 export async function listTaskLists(

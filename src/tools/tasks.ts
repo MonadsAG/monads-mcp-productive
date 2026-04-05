@@ -29,7 +29,7 @@ const listTasksSchema = z.object({
   project_id: z.string().optional(),
   assignee_id: z.string().optional(),
   status: z.enum(['open', 'closed']).optional(),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 const getProjectTasksSchema = z.object({
@@ -221,7 +221,10 @@ export async function getTaskTool(
       throw new Error(`Failed to get task: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      data: { id: string; type: string; attributes: Record<string, any>; relationships?: Record<string, any> };
+      included?: ProductiveIncludedResource[];
+    };
     const task = data.data;
     const projectId = task.relationships?.project?.data?.id;
     const assigneeId = task.relationships?.assignee?.data?.id;

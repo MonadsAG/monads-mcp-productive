@@ -7,7 +7,7 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 const listPagesSchema = z.object({
   project_id: z.string().optional(),
   sort: z.enum(['created_at', 'title', 'edited_at', 'updated_at']).optional(),
-  limit: z.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
 const getPageSchema = z.object({
@@ -18,7 +18,7 @@ const createPageSchema = z.object({
   project_id: z.string().min(1, 'Project ID is required'),
   title: z.string().min(1, 'Title is required'),
   body: z.string().optional(),
-  parent_page_id: z.number().optional().describe('ID of parent page (must also set root_page_id)'),
+  parent_page_id: z.coerce.number().optional().describe('ID of parent page (must also set root_page_id)'),
   root_page_id: z
     .number()
     .optional()

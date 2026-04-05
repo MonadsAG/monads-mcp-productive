@@ -28,8 +28,8 @@ function resolveWorkflowStatus(
 
 const listSubtasksSchema = z.object({
   parent_task_id: z.string().min(1, 'Parent task ID is required'),
-  limit: z.number().min(1).max(200).default(30).optional(),
-  page: z.number().min(1).default(1).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30).optional(),
+  page: z.coerce.number().min(1).default(1).optional(),
 });
 
 export async function listSubtasksTool(
@@ -57,7 +57,11 @@ export async function listSubtasksTool(
       throw new Error(`Failed to list subtasks: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      data?: Array<{ id: string; type: string; attributes: Record<string, any>; relationships?: Record<string, any> }>;
+      included?: ProductiveIncludedResource[];
+      meta?: { total_count?: number };
+    };
 
     if (!data || !data.data || data.data.length === 0) {
       return {

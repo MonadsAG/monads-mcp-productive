@@ -6,8 +6,8 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 const ListFoldersSchema = z.object({
   project_id: z.string().optional().describe('Filter folders by project ID'),
-  status: z.number().optional().describe('Filter by status (1=active, 2=archived)'),
-  limit: z.number().optional().default(30).describe('Number of folders to return (max 200)'),
+  status: z.coerce.number().optional().describe('Filter by status (1=active, 2=archived)'),
+  limit: z.coerce.number().optional().default(30).describe('Number of folders to return (max 200)'),
 });
 
 export async function listFolders(
