@@ -468,48 +468,54 @@ export async function getProjectServicesTool(
   try {
     const params = getProjectServicesSchema.parse(args);
 
-    // First get the project to verify it exists and get company info
-    const projectResponse = await client.listProjects({
-      limit: 1,
-    });
+    // Step 1: get deals for this project
+    const dealsResponse = await client.listProjectDeals({ project_id: params.project_id });
 
-    // Then get services for the project's company
-    // Note: This is a simplified approach - in practice you might need
-    // to get the project details first to find its company
-    const response = await client.listServices({
-      limit: params.limit,
-    });
-
-    if (!response.data || response.data.length === 0) {
+    if (!dealsResponse.data || dealsResponse.data.length === 0) {
       return {
         content: [
           {
             type: 'text',
-            text: `No active services found for project ${params.project_id}.`,
+            text: `No deals found for project ${params.project_id}. Cannot determine available services.`,
           },
         ],
       };
     }
 
-    const servicesText = response.data
-      .map((service) => {
-        const companyId = service.relationships?.company?.data?.id;
+    // Step 2: collect services from all deals (deduplicated by service ID)
+    const serviceMap = new Map<string, { name: string; dealName: string }>();
 
-        return `• ${service.attributes.name} (ID: ${service.id})
-  ${companyId ? `Company ID: ${companyId}` : ''}
-  ${service.attributes.description ? `Description: ${service.attributes.description}` : 'No description'}`;
-      })
+    for (const deal of dealsResponse.data) {
+      const dealServices = await client.listDealServices({ deal_id: deal.id, limit: 100 });
+      for (const service of dealServices.data ?? []) {
+        if (!serviceMap.has(service.id)) {
+          serviceMap.set(service.id, {
+            name: service.attributes.name,
+            dealName: deal.attributes.name,
+          });
+        }
+      }
+    }
+
+    if (serviceMap.size === 0) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `No services found for project ${params.project_id}.`,
+          },
+        ],
+      };
+    }
+
+    const servicesText = Array.from(serviceMap.entries())
+      .map(([id, { name, dealName }]) => `• ${name} (ID: ${id})\n  Deal: ${dealName}`)
       .join('\n\n');
 
-    const summary = `Services available for project ${params.project_id} (${response.data.length} service${response.data.length !== 1 ? 's' : ''}):\n\n${servicesText}`;
+    const summary = `Services for project ${params.project_id} (${serviceMap.size} service${serviceMap.size !== 1 ? 's' : ''}):\n\n${servicesText}`;
 
     return {
-      content: [
-        {
-          type: 'text',
-          text: summary,
-        },
-      ],
+      content: [{ type: 'text', text: summary }],
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
