@@ -2,18 +2,7 @@ import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTaskUpdate, ProductiveIncludedResource } from '../api/types.js';
-
-function resolvePersonName(
-  personId: string | undefined,
-  included?: ProductiveIncludedResource[],
-): string | undefined {
-  if (!personId || !included) return undefined;
-  const person = included.find((item) => item.type === 'people' && item.id === personId);
-  if (!person) return undefined;
-  const first = person.attributes.first_name || '';
-  const last = person.attributes.last_name || '';
-  return `${first} ${last}`.trim() || undefined;
-}
+import { buildIncludeMap, resolveName } from './include-resolver.js';
 
 function resolveWorkflowStatus(
   task: { relationships?: Record<string, any> },
@@ -66,12 +55,14 @@ export async function listTasksTool(
       };
     }
 
+    const nameMap = buildIncludeMap(response.included);
     const tasksText = response.data
       .filter((task) => task && task.attributes)
       .map((task) => {
         const projectId = task.relationships?.project?.data?.id;
         const assigneeId = task.relationships?.assignee?.data?.id;
-        const assigneeName = resolvePersonName(assigneeId, response.included);
+        const assigneeName = resolveName(nameMap, 'people', assigneeId);
+        const projectName = resolveName(nameMap, 'projects', projectId);
         const workflowStatusName = resolveWorkflowStatus(task, response.included);
         const fallbackStatus =
           task.attributes.status === 1
@@ -81,14 +72,14 @@ export async function listTasksTool(
               : `status ${task.attributes.status}`;
         const statusText = workflowStatusName || fallbackStatus;
         const assigneeDisplay = assigneeName
-          ? `Assignee: ${assigneeName} (ID: ${assigneeId})`
+          ? `Assignee: ${assigneeName}`
           : assigneeId
             ? `Assignee ID: ${assigneeId}`
             : 'Unassigned';
         return `• ${task.attributes.title} (ID: ${task.id})
   Status: ${statusText}
   ${task.attributes.due_date ? `Due: ${task.attributes.due_date}` : 'No due date'}
-  ${projectId ? `Project ID: ${projectId}` : ''}
+  ${projectName ? `Project: ${projectName}` : projectId ? `Project ID: ${projectId}` : ''}
   ${assigneeDisplay}
   ${task.attributes.description ? `Description: ${task.attributes.description}` : ''}`;
       })
@@ -143,11 +134,12 @@ export async function getProjectTasksTool(
       };
     }
 
+    const nameMap = buildIncludeMap(response.included);
     const tasksText = response.data
       .filter((task) => task && task.attributes)
       .map((task) => {
         const assigneeId = task.relationships?.assignee?.data?.id;
-        const assigneeName = resolvePersonName(assigneeId, response.included);
+        const assigneeName = resolveName(nameMap, 'people', assigneeId);
         const workflowStatusName = resolveWorkflowStatus(task, response.included);
         const fallbackStatus =
           task.attributes.status === 1
@@ -157,7 +149,7 @@ export async function getProjectTasksTool(
               : `status ${task.attributes.status}`;
         const statusText = workflowStatusName || fallbackStatus;
         const assigneeDisplay = assigneeName
-          ? `Assignee: ${assigneeName} (ID: ${assigneeId})`
+          ? `Assignee: ${assigneeName}`
           : assigneeId
             ? `Assignee ID: ${assigneeId}`
             : 'Unassigned';
@@ -205,7 +197,7 @@ export async function getTaskTool(
     const config = await import('../config/index.js').then((m) => m.getConfig());
 
     // Create URL with task_list included
-    const url = `${config.PRODUCTIVE_API_BASE_URL}tasks/${params.task_id}?include=task_list,assignee,workflow_status`;
+    const url = `${config.PRODUCTIVE_API_BASE_URL}tasks/${params.task_id}?include=task_list,assignee,workflow_status,project`;
 
     // Create request with proper headers from config
     const response = await fetch(url, {
@@ -229,6 +221,9 @@ export async function getTaskTool(
     const projectId = task.relationships?.project?.data?.id;
     const assigneeId = task.relationships?.assignee?.data?.id;
     const taskListId = task.relationships?.task_list?.data?.id;
+    const nameMap = buildIncludeMap(data.included);
+    const projectName = resolveName(nameMap, 'projects', projectId);
+    const assigneeName = resolveName(nameMap, 'people', assigneeId);
 
     // Resolve workflow status name from included data, fall back to closed boolean
     const workflowStatusName = resolveWorkflowStatus(task, data.included);
@@ -256,16 +251,11 @@ export async function getTaskTool(
     }
 
     if (projectId) {
-      text += `Project ID: ${projectId}\n`;
+      text += projectName ? `Project: ${projectName}\n` : `Project ID: ${projectId}\n`;
     }
 
     if (assigneeId) {
-      const assigneeName = resolvePersonName(assigneeId, data.included);
-      if (assigneeName) {
-        text += `Assignee: ${assigneeName} (ID: ${assigneeId})\n`;
-      } else {
-        text += `Assignee ID: ${assigneeId}\n`;
-      }
+      text += assigneeName ? `Assignee: ${assigneeName}\n` : `Assignee ID: ${assigneeId}\n`;
     } else {
       text += `Assignee: Unassigned\n`;
     }
@@ -313,7 +303,6 @@ export async function getTaskTool(
       text += `Task List ID: ${taskListId}\n`;
 
       // If there's included data for the task list, include the name
-      console.log('Included data:', JSON.stringify(data.included));
       if (data.included && Array.isArray(data.included)) {
         const taskList = data.included.find(
           (item: any) => item.type === 'task_lists' && item.id === taskListId,
