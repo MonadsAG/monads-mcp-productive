@@ -7,6 +7,7 @@ A **remote MCP server** for [Productive.io](https://productive.io) running on **
 - **Remote-first** — runs on Cloudflare Workers, clients connect via URL
 - **Microsoft Entra ID** — OAuth 2.1 with your organization's identity provider (SSO + MFA)
 - **Auto user resolution** — maps Entra email to Productive user ID automatically
+- **Name resolution** — people, companies, projects, tasks, and deals are shown by name, not raw ID
 - **70+ tools** — projects, tasks, time tracking, invoicing, comments, pages, and more
 - **Zero client setup** — just add one URL to Claude Desktop or Claude Code
 
