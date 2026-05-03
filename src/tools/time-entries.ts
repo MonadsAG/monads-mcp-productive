@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTimeEntryCreate } from '../api/types.js';
+import { buildIncludeMap, resolveName } from './include-resolver.js';
 
 /** Coerce "true"/"false" strings to booleans (some MCP clients send strings). */
 const coerceBoolean = z.preprocess(
@@ -162,6 +163,8 @@ export async function listTimeEntresTool(
       };
     }
 
+    const nameMap = buildIncludeMap(response.included);
+
     const entriesText = response.data
       .map((entry) => {
         const personId = entry.relationships?.person?.data?.id;
@@ -169,6 +172,8 @@ export async function listTimeEntresTool(
         const taskId = entry.relationships?.task?.data?.id;
         const projectId = entry.relationships?.project?.data?.id;
 
+        const personName = resolveName(nameMap, 'people', personId) ?? 'Unknown';
+        const taskName = resolveName(nameMap, 'tasks', taskId);
         const timeDisplay = formatMinutesDisplay(entry.attributes.time);
 
         let billableDisplay = '';
@@ -183,9 +188,9 @@ export async function listTimeEntresTool(
   Date: ${entry.attributes.date}
   Time: ${timeDisplay}${billableDisplay}
   Note: ${entry.attributes.note || 'No note'}
-  Person ID: ${personId || 'Unknown'}
+  Person: ${personName}
   Service ID: ${serviceId || 'Unknown'}
-  Task ID: ${taskId || 'None'}
+  ${taskName ? `Task: ${taskName}` : taskId ? `Task ID: ${taskId}` : 'Task: None'}
   Project ID: ${projectId || 'None'}`;
       })
       .join('\n\n');
