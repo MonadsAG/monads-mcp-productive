@@ -193,40 +193,20 @@ export async function getTaskTool(
   try {
     const params = getTaskSchema.parse(args);
 
-    // Import and use config directly
-    const config = await import('../config/index.js').then((m) => m.getConfig());
+    const response = await client.getTask(params.task_id);
+    const task = response.data;
+    const included = response.included;
 
-    // Create URL with task_list included
-    const url = `${config.PRODUCTIVE_API_BASE_URL}tasks/${params.task_id}?include=task_list,assignee,workflow_status,project`;
-
-    // Create request with proper headers from config
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-Auth-Token': config.PRODUCTIVE_API_TOKEN,
-        'X-Organization-Id': config.PRODUCTIVE_ORG_ID,
-        'Content-Type': 'application/vnd.api+json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get task: ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as {
-      data: { id: string; type: string; attributes: Record<string, any>; relationships?: Record<string, any> };
-      included?: ProductiveIncludedResource[];
-    };
-    const task = data.data;
+    const nameMap = buildIncludeMap(included);
     const projectId = task.relationships?.project?.data?.id;
     const assigneeId = task.relationships?.assignee?.data?.id;
     const taskListId = task.relationships?.task_list?.data?.id;
-    const nameMap = buildIncludeMap(data.included);
     const projectName = resolveName(nameMap, 'projects', projectId);
     const assigneeName = resolveName(nameMap, 'people', assigneeId);
+    const taskListName = resolveName(nameMap, 'task_lists', taskListId);
 
     // Resolve workflow status name from included data, fall back to closed boolean
-    const workflowStatusName = resolveWorkflowStatus(task, data.included);
+    const workflowStatusName = resolveWorkflowStatus(task, included);
     const fallbackStatus =
       task.attributes.closed === false
         ? 'open'
@@ -268,7 +248,6 @@ export async function getTaskTool(
       text += `Updated: ${task.attributes.updated_at}\n`;
     }
 
-    // Include any additional attributes that might be useful
     if (task.attributes.priority !== undefined) {
       text += `Priority: ${task.attributes.priority}\n`;
     }
@@ -277,7 +256,6 @@ export async function getTaskTool(
       text += `Position: ${task.attributes.placement}\n`;
     }
 
-    // Add useful additional fields from actual API response
     if (task.attributes.task_number) {
       text += `Task Number: ${task.attributes.task_number}\n`;
     }
@@ -298,9 +276,7 @@ export async function getTaskTool(
       text += `Last Activity: ${task.attributes.last_activity_at}\n`;
     }
 
-    // Include task list information if available
     if (taskListId) {
-      const taskListName = resolveName(nameMap, 'task_lists', taskListId);
       text += taskListName ? `Task List: ${taskListName}\n` : `Task List ID: ${taskListId}\n`;
     }
 

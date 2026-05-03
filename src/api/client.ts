@@ -336,7 +336,9 @@ export class ProductiveAPIClient {
   }
 
   async getTask(taskId: string): Promise<ProductiveSingleResponse<ProductiveTask>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveTask>>(`tasks/${taskId}`);
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTask>>(
+      `tasks/${taskId}?include=task_list,assignee,workflow_status,project`,
+    );
   }
 
   async updateTask(
