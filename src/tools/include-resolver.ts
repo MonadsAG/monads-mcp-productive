@@ -30,7 +30,7 @@ export function buildIncludeMap(included?: ProductiveIncludedResource[]): Map<st
 
 /**
  * Resolves an entity ID to a name using the include map.
- * Falls back to the raw ID if the name is not found.
+ * Returns undefined if id is absent or if the name was not sideloaded.
  */
 export function resolveName(
   map: Map<string, string>,
@@ -38,5 +38,5 @@ export function resolveName(
   id: string | undefined,
 ): string | undefined {
   if (!id) return undefined;
-  return map.get(`${type}:${id}`) ?? id;
+  return map.get(`${type}:${id}`);
 }
