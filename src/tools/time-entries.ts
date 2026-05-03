@@ -188,7 +188,7 @@ export async function listTimeEntresTool(
   Date: ${entry.attributes.date}
   Time: ${timeDisplay}${billableDisplay}
   Note: ${entry.attributes.note || 'No note'}
-  Person: ${personName}
+  Person: ${personName}${personId ? ` (ID: ${personId})` : ''}
   Service ID: ${serviceId || 'Unknown'}
   ${taskName ? `Task: ${taskName}` : taskId ? `Task ID: ${taskId}` : 'Task: None'}
   Project ID: ${projectId || 'None'}`;
