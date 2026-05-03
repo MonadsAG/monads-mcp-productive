@@ -15,11 +15,11 @@ export function buildIncludeMap(included?: ProductiveIncludedResource[]): Map<st
 
     let name: string | undefined;
     if (resource.type === 'people') {
-      const first = (attrs.first_name as string) || '';
-      const last = (attrs.last_name as string) || '';
+      const first = typeof attrs.first_name === 'string' ? attrs.first_name : '';
+      const last = typeof attrs.last_name === 'string' ? attrs.last_name : '';
       name = `${first} ${last}`.trim() || undefined;
     } else {
-      name = (attrs.name as string) || undefined;
+      name = typeof attrs.name === 'string' ? attrs.name : undefined;
     }
 
     if (name) map.set(key, name);
