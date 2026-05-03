@@ -298,19 +298,10 @@ export async function getTaskTool(
       text += `Last Activity: ${task.attributes.last_activity_at}\n`;
     }
 
-    // Include task list ID information if available
+    // Include task list information if available
     if (taskListId) {
-      text += `Task List ID: ${taskListId}\n`;
-
-      // If there's included data for the task list, include the name
-      if (data.included && Array.isArray(data.included)) {
-        const taskList = data.included.find(
-          (item: any) => item.type === 'task_lists' && item.id === taskListId,
-        );
-        if (taskList) {
-          text += `Task List: ${taskList.attributes.name}\n`;
-        }
-      }
+      const taskListName = resolveName(nameMap, 'task_lists', taskListId);
+      text += taskListName ? `Task List: ${taskListName}\n` : `Task List ID: ${taskListId}\n`;
     }
 
     return {
