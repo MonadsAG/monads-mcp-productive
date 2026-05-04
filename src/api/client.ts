@@ -152,6 +152,8 @@ export class ProductiveAPIClient {
   }): Promise<ProductiveResponse<ProductiveProject>> {
     const queryParams = new URLSearchParams();
 
+    queryParams.append('include', 'company');
+
     if (params?.status) {
       // Convert status string to integer: active = 1, archived = 2
       const statusValue = params.status === 'active' ? '1' : '2';
@@ -186,7 +188,7 @@ export class ProductiveAPIClient {
     const queryParams = new URLSearchParams();
 
     // Include assignee and workflow status so we can resolve names
-    queryParams.append('include', 'assignee,workflow_status');
+    queryParams.append('include', 'assignee,workflow_status,project');
 
     if (params?.project_id) {
       queryParams.append('filter[project_id]', params.project_id);
@@ -334,7 +336,9 @@ export class ProductiveAPIClient {
   }
 
   async getTask(taskId: string): Promise<ProductiveSingleResponse<ProductiveTask>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveTask>>(`tasks/${taskId}`);
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTask>>(
+      `tasks/${taskId}?include=task_list,assignee,workflow_status,project`,
+    );
   }
 
   async updateTask(
@@ -1322,6 +1326,7 @@ export class ProductiveAPIClient {
     page?: number;
   }): Promise<ProductiveResponse<ProductiveTodo>> {
     const q = new URLSearchParams();
+    q.append('include', 'assignee,task,deal');
     if (params?.task_id) q.append('filter[task_id]', params.task_id);
     if (params?.deal_id) q.append('filter[deal_id]', params.deal_id);
     if (params?.assignee_id) q.append('filter[assignee_id]', params.assignee_id);
@@ -1333,7 +1338,9 @@ export class ProductiveAPIClient {
   }
 
   async getTodo(todoId: string): Promise<ProductiveSingleResponse<ProductiveTodo>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveTodo>>(`todos/${todoId}`);
+    return this.makeRequest<ProductiveSingleResponse<ProductiveTodo>>(
+      `todos/${todoId}?include=assignee,task,deal`,
+    );
   }
 
   async createTodo(data: ProductiveTodoCreate): Promise<ProductiveSingleResponse<ProductiveTodo>> {

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { buildIncludeMap, resolveName } from './include-resolver.js';
 
 /** Coerce "true"/"false" strings to booleans (some MCP clients send strings). */
 const coerceBoolean = z.preprocess(
@@ -63,13 +64,27 @@ export async function listTodosTool(
 
     let text = `Found ${response.data.length} todo(s):\n\n`;
 
+    const nameMap = buildIncludeMap(response.included);
+
     for (const todo of response.data) {
       const attrs = todo.attributes;
       const closedStatus = attrs.closed ? 'Closed' : 'Open';
+      const assigneeId = todo.relationships?.assignee?.data?.id;
+      const taskId = todo.relationships?.task?.data?.id;
+      const dealId = todo.relationships?.deal?.data?.id;
+      const assigneeName = resolveName(nameMap, 'people', assigneeId);
+      const taskName = resolveName(nameMap, 'tasks', taskId);
+      const dealName = resolveName(nameMap, 'deals', dealId);
+
       text += `- [${closedStatus}] ${attrs.description}\n`;
       text += `  ID: ${todo.id}\n`;
       if (attrs.due_date) text += `  Due: ${attrs.due_date}\n`;
-      if (attrs.position !== undefined) text += `  Position: ${attrs.position}\n`;
+      if (assigneeName) text += `  Assignee: ${assigneeName}\n`;
+      else if (assigneeId) text += `  Assignee ID: ${assigneeId}\n`;
+      if (taskName) text += `  Task: ${taskName}\n`;
+      else if (taskId) text += `  Task ID: ${taskId}\n`;
+      if (dealName) text += `  Deal: ${dealName}\n`;
+      else if (dealId) text += `  Deal ID: ${dealId}\n`;
       text += `\n`;
     }
 
@@ -110,14 +125,22 @@ export async function getTodoTool(
     if (attrs.todoable_type) text += `Todoable type: ${attrs.todoable_type}\n`;
     if (attrs.position !== undefined) text += `Position: ${attrs.position}\n`;
 
-    if (todo.relationships?.task?.data) {
-      text += `Task ID: ${todo.relationships.task.data.id}\n`;
+    const nameMap = buildIncludeMap(response.included);
+    const taskId = todo.relationships?.task?.data?.id;
+    const dealId = todo.relationships?.deal?.data?.id;
+    const assigneeId = todo.relationships?.assignee?.data?.id;
+
+    if (taskId) {
+      const taskName = resolveName(nameMap, 'tasks', taskId);
+      text += taskName ? `Task: ${taskName}\n` : `Task ID: ${taskId}\n`;
     }
-    if (todo.relationships?.deal?.data) {
-      text += `Deal ID: ${todo.relationships.deal.data.id}\n`;
+    if (dealId) {
+      const dealName = resolveName(nameMap, 'deals', dealId);
+      text += dealName ? `Deal: ${dealName}\n` : `Deal ID: ${dealId}\n`;
     }
-    if (todo.relationships?.assignee?.data) {
-      text += `Assignee ID: ${todo.relationships.assignee.data.id}\n`;
+    if (assigneeId) {
+      const assigneeName = resolveName(nameMap, 'people', assigneeId);
+      text += assigneeName ? `Assignee: ${assigneeName}\n` : `Assignee ID: ${assigneeId}\n`;
     }
 
     return {

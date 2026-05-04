@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { buildIncludeMap, resolveName } from './include-resolver.js';
 
 const listProjectsSchema = z.object({
   status: z.enum(['active', 'archived']).optional(),
@@ -32,13 +33,16 @@ export async function listProjectsTool(
       };
     }
 
+    const nameMap = buildIncludeMap(response.included);
+
     const projectsText = response.data
       .filter((project) => project && project.attributes)
       .map((project) => {
         const companyId = project.relationships?.company?.data?.id;
+        const companyName = resolveName(nameMap, 'companies', companyId);
         return `• ${project.attributes.name} (ID: ${project.id})
   Status: ${project.attributes.status}
-  ${companyId ? `Company ID: ${companyId}` : ''}
+  ${companyName ? `Company: ${companyName}` : companyId ? `Company ID: ${companyId}` : ''}
   ${project.attributes.description ? `Description: ${project.attributes.description}` : 'No description'}`;
       })
       .join('\n\n');
