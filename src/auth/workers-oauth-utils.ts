@@ -5,6 +5,7 @@
  */
 
 import type { AuthRequest, ClientInfo } from '@cloudflare/workers-oauth-provider';
+import { detectLang } from './i18n.js';
 
 const CSRF_COOKIE = '__Host-CSRF_TOKEN';
 const STATE_COOKIE = '__Host-CONSENTED_STATE';
@@ -233,20 +234,43 @@ export interface ApprovalDialogOptions {
   setCookie: string;
 }
 
+const APPROVAL_STRINGS = {
+  en: {
+    signInTitleSuffix: 'Sign In',
+    heading: 'Authorize Connection',
+    description:
+      'Connect your AI assistant to Productive.io. Sign in with your Microsoft account to authorize.',
+    signIn: 'Sign in with Microsoft',
+    cancel: 'Cancel',
+    footer: 'Secured with Microsoft Entra ID',
+  },
+  de: {
+    signInTitleSuffix: 'Anmelden',
+    heading: 'Verbindung autorisieren',
+    description:
+      'Verbinde deinen KI-Assistenten mit Productive.io. Melde dich mit deinem Microsoft-Konto an, um die Verbindung zu autorisieren.',
+    signIn: 'Mit Microsoft anmelden',
+    cancel: 'Abbrechen',
+    footer: 'Abgesichert mit Microsoft Entra ID',
+  },
+} as const;
+
 export function renderApprovalDialog(request: Request, options: ApprovalDialogOptions): Response {
   const { client, server, state, csrfToken, setCookie } = options;
   const encodedState = btoa(JSON.stringify(state));
+  const lang = detectLang(request);
+  const t = APPROVAL_STRINGS[lang];
 
   const serverName = sanitizeText(server.name);
   const clientName = client?.clientName ? sanitizeText(client.clientName) : 'Unknown MCP Client';
-  const serverDescription = server.description ? sanitizeText(server.description) : '';
+  const serverDescription = server.description ? sanitizeText(server.description) : t.description;
 
   const htmlContent = `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${serverName} — Sign In</title>
+  <title>${serverName} — ${t.signInTitleSuffix}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
@@ -413,8 +437,8 @@ export function renderApprovalDialog(request: Request, options: ApprovalDialogOp
 
     <div class="card">
       <div style="text-align:center"><span class="client-badge">${clientName}</span></div>
-      <h1>Authorize Connection</h1>
-      <p class="desc">${serverDescription || 'This application wants to connect to your Productive.io workspace.'}</p>
+      <h1>${t.heading}</h1>
+      <p class="desc">${serverDescription}</p>
       <div class="divider"></div>
       <form method="post" action="${new URL(request.url).pathname}">
         <input type="hidden" name="state" value="${encodedState}">
@@ -422,14 +446,14 @@ export function renderApprovalDialog(request: Request, options: ApprovalDialogOp
         <div class="actions">
           <button type="submit" class="btn btn-primary">
             <svg viewBox="0 0 21 21" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h10v10H0z"/><path d="M11 0h10v10H11z"/><path d="M0 11h10v10H0z"/><path d="M11 11h10v10H11z"/></svg>
-            Sign in with Microsoft
+            ${t.signIn}
           </button>
-          <button type="button" class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+          <button type="button" class="btn btn-secondary" onclick="window.history.back()">${t.cancel}</button>
         </div>
       </form>
     </div>
 
-    <p class="footer">Secured with Microsoft Entra ID</p>
+    <p class="footer">${t.footer}</p>
   </div>
 </body>
 </html>`;

@@ -25,7 +25,8 @@ src/
 ├── auth/
 │   ├── entra-handler.ts  # Entra ID OAuth handler (OIDC flow); mounts /settings
 │   ├── entra-oidc.ts     # Shared Entra OIDC primitives (authorize URL, token exchange, JWT decode)
-│   ├── settings-handler.ts  # BYOT settings page (/settings: set/rotate/delete PAT)
+│   ├── i18n.ts           # detectLang (Accept-Language → de/en, ?lang override) for the HTML pages
+│   ├── settings-handler.ts  # BYOT settings page (/settings: set/rotate/delete PAT), DE/EN
 │   ├── pat-crypto.ts     # AES-256-GCM encrypt/decrypt for per-user PATs
 │   ├── pat-store.ts      # Per-user PAT storage in USER_PAT_KV (keyed by Entra oid)
 │   ├── user-resolver.ts  # Entra oid → Productive person ID (KV-cached, uses the user's PAT)
@@ -60,6 +61,7 @@ Each `/mcp` request authenticates with the **calling user's own Productive PAT**
 - `worker.ts` loads + decrypts the PAT per request and injects it via `getWorkerConfig(env, userId, userToken)`. If none is stored, `tools/list` still works but every `tools/call` returns a structured hint pointing at `/settings` (`registerNoTokenHandlers`).
 - The settings login uses a dedicated callback `/settings/callback` — it **must be registered as a redirect URI** in the Entra App Registration (in addition to `/callback`).
 - **Never** log, echo, or return a PAT (no `console.*`, no tool output, no model context).
+- The `/settings` page and the OAuth consent dialog are localized **DE/EN**, auto-selected from the browser's `Accept-Language` (default English; `?lang=de|en` override) via `src/auth/i18n.ts`.
 
 ## Invoice Workflow
 

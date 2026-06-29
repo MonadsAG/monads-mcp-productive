@@ -97,8 +97,6 @@ app.get('/authorize', async (c) => {
     csrfToken,
     server: {
       name: 'Productive Remote MCP',
-      description:
-        'Connect your AI assistant to Productive.io. Sign in with your Microsoft account to authorize.',
     },
     setCookie,
     state: { oauthReqInfo },

@@ -153,6 +153,9 @@ the user's stable Entra object ID), and never displayed, logged, or sent through
 Until a user stores a token, their tool calls return a friendly message linking to
 `/settings` instead of any data.
 
+The settings page and the sign-in dialog render in **German or English automatically**, based on
+the browser's `Accept-Language` (default English); append `?lang=de` / `?lang=en` to force one.
+
 ## Architecture
 
 ```

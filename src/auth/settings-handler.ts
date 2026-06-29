@@ -25,6 +25,7 @@ import {
   verifySignature,
 } from './workers-oauth-utils.js';
 import { deleteUserPat, getUserPatStatus, putUserPat, type PatStatus } from './pat-store.js';
+import { detectLang, type Lang } from './i18n.js';
 
 const SESSION_COOKIE = '__Host-SETTINGS_SESSION';
 const STATE_COOKIE = '__Host-SETTINGS_STATE';
@@ -226,73 +227,181 @@ input[type=password]:focus{outline:none;border-color:var(--m-teal)}
 
 const BRAND_SVG = `<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="mg" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#5BBFB5"/><stop offset="50%" stop-color="#154944"/><stop offset="100%" stop-color="#1a5c55"/></linearGradient></defs><rect width="80" height="80" rx="18" fill="url(#mg)"/><g stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M30 40h20"/><path d="M36 32a10 10 0 1 0 0 16"/><path d="M44 32a10 10 0 1 1 0 16"/></g></svg>`;
 
-const PAGE_HEAD = `<head>
+type Banner = { kind: 'success' | 'error' | 'info'; text: string };
+
+interface SettingsStrings {
+  title: string;
+  heading: string;
+  signedInAs: string;
+  statusSet: string;
+  statusUnset: string;
+  updated: string;
+  labelSet: string;
+  labelReplace: string;
+  placeholder: string;
+  btnSave: string;
+  btnReplace: string;
+  btnDelete: string;
+  helpHeading: string;
+  helpSteps: string[];
+  footer: string;
+  banners: Record<string, Banner>;
+}
+
+const SETTINGS_STRINGS: Record<Lang, SettingsStrings> = {
+  en: {
+    title: 'Productive MCP — Token Settings',
+    heading: 'Your Productive token',
+    signedInAs: 'Signed in as',
+    statusSet: 'Token configured',
+    statusUnset: 'No token configured yet',
+    updated: 'updated',
+    labelSet: 'Personal Access Token',
+    labelReplace: 'Replace token (rotate)',
+    placeholder: 'Paste your Productive PAT',
+    btnSave: 'Save token',
+    btnReplace: 'Replace token',
+    btnDelete: 'Remove stored token',
+    helpHeading: 'How to create a Personal Access Token',
+    helpSteps: [
+      'In Productive, open <strong>Settings → API integrations / Access Tokens</strong>.',
+      'Create a new Personal Access Token.',
+      "Grant only the scopes you need — the MCP acts with exactly your token's permissions (least privilege).",
+      'Copy the token and paste it above. It is encrypted before storage and never shown again.',
+    ],
+    footer: 'Secured with Microsoft Entra ID · token encrypted at rest',
+    banners: {
+      saved: { kind: 'success', text: 'Your Productive token was saved.' },
+      rotated: { kind: 'success', text: 'Your Productive token was replaced.' },
+      deleted: { kind: 'info', text: 'Your Productive token was removed.' },
+      invalid: { kind: 'error', text: 'That token was rejected by Productive. Nothing was saved.' },
+      missing: { kind: 'error', text: 'Please paste a token before saving.' },
+      unverified: {
+        kind: 'error',
+        text: "Couldn't verify the token with Productive just now (temporary issue). Nothing was saved — please try again.",
+      },
+      error: { kind: 'error', text: 'Something went wrong saving your token. Please try again.' },
+    },
+  },
+  de: {
+    title: 'Productive MCP — Token-Einstellungen',
+    heading: 'Dein Productive-Token',
+    signedInAs: 'Angemeldet als',
+    statusSet: 'Token hinterlegt',
+    statusUnset: 'Noch kein Token hinterlegt',
+    updated: 'aktualisiert',
+    labelSet: 'Personal Access Token',
+    labelReplace: 'Token ersetzen (rotieren)',
+    placeholder: 'Productive-PAT einfügen',
+    btnSave: 'Token speichern',
+    btnReplace: 'Token ersetzen',
+    btnDelete: 'Hinterlegten Token entfernen',
+    helpHeading: 'So erstellst du einen Personal Access Token',
+    helpSteps: [
+      'Öffne in Productive <strong>Einstellungen → API-Integrationen / Access Tokens</strong>.',
+      'Erstelle einen neuen Personal Access Token.',
+      'Vergib nur die nötigen Berechtigungen — der MCP handelt mit genau den Rechten deines Tokens (Least Privilege).',
+      'Kopiere den Token und füge ihn oben ein. Er wird vor dem Speichern verschlüsselt und danach nie wieder angezeigt.',
+    ],
+    footer: 'Abgesichert mit Microsoft Entra ID · Token verschlüsselt gespeichert',
+    banners: {
+      saved: { kind: 'success', text: 'Dein Productive-Token wurde gespeichert.' },
+      rotated: { kind: 'success', text: 'Dein Productive-Token wurde ersetzt.' },
+      deleted: { kind: 'info', text: 'Dein Productive-Token wurde entfernt.' },
+      invalid: {
+        kind: 'error',
+        text: 'Der Token wurde von Productive abgelehnt. Es wurde nichts gespeichert.',
+      },
+      missing: { kind: 'error', text: 'Bitte gib einen Token ein, bevor du speicherst.' },
+      unverified: {
+        kind: 'error',
+        text: 'Der Token konnte gerade nicht mit Productive verifiziert werden (vorübergehendes Problem). Es wurde nichts gespeichert — bitte versuche es erneut.',
+      },
+      error: {
+        kind: 'error',
+        text: 'Beim Speichern ist etwas schiefgelaufen. Bitte versuche es erneut.',
+      },
+    },
+  },
+};
+
+function renderHead(title: string): string {
+  return `<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Productive MCP — Token Settings</title>
+  <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
   <style>${PAGE_STYLE}</style>
 </head>`;
+}
 
-const HELP_HTML = `<div class="help">
-        <h2>How to create a Personal Access Token</h2>
+function renderHelp(s: SettingsStrings): string {
+  const steps = s.helpSteps.map((step) => `          <li>${step}</li>`).join('\n');
+  return `<div class="help">
+        <h2>${s.helpHeading}</h2>
         <ol>
-          <li>In Productive, open <strong>Settings → API integrations / Access Tokens</strong>.</li>
-          <li>Create a new Personal Access Token.</li>
-          <li>Grant only the scopes you need — the MCP acts with exactly your token's permissions (least privilege).</li>
-          <li>Copy the token and paste it above. It is encrypted before storage and never shown again.</li>
+${steps}
         </ol>
       </div>`;
+}
+
+function renderCard(
+  s: SettingsStrings,
+  opts: { isSet: boolean; email: string; csrfToken: string; banner?: Banner; updated: string },
+): string {
+  const { isSet, email, csrfToken, banner, updated } = opts;
+  const statusBlock = isSet
+    ? `<div class="status set"><span class="dot"></span>${s.statusSet}${updated ? `<span class="meta">${s.updated} ${sanitizeText(updated)}</span>` : ''}</div>`
+    : `<div class="status unset"><span class="dot"></span>${s.statusUnset}</div>`;
+  const bannerBlock = banner
+    ? `<div class="banner ${banner.kind}">${sanitizeText(banner.text)}</div>`
+    : '';
+  const deleteBlock = isSet
+    ? `<form method="post" action="/settings/delete">
+         <input type="hidden" name="csrf_token" value="${csrfToken}">
+         <button type="submit" class="btn btn-danger">${s.btnDelete}</button>
+       </form>`
+    : '';
+  return `<div class="card">
+      <h1>${s.heading}</h1>
+      <p class="sub">${s.signedInAs} ${sanitizeText(email)}</p>
+      ${bannerBlock}
+      ${statusBlock}
+      <form method="post" action="/settings" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="${csrfToken}">
+        <label for="pat">${isSet ? s.labelReplace : s.labelSet}</label>
+        <input type="password" id="pat" name="pat" placeholder="${s.placeholder}" autocomplete="off" required>
+        <button type="submit" class="btn btn-primary">${isSet ? s.btnReplace : s.btnSave}</button>
+      </form>
+      ${deleteBlock}
+      <div class="divider"></div>
+      ${renderHelp(s)}
+    </div>`;
+}
 
 function renderSettingsPage(opts: {
   status: PatStatus;
   csrfToken: string;
   email: string;
-  banner?: { kind: 'success' | 'error' | 'info'; text: string };
+  lang: Lang;
+  banner?: Banner;
 }): string {
-  const { status, csrfToken, email, banner } = opts;
+  const { status, csrfToken, email, lang, banner } = opts;
+  const s = SETTINGS_STRINGS[lang];
   const isSet = status.set;
-  const updated = status.updatedAt ? new Date(status.updatedAt).toLocaleString('en-GB') : '';
-
-  const statusBlock = isSet
-    ? `<div class="status set"><span class="dot"></span>Token configured${updated ? `<span class="meta">updated ${sanitizeText(updated)}</span>` : ''}</div>`
-    : `<div class="status unset"><span class="dot"></span>No token configured yet</div>`;
-
-  const bannerBlock = banner
-    ? `<div class="banner ${banner.kind}">${sanitizeText(banner.text)}</div>`
+  const updated = status.updatedAt
+    ? new Date(status.updatedAt).toLocaleString(lang === 'de' ? 'de-CH' : 'en-GB')
     : '';
-
-  const deleteBlock = isSet
-    ? `<form method="post" action="/settings/delete">
-         <input type="hidden" name="csrf_token" value="${csrfToken}">
-         <button type="submit" class="btn btn-danger">Remove stored token</button>
-       </form>`
-    : '';
-
   return `<!DOCTYPE html>
-<html lang="en">
-${PAGE_HEAD}
+<html lang="${lang}">
+${renderHead(s.title)}
 <body>
   <div class="page">
     <div class="brand">${BRAND_SVG}<span class="brand-name">Productive Remote MCP</span></div>
-    <div class="card">
-      <h1>Your Productive token</h1>
-      <p class="sub">Signed in as ${sanitizeText(email)}</p>
-      ${bannerBlock}
-      ${statusBlock}
-      <form method="post" action="/settings" autocomplete="off">
-        <input type="hidden" name="csrf_token" value="${csrfToken}">
-        <label for="pat">${isSet ? 'Replace token (rotate)' : 'Personal Access Token'}</label>
-        <input type="password" id="pat" name="pat" placeholder="Paste your Productive PAT" autocomplete="off" required>
-        <button type="submit" class="btn btn-primary">${isSet ? 'Replace token' : 'Save token'}</button>
-      </form>
-      ${deleteBlock}
-      <div class="divider"></div>
-      ${HELP_HTML}
-    </div>
-    <p class="footer">Secured with Microsoft Entra ID · token encrypted at rest</p>
+    ${renderCard(s, { isSet, email, csrfToken, banner, updated })}
+    <p class="footer">${s.footer}</p>
   </div>
 </body>
 </html>`;
@@ -310,29 +419,18 @@ function htmlResponse(html: string, extraCookies: string[] = []): Response {
 
 // --- Routes (mounted under /settings) ---
 
-const BANNERS: Record<string, { kind: 'success' | 'error' | 'info'; text: string }> = {
-  saved: { kind: 'success', text: 'Your Productive token was saved.' },
-  rotated: { kind: 'success', text: 'Your Productive token was replaced.' },
-  deleted: { kind: 'info', text: 'Your Productive token was removed.' },
-  invalid: { kind: 'error', text: 'That token was rejected by Productive. Nothing was saved.' },
-  missing: { kind: 'error', text: 'Please paste a token before saving.' },
-  unverified: {
-    kind: 'error',
-    text: "Couldn't verify the token with Productive just now (temporary issue). Nothing was saved — please try again.",
-  },
-  error: { kind: 'error', text: 'Something went wrong saving your token. Please try again.' },
-};
-
 app.get('/', async (c) => {
   const session = await readSession(c.req.raw, c.env.COOKIE_ENCRYPTION_KEY);
   if (!session) return startLogin(c.req.raw, c.env);
 
+  const lang = detectLang(c.req.raw);
   const status = await getUserPatStatus(c.env, session.oid);
   const { token: csrfToken, setCookie: csrfCookie } = generateCSRFProtection(CSRF_TTL_SECONDS);
   // Guard against prototype keys (?status=__proto__) resolving to Object.prototype.
   const statusKey = c.req.query('status') ?? '';
-  const banner = Object.prototype.hasOwnProperty.call(BANNERS, statusKey)
-    ? BANNERS[statusKey]
+  const banners = SETTINGS_STRINGS[lang].banners;
+  const banner = Object.prototype.hasOwnProperty.call(banners, statusKey)
+    ? banners[statusKey]
     : undefined;
 
   // Slide the session forward so frequent users rarely re-authenticate.
@@ -345,7 +443,7 @@ app.get('/', async (c) => {
     c.env.COOKIE_ENCRYPTION_KEY,
   );
 
-  const html = renderSettingsPage({ status, csrfToken, email: session.email, banner });
+  const html = renderSettingsPage({ status, csrfToken, email: session.email, lang, banner });
   return htmlResponse(html, [csrfCookie, refreshed]);
 });
 
