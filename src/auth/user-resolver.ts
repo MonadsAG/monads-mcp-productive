@@ -1,37 +1,56 @@
-import type { WorkerEnv } from '../config/worker-config.js';
+import { productiveApiBase, type WorkerEnv } from '../config/worker-config.js';
 
 const KV_TTL_SECONDS = 86400; // 24 hours
-const DEFAULT_API_BASE = 'https://api.productive.io/api/v2';
 
 /**
- * Resolve a Productive.io user ID from an email address.
- * Checks KV cache first, then falls back to the Productive API.
+ * Resolve the calling user's Productive.io person ID, authenticating with THEIR
+ * own PAT (BYOT) -- no shared admin token. Cached in USER_MAPPING_KV keyed by the
+ * stable Entra oid (not email, which is mutable). The person ID powers the "me"
+ * keyword in tools; it is not used for authorization.
  */
-export async function resolveUserId(env: WorkerEnv, email: string): Promise<string | undefined> {
-  const cached = await env.USER_MAPPING_KV.get(email);
+export async function resolveUserId(
+  env: WorkerEnv,
+  oid: string,
+  email: string,
+  userPat: string,
+): Promise<string | undefined> {
+  const cached = await env.USER_MAPPING_KV.get(oid);
   if (cached) return cached;
 
-  const apiBase = env.PRODUCTIVE_API_BASE_URL || DEFAULT_API_BASE;
-  const response = await fetch(
-    `${apiBase}/people?${new URLSearchParams({ 'filter[email]': email, 'page[size]': '1' })}`,
-    {
-      headers: {
-        'Content-Type': 'application/vnd.api+json',
-        'X-Auth-Token': env.PRODUCTIVE_API_TOKEN,
-        'X-Organization-Id': env.PRODUCTIVE_ORG_ID,
-      },
-    },
-  );
+  if (!email) return undefined;
 
-  if (!response.ok) {
-    console.error(`Failed to resolve user ID for ${email}: ${response.status}`);
+  // The person ID only powers the "me" keyword; it is optional. A transient
+  // network/API error (or a least-privilege PAT that can't list people) must
+  // degrade to undefined, never throw -- otherwise it would 500 the whole request.
+  try {
+    const base = productiveApiBase(env);
+    const response = await fetch(
+      `${base}people?${new URLSearchParams({ 'filter[email]': email, 'page[size]': '1' })}`,
+      {
+        headers: {
+          'Content-Type': 'application/vnd.api+json',
+          'X-Auth-Token': userPat,
+          'X-Organization-Id': env.PRODUCTIVE_ORG_ID,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      console.error(`Failed to resolve person ID for oid ${oid}: ${response.status}`);
+      return undefined;
+    }
+
+    const body = (await response.json()) as { data?: Array<{ id: string }> };
+    const person = body.data?.[0];
+    if (!person) return undefined;
+
+    await env.USER_MAPPING_KV.put(oid, person.id, { expirationTtl: KV_TTL_SECONDS });
+    return person.id;
+  } catch (error) {
+    console.error(
+      `Error resolving person ID for oid ${oid}:`,
+      error instanceof Error ? error.message : 'unknown',
+    );
     return undefined;
   }
-
-  const body = (await response.json()) as { data?: Array<{ id: string }> };
-  const person = body.data?.[0];
-  if (!person) return undefined;
-
-  await env.USER_MAPPING_KV.put(email, person.id, { expirationTtl: KV_TTL_SECONDS });
-  return person.id;
 }

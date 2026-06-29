@@ -23,9 +23,14 @@ src/
 │   ├── client.ts         # ProductiveAPIClient (fetch-based, JSON API)
 │   └── types.ts          # TypeScript types for API entities
 ├── auth/
-│   ├── entra-handler.ts  # Entra ID OAuth handler (OIDC flow)
-│   ├── user-resolver.ts  # Email → Productive User ID (KV-cached)
-│   └── workers-oauth-utils.ts  # OAuth utilities (CSRF, state, cookies)
+│   ├── entra-handler.ts  # Entra ID OAuth handler (OIDC flow); mounts /settings
+│   ├── entra-oidc.ts     # Shared Entra OIDC primitives (authorize URL, token exchange, JWT decode)
+│   ├── i18n.ts           # detectLang (Accept-Language → de/en, ?lang override) for the HTML pages
+│   ├── settings-handler.ts  # BYOT settings page (/settings: set/rotate/delete PAT), DE/EN
+│   ├── pat-crypto.ts     # AES-256-GCM encrypt/decrypt for per-user PATs
+│   ├── pat-store.ts      # Per-user PAT storage in USER_PAT_KV (keyed by Entra oid)
+│   ├── user-resolver.ts  # Entra oid → Productive person ID (KV-cached, uses the user's PAT)
+│   └── workers-oauth-utils.ts  # OAuth utilities (CSRF, state, cookies, HMAC signing)
 ├── config/
 │   ├── index.ts          # Stdio env validation (dotenv + Zod)
 │   └── worker-config.ts  # Worker env validation (CF bindings + Zod)
@@ -46,6 +51,17 @@ tsconfig.worker.json      # Worker TypeScript config (all files)
 - **Project:** Customers -> Projects -> Boards -> Task Lists -> Tasks
 - **Timesheet:** Projects -> Deals/Budgets -> Services -> Tasks -> Time Entries
 - **Invoice:** Company -> Budgets -> Invoice -> Line Items -> Finalize -> Pay
+
+## Per-User Tokens (BYOT)
+
+Each `/mcp` request authenticates with the **calling user's own Productive PAT** — there is no shared admin token on the tool path.
+
+- Users set/rotate/delete their PAT at `/settings` (Entra-gated). It uses its own short-lived HMAC-signed session cookie `__Host-SETTINGS_SESSION` (signed with `COOKIE_ENCRYPTION_KEY`), **independent of the MCP OAuth grant** — adding it does not trigger MCP re-login.
+- PATs are AES-256-GCM encrypted with `PAT_ENC_KEY` and stored in `USER_PAT_KV`, keyed by the stable Entra `oid` (`pat-store.ts` + `pat-crypto.ts`).
+- `worker.ts` loads + decrypts the PAT per request and injects it via `getWorkerConfig(env, userId, userToken)`. If none is stored, `tools/list` still works but every `tools/call` returns a structured hint pointing at `/settings` (`registerNoTokenHandlers`).
+- The settings login uses a dedicated callback `/settings/callback` — it **must be registered as a redirect URI** in the Entra App Registration (in addition to `/callback`).
+- **Never** log, echo, or return a PAT (no `console.*`, no tool output, no model context).
+- The `/settings` page and the OAuth consent dialog are localized **DE/EN**, auto-selected from the browser's `Accept-Language` (default English; `?lang=de|en` override) via `src/auth/i18n.ts`.
 
 ## Invoice Workflow
 
@@ -87,15 +103,18 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 
 All secrets are set via `wrangler secret put` (production) or `.dev.vars` (local dev). See [README.md](README.md#deploy-your-own) for the full deployment guide.
 
-| Variable                  | Description                          |
-| ------------------------- | ------------------------------------ |
-| `PRODUCTIVE_API_TOKEN`    | Productive.io API token              |
-| `PRODUCTIVE_ORG_ID`       | Organization ID with slug            |
-| `PRODUCTIVE_API_BASE_URL` | API base URL (default: production)   |
-| `ENTRA_CLIENT_ID`         | Entra App Registration client ID     |
-| `ENTRA_CLIENT_SECRET`     | Entra App Registration client secret |
-| `ENTRA_TENANT_ID`         | Entra directory (tenant) ID          |
-| `COOKIE_ENCRYPTION_KEY`   | Random hex key for cookie signing    |
+| Variable                  | Description                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| `PRODUCTIVE_API_TOKEN`    | Legacy stdio fallback only — NOT used by the Worker (per-user PATs replace it)   |
+| `PRODUCTIVE_ORG_ID`       | Organization ID with slug (shared across users)                                  |
+| `PRODUCTIVE_API_BASE_URL` | API base URL (default: production)                                               |
+| `ENTRA_CLIENT_ID`         | Entra App Registration client ID                                                 |
+| `ENTRA_CLIENT_SECRET`     | Entra App Registration client secret                                             |
+| `ENTRA_TENANT_ID`         | Entra directory (tenant) ID                                                      |
+| `COOKIE_ENCRYPTION_KEY`   | Random hex key for cookie signing (HMAC)                                         |
+| `PAT_ENC_KEY`             | Hex 32-byte key (`openssl rand -hex 32`) for AES-256-GCM per-user PAT encryption |
+
+KV namespaces (`wrangler.jsonc`): `OAUTH_KV`, `USER_MAPPING_KV` (oid → person ID cache), `USER_PAT_KV` (encrypted per-user PATs, keyed by Entra oid).
 
 ## Code Conventions
 

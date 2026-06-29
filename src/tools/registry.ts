@@ -494,3 +494,27 @@ export function registerToolsOnServer(
     return await handleToolCall(name, args, apiClient, config);
   });
 }
+
+/**
+ * Register handlers for a request whose user has no Productive PAT stored (BYOT,
+ * FR-9). Tool discovery (ListTools) still works so the connector shows the tools,
+ * but every tool call returns a structured, non-fatal hint pointing at the
+ * settings page instead of hitting Productive.
+ */
+export function registerNoTokenHandlers(server: Server, settingsUrl: string): void {
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: getToolDefinitions(),
+  }));
+
+  server.setRequestHandler(CallToolRequestSchema, async () => ({
+    content: [
+      {
+        type: 'text',
+        text:
+          'No Productive token is configured for your account. ' +
+          `Please add your Productive personal access token at ${settingsUrl} and then try again.`,
+      },
+    ],
+    isError: true,
+  }));
+}
