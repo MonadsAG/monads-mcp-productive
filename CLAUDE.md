@@ -5,11 +5,12 @@ Remote MCP server for Productive.io API integration. Runs on **Cloudflare Worker
 ## Commands
 
 ```bash
-npm run worker:dev         # wrangler dev (local Worker on port 8788)
-npm run worker:deploy      # wrangler deploy (production)
-npm run worker:types       # wrangler types (generate CF type defs)
-npm run build              # tsc + chmod (stdio build, legacy fallback)
-npm run format             # prettier
+npm run worker:dev               # wrangler dev (local Worker on port 8788)
+npm run worker:deploy            # wrangler deploy (manual/out-of-band only — main auto-deploys, see Git Workflow)
+npm run worker:types             # wrangler types (generate CF type defs — NOT a typecheck)
+npx tsc -p tsconfig.worker.json  # typecheck the Worker (no npm script for this)
+npm run build                    # tsc + chmod (stdio build, legacy fallback)
+npx prettier --write .           # format (there is no `npm run format` script)
 ```
 
 ## Project Structure
@@ -76,7 +77,7 @@ Smart Defaults: `document_type_id`, `tax_rate_id`, `subsidiary_id` are auto-reso
 3. Create tool file in `src/tools/{resource}.ts`
 4. Export tool definition + handler, add to `src/tools/registry.ts`
 5. Follow existing patterns (Zod input schema, apiClient calls, JSON API format)
-6. Deploy: `npm run worker:deploy`
+6. Ship: merge to `main` (auto-deploys — see Git Workflow), or `npm run worker:deploy` for a manual deploy
 
 ## API Spec
 
@@ -98,6 +99,7 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 - **Line items not includable**: `get_invoice` cannot use `?include=line_items`. Fetch separately via `listLineItems`.
 - **McpServer vs Server**: The Worker uses the low-level `Server` class (not `McpServer`) because tool definitions use raw JSON Schema, which `McpServer.registerTool()` does not accept.
 - **Streamable HTTP transport**: The Worker uses `createMcpHandler` (stateless, no Durable Object). Each request creates a fresh `Server` instance. Do NOT use `McpAgent` — it requires persistent SSE connections that get killed by Worker timeouts.
+- **Two tsconfigs**: `tsconfig.worker.json` type-checks everything (with CF types); the stdio `tsconfig.json` **excludes** every Worker-only file. A new file that uses the edge runtime (`crypto.subtle`, `KVNamespace`, `btoa`/`atob` — most of `src/auth/`) **must be added to `tsconfig.json`'s `exclude`**, or the stdio `npm run build` fails.
 
 ## Environment Variables
 
@@ -130,3 +132,4 @@ KV namespaces (`wrangler.jsonc`): `OAUTH_KV`, `USER_MAPPING_KV` (oid → person 
 - **Origin**: `MonadsAG/monads-mcp-productive` — all PRs go here
 - **Upstream**: `berwickgeek/productive-mcp` — fork source, **NEVER create PRs here**
 - **CRITICAL**: Always use `--repo MonadsAG/monads-mcp-productive` when running `gh pr create`. The `gh` CLI defaults to the upstream fork (`berwickgeek/productive-mcp`) which is wrong.
+- **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production (there is no `.github/workflows` CI, so don't assume deploys are manual). `npm run worker:deploy` is only for deliberate out-of-band/test deploys.
