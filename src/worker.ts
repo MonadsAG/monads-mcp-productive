@@ -15,8 +15,9 @@ import type { WorkerEnv } from './config/worker-config.js';
 import { getWorkerConfig } from './config/worker-config.js';
 import { ProductiveAPIClient } from './api/client.js';
 import { resolveUserId } from './auth/user-resolver.js';
+import { getUserPat } from './auth/pat-store.js';
 import { EntraAuthHandler, type EntraProps } from './auth/entra-handler.js';
-import { registerToolsOnServer } from './tools/registry.js';
+import { registerNoTokenHandlers, registerToolsOnServer } from './tools/registry.js';
 import { LOGO_DATA_URI } from './auth/logo.js';
 
 export default new OAuthProvider({
@@ -24,10 +25,8 @@ export default new OAuthProvider({
   apiHandler: {
     fetch: async (request: Request, env: WorkerEnv, ctx: ExecutionContext) => {
       const props = (ctx as unknown as { props?: EntraProps }).props;
+      const oid = props?.oid;
       const email = props?.email;
-      const userId = email ? await resolveUserId(env, email) : undefined;
-      const config = getWorkerConfig(env, userId);
-      const apiClient = new ProductiveAPIClient(config);
 
       const server = new Server(
         {
@@ -37,7 +36,21 @@ export default new OAuthProvider({
         },
         { capabilities: { tools: {} } },
       );
-      registerToolsOnServer(server, apiClient, config);
+
+      // BYOT: each request authenticates with the calling user's own Productive
+      // PAT, loaded + decrypted from KV by their Entra oid -- no shared admin token.
+      // getUserPat returns null both when no PAT is stored and when a stored PAT
+      // can't be decrypted, so either way the user gets the FR-9 hint, not a 500.
+      const pat = oid ? await getUserPat(env, oid) : null;
+      if (!oid || !pat) {
+        // No usable PAT (FR-9): tools/list still works, but every tools/call
+        // returns a structured hint pointing at the settings page.
+        registerNoTokenHandlers(server, new URL('/settings', request.url).href);
+      } else {
+        const userId = email ? await resolveUserId(env, oid, email, pat) : undefined;
+        const config = getWorkerConfig(env, userId, pat);
+        registerToolsOnServer(server, new ProductiveAPIClient(config), config);
+      }
 
       return createMcpHandler(server)(request, env, ctx);
     },

@@ -84,10 +84,10 @@ export function sanitizeUrl(url: string): string {
   return normalized;
 }
 
-export function generateCSRFProtection(): CSRFProtectionResult {
+export function generateCSRFProtection(maxAgeSeconds = 600): CSRFProtectionResult {
   const csrfCookieName = CSRF_COOKIE;
   const token = crypto.randomUUID();
-  const setCookie = `${csrfCookieName}=${token}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=600`;
+  const setCookie = `${csrfCookieName}=${token}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
   return { token, setCookie };
 }
 
@@ -481,7 +481,7 @@ async function getApprovedClientsFromCookie(
   }
 }
 
-async function signData(data: string, secret: string): Promise<string> {
+export async function signData(data: string, secret: string): Promise<string> {
   const key = await importKey(secret);
   const enc = new TextEncoder();
   const signatureBuffer = await crypto.subtle.sign('HMAC', key, enc.encode(data));
@@ -490,7 +490,7 @@ async function signData(data: string, secret: string): Promise<string> {
     .join('');
 }
 
-async function verifySignature(
+export async function verifySignature(
   signatureHex: string,
   data: string,
   secret: string,
@@ -507,16 +507,24 @@ async function verifySignature(
   }
 }
 
-async function importKey(secret: string): Promise<CryptoKey> {
+// The signing secret is constant for an isolate's lifetime; import the HMAC key
+// once and reuse it across sign/verify calls (warm isolates persist module scope).
+const hmacKeyCache = new Map<string, Promise<CryptoKey>>();
+
+function importKey(secret: string): Promise<CryptoKey> {
   if (!secret) {
     throw new Error('cookieSecret is required for signing cookies');
   }
-  const enc = new TextEncoder();
-  return crypto.subtle.importKey(
-    'raw',
-    enc.encode(secret),
-    { hash: 'SHA-256', name: 'HMAC' },
-    false,
-    ['sign', 'verify'],
-  );
+  let cached = hmacKeyCache.get(secret);
+  if (!cached) {
+    cached = crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { hash: 'SHA-256', name: 'HMAC' },
+      false,
+      ['sign', 'verify'],
+    );
+    hmacKeyCache.set(secret, cached);
+  }
+  return cached;
 }

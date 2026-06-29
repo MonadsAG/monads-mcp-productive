@@ -6,6 +6,7 @@ A **remote MCP server** for [Productive.io](https://productive.io) running on **
 
 - **Remote-first** — runs on Cloudflare Workers, clients connect via URL
 - **Microsoft Entra ID** — OAuth 2.1 with your organization's identity provider (SSO + MFA)
+- **Per-user authorization (BYOT)** — every call uses the user's own Productive token, encrypted at rest; no shared admin token ([details](#per-user-tokens-byot))
 - **Auto user resolution** — maps Entra email to Productive user ID automatically
 - **Name resolution** — people, companies, projects, tasks, and deals are shown by name, not raw ID
 - **70+ tools** — projects, tasks, time tracking, invoicing, comments, pages, and more
@@ -60,9 +61,11 @@ npm install
 npx wrangler login
 npx wrangler kv namespace create "OAUTH_KV"
 npx wrangler kv namespace create "USER_MAPPING_KV"
+npx wrangler kv namespace create "USER_PAT_KV"
 ```
 
-Copy the namespace IDs into `wrangler.jsonc`.
+Copy the namespace IDs into `wrangler.jsonc`. (`USER_PAT_KV` stores each user's
+encrypted Productive token — see [Per-user tokens](#per-user-tokens-byot).)
 
 ### 3. Register an Entra ID application
 
@@ -70,11 +73,14 @@ Copy the namespace IDs into `wrangler.jsonc`.
 # Login to your Entra tenant
 az login --tenant <your-tenant-id> --allow-no-subscriptions
 
-# Create the app registration (single tenant)
+# Create the app registration (single tenant).
+# Register BOTH redirect URIs: /callback (MCP login) and /settings/callback (token settings page).
 az ad app create \
   --display-name "Productive MCP" \
   --sign-in-audience "AzureADMyOrg" \
-  --web-redirect-uris "https://<your-worker>.<your-subdomain>.workers.dev/callback"
+  --web-redirect-uris \
+    "https://<your-worker>.<your-subdomain>.workers.dev/callback" \
+    "https://<your-worker>.<your-subdomain>.workers.dev/settings/callback"
 
 # Note the appId from the output, then add API permissions
 az ad app permission add \
@@ -102,14 +108,19 @@ The permission IDs correspond to: `openid`, `profile`, `email`, `User.Read` (del
 ### 4. Set Cloudflare secrets
 
 ```bash
-npx wrangler secret put PRODUCTIVE_API_TOKEN     # from Productive.io Settings → API integrations
 npx wrangler secret put PRODUCTIVE_ORG_ID         # your org ID with slug (e.g. 12345-company-name)
 npx wrangler secret put PRODUCTIVE_API_BASE_URL   # https://api.productive.io/api/v2/ (or sandbox URL)
 npx wrangler secret put ENTRA_CLIENT_ID           # app (client) ID from step 3
 npx wrangler secret put ENTRA_CLIENT_SECRET       # client secret from step 3
 npx wrangler secret put ENTRA_TENANT_ID           # your Entra directory (tenant) ID
-openssl rand -hex 32 | npx wrangler secret put COOKIE_ENCRYPTION_KEY
+openssl rand -hex 32 | npx wrangler secret put COOKIE_ENCRYPTION_KEY   # signs session/CSRF cookies
+openssl rand -hex 32 | npx wrangler secret put PAT_ENC_KEY             # encrypts per-user PATs at rest (AES-256-GCM)
 ```
+
+> **No shared Productive token.** Each user supplies their own Productive PAT via the
+> `/settings` page (see [Per-user tokens](#per-user-tokens-byot)), so `PRODUCTIVE_API_TOKEN`
+> is **not** needed by the Worker. It remains only for the legacy local stdio entrypoint
+> (set it in `.env`, not as a Worker secret).
 
 ### 5. Deploy
 
@@ -120,6 +131,27 @@ npm run worker:deploy
 ### 6. Connect
 
 Configure Claude Desktop or Claude Code as shown in [Quick Start](#quick-start), replacing the placeholder URL with your Worker URL.
+
+## Per-user tokens (BYOT)
+
+Every Productive API call runs with the **requesting user's own Personal Access Token**
+(Bring Your Own Token), so Productive enforces each user's real permissions — there is no
+shared admin token. Identity still comes from Microsoft Entra ID; only the upstream
+credential is now per-user.
+
+After connecting the MCP, each user opens the settings page once to store their token:
+
+```
+https://<your-worker>.<your-subdomain>.workers.dev/settings
+```
+
+The page signs the user in with Entra ID, then lets them **set, rotate, or delete** their
+Productive PAT — no MCP reconnect required. The token is validated against Productive,
+encrypted with AES-256-GCM (`PAT_ENC_KEY`) before being written to `USER_PAT_KV` (keyed by
+the user's stable Entra object ID), and never displayed, logged, or sent through the model.
+
+Until a user stores a token, their tool calls return a friendly message linking to
+`/settings` instead of any data.
 
 ## Architecture
 
@@ -243,7 +275,7 @@ npm run build          # compile TypeScript (for local stdio fallback)
 npm run format         # prettier
 ```
 
-Create a `.dev.vars` file (gitignored) with the same variables as the Cloudflare secrets for local development.
+Create a `.dev.vars` file (gitignored) with the same variables as the Cloudflare secrets for local development — including `PAT_ENC_KEY` (a 64-char hex string, e.g. `openssl rand -hex 32`). `wrangler dev` provisions local KV namespaces automatically.
 
 ## License
 

@@ -21,6 +21,13 @@ import {
   validateCSRFToken,
   validateOAuthState,
 } from './workers-oauth-utils.js';
+import {
+  decodeJwtPayload,
+  ENTRA_SCOPE,
+  exchangeCodeForTokens,
+  getEntraAuthorizeUrl,
+} from './entra-oidc.js';
+import { SettingsAuthHandler } from './settings-handler.js';
 
 /** User claims extracted from Entra ID tokens and passed as McpAgent props */
 export type EntraProps = {
@@ -32,91 +39,7 @@ export type EntraProps = {
 
 type EntraEnv = WorkerEnv & { OAUTH_PROVIDER: OAuthHelpers };
 
-const ENTRA_SCOPE = 'openid profile email User.Read';
-
 const app = new Hono<{ Bindings: EntraEnv }>();
-
-function getEntraAuthorizeUrl(params: {
-  tenantId: string;
-  clientId: string;
-  redirectUri: string;
-  state: string;
-  scope: string;
-}): string {
-  const url = new URL(`https://login.microsoftonline.com/${params.tenantId}/oauth2/v2.0/authorize`);
-  url.searchParams.set('client_id', params.clientId);
-  url.searchParams.set('redirect_uri', params.redirectUri);
-  url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', params.scope);
-  url.searchParams.set('state', params.state);
-  url.searchParams.set('response_mode', 'query');
-  return url.toString();
-}
-
-async function exchangeCodeForTokens(params: {
-  tenantId: string;
-  clientId: string;
-  clientSecret: string;
-  code: string;
-  redirectUri: string;
-}): Promise<{ idToken: string; accessToken: string }> {
-  const tokenUrl = `https://login.microsoftonline.com/${params.tenantId}/oauth2/v2.0/token`;
-
-  const body = new URLSearchParams({
-    client_id: params.clientId,
-    client_secret: params.clientSecret,
-    code: params.code,
-    grant_type: 'authorization_code',
-    redirect_uri: params.redirectUri,
-    scope: ENTRA_SCOPE,
-  });
-
-  const resp = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  });
-
-  if (!resp.ok) {
-    const errorText = await resp.text();
-    console.error('Entra token exchange failed:', errorText);
-    throw new OAuthError('server_error', 'Failed to exchange authorization code', 500);
-  }
-
-  const data = (await resp.json()) as {
-    id_token?: string;
-    access_token?: string;
-  };
-
-  if (!data.id_token || !data.access_token) {
-    throw new OAuthError('server_error', 'Missing tokens in Entra response', 500);
-  }
-
-  return { idToken: data.id_token, accessToken: data.access_token };
-}
-
-/**
- * Decode JWT payload without cryptographic signature verification.
- *
- * SECURITY TRADE-OFF: The id_token was received directly from Entra's token
- * endpoint (login.microsoftonline.com) over TLS in the same request that
- * exchanged the authorization code. In this specific flow, the token has not
- * been stored, forwarded, or received from any untrusted source.
- *
- * Full JWKS-based verification (fetching keys from
- * https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys) would add
- * defense-in-depth and should be considered if this code is ever refactored to
- * accept tokens from other sources (e.g. cached, passed by client, or received
- * via redirect).
- */
-function decodeJwtPayload(token: string): Record<string, unknown> {
-  const parts = token.split('.');
-  if (parts.length !== 3) throw new OAuthError('server_error', 'Invalid JWT format', 500);
-
-  const payload = parts[1];
-  const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-  return JSON.parse(decoded) as Record<string, unknown>;
-}
 
 function redirectToEntra(
   request: Request,
@@ -285,5 +208,8 @@ app.get('/callback', async (c) => {
 
   return new Response(null, { status: 302, headers });
 });
+
+// Per-user "Bring Your Own Token" settings page (Entra-gated, separate session).
+app.route('/settings', SettingsAuthHandler);
 
 export const EntraAuthHandler = app;

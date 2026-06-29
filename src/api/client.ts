@@ -180,6 +180,7 @@ export class ProductiveAPIClient {
 
   async listTasks(params?: {
     project_id?: string;
+    parent_task_id?: string;
     assignee_id?: string;
     status?: 'open' | 'closed';
     limit?: number;
@@ -192,6 +193,10 @@ export class ProductiveAPIClient {
 
     if (params?.project_id) {
       queryParams.append('filter[project_id]', params.project_id);
+    }
+
+    if (params?.parent_task_id) {
+      queryParams.append('filter[parent_task_id]', params.parent_task_id);
     }
 
     if (params?.assignee_id) {
@@ -338,6 +343,12 @@ export class ProductiveAPIClient {
   async getTask(taskId: string): Promise<ProductiveSingleResponse<ProductiveTask>> {
     return this.makeRequest<ProductiveSingleResponse<ProductiveTask>>(
       `tasks/${taskId}?include=task_list,assignee,workflow_status,project`,
+    );
+  }
+
+  async getProject(projectId: string): Promise<ProductiveSingleResponse<ProductiveProject>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveProject>>(
+      `projects/${projectId}?include=workflow`,
     );
   }
 
