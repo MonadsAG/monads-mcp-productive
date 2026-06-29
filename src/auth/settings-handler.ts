@@ -271,8 +271,14 @@ const SETTINGS_STRINGS: Record<Lang, SettingsStrings> = {
     ],
     footer: 'Secured with Microsoft Entra ID · token encrypted at rest',
     banners: {
-      saved: { kind: 'success', text: 'Your Productive token was saved.' },
-      rotated: { kind: 'success', text: 'Your Productive token was replaced.' },
+      saved: {
+        kind: 'success',
+        text: 'Your Productive token was saved — you can close this tab and return to your MCP client.',
+      },
+      rotated: {
+        kind: 'success',
+        text: 'Your Productive token was replaced — you can close this tab and return to your MCP client.',
+      },
       deleted: { kind: 'info', text: 'Your Productive token was removed.' },
       invalid: { kind: 'error', text: 'That token was rejected by Productive. Nothing was saved.' },
       missing: { kind: 'error', text: 'Please paste a token before saving.' },
@@ -305,8 +311,14 @@ const SETTINGS_STRINGS: Record<Lang, SettingsStrings> = {
     ],
     footer: 'Abgesichert mit Microsoft Entra ID · Token verschlüsselt gespeichert',
     banners: {
-      saved: { kind: 'success', text: 'Dein Productive-Token wurde gespeichert.' },
-      rotated: { kind: 'success', text: 'Dein Productive-Token wurde ersetzt.' },
+      saved: {
+        kind: 'success',
+        text: 'Dein Productive-Token wurde gespeichert — du kannst dieses Fenster jetzt schliessen und zu deinem MCP-Client zurückkehren.',
+      },
+      rotated: {
+        kind: 'success',
+        text: 'Dein Productive-Token wurde ersetzt — du kannst dieses Fenster jetzt schliessen und zu deinem MCP-Client zurückkehren.',
+      },
       deleted: { kind: 'info', text: 'Dein Productive-Token wurde entfernt.' },
       invalid: {
         kind: 'error',
