@@ -76,6 +76,21 @@ Smart Defaults: `document_type_id`, `tax_rate_id`, `subsidiary_id` are auto-reso
 
 Generic mechanism (`src/tools/custom-fields.ts`, `src/tools/custom-field-resolver.ts`) replacing the old hardcoded per-field `update_task_sprint` tool -- works for any custom field on any task, not just one specific field.
 
+## Toolsets
+
+`PRODUCTIVE_TOOLSETS` (optional, comma-separated) restricts which domain groups of tools a deployment exposes -- unset/`all` means every tool, same as before this feature existed. Catalog lives in `src/tools/toolsets.ts`; `registry.ts`'s `getToolDefinitions`/`handleToolCall` filter `ListTools` and reject `CallTool` for disabled tools (not just hide them).
+
+| Toolset         | Covers                                                                           |
+| --------------- | -------------------------------------------------------------------------------- |
+| `core`          | whoami, companies, projects, activities, recent updates, workflow statuses       |
+| `tasks`         | tasks, task lists, boards, subtasks, dependencies, backlog, reposition, my-tasks |
+| `custom_fields` | custom field discovery + generic get/set                                         |
+| `comments`      | task comments, pins, reactions                                                   |
+| `time_tracking` | time entries, timers, approvals, deals/services                                  |
+| `invoicing`     | invoices, company budgets, line items, PDF/timesheet URLs                        |
+| `docs`          | folders + pages                                                                  |
+| `todos`         | todos                                                                            |
+
 ## Adding New Tools
 
 1. Read API spec: `docs/api-spec/resources/_index.yaml` (endpoint overview)
@@ -83,7 +98,8 @@ Generic mechanism (`src/tools/custom-fields.ts`, `src/tools/custom-field-resolve
 3. Create tool file in `src/tools/{resource}.ts`
 4. Export tool definition + handler, add to `src/tools/registry.ts`
 5. Follow existing patterns (Zod input schema, apiClient calls, JSON API format)
-6. Ship: merge to `main` (auto-deploys — see Git Workflow), or `npm run worker:deploy` for a manual deploy
+6. Add the new tool's name to the matching toolset in `src/tools/toolsets.ts` (or a new toolset) -- `tests/unit/toolsets.test.ts` asserts every registered tool is covered, and it will fail otherwise
+7. Ship: merge to `main` (auto-deploys — see Git Workflow), or `npm run worker:deploy` for a manual deploy
 
 ## API Spec
 
@@ -107,6 +123,7 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 - **Streamable HTTP transport**: The Worker uses `createMcpHandler` (stateless, no Durable Object). Each request creates a fresh `Server` instance. Do NOT use `McpAgent` — it requires persistent SSE connections that get killed by Worker timeouts.
 - **Two tsconfigs**: `tsconfig.worker.json` type-checks everything (with CF types); the stdio `tsconfig.json` **excludes** every Worker-only file. A new file that uses the edge runtime (`crypto.subtle`, `KVNamespace`, `btoa`/`atob` — most of `src/auth/`) **must be added to `tsconfig.json`'s `exclude`**, or the stdio `npm run build` fails.
 - **Custom field value shapes**: a `custom_fields` entry's value shape depends on the field's `field_type` — an array of option ID strings for dropdown/multi-select fields, an ISO date string for date fields, or the raw value for text/number/checkbox fields. The generated OpenAPI spec for the `custom_fields`/`custom_field_options` resources does not document exact attribute names -- real attribute keys were only confirmed via a live API test.
+- **New tool, new toolset entry**: added a tool to `registry.ts` without adding its name to `src/tools/toolsets.ts`? It silently disappears for any deployment with a restrictive `PRODUCTIVE_TOOLSETS` set (still works when unset, since that means "no filtering"). `tests/unit/toolsets.test.ts` has a completeness check that catches this at test time, not just in production.
 
 ## Environment Variables
 
@@ -117,6 +134,7 @@ All secrets are set via `wrangler secret put` (production) or `.dev.vars` (local
 | `PRODUCTIVE_API_TOKEN`    | Legacy stdio fallback only — NOT used by the Worker (per-user PATs replace it)   |
 | `PRODUCTIVE_ORG_ID`       | Organization ID with slug (shared across users)                                  |
 | `PRODUCTIVE_API_BASE_URL` | API base URL (default: production)                                               |
+| `PRODUCTIVE_TOOLSETS`     | Optional, comma-separated toolset names to enable (default: all — see Toolsets)  |
 | `ENTRA_CLIENT_ID`         | Entra App Registration client ID                                                 |
 | `ENTRA_CLIENT_SECRET`     | Entra App Registration client secret                                             |
 | `ENTRA_TENANT_ID`         | Entra directory (tenant) ID                                                      |

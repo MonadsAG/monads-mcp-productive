@@ -16,6 +16,8 @@ export interface WorkerEnv {
   PRODUCTIVE_API_TOKEN?: string;
   PRODUCTIVE_ORG_ID: string;
   PRODUCTIVE_API_BASE_URL?: string;
+  /** Comma-separated toolset names to enable (see tools/toolsets.ts). Unset/"all" = every tool. */
+  PRODUCTIVE_TOOLSETS?: string;
   ENTRA_CLIENT_ID: string;
   ENTRA_CLIENT_SECRET: string;
   ENTRA_TENANT_ID: string;
@@ -39,6 +41,7 @@ const workerConfigSchema = z.object({
     .url()
     .default(DEFAULT_PRODUCTIVE_API_BASE)
     .transform((u) => u.replace(/\/?$/, '/')),
+  PRODUCTIVE_TOOLSETS: z.string().optional(),
 });
 
 export type WorkerConfig = z.infer<typeof workerConfigSchema>;
@@ -61,6 +64,7 @@ export function getWorkerConfig(
     PRODUCTIVE_ORG_ID: env.PRODUCTIVE_ORG_ID,
     PRODUCTIVE_USER_ID: userId,
     PRODUCTIVE_API_BASE_URL: env.PRODUCTIVE_API_BASE_URL,
+    PRODUCTIVE_TOOLSETS: env.PRODUCTIVE_TOOLSETS,
   });
 
   if (!result.success) {

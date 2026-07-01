@@ -7,6 +7,7 @@ import {
 import { getConfig } from './config/index.js';
 import { ProductiveAPIClient } from './api/client.js';
 import { registerToolsOnServer } from './tools/registry.js';
+import { getEnabledToolNames } from './tools/toolsets.js';
 import { LOGO_DATA_URI } from './auth/logo.js';
 import {
   generateTimesheetPrompt,
@@ -34,9 +35,10 @@ export async function createServer() {
     },
   );
   const apiClient = new ProductiveAPIClient(config);
+  const enabledToolNames = getEnabledToolNames(config.PRODUCTIVE_TOOLSETS);
 
   // Register all tools via shared registry
-  registerToolsOnServer(server, apiClient, config);
+  registerToolsOnServer(server, apiClient, config, enabledToolNames);
 
   // Register prompt handlers
   server.setRequestHandler(ListPromptsRequestSchema, async () => ({

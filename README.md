@@ -110,6 +110,7 @@ The permission IDs correspond to: `openid`, `profile`, `email`, `User.Read` (del
 ```bash
 npx wrangler secret put PRODUCTIVE_ORG_ID         # your org ID with slug (e.g. 12345-company-name)
 npx wrangler secret put PRODUCTIVE_API_BASE_URL   # https://api.productive.io/api/v2/ (or sandbox URL)
+npx wrangler secret put PRODUCTIVE_TOOLSETS       # optional, comma-separated toolset names (default: all tools)
 npx wrangler secret put ENTRA_CLIENT_ID           # app (client) ID from step 3
 npx wrangler secret put ENTRA_CLIENT_SECRET       # client secret from step 3
 npx wrangler secret put ENTRA_TENANT_ID           # your Entra directory (tenant) ID

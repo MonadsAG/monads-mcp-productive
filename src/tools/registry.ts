@@ -3,6 +3,7 @@ import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import type { ProductiveAPIClient } from '../api/client.js';
 import type { Config } from '../config/index.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { findToolsetForName } from './toolsets.js';
 
 // Tool imports
 import { listProjectsTool, listProjectsDefinition } from './projects.js';
@@ -199,9 +200,9 @@ import {
   deleteTaskDependencyDefinition,
 } from './task-dependencies.js';
 
-/** All tool definitions for ListTools */
-export function getToolDefinitions() {
-  return [
+/** All tool definitions for ListTools, optionally filtered to an enabled toolset. */
+export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
+  const all = [
     whoAmITool,
     listCompaniesDefinition,
     listProjectsDefinition,
@@ -291,6 +292,9 @@ export function getToolDefinitions() {
     createTaskDependencyDefinition,
     deleteTaskDependencyDefinition,
   ];
+
+  if (!enabledToolNames) return all;
+  return all.filter((def) => enabledToolNames.has(def.name));
 }
 
 /** Route a tool call to its handler */
@@ -299,7 +303,17 @@ export async function handleToolCall(
   args: Record<string, unknown> | undefined,
   apiClient: ProductiveAPIClient,
   config: Config,
+  enabledToolNames?: Set<string> | null,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
+  if (enabledToolNames && !enabledToolNames.has(name)) {
+    const toolset = findToolsetForName(name);
+    throw new Error(
+      toolset
+        ? `Tool "${name}" is not enabled in this deployment (belongs to the "${toolset}" toolset). Ask your administrator to add "${toolset}" to PRODUCTIVE_TOOLSETS.`
+        : `Tool "${name}" is not enabled in this deployment.`,
+    );
+  }
+
   switch (name) {
     case 'whoami':
       return await whoAmI(apiClient, args, config);
@@ -492,14 +506,15 @@ export function registerToolsOnServer(
   server: Server,
   apiClient: ProductiveAPIClient,
   config: Config,
+  enabledToolNames?: Set<string> | null,
 ): void {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: getToolDefinitions(),
+    tools: getToolDefinitions(enabledToolNames),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-    return await handleToolCall(name, args, apiClient, config);
+    return await handleToolCall(name, args, apiClient, config, enabledToolNames);
   });
 }
 
@@ -509,9 +524,13 @@ export function registerToolsOnServer(
  * but every tool call returns a structured, non-fatal hint pointing at the
  * settings page instead of hitting Productive.
  */
-export function registerNoTokenHandlers(server: Server, settingsUrl: string): void {
+export function registerNoTokenHandlers(
+  server: Server,
+  settingsUrl: string,
+  enabledToolNames?: Set<string> | null,
+): void {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: getToolDefinitions(),
+    tools: getToolDefinitions(enabledToolNames),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async () => ({
