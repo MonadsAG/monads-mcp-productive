@@ -3,6 +3,7 @@ import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import type { ProductiveAPIClient } from '../api/client.js';
 import type { Config } from '../config/index.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { findToolsetForName } from './toolsets.js';
 
 // Tool imports
 import { listProjectsTool, listProjectsDefinition } from './projects.js';
@@ -23,6 +24,12 @@ import {
   deleteTaskDefinition,
 } from './tasks.js';
 import { listCompaniesTool, listCompaniesDefinition } from './companies.js';
+import {
+  listCustomFieldsTool,
+  listCustomFieldsDefinition,
+  listCustomFieldOptionsTool,
+  listCustomFieldOptionsDefinition,
+} from './custom-fields.js';
 import { myTasksTool, myTasksDefinition } from './my-tasks.js';
 import { listBoards, createBoard, listBoardsTool, createBoardTool } from './boards.js';
 import {
@@ -101,7 +108,6 @@ import {
   stopTimerTool,
   stopTimerDefinition,
 } from './timers.js';
-import { updateTaskSprint, updateTaskSprintTool } from './task-sprint.js';
 import { moveTaskToList, moveTaskToListTool } from './task-list-move.js';
 import { addToBacklog, addToBacklogTool } from './task-backlog.js';
 import {
@@ -194,9 +200,9 @@ import {
   deleteTaskDependencyDefinition,
 } from './task-dependencies.js';
 
-/** All tool definitions for ListTools */
-export function getToolDefinitions() {
-  return [
+/** All tool definitions for ListTools, optionally filtered to an enabled toolset. */
+export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
+  const all = [
     whoAmITool,
     listCompaniesDefinition,
     listProjectsDefinition,
@@ -237,7 +243,8 @@ export function getToolDefinitions() {
     getTimerDefinition,
     startTimerDefinition,
     stopTimerDefinition,
-    updateTaskSprintTool,
+    listCustomFieldsDefinition,
+    listCustomFieldOptionsDefinition,
     moveTaskToListTool,
     addToBacklogTool,
     taskRepositionDefinition,
@@ -285,6 +292,9 @@ export function getToolDefinitions() {
     createTaskDependencyDefinition,
     deleteTaskDependencyDefinition,
   ];
+
+  if (!enabledToolNames) return all;
+  return all.filter((def) => enabledToolNames.has(def.name));
 }
 
 /** Route a tool call to its handler */
@@ -293,7 +303,17 @@ export async function handleToolCall(
   args: Record<string, unknown> | undefined,
   apiClient: ProductiveAPIClient,
   config: Config,
+  enabledToolNames?: Set<string> | null,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
+  if (enabledToolNames && !enabledToolNames.has(name)) {
+    const toolset = findToolsetForName(name);
+    throw new Error(
+      toolset
+        ? `Tool "${name}" is not enabled in this deployment (belongs to the "${toolset}" toolset). Ask your administrator to add "${toolset}" to PRODUCTIVE_TOOLSETS.`
+        : `Tool "${name}" is not enabled in this deployment.`,
+    );
+  }
+
   switch (name) {
     case 'whoami':
       return await whoAmI(apiClient, args, config);
@@ -375,8 +395,10 @@ export async function handleToolCall(
       return await startTimerTool(apiClient, args);
     case 'stop_timer':
       return await stopTimerTool(apiClient, args);
-    case 'update_task_sprint':
-      return await updateTaskSprint(apiClient, args);
+    case 'list_custom_fields':
+      return await listCustomFieldsTool(apiClient, args);
+    case 'list_custom_field_options':
+      return await listCustomFieldOptionsTool(apiClient, args);
     case 'move_task_to_list':
       return await moveTaskToList(apiClient, args);
     case 'add_to_backlog':
@@ -484,14 +506,15 @@ export function registerToolsOnServer(
   server: Server,
   apiClient: ProductiveAPIClient,
   config: Config,
+  enabledToolNames?: Set<string> | null,
 ): void {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: getToolDefinitions(),
+    tools: getToolDefinitions(enabledToolNames),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-    return await handleToolCall(name, args, apiClient, config);
+    return await handleToolCall(name, args, apiClient, config, enabledToolNames);
   });
 }
 
@@ -501,9 +524,13 @@ export function registerToolsOnServer(
  * but every tool call returns a structured, non-fatal hint pointing at the
  * settings page instead of hitting Productive.
  */
-export function registerNoTokenHandlers(server: Server, settingsUrl: string): void {
+export function registerNoTokenHandlers(
+  server: Server,
+  settingsUrl: string,
+  enabledToolNames?: Set<string> | null,
+): void {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: getToolDefinitions(),
+    tools: getToolDefinitions(enabledToolNames),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async () => ({

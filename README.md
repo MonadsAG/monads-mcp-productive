@@ -110,6 +110,7 @@ The permission IDs correspond to: `openid`, `profile`, `email`, `User.Read` (del
 ```bash
 npx wrangler secret put PRODUCTIVE_ORG_ID         # your org ID with slug (e.g. 12345-company-name)
 npx wrangler secret put PRODUCTIVE_API_BASE_URL   # https://api.productive.io/api/v2/ (or sandbox URL)
+npx wrangler secret put PRODUCTIVE_TOOLSETS       # optional, comma-separated toolset names (default: all tools)
 npx wrangler secret put ENTRA_CLIENT_ID           # app (client) ID from step 3
 npx wrangler secret put ENTRA_CLIENT_SECRET       # client secret from step 3
 npx wrangler secret put ENTRA_TENANT_ID           # your Entra directory (tenant) ID
@@ -196,14 +197,15 @@ the browser's `Accept-Language` (default English); append `?lang=de` / `?lang=en
 
 ### Tasks
 
-| Tool                                                                           | Description        |
-| ------------------------------------------------------------------------------ | ------------------ |
-| `list_tasks` / `get_task` / `get_project_tasks` / `my_tasks`                   | Query tasks        |
-| `create_task` / `update_task_details` / `delete_task`                          | Task CRUD          |
-| `update_task_assignment` / `update_task_status` / `update_task_sprint`         | Task state changes |
-| `move_task_to_list` / `add_to_backlog` / `reposition_task`                     | Task positioning   |
-| `list_subtasks` / `create_subtask`                                             | Subtask management |
-| `list_task_dependencies` / `create_task_dependency` / `delete_task_dependency` | Dependencies       |
+| Tool                                                                           | Description            |
+| ------------------------------------------------------------------------------ | ---------------------- |
+| `list_tasks` / `get_task` / `get_project_tasks` / `my_tasks`                   | Query tasks            |
+| `create_task` / `update_task_details` / `delete_task`                          | Task CRUD              |
+| `update_task_assignment` / `update_task_status`                                | Task state changes     |
+| `list_custom_fields` / `list_custom_field_options`                             | Custom field discovery |
+| `move_task_to_list` / `add_to_backlog` / `reposition_task`                     | Task positioning       |
+| `list_subtasks` / `create_subtask`                                             | Subtask management     |
+| `list_task_dependencies` / `create_task_dependency` / `delete_task_dependency` | Dependencies           |
 
 ### Comments & Todos
 

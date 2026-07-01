@@ -16,6 +16,7 @@ const configSchema = z.object({
   PRODUCTIVE_ORG_ID: z.string().min(1, 'Organization ID is required'),
   PRODUCTIVE_USER_ID: z.string().optional(),
   PRODUCTIVE_API_BASE_URL: z.string().url().default('https://api.productive.io/api/v2/'),
+  PRODUCTIVE_TOOLSETS: z.string().optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;
