@@ -38,7 +38,7 @@ src/
 ├── tools/
 │   ├── registry.ts       # Shared tool registry (used by both entry points)
 │   ├── tasks.ts          # CRUD + assignment + details
-│   └── ...               # 28 tool files total
+│   └── ...               # 29 tool files total
 ├── prompts/
 │   └── timesheet.ts      # Guided timesheet workflow
 docs/api-spec/            # Generated API specs (see below)
@@ -70,6 +70,12 @@ Each `/mcp` request authenticates with the **calling user's own Productive PAT**
 
 Smart Defaults: `document_type_id`, `tax_rate_id`, `subsidiary_id` are auto-resolved if only one active option exists.
 
+## Custom Fields Workflow
+
+`list_custom_fields` -> `list_custom_field_options` -> `update_task_details` / `create_task` with a `custom_fields` object keyed by field ID.
+
+Generic mechanism (`src/tools/custom-fields.ts`, `src/tools/custom-field-resolver.ts`) replacing the old hardcoded per-field `update_task_sprint` tool -- works for any custom field on any task, not just one specific field.
+
 ## Adding New Tools
 
 1. Read API spec: `docs/api-spec/resources/_index.yaml` (endpoint overview)
@@ -100,6 +106,7 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 - **McpServer vs Server**: The Worker uses the low-level `Server` class (not `McpServer`) because tool definitions use raw JSON Schema, which `McpServer.registerTool()` does not accept.
 - **Streamable HTTP transport**: The Worker uses `createMcpHandler` (stateless, no Durable Object). Each request creates a fresh `Server` instance. Do NOT use `McpAgent` — it requires persistent SSE connections that get killed by Worker timeouts.
 - **Two tsconfigs**: `tsconfig.worker.json` type-checks everything (with CF types); the stdio `tsconfig.json` **excludes** every Worker-only file. A new file that uses the edge runtime (`crypto.subtle`, `KVNamespace`, `btoa`/`atob` — most of `src/auth/`) **must be added to `tsconfig.json`'s `exclude`**, or the stdio `npm run build` fails.
+- **Custom field value shapes**: a `custom_fields` entry's value shape depends on the field's `field_type` — an array of option ID strings for dropdown/multi-select fields, an ISO date string for date fields, or the raw value for text/number/checkbox fields. The generated OpenAPI spec for the `custom_fields`/`custom_field_options` resources does not document exact attribute names -- real attribute keys were only confirmed via a live API test.
 
 ## Environment Variables
 

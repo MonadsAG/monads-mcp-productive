@@ -46,6 +46,8 @@ import {
   ProductiveInvoiceUpdate,
   ProductiveIncludedResource,
   ProductiveLineItem,
+  ProductiveCustomField,
+  ProductiveCustomFieldOption,
 } from './types.js';
 
 export class ProductiveAPIClient {
@@ -268,6 +270,7 @@ export class ProductiveAPIClient {
 
   async listTaskLists(params?: {
     board_id?: string;
+    project_id?: string;
     limit?: number;
     page?: number;
   }): Promise<ProductiveResponse<ProductiveTaskList>> {
@@ -275,6 +278,10 @@ export class ProductiveAPIClient {
 
     if (params?.board_id) {
       queryParams.append('filter[board_id]', params.board_id);
+    }
+
+    if (params?.project_id) {
+      queryParams.append('filter[project_id]', params.project_id);
     }
 
     if (params?.limit) {
@@ -1488,5 +1495,55 @@ export class ProductiveAPIClient {
 
   async deleteTaskDependency(dependencyId: string): Promise<void> {
     return this.makeVoidRequest(`task_dependencies/${dependencyId}`, { method: 'DELETE' });
+  }
+
+  // ---- Custom Field methods ----
+
+  /**
+   * List custom field definitions.
+   *
+   * NOTE: there is no documented id-based filter for this endpoint, so this
+   * always fetches a page (default size 200) — callers should filter
+   * client-side if they need to narrow down to specific IDs.
+   */
+  async listCustomFields(params?: {
+    name?: string;
+    projectId?: string;
+    customizableType?: string;
+    archived?: boolean;
+    global?: boolean;
+    limit?: number;
+  }): Promise<ProductiveResponse<ProductiveCustomField>> {
+    const q = new URLSearchParams();
+    if (params?.name) q.append('filter[name]', params.name);
+    if (params?.projectId) q.append('filter[project_id]', params.projectId);
+    if (params?.customizableType) q.append('filter[customizable_type]', params.customizableType);
+    if (params?.archived !== undefined) q.append('filter[archived]', params.archived.toString());
+    if (params?.global !== undefined) q.append('filter[global]', params.global.toString());
+    q.append('page[size]', (params?.limit ?? 200).toString());
+    return this.makeRequest<ProductiveResponse<ProductiveCustomField>>(
+      `custom_fields?${q.toString()}`,
+    );
+  }
+
+  /**
+   * List the options available for a given custom field (e.g. dropdown/multi-select choices).
+   *
+   * NOTE: the API defaults `page[size]` to 30 (max 200) for this endpoint if
+   * unset, so — like listCustomFields — this always requests a full page
+   * (default size 200) to avoid silently truncating fields with >30 options.
+   */
+  async listCustomFieldOptions(params: {
+    customFieldId: string;
+    archived?: boolean;
+    limit?: number;
+  }): Promise<ProductiveResponse<ProductiveCustomFieldOption>> {
+    const q = new URLSearchParams();
+    q.append('filter[custom_field_id]', params.customFieldId);
+    if (params.archived !== undefined) q.append('filter[archived]', params.archived.toString());
+    q.append('page[size]', (params.limit ?? 200).toString());
+    return this.makeRequest<ProductiveResponse<ProductiveCustomFieldOption>>(
+      `custom_field_options?${q.toString()}`,
+    );
   }
 }

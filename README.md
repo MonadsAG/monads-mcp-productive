@@ -196,14 +196,15 @@ the browser's `Accept-Language` (default English); append `?lang=de` / `?lang=en
 
 ### Tasks
 
-| Tool                                                                           | Description        |
-| ------------------------------------------------------------------------------ | ------------------ |
-| `list_tasks` / `get_task` / `get_project_tasks` / `my_tasks`                   | Query tasks        |
-| `create_task` / `update_task_details` / `delete_task`                          | Task CRUD          |
-| `update_task_assignment` / `update_task_status` / `update_task_sprint`         | Task state changes |
-| `move_task_to_list` / `add_to_backlog` / `reposition_task`                     | Task positioning   |
-| `list_subtasks` / `create_subtask`                                             | Subtask management |
-| `list_task_dependencies` / `create_task_dependency` / `delete_task_dependency` | Dependencies       |
+| Tool                                                                           | Description            |
+| ------------------------------------------------------------------------------ | ---------------------- |
+| `list_tasks` / `get_task` / `get_project_tasks` / `my_tasks`                   | Query tasks            |
+| `create_task` / `update_task_details` / `delete_task`                          | Task CRUD              |
+| `update_task_assignment` / `update_task_status`                                | Task state changes     |
+| `list_custom_fields` / `list_custom_field_options`                             | Custom field discovery |
+| `move_task_to_list` / `add_to_backlog` / `reposition_task`                     | Task positioning       |
+| `list_subtasks` / `create_subtask`                                             | Subtask management     |
+| `list_task_dependencies` / `create_task_dependency` / `delete_task_dependency` | Dependencies           |
 
 ### Comments & Todos
 

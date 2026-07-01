@@ -124,6 +124,7 @@ export interface ProductiveTaskCreate {
       description?: string;
       due_date?: string;
       status?: number;
+      custom_fields?: Record<string, string | number | boolean | string[] | null>;
     };
     relationships?: {
       project?: {
@@ -223,7 +224,7 @@ export interface ProductiveTaskUpdate {
       description?: string;
       due_date?: string;
       status?: number;
-      custom_fields?: Record<string, any>;
+      custom_fields?: Record<string, string | number | boolean | string[] | null>;
     };
     relationships?: {
       assignee?: {
@@ -781,6 +782,70 @@ export interface ProductiveTaskDependencyCreate {
       task_id: string;
       dependent_task_id: string;
       type_id: string;
+    };
+  };
+}
+
+// ---- Custom Field types ----
+
+/**
+ * Custom field definition for Productive API.
+ *
+ * NOTE: the generated OpenAPI spec for this resource does not document exact
+ * attribute names. Verified against a live organization (2026-07) — there is
+ * NO `field_type` or plain `archived` boolean attribute; the real keys are
+ * `data_type_id` (numeric, undocumented enum) and `archived_at` (nullable
+ * timestamp; `filter[archived]=true|false` still works server-side even
+ * though the attribute itself is a timestamp). `customizable_type` values
+ * observed in the wild are lowercase plural, e.g. "tasks", "employees",
+ * "project_expenses", "invoices" — NOT "Task".
+ * Observed (unconfirmed/inferred) `data_type_id` values: 1 = text, 3 = single
+ * select (has custom_field_options), 4 = date, 7 = file attachment.
+ */
+export interface ProductiveCustomField {
+  id: string;
+  type: 'custom_fields';
+  attributes: {
+    name: string;
+    data_type_id?: number;
+    formatting_type_id?: number | null;
+    aggregation_type_id?: number | null;
+    customizable_type?: string;
+    required?: boolean;
+    description?: string | null;
+    global?: boolean;
+    archived_at?: string | null;
+    position?: number;
+    show_in_add_edit_views?: boolean;
+    sensitive?: boolean;
+    quick_add_enabled?: boolean;
+    created_at?: string;
+    updated_at?: string;
+    [key: string]: any;
+  };
+}
+
+/**
+ * Custom field option (e.g. one dropdown/multi-select choice) for Productive API.
+ * Verified against a live organization (2026-07): `name`, `archived_at`
+ * (nullable timestamp), `position`, and `color_id` are the real attributes.
+ */
+export interface ProductiveCustomFieldOption {
+  id: string;
+  type: 'custom_field_options';
+  attributes: {
+    name?: string;
+    archived_at?: string | null;
+    position?: number;
+    color_id?: string | null;
+    [key: string]: any;
+  };
+  relationships?: {
+    custom_field?: {
+      data: {
+        id: string;
+        type: string;
+      };
     };
   };
 }

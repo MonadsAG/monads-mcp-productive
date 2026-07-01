@@ -23,6 +23,12 @@ import {
   deleteTaskDefinition,
 } from './tasks.js';
 import { listCompaniesTool, listCompaniesDefinition } from './companies.js';
+import {
+  listCustomFieldsTool,
+  listCustomFieldsDefinition,
+  listCustomFieldOptionsTool,
+  listCustomFieldOptionsDefinition,
+} from './custom-fields.js';
 import { myTasksTool, myTasksDefinition } from './my-tasks.js';
 import { listBoards, createBoard, listBoardsTool, createBoardTool } from './boards.js';
 import {
@@ -101,7 +107,6 @@ import {
   stopTimerTool,
   stopTimerDefinition,
 } from './timers.js';
-import { updateTaskSprint, updateTaskSprintTool } from './task-sprint.js';
 import { moveTaskToList, moveTaskToListTool } from './task-list-move.js';
 import { addToBacklog, addToBacklogTool } from './task-backlog.js';
 import {
@@ -237,7 +242,8 @@ export function getToolDefinitions() {
     getTimerDefinition,
     startTimerDefinition,
     stopTimerDefinition,
-    updateTaskSprintTool,
+    listCustomFieldsDefinition,
+    listCustomFieldOptionsDefinition,
     moveTaskToListTool,
     addToBacklogTool,
     taskRepositionDefinition,
@@ -375,8 +381,10 @@ export async function handleToolCall(
       return await startTimerTool(apiClient, args);
     case 'stop_timer':
       return await stopTimerTool(apiClient, args);
-    case 'update_task_sprint':
-      return await updateTaskSprint(apiClient, args);
+    case 'list_custom_fields':
+      return await listCustomFieldsTool(apiClient, args);
+    case 'list_custom_field_options':
+      return await listCustomFieldOptionsTool(apiClient, args);
     case 'move_task_to_list':
       return await moveTaskToList(apiClient, args);
     case 'add_to_backlog':

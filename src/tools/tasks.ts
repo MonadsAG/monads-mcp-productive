@@ -1,8 +1,13 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { ProductiveTaskUpdate, ProductiveIncludedResource } from '../api/types.js';
+import {
+  ProductiveTaskCreate,
+  ProductiveTaskUpdate,
+  ProductiveIncludedResource,
+} from '../api/types.js';
 import { buildIncludeMap, resolveName } from './include-resolver.js';
+import { buildCustomFieldValueMap, resolveCustomFieldsText } from './custom-field-resolver.js';
 
 function resolveWorkflowStatus(
   task: { relationships?: Record<string, any> },
@@ -56,6 +61,7 @@ export async function listTasksTool(
     }
 
     const nameMap = buildIncludeMap(response.included);
+    const customFieldMap = await buildCustomFieldValueMap(client, response.data);
     const tasksText = response.data
       .filter((task) => task && task.attributes)
       .map((task) => {
@@ -76,12 +82,18 @@ export async function listTasksTool(
           : assigneeId
             ? `Assignee ID: ${assigneeId}`
             : 'Unassigned';
+        const customFieldsLines = resolveCustomFieldsText(
+          customFieldMap,
+          task.attributes.custom_fields,
+        );
+        const customFieldsSuffix =
+          customFieldsLines.length > 0 ? `\n  Custom Fields: ${customFieldsLines.join('; ')}` : '';
         return `• ${task.attributes.title} (ID: ${task.id})
   Status: ${statusText}
   ${task.attributes.due_date ? `Due: ${task.attributes.due_date}` : 'No due date'}
   ${projectName ? `Project: ${projectName}` : projectId ? `Project ID: ${projectId}` : ''}
   ${assigneeDisplay}
-  ${task.attributes.description ? `Description: ${task.attributes.description}` : ''}`;
+  ${task.attributes.description ? `Description: ${task.attributes.description}` : ''}${customFieldsSuffix}`;
       })
       .join('\n\n');
 
@@ -135,6 +147,7 @@ export async function getProjectTasksTool(
     }
 
     const nameMap = buildIncludeMap(response.included);
+    const customFieldMap = await buildCustomFieldValueMap(client, response.data);
     const tasksText = response.data
       .filter((task) => task && task.attributes)
       .map((task) => {
@@ -153,11 +166,17 @@ export async function getProjectTasksTool(
           : assigneeId
             ? `Assignee ID: ${assigneeId}`
             : 'Unassigned';
+        const customFieldsLines = resolveCustomFieldsText(
+          customFieldMap,
+          task.attributes.custom_fields,
+        );
+        const customFieldsSuffix =
+          customFieldsLines.length > 0 ? `\n  Custom Fields: ${customFieldsLines.join('; ')}` : '';
         return `• ${task.attributes.title} (ID: ${task.id})
   Status: ${statusText}
   ${task.attributes.due_date ? `Due: ${task.attributes.due_date}` : 'No due date'}
   ${assigneeDisplay}
-  ${task.attributes.description ? `Description: ${task.attributes.description}` : ''}`;
+  ${task.attributes.description ? `Description: ${task.attributes.description}` : ''}${customFieldsSuffix}`;
       })
       .join('\n\n');
 
@@ -280,6 +299,11 @@ export async function getTaskTool(
       text += taskListName ? `Task List: ${taskListName}\n` : `Task List ID: ${taskListId}\n`;
     }
 
+    if (task.attributes.custom_fields && Object.keys(task.attributes.custom_fields).length > 0) {
+      const customFieldMap = await buildCustomFieldValueMap(client, [task]);
+      text += formatCustomFieldsBlock(customFieldMap, task.attributes.custom_fields);
+    }
+
     return {
       content: [
         {
@@ -301,6 +325,20 @@ export async function getTaskTool(
       error instanceof Error ? error.message : 'Unknown error occurred',
     );
   }
+}
+
+/**
+ * Formats a "Custom Fields:" block (header + one indented "name: value" line per
+ * entry, each ending with a trailing newline) for appending to trailing-newline-style
+ * text output. Returns an empty string when there are no custom fields to show.
+ */
+function formatCustomFieldsBlock(
+  map: Map<string, { name: string; options: Map<string, string> }>,
+  rawCustomFields: Record<string, unknown> | null | undefined,
+): string {
+  const lines = resolveCustomFieldsText(map, rawCustomFields);
+  if (lines.length === 0) return '';
+  return `Custom Fields:\n${lines.map((line) => `  ${line}\n`).join('')}`;
 }
 
 export const listTasksDefinition = {
@@ -382,6 +420,12 @@ const createTaskSchema = z.object({
   assignee_id: z.string().optional(),
   due_date: z.string().optional(),
   status: z.enum(['open', 'closed']).optional().default('open'),
+  custom_fields: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]),
+    )
+    .optional(),
 });
 
 export async function createTaskTool(
@@ -415,10 +459,14 @@ export async function createTaskTool(
           description: descriptionValue,
           due_date: params.due_date,
           status: params.status === 'open' ? 1 : 2,
-        },
+        } as ProductiveTaskCreate['data']['attributes'],
         relationships: {} as any,
       },
     };
+
+    if (params.custom_fields) {
+      taskData.data.attributes.custom_fields = params.custom_fields;
+    }
 
     // Add relationships if provided
     if (params.project_id) {
@@ -486,6 +534,17 @@ export async function createTaskTool(
     }
     if (response.data.attributes.created_at) {
       text += `\nCreated at: ${response.data.attributes.created_at}`;
+    }
+
+    if (
+      response.data.attributes.custom_fields &&
+      Object.keys(response.data.attributes.custom_fields).length > 0
+    ) {
+      const customFieldMap = await buildCustomFieldValueMap(client, [response.data]);
+      const block = formatCustomFieldsBlock(customFieldMap, response.data.attributes.custom_fields);
+      if (block) {
+        text += `\n${block}`;
+      }
     }
 
     return {
@@ -556,6 +615,17 @@ export const createTaskDefinition = {
         type: 'string',
         enum: ['open', 'closed'],
         description: 'Task status (default: open)',
+      },
+      custom_fields: {
+        type: 'object',
+        additionalProperties: true,
+        description:
+          'Custom field values, keyed by custom field ID. Use list_custom_fields to find valid ' +
+          'field IDs and list_custom_field_options to find valid option IDs for dropdown/select ' +
+          "fields. The value shape depends on the field's type: a string for text fields, a number " +
+          'for numeric fields, a boolean for checkboxes, an ISO date string (YYYY-MM-DD) for date ' +
+          'fields, an array of option ID strings for dropdown/multi-select fields, or null to clear ' +
+          'the field.',
       },
     },
     required: ['title'],
@@ -673,6 +743,12 @@ const updateTaskDetailsSchema = z.object({
   title: z.string().min(1, 'Task title cannot be empty').optional(),
   description: z.string().optional(),
   description_html: z.string().optional(),
+  custom_fields: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()]),
+    )
+    .optional(),
 });
 
 export async function updateTaskDetailsTool(
@@ -686,11 +762,12 @@ export async function updateTaskDetailsTool(
     if (
       !params.title &&
       params.description === undefined &&
-      params.description_html === undefined
+      params.description_html === undefined &&
+      params.custom_fields === undefined
     ) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        'At least one field (title, description, or description_html) must be provided for update',
+        'At least one field (title, description, description_html, or custom_fields) must be provided for update',
       );
     }
 
@@ -714,6 +791,10 @@ export async function updateTaskDetailsTool(
       taskUpdate.data.attributes!.description = params.description;
     }
 
+    if (params.custom_fields) {
+      taskUpdate.data.attributes!.custom_fields = params.custom_fields;
+    }
+
     const response = await client.updateTask(params.task_id, taskUpdate);
 
     let text = `Task details updated successfully!\n`;
@@ -732,6 +813,14 @@ export async function updateTaskDetailsTool(
         text += `✓ Description updated${params.description_html ? ' (HTML)' : ''}: "${truncated}"\n`;
       } else {
         text += `✓ Description cleared\n`;
+      }
+    }
+
+    if (params.custom_fields) {
+      const customFieldMap = await buildCustomFieldValueMap(client, [response.data]);
+      const block = formatCustomFieldsBlock(customFieldMap, response.data.attributes.custom_fields);
+      if (block) {
+        text += `${block}\n`;
       }
     }
 
@@ -765,7 +854,7 @@ export async function updateTaskDetailsTool(
 export const updateTaskDetailsDefinition = {
   name: 'update_task_details',
   description:
-    'Update the title (name) and/or description of an existing task. At least one field must be provided.',
+    'Update the title (name), description, and/or custom fields of an existing task. At least one field must be provided.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -786,6 +875,17 @@ export const updateTaskDetailsDefinition = {
         type: 'string',
         description:
           'New description with HTML formatting. Supports tags like <h2>, <p>, <ul>, <li>, <strong>, <em>, <a href="">. Takes precedence over description if both provided.',
+      },
+      custom_fields: {
+        type: 'object',
+        additionalProperties: true,
+        description:
+          'Custom field values to set, keyed by custom field ID. Use list_custom_fields to find valid ' +
+          'field IDs and list_custom_field_options to find valid option IDs for dropdown/select ' +
+          "fields. The value shape depends on the field's type: a string for text fields, a number " +
+          'for numeric fields, a boolean for checkboxes, an ISO date string (YYYY-MM-DD) for date ' +
+          'fields, an array of option ID strings for dropdown/multi-select fields, or null to clear ' +
+          'the field.',
       },
     },
     required: ['task_id'],
