@@ -630,6 +630,7 @@ export const createTaskDefinition = {
     },
     required: ['title'],
   },
+  annotations: { title: 'Create task', readOnlyHint: false, destructiveHint: false },
 };
 
 const updateTaskAssignmentSchema = z.object({
@@ -736,6 +737,7 @@ export const updateTaskAssignmentDefinition = {
     },
     required: ['task_id', 'assignee_id'],
   },
+  annotations: { title: 'Update task assignment', readOnlyHint: false, destructiveHint: false },
 };
 
 const updateTaskDetailsSchema = z.object({
@@ -890,6 +892,7 @@ export const updateTaskDetailsDefinition = {
     },
     required: ['task_id'],
   },
+  annotations: { title: 'Update task details', readOnlyHint: false, destructiveHint: false },
 };
 
 const deleteTaskSchema = z.object({
@@ -941,4 +944,5 @@ export const deleteTaskDefinition = {
     },
     required: ['task_id'],
   },
+  annotations: { title: 'Delete task', readOnlyHint: false, destructiveHint: true },
 };
