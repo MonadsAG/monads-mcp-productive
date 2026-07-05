@@ -80,12 +80,21 @@ describe.skipIf(!process.env.PRODUCTIVE_API_TOKEN)(
     });
 
     it('fails clearly when budget_id does not reference an existing deal', async () => {
-      await expect(
-        createBudgetServiceTool(client, {
+      // If Productive's validation behavior ever changes such that this
+      // unexpectedly succeeds, capture the created service id so afterAll
+      // still cleans it up instead of leaking it into the sandbox.
+      let threw = false;
+      try {
+        const result = await createBudgetServiceTool(client, {
           budget_id: '999999999',
           name: 'Service On Nonexistent Budget',
-        }),
-      ).rejects.toThrow();
+        });
+        const match = result.content[0].text.match(/Service ID: (\d+)/);
+        if (match) createdServiceIds.push(match[1]);
+      } catch {
+        threw = true;
+      }
+      expect(threw).toBe(true);
     });
   },
 );

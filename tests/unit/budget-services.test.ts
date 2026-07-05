@@ -99,6 +99,28 @@ describe('updateBudgetServiceTool', () => {
     expect(result.content[0].text).toContain('999');
   });
 
+  it('retains falsy-but-defined values like price: 0 in the attributes diff', async () => {
+    const client = {
+      updateService: vi.fn().mockResolvedValue({
+        data: { id: '999', type: 'services', attributes: { name: 'Renamed', price: 0 } },
+      }),
+    } as unknown as ProductiveAPIClient;
+
+    await updateBudgetServiceTool(client, {
+      service_id: '999',
+      price: 0,
+      quantity: 0,
+    });
+
+    expect(client.updateService).toHaveBeenCalledWith('999', {
+      data: {
+        type: 'services',
+        id: '999',
+        attributes: { price: 0, quantity: 0 },
+      },
+    });
+  });
+
   it('throws InvalidParams when service_id is missing', async () => {
     const client = { updateService: vi.fn() } as unknown as ProductiveAPIClient;
 
