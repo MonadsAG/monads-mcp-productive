@@ -105,18 +105,22 @@ export async function myTasksTool(
 
 export const myTasksDefinition = {
   name: 'my_tasks',
-  description: 'Get tasks assigned to you (requires PRODUCTIVE_USER_ID to be configured)',
+  description:
+    'List tasks assigned to the current user (resolved from the configured PRODUCTIVE_USER_ID) — the fast path for ' +
+    '"my tasks" / "what am I working on". Prefer this over list_tasks with assignee_id whenever the target is the ' +
+    'calling user themselves. Filter by open/closed status; paginated (default 30, max 200). ' +
+    'Returns a configuration hint if PRODUCTIVE_USER_ID is not set.',
   inputSchema: {
     type: 'object',
     properties: {
       status: {
         type: 'string',
         enum: ['open', 'closed'],
-        description: 'Filter by task status (open or closed)',
+        description: 'Filter by task status (open or closed). Omit to return both.',
       },
       limit: {
         type: 'number',
-        description: 'Number of tasks to return (1-200)',
+        description: 'Number of tasks to return (1-200, default 30).',
         minimum: 1,
         maximum: 200,
         default: 30,

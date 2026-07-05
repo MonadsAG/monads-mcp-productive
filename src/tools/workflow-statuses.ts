@@ -78,13 +78,13 @@ export async function listWorkflowStatusesTool(
 export const listWorkflowStatusesDefinition = {
   name: 'list_workflow_statuses',
   description:
-    'List workflow statuses available in Productive.io. These are used to set task status (Not Started=1, Started=2, Closed=3).',
+    "List the workflow statuses defined in the workspace, each with its ID, name, and category (1=Not Started, 2=Started, 3=Closed). A status ID from here is the value you pass to update_task_status to move a task. Filter by workflow_id to see one board/workflow's statuses, or by category_id to see every status in one category.",
   inputSchema: {
     type: 'object',
     properties: {
       workflow_id: {
         type: 'string',
-        description: 'Filter by workflow ID',
+        description: 'Filter to a single workflow by its ID',
       },
       category_id: {
         type: 'number',
@@ -94,7 +94,7 @@ export const listWorkflowStatusesDefinition = {
       },
       limit: {
         type: 'number',
-        description: 'Number of statuses to return (1-200)',
+        description: 'Number of statuses to return (default 50, max 200)',
         minimum: 1,
         maximum: 200,
         default: 50,

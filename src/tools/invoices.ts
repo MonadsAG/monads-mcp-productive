@@ -379,12 +379,19 @@ const createInvoiceSchema = z.object({
   document_type_id: z.string().optional().describe('Auto-resolved if omitted'),
   invoiced_on: z.string().optional(),
   currency: z.string().default('EUR').optional(),
-  pay_on: z.string().optional().describe('Due date YYYY-MM-DD. Auto-calculated from invoiced_on + payment_terms if omitted'),
+  pay_on: z
+    .string()
+    .optional()
+    .describe('Due date YYYY-MM-DD. Auto-calculated from invoiced_on + payment_terms if omitted'),
   delivery_on: z.string().optional(),
   subject: z.string().optional(),
   note: z.string().optional(),
   footer: z.string().optional(),
-  payment_terms: z.coerce.number().default(30).optional().describe('Payment terms in days (default: 30)'),
+  payment_terms: z.coerce
+    .number()
+    .default(30)
+    .optional()
+    .describe('Payment terms in days (default: 30)'),
   purchase_order_number: z.string().optional().describe('PO number for the invoice'),
   subsidiary_id: z.string().optional().describe('Auto-resolved if omitted'),
 });
@@ -513,7 +520,8 @@ export const createInvoiceDefinition = {
       },
       pay_on: {
         type: 'string',
-        description: 'Payment due date (YYYY-MM-DD). Auto-calculated from invoiced_on + payment_terms if omitted',
+        description:
+          'Payment due date (YYYY-MM-DD). Auto-calculated from invoiced_on + payment_terms if omitted',
       },
       delivery_on: {
         type: 'string',

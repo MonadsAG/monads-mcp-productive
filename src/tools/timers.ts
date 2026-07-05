@@ -204,7 +204,8 @@ export async function stopTimerTool(
 
 export const getTimerDefinition = {
   name: 'get_timer',
-  description: 'Get a timer by ID to check its status (running or stopped).',
+  description:
+    "Read a timer's current state by ID — returns whether it is running or stopped, its start time, elapsed total_time, and the linked time-entry ID. Call this after start_timer to poll a running timer's progress without changing it; it is the read-only companion to start_timer/stop_timer and never mutates the timer (unlike stop_timer, which ends it).",
   inputSchema: {
     type: 'object',
     properties: {
@@ -221,7 +222,7 @@ export const getTimerDefinition = {
 export const startTimerDefinition = {
   name: 'start_timer',
   description:
-    'Start a new timer for time tracking. If no service_id is provided, returns a list of available services with open budgets for the user to choose from. A work description (note) is always required.',
+    'Start a new running timer for live time tracking (as opposed to create_time_entry, which logs a fixed duration after the fact). If no service_id is provided, this returns the list of services with open budgets so the user can pick one, then call start_timer again with that service_id. A work description (note) is always required. Afterwards, poll the timer with get_timer and end it with stop_timer.',
   inputSchema: {
     type: 'object',
     properties: {

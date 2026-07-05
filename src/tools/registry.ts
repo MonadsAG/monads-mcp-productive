@@ -12,15 +12,13 @@ import {
   getProjectTasksTool,
   getTaskTool,
   createTaskTool,
-  updateTaskAssignmentTool,
-  updateTaskDetailsTool,
+  updateTaskTool,
   deleteTaskTool,
   listTasksDefinition,
   getProjectTasksDefinition,
   getTaskDefinition,
   createTaskDefinition,
-  updateTaskAssignmentDefinition,
-  updateTaskDetailsDefinition,
+  updateTaskDefinition,
   deleteTaskDefinition,
 } from './tasks.js';
 import { listCompaniesTool, listCompaniesDefinition } from './companies.js';
@@ -89,16 +87,7 @@ import {
   listDealServicesDefinition,
 } from './time-entries.js';
 import { updateTimeEntryTool, updateTimeEntryDefinition } from './time-entry-update.js';
-import {
-  approveTimeEntryTool,
-  approveTimeEntryDefinition,
-  unapproveTimeEntryTool,
-  unapproveTimeEntryDefinition,
-  rejectTimeEntryTool,
-  rejectTimeEntryDefinition,
-  unrejectTimeEntryTool,
-  unrejectTimeEntryDefinition,
-} from './time-entry-approval.js';
+import { setTimeEntryApprovalTool, setTimeEntryApprovalDefinition } from './time-entry-approval.js';
 import {
   getTimerTool,
   getTimerDefinition,
@@ -238,8 +227,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     getProjectTasksDefinition,
     getTaskDefinition,
     createTaskDefinition,
-    updateTaskAssignmentDefinition,
-    updateTaskDetailsDefinition,
+    updateTaskDefinition,
     addTaskCommentDefinition,
     updateTaskStatusDefinition,
     listWorkflowStatusesDefinition,
@@ -255,10 +243,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     createBudgetServiceDefinition,
     updateBudgetServiceDefinition,
     updateTimeEntryDefinition,
-    approveTimeEntryDefinition,
-    unapproveTimeEntryDefinition,
-    rejectTimeEntryDefinition,
-    unrejectTimeEntryDefinition,
+    setTimeEntryApprovalDefinition,
     getTimerDefinition,
     startTimerDefinition,
     stopTimerDefinition,
@@ -356,10 +341,8 @@ export async function handleToolCall(
       return await myTasksTool(apiClient, config, args);
     case 'create_task':
       return await createTaskTool(apiClient, args, config);
-    case 'update_task_assignment':
-      return await updateTaskAssignmentTool(apiClient, args, config);
-    case 'update_task_details':
-      return await updateTaskDetailsTool(apiClient, args);
+    case 'update_task':
+      return await updateTaskTool(apiClient, args, config);
     case 'add_task_comment':
       return await addTaskCommentTool(apiClient, args);
     case 'update_task_status':
@@ -406,14 +389,8 @@ export async function handleToolCall(
       return await updateBudgetServiceTool(apiClient, args);
     case 'update_time_entry':
       return await updateTimeEntryTool(apiClient, args);
-    case 'approve_time_entry':
-      return await approveTimeEntryTool(apiClient, args);
-    case 'unapprove_time_entry':
-      return await unapproveTimeEntryTool(apiClient, args);
-    case 'reject_time_entry':
-      return await rejectTimeEntryTool(apiClient, args);
-    case 'unreject_time_entry':
-      return await unrejectTimeEntryTool(apiClient, args);
+    case 'set_time_entry_approval':
+      return await setTimeEntryApprovalTool(apiClient, args);
     case 'get_timer':
       return await getTimerTool(apiClient, args);
     case 'start_timer':

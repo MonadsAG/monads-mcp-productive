@@ -18,7 +18,10 @@ const createPageSchema = z.object({
   project_id: z.string().min(1, 'Project ID is required'),
   title: z.string().min(1, 'Title is required'),
   body: z.string().optional(),
-  parent_page_id: z.coerce.number().optional().describe('ID of parent page (must also set root_page_id)'),
+  parent_page_id: z.coerce
+    .number()
+    .optional()
+    .describe('ID of parent page (must also set root_page_id)'),
   root_page_id: z
     .number()
     .optional()
@@ -391,18 +394,18 @@ export async function copyPageTool(
 export const listPagesDefinition = {
   name: 'list_pages',
   description:
-    'List pages/documents from Productive.io. Optionally filter by project and sort by various fields.',
+    'List document pages, each showing title, ID, project, last-edited time, and version number (but not body content). Filter by project_id and sort by created_at, title, edited_at, or updated_at. Use this to locate a page ID, then call get_page for the full body. Returns up to `limit` pages (default 30).',
   inputSchema: {
     type: 'object',
     properties: {
       project_id: {
         type: 'string',
-        description: 'Filter pages by project ID',
+        description: 'Filter to pages belonging to a single project',
       },
       sort: {
         type: 'string',
         enum: ['created_at', 'title', 'edited_at', 'updated_at'],
-        description: 'Sort pages by a field',
+        description: 'Field to sort the returned pages by',
       },
       limit: {
         type: 'number',
@@ -416,7 +419,7 @@ export const listPagesDefinition = {
 export const getPageDefinition = {
   name: 'get_page',
   description:
-    'Get a single page/document from Productive.io by ID, including full body content, creator, and project details.',
+    'Fetch one document page by ID including its full body (HTML), creator, project, hierarchy (parent and root page IDs), version, and timestamps. Use this after list_pages, which returns page metadata but omits the body.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -431,7 +434,8 @@ export const getPageDefinition = {
 
 export const createPageDefinition = {
   name: 'create_page',
-  description: 'Create a new page/document in Productive.io. The body supports HTML formatting.',
+  description:
+    'Create a new document page inside a project; the body accepts HTML. Optionally nest it under an existing page by supplying parent_page_id together with root_page_id. After creating, use move_page to re-parent it or copy_page to duplicate it elsewhere.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -465,7 +469,7 @@ export const createPageDefinition = {
 export const updatePageDefinition = {
   name: 'update_page',
   description:
-    'Update an existing page/document in Productive.io. Supports updating title and/or body.',
+    "Update a document page's title and/or body. The body accepts HTML and fully overwrites the previous content — there is no append, so include everything you want to keep. Omit a field to leave it unchanged. To relocate the page in the hierarchy instead of editing content, use move_page.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -475,11 +479,12 @@ export const updatePageDefinition = {
       },
       title: {
         type: 'string',
-        description: 'New title for the page',
+        description: 'New title for the page (omit to leave the title unchanged)',
       },
       body: {
         type: 'string',
-        description: 'New body content for the page. Supports HTML formatting.',
+        description:
+          'New body content for the page, fully replacing the current body. Supports HTML formatting. Omit to leave the body unchanged.',
       },
     },
     required: ['page_id'],
@@ -488,7 +493,8 @@ export const updatePageDefinition = {
 
 export const deletePageDefinition = {
   name: 'delete_page',
-  description: 'Delete a page/document from Productive.io.',
+  description:
+    'Delete a document page by ID. If you instead want to relocate the page under a different parent, use move_page; to duplicate it, use copy_page.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -503,7 +509,8 @@ export const deletePageDefinition = {
 
 export const movePageDefinition = {
   name: 'move_page',
-  description: 'Move a page/document under another page in Productive.io.',
+  description:
+    'Re-parent a document page, nesting it under a different page in the hierarchy. This changes where the page lives, not its content — use update_page to edit the title or body. To place a page under a new parent, call this again with a different target_doc_id.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -513,7 +520,7 @@ export const movePageDefinition = {
       },
       target_doc_id: {
         type: 'string',
-        description: 'ID of the parent page to move this page under (required)',
+        description: 'ID of the page to move this page under, i.e. its new parent (required)',
       },
     },
     required: ['page_id', 'target_doc_id'],
@@ -522,17 +529,19 @@ export const movePageDefinition = {
 
 export const copyPageDefinition = {
   name: 'copy_page',
-  description: 'Copy a page/document from a template in Productive.io.',
+  description:
+    "Duplicate an existing page (used as the template) into the same project, or into a different one via project_id — useful for spinning up a new page from a boilerplate. Returns the new page's ID; use move_page afterward to position the copy in the hierarchy.",
   inputSchema: {
     type: 'object',
     properties: {
       template_id: {
         type: 'string',
-        description: 'ID of the page to use as a template for the copy (required)',
+        description: 'ID of the page to copy from, used as the template (required)',
       },
       project_id: {
         type: 'string',
-        description: 'Project ID to copy the page into (optional, defaults to same project)',
+        description:
+          "Project to create the copy in (optional; defaults to the template page's project)",
       },
     },
     required: ['template_id'],

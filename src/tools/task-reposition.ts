@@ -126,7 +126,10 @@ export const repositionTask = async (
 
 export const taskRepositionDefinition = {
   name: 'reposition_task',
-  description: 'Reposition a task in a task list',
+  description:
+    'Move a task to a specific position within its task list. Provide exactly one positioning method: ' +
+    'move_before_id/move_after_id (place relative to another task) OR moveToTop/moveToBottom (place at an end). ' +
+    "Does not change the task's assignee, status, or list membership -- use move_task_to_list for that.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -136,22 +139,30 @@ export const taskRepositionDefinition = {
       },
       move_before_id: {
         type: 'string',
-        description: 'Position the task before this task ID',
+        description:
+          'Place the task immediately before this task ID in the list. Do not combine with moveToTop/moveToBottom.',
       },
       move_after_id: {
         type: 'string',
-        description: 'Position the task after this task ID',
+        description:
+          'Place the task immediately after this task ID in the list. Do not combine with moveToTop/moveToBottom.',
       },
       moveToTop: {
         type: 'boolean',
-        description: 'Move the task to the top of its list',
+        description:
+          'Move the task to the top of its list. Use instead of move_before_id/move_after_id, not together.',
       },
       moveToBottom: {
         type: 'boolean',
-        description: 'Move the task to the bottom of its list',
+        description:
+          'Move the task to the bottom of its list. Use instead of move_before_id/move_after_id, not together.',
       },
     },
     required: ['taskId'],
+    examples: [
+      { taskId: '123', move_before_id: '456' },
+      { taskId: '123', moveToTop: true },
+    ],
   },
 };
 
@@ -219,11 +230,4 @@ Position updated according to the requested parameters.`,
       ],
     };
   }
-};
-
-export default {
-  name: 'reposition_task',
-  description: 'Reposition a task in a task list',
-  inputSchema: taskRepositionDefinition.inputSchema,
-  execute: repositionTask,
 };

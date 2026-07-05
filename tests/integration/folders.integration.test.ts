@@ -150,13 +150,12 @@ describe.skipIf(!process.env.PRODUCTIVE_API_TOKEN)(
       });
       expect(moveResult.content[0].text).toContain('moved');
 
-      // get_folder can't confirm this directly: Productive's plain (non-
-      // `include`) response returns the project relationship as a stub
-      // (`{ meta: { included: false } }`, no `data`/id) -- a pre-existing gap
-      // in list_folders/get_folder, not something this move_folder addition
-      // introduced. Confirm via the server-side project_id filter instead,
-      // which does work (verified with `?include=project` against the raw
-      // API: the folder's project.data.id is genuinely the destination).
+      // client.getBoard() now requests ?include=project (see src/api/client.ts),
+      // so get_folder's Project ID line is reliably populated -- confirm the
+      // move landed on the destination project directly.
+      const getResult = await getFolder(client, { folder_id: folderId });
+      expect(getResult.content[0].text).toContain(`Project ID: ${destProject.id}`);
+
       const afterMove = await listFolders(client, { project_id: destProject.id });
       expect(afterMove.content[0].text).toContain(folderId);
     });

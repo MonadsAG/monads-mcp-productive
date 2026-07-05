@@ -71,18 +71,19 @@ export async function listCompaniesTool(
 
 export const listCompaniesDefinition = {
   name: 'list_companies',
-  description: 'Get a list of companies/customers from Productive.io',
+  description:
+    "List companies (clients/customers), optionally filtered by active/archived status. Returns each company's name, ID, domain, description, and tags. A company ID from here filters list_projects and list_invoices, and is the entry point for the list_companies -> list_projects -> list_tasks drill-down. Returns 30 results by default; raise limit (max 200) for large workspaces.",
   inputSchema: {
     type: 'object',
     properties: {
       status: {
         type: 'string',
         enum: ['active', 'archived'],
-        description: 'Filter by company status',
+        description: 'Filter by company status: active or archived',
       },
       limit: {
         type: 'number',
-        description: 'Number of companies to return (1-200)',
+        description: 'Number of companies to return (default 30, max 200)',
         minimum: 1,
         maximum: 200,
         default: 30,

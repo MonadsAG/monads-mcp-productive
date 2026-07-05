@@ -82,7 +82,11 @@ export const createBudgetServiceDefinition = {
     type: 'object',
     required: ['budget_id', 'name'],
     properties: {
-      budget_id: { type: 'string', description: 'Budget ID to attach this service to' },
+      budget_id: {
+        type: 'string',
+        description:
+          "Budget ID to attach this service to. Internally this is sent to Productive.io as the API's `deal` relationship — the same ID returned by list_company_budgets/create_budget, not a separately-named resource.",
+      },
       name: { type: 'string', description: 'Service name' },
       unit_id: {
         type: 'number',
