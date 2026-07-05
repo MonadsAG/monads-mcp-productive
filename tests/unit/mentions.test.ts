@@ -67,6 +67,18 @@ describe('extractMentionTokens', () => {
   it('does not match a lowercase @handle', () => {
     expect(extractMentionTokens('email me @ada.example.com')).toEqual([]);
   });
+
+  it('extracts a name with an internal apostrophe', () => {
+    const tokens = extractMentionTokens("cc @O'Brien for review");
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]).toMatchObject({ raw: "@O'Brien", name: "O'Brien" });
+  });
+
+  it('extracts a hyphenated name without truncating it', () => {
+    const tokens = extractMentionTokens('cc @Anne-Marie for review');
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]).toMatchObject({ raw: '@Anne-Marie', name: 'Anne-Marie' });
+  });
 });
 
 describe('buildMentionReplacement', () => {
@@ -152,5 +164,30 @@ describe('resolveMentions', () => {
     expect(result.resolved).toHaveLength(2);
     expect(result.resolvedBody).toContain('"id":"1"');
     expect(result.resolvedBody).toContain('"id":"2"');
+  });
+
+  it('resolves a name with an internal apostrophe', async () => {
+    const client = mockClientWithPeople([person('1', 'Conan', "O'Brien")]);
+    const result = await resolveMentions("cc @Conan O'Brien for review", client);
+
+    expect(result.resolved).toHaveLength(1);
+    expect(result.resolved[0].person.id).toBe('1');
+  });
+
+  it('paginates through listPeople to find a person past the first page', async () => {
+    const page1 = Array.from({ length: 200 }, (_, i) => person(`p${i}`, 'Filler', `Person${i}`));
+    const target = person('999', 'Grace', 'Hopper');
+    const client = {
+      listPeople: vi
+        .fn()
+        .mockResolvedValueOnce({ data: page1, meta: { current_page: 1, total_pages: 2 } })
+        .mockResolvedValueOnce({ data: [target], meta: { current_page: 2, total_pages: 2 } }),
+    } as unknown as ProductiveAPIClient;
+
+    const result = await resolveMentions('cc @Grace Hopper', client);
+
+    expect(client.listPeople).toHaveBeenCalledTimes(2);
+    expect(result.resolved).toHaveLength(1);
+    expect(result.resolved[0].person.id).toBe('999');
   });
 });

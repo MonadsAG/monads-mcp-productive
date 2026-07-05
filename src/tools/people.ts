@@ -11,9 +11,9 @@ const coerceBoolean = z.preprocess(
 const listPeopleSchema = z.object({
   company_id: z.string().optional(),
   project_id: z.string().optional(),
-  is_active: coerceBoolean.default(true).optional(),
+  is_active: coerceBoolean.default(true),
   email: z.string().optional(),
-  limit: z.coerce.number().min(1).max(200).default(30).optional(),
+  limit: z.coerce.number().min(1).max(200).default(30),
 });
 
 const getPersonSchema = z.object({

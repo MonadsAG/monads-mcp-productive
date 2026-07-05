@@ -34,12 +34,20 @@ describe('listPeopleTool', () => {
     expect(client.listPeople).toHaveBeenCalledWith({
       company_id: undefined,
       project_id: '99',
-      is_active: undefined,
+      is_active: true,
       email: undefined,
-      limit: undefined,
+      limit: 30,
     });
     expect(result.content[0].text).toContain('Found 2 people');
     expect(result.content[0].text).toContain('Ada Lovelace (ID: 1)');
+  });
+
+  it('lets is_active:false override the active-only default', async () => {
+    const client = mockClient();
+
+    await listPeopleTool(client, { is_active: false });
+
+    expect(client.listPeople).toHaveBeenCalledWith(expect.objectContaining({ is_active: false }));
   });
 
   it('reports when no people match', async () => {

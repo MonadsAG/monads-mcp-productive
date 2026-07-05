@@ -2,10 +2,13 @@ import { ProductiveAPIClient } from '../api/client.js';
 import { ProductivePerson } from '../api/types.js';
 
 /**
- * Matches @FirstName or @First Last (up to 3 capitalized words).
+ * Matches @FirstName or @First Last (up to 3 capitalized words). Each word
+ * may contain an internal apostrophe or hyphen (e.g. O'Brien, Anne-Marie) so
+ * those names aren't dropped or truncated mid-token.
  * Won't match already-resolved @[{...}] patterns or @lowercase.
  */
-const MENTION_REGEX = /@([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+){0,2})/g;
+const MENTION_REGEX =
+  /@([A-Z][a-zA-Z]*(?:['-][A-Za-z]+)*(?:\s[A-Z][a-zA-Z]*(?:['-][A-Za-z]+)*){0,2})/g;
 
 export interface MentionToken {
   raw: string;
@@ -74,6 +77,26 @@ function matchPerson(name: string, people: ProductivePerson[]): ProductivePerson
   return [];
 }
 
+/** Safety cap on pages fetched when resolving mentions, to bound worst-case org sizes. */
+const MAX_MENTION_LOOKUP_PAGES = 10;
+
+/** Fetches every person in the org (paginated), up to MAX_MENTION_LOOKUP_PAGES pages. */
+async function listAllPeople(client: ProductiveAPIClient): Promise<ProductivePerson[]> {
+  const people: ProductivePerson[] = [];
+  let page = 1;
+
+  while (page <= MAX_MENTION_LOOKUP_PAGES) {
+    const response = await client.listPeople({ limit: 200, page });
+    people.push(...(response.data || []));
+
+    const totalPages = response.meta?.total_pages ?? page;
+    if (page >= totalPages) break;
+    page += 1;
+  }
+
+  return people;
+}
+
 export async function resolveMentions(
   body: string,
   client: ProductiveAPIClient,
@@ -84,8 +107,7 @@ export async function resolveMentions(
     return { resolvedBody: body, resolved: [], unresolved: [], ambiguous: [] };
   }
 
-  const response = await client.listPeople({ limit: 200 });
-  const people = response.data || [];
+  const people = await listAllPeople(client);
 
   const resolved: ResolvedMention[] = [];
   const unresolved: MentionToken[] = [];
