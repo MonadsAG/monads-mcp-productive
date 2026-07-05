@@ -61,6 +61,8 @@ export const TOOLSETS: Record<string, string[]> = {
     'list_deal_services',
     'list_services',
     'get_project_services',
+    'create_budget_service',
+    'update_budget_service',
     'update_time_entry',
     'approve_time_entry',
     'unapprove_time_entry',

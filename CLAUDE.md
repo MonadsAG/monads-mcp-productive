@@ -82,6 +82,8 @@ Generic mechanism (`src/tools/custom-fields.ts`, `src/tools/custom-field-resolve
 
 Budgets are Deals with `budget: true` (`src/tools/budgets.ts`) -- same underlying resource as `list_company_budgets` and `list_project_deals`, distinguished by the `budget` attribute (not the `type` filter value used when listing). A plain deal (`budget: false`) additionally requires `probability` + `deal_status` on creation; budgets don't.
 
+Services (line items) attach to a budget via `create_budget_service`/`update_budget_service` (`src/tools/budget-services.ts`) -- a Service references its parent via a `deal` relationship (not a `budget_id` attribute), since Services attach identically to plain deals or budgets at the API level; there is no server-side distinction to validate against, so the tool doesn't attempt one. `unit_id` (1=Hour/2=Piece/3=Day) and `billing_type_id` (1=Fixed/2=Actuals/3=None/4=Percentage) are required by the API but default to `1` and `2` respectively.
+
 ## Toolsets
 
 `PRODUCTIVE_TOOLSETS` (optional, comma-separated) restricts which domain groups of tools a deployment exposes -- unset/`all` means every tool, same as before this feature existed. Catalog lives in `src/tools/toolsets.ts`; `registry.ts`'s `getToolDefinitions`/`handleToolCall` filter `ListTools` and reject `CallTool` for disabled tools (not just hide them).

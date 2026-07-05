@@ -212,6 +212,12 @@ import {
   createBudgetFromDealTool,
   createBudgetFromDealDefinition,
 } from './budgets.js';
+import {
+  createBudgetServiceTool,
+  createBudgetServiceDefinition,
+  updateBudgetServiceTool,
+  updateBudgetServiceDefinition,
+} from './budget-services.js';
 
 /** All tool definitions for ListTools, optionally filtered to an enabled toolset. */
 export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
@@ -246,6 +252,8 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     listDealServicesDefinition,
     listServicesDefinition,
     getProjectServicesDefinition,
+    createBudgetServiceDefinition,
+    updateBudgetServiceDefinition,
     updateTimeEntryDefinition,
     approveTimeEntryDefinition,
     unapproveTimeEntryDefinition,
@@ -392,6 +400,10 @@ export async function handleToolCall(
       return await listServicesTool(apiClient, args);
     case 'get_project_services':
       return await getProjectServicesTool(apiClient, args);
+    case 'create_budget_service':
+      return await createBudgetServiceTool(apiClient, args);
+    case 'update_budget_service':
+      return await updateBudgetServiceTool(apiClient, args);
     case 'update_time_entry':
       return await updateTimeEntryTool(apiClient, args);
     case 'approve_time_entry':
