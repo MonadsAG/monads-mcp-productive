@@ -2,6 +2,12 @@ import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
+// Productive's UI calls this resource a "folder"; the API resource concept is
+// a "board" (task and task-list relationships reference it as `board`/
+// `board_id`). This file is the ONLY tool set for it -- there is no separate
+// "board" tool. See src/api/client.ts's Board-named methods for the client
+// layer this file talks to.
+
 // ---- List Folders ----
 
 const ListFoldersSchema = z.object({
@@ -17,7 +23,7 @@ export async function listFolders(
   try {
     const params = ListFoldersSchema.parse(args || {});
 
-    const response = await client.listFolders({
+    const response = await client.listBoards({
       project_id: params.project_id,
       status: params.status,
       limit: params.limit,
@@ -78,7 +84,8 @@ export async function listFolders(
 
 export const listFoldersTool = {
   name: 'list_folders',
-  description: 'Get a list of folders from Productive.io',
+  description:
+    'Get a list of folders from Productive.io. Note: Productive\'s API models this resource as a "board" (see board_id on tasks/task lists); "folder" is the UI and tool-facing name -- there is no separate "board" tool.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -112,7 +119,7 @@ export async function getFolder(
   try {
     const params = GetFolderSchema.parse(args || {});
 
-    const response = await client.getFolder(params.folder_id);
+    const response = await client.getBoard(params.folder_id);
 
     const folder = response.data;
     let text = `Folder: ${folder.attributes.name} (ID: ${folder.id})`;
@@ -161,7 +168,7 @@ export async function getFolder(
 
 export const getFolderTool = {
   name: 'get_folder',
-  description: 'Get details of a specific folder from Productive.io',
+  description: 'Get details of a specific folder (Productive board) from Productive.io',
   inputSchema: {
     type: 'object',
     properties: {
@@ -205,7 +212,7 @@ export async function createFolder(
       },
     };
 
-    const response = await client.createFolder(folderData);
+    const response = await client.createBoard(folderData);
 
     let text = `Folder created successfully!\n`;
     text += `Name: ${response.data.attributes.name} (ID: ${response.data.id})`;
@@ -240,7 +247,7 @@ export async function createFolder(
 
 export const createFolderTool = {
   name: 'create_folder',
-  description: 'Create a new folder in a Productive.io project',
+  description: 'Create a new folder (Productive board) in a Productive.io project',
   inputSchema: {
     type: 'object',
     properties: {
@@ -281,7 +288,7 @@ export async function updateFolder(
       },
     };
 
-    const response = await client.updateFolder(params.folder_id, folderData);
+    const response = await client.updateBoard(params.folder_id, folderData);
 
     let text = `Folder updated successfully!\n`;
     text += `Name: ${response.data.attributes.name} (ID: ${response.data.id})`;
@@ -315,7 +322,7 @@ export async function updateFolder(
 
 export const updateFolderTool = {
   name: 'update_folder',
-  description: 'Update an existing folder in Productive.io',
+  description: 'Update an existing folder (Productive board) in Productive.io',
   inputSchema: {
     type: 'object',
     properties: {
@@ -345,7 +352,7 @@ export async function archiveFolder(
   try {
     const params = ArchiveFolderSchema.parse(args || {});
 
-    await client.archiveFolder(params.folder_id);
+    await client.archiveBoard(params.folder_id);
 
     return {
       content: [
@@ -373,7 +380,7 @@ export async function archiveFolder(
 
 export const archiveFolderTool = {
   name: 'archive_folder',
-  description: 'Archive a folder in Productive.io',
+  description: 'Archive a folder (Productive board) in Productive.io',
   inputSchema: {
     type: 'object',
     properties: {
@@ -399,7 +406,7 @@ export async function restoreFolder(
   try {
     const params = RestoreFolderSchema.parse(args || {});
 
-    await client.restoreFolder(params.folder_id);
+    await client.restoreBoard(params.folder_id);
 
     return {
       content: [
@@ -427,7 +434,7 @@ export async function restoreFolder(
 
 export const restoreFolderTool = {
   name: 'restore_folder',
-  description: 'Restore an archived folder in Productive.io',
+  description: 'Restore an archived folder (Productive board) in Productive.io',
   inputSchema: {
     type: 'object',
     properties: {
@@ -437,5 +444,198 @@ export const restoreFolderTool = {
       },
     },
     required: ['folder_id'],
+  },
+};
+
+// ---- Copy Folder ----
+
+const CopyFolderSchema = z.object({
+  name: z.string().describe('Name for the copied folder'),
+  template_id: z.string().describe('The ID of the source folder to copy from'),
+  project_id: z.string().describe('The ID of the project for the new folder'),
+});
+
+export async function copyFolder(
+  client: ProductiveAPIClient,
+  args: unknown,
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  try {
+    const params = CopyFolderSchema.parse(args || {});
+
+    const response = await client.copyBoard({
+      name: params.name,
+      template_id: params.template_id,
+      project_id: params.project_id,
+    });
+
+    let text = `Folder copied successfully!\n`;
+    text += `Name: ${response.data.attributes.name} (ID: ${response.data.id})`;
+    text += `\nProject ID: ${params.project_id}`;
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: text,
+        },
+      ],
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+      );
+    }
+
+    if (error instanceof Error) {
+      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
+    }
+
+    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while copying folder');
+  }
+}
+
+export const copyFolderTool = {
+  name: 'copy_folder',
+  description: 'Copy a folder (Productive board) from a template in Productive.io',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      name: {
+        type: 'string',
+        description: 'Name for the copied folder',
+      },
+      template_id: {
+        type: 'string',
+        description: 'The ID of the source folder to copy from',
+      },
+      project_id: {
+        type: 'string',
+        description: 'The ID of the project for the new folder',
+      },
+    },
+    required: ['name', 'template_id', 'project_id'],
+  },
+};
+
+// ---- Move Folder ----
+
+const MoveFolderSchema = z.object({
+  folder_id: z.string().describe('The ID of the folder to move'),
+  project_id: z.string().describe('The ID of the destination project'),
+});
+
+export async function moveFolder(
+  client: ProductiveAPIClient,
+  args: unknown,
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  try {
+    const params = MoveFolderSchema.parse(args || {});
+
+    await client.moveBoard(params.folder_id, params.project_id);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Folder ${params.folder_id} moved to project ${params.project_id} successfully.`,
+        },
+      ],
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+      );
+    }
+
+    if (error instanceof Error) {
+      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
+    }
+
+    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while moving folder');
+  }
+}
+
+export const moveFolderTool = {
+  name: 'move_folder',
+  description: 'Move a folder (Productive board) to a different project in Productive.io',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      folder_id: {
+        type: 'string',
+        description: 'The ID of the folder to move',
+      },
+      project_id: {
+        type: 'string',
+        description: 'The ID of the destination project',
+      },
+    },
+    required: ['folder_id', 'project_id'],
+  },
+};
+
+// ---- Reposition Folder ----
+
+const RepositionFolderSchema = z.object({
+  folder_id: z.string().describe('The ID of the folder to reposition'),
+  move_before_id: z.string().describe('The ID of the folder to move before'),
+});
+
+export async function repositionFolder(
+  client: ProductiveAPIClient,
+  args: unknown,
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  try {
+    const params = RepositionFolderSchema.parse(args || {});
+
+    await client.repositionBoard(params.folder_id, params.move_before_id);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Folder ${params.folder_id} repositioned before ${params.move_before_id} successfully.`,
+        },
+      ],
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+      );
+    }
+
+    if (error instanceof Error) {
+      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
+    }
+
+    throw new McpError(
+      ErrorCode.InternalError,
+      'Unknown error occurred while repositioning folder',
+    );
+  }
+}
+
+export const repositionFolderTool = {
+  name: 'reposition_folder',
+  description: 'Reposition a folder (Productive board) before another folder in Productive.io',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      folder_id: {
+        type: 'string',
+        description: 'The ID of the folder to reposition',
+      },
+      move_before_id: {
+        type: 'string',
+        description: 'The ID of the folder to move before',
+      },
+    },
+    required: ['folder_id', 'move_before_id'],
   },
 };
