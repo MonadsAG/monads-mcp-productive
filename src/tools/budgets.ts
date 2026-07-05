@@ -33,7 +33,7 @@ export async function createBudgetTool(
   try {
     const params = createBudgetSchema.parse(args);
 
-    // "me" mirrors the sentinel used by create_task/update_task_assignment;
+    // "me" mirrors the sentinel used by create_task/update_task;
     // omitting the field entirely resolves to the same default.
     const requestedResponsibleId =
       params.responsible_id === 'me' ? undefined : params.responsible_id;

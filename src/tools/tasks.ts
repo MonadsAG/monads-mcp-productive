@@ -633,118 +633,16 @@ export const createTaskDefinition = {
   annotations: { title: 'Create task', readOnlyHint: false, destructiveHint: false },
 };
 
-const updateTaskAssignmentSchema = z.object({
-  task_id: z.string().min(1, 'Task ID is required'),
-  assignee_id: z.string().describe('ID of the person to assign (use "null" string to unassign)'),
-});
-
-export async function updateTaskAssignmentTool(
-  client: ProductiveAPIClient,
-  args: unknown,
-  config?: { PRODUCTIVE_USER_ID?: string },
-): Promise<{ content: Array<{ type: string; text: string }> }> {
-  try {
-    const params = updateTaskAssignmentSchema.parse(args);
-
-    // Handle "me" reference and "null" string
-    let assigneeId: string | null = params.assignee_id;
-    if (assigneeId === 'me') {
-      if (!config?.PRODUCTIVE_USER_ID) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          'Cannot use "me" reference - PRODUCTIVE_USER_ID is not configured in environment',
-        );
-      }
-      assigneeId = config.PRODUCTIVE_USER_ID;
-    } else if (assigneeId === 'null') {
-      assigneeId = null;
-    }
-
-    const taskUpdate: ProductiveTaskUpdate = {
-      data: {
-        type: 'tasks',
-        id: params.task_id,
-        relationships: assigneeId
-          ? {
-              assignee: {
-                data: {
-                  id: assigneeId,
-                  type: 'people',
-                },
-              },
-            }
-          : {
-              assignee: {
-                data: null,
-              },
-            },
-      },
-    };
-
-    const response = await client.updateTask(params.task_id, taskUpdate);
-
-    let text = `Task assignment updated successfully!\n`;
-    text += `Task: ${response.data.attributes.title} (ID: ${response.data.id})\n`;
-
-    if (assigneeId) {
-      text += `Assigned to: Person ID ${assigneeId}`;
-      if (params.assignee_id === 'me' && config?.PRODUCTIVE_USER_ID) {
-        text += ` (me)`;
-      }
-    } else {
-      text += `Task is now unassigned`;
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: text,
-        },
-      ],
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
-  }
-}
-
-export const updateTaskAssignmentDefinition = {
-  name: 'update_task_assignment',
-  description:
-    'Update the assignee of an existing task. If PRODUCTIVE_USER_ID is configured, you can use "me" to refer to the configured user. To unassign, use "null" as a string.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      task_id: {
-        type: 'string',
-        description: 'ID of the task to update (required)',
-      },
-      assignee_id: {
-        type: 'string',
-        description:
-          'ID of the person to assign the task to (use "null" string to unassign). If PRODUCTIVE_USER_ID is configured in environment, "me" refers to that user.',
-      },
-    },
-    required: ['task_id', 'assignee_id'],
-  },
-  annotations: { title: 'Update task assignment', readOnlyHint: false, destructiveHint: false },
-};
-
-const updateTaskDetailsSchema = z.object({
+const updateTaskSchema = z.object({
   task_id: z.string().min(1, 'Task ID is required'),
   title: z.string().min(1, 'Task title cannot be empty').optional(),
   description: z.string().optional(),
   description_html: z.string().optional(),
+  assignee_id: z
+    .string()
+    .nullable()
+    .optional()
+    .describe('ID of the person to assign, or null to unassign'),
   custom_fields: z
     .record(
       z.string(),
@@ -753,53 +651,78 @@ const updateTaskDetailsSchema = z.object({
     .optional(),
 });
 
-export async function updateTaskDetailsTool(
+export async function updateTaskTool(
   client: ProductiveAPIClient,
   args: unknown,
+  config?: { PRODUCTIVE_USER_ID?: string },
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
-    const params = updateTaskDetailsSchema.parse(args);
+    const params = updateTaskSchema.parse(args);
 
-    // Ensure at least one field is being updated
     if (
       !params.title &&
       params.description === undefined &&
       params.description_html === undefined &&
+      params.assignee_id === undefined &&
       params.custom_fields === undefined
     ) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        'At least one field (title, description, description_html, or custom_fields) must be provided for update',
+        'At least one field (title, description, description_html, assignee_id, or custom_fields) must be provided for update',
       );
+    }
+
+    // Resolve "me" and null; leave undefined untouched (field not being updated)
+    let resolvedAssigneeId: string | null | undefined;
+    if (params.assignee_id !== undefined) {
+      if (params.assignee_id === 'me') {
+        if (!config?.PRODUCTIVE_USER_ID) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            'Cannot use "me" reference - PRODUCTIVE_USER_ID is not configured in environment',
+          );
+        }
+        resolvedAssigneeId = config.PRODUCTIVE_USER_ID;
+      } else {
+        resolvedAssigneeId = params.assignee_id;
+      }
     }
 
     const taskUpdate: ProductiveTaskUpdate = {
       data: {
         type: 'tasks',
         id: params.task_id,
-        attributes: {},
       },
     };
 
-    // Only include fields that are being updated
+    const attributes: NonNullable<ProductiveTaskUpdate['data']['attributes']> = {};
     if (params.title) {
-      taskUpdate.data.attributes!.title = params.title;
+      attributes.title = params.title;
     }
-
-    // Use description_html if provided, otherwise fall back to description
     if (params.description_html !== undefined) {
-      taskUpdate.data.attributes!.description = params.description_html;
+      attributes.description = params.description_html;
     } else if (params.description !== undefined) {
-      taskUpdate.data.attributes!.description = params.description;
+      attributes.description = params.description;
+    }
+    if (params.custom_fields) {
+      attributes.custom_fields = params.custom_fields;
+    }
+    if (Object.keys(attributes).length > 0) {
+      taskUpdate.data.attributes = attributes;
     }
 
-    if (params.custom_fields) {
-      taskUpdate.data.attributes!.custom_fields = params.custom_fields;
+    if (resolvedAssigneeId !== undefined) {
+      taskUpdate.data.relationships = {
+        assignee: {
+          data:
+            resolvedAssigneeId === null ? null : { id: resolvedAssigneeId, type: 'people' },
+        },
+      };
     }
 
     const response = await client.updateTask(params.task_id, taskUpdate);
 
-    let text = `Task details updated successfully!\n`;
+    let text = `Task updated successfully!\n`;
     text += `Task: ${response.data.attributes.title} (ID: ${response.data.id})\n`;
 
     if (params.title) {
@@ -815,6 +738,18 @@ export async function updateTaskDetailsTool(
         text += `✓ Description updated${params.description_html ? ' (HTML)' : ''}: "${truncated}"\n`;
       } else {
         text += `✓ Description cleared\n`;
+      }
+    }
+
+    if (resolvedAssigneeId !== undefined) {
+      if (resolvedAssigneeId) {
+        text += `✓ Assigned to: Person ID ${resolvedAssigneeId}`;
+        if (params.assignee_id === 'me' && config?.PRODUCTIVE_USER_ID) {
+          text += ` (me)`;
+        }
+        text += `\n`;
+      } else {
+        text += `✓ Task is now unassigned\n`;
       }
     }
 
@@ -853,10 +788,13 @@ export async function updateTaskDetailsTool(
   }
 }
 
-export const updateTaskDetailsDefinition = {
-  name: 'update_task_details',
+export const updateTaskDefinition = {
+  name: 'update_task',
   description:
-    'Update the title (name), description, and/or custom fields of an existing task. At least one field must be provided.',
+    'Update an existing task\'s title, description, assignee, and/or custom fields in a single call. ' +
+    'To change task status (open/closed) use update_task_status instead -- that\'s a separate workflow-state ' +
+    'transition, not a content edit. To move a task between task lists, use move_task_to_list. ' +
+    'At least one field must be provided.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -878,6 +816,12 @@ export const updateTaskDetailsDefinition = {
         description:
           'New description with HTML formatting. Supports tags like <h2>, <p>, <ul>, <li>, <strong>, <em>, <a href="">. Takes precedence over description if both provided.',
       },
+      assignee_id: {
+        type: ['string', 'null'],
+        description:
+          'ID of the person to assign the task to, or null to unassign. If PRODUCTIVE_USER_ID is ' +
+          'configured in environment, "me" resolves to that user.',
+      },
       custom_fields: {
         type: 'object',
         additionalProperties: true,
@@ -891,8 +835,15 @@ export const updateTaskDetailsDefinition = {
       },
     },
     required: ['task_id'],
+    examples: [
+      { task_id: '123', assignee_id: 'me' },
+      {
+        task_id: '123',
+        custom_fields: { '456': 'In Progress', '789': ['101', '102'] },
+      },
+    ],
   },
-  annotations: { title: 'Update task details', readOnlyHint: false, destructiveHint: false },
+  annotations: { title: 'Update task', readOnlyHint: false, destructiveHint: false },
 };
 
 const deleteTaskSchema = z.object({

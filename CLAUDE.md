@@ -72,7 +72,7 @@ Smart Defaults: `document_type_id`, `tax_rate_id`, `subsidiary_id` are auto-reso
 
 ## Custom Fields Workflow
 
-`list_custom_fields` -> `list_custom_field_options` -> `update_task_details` / `create_task` with a `custom_fields` object keyed by field ID.
+`list_custom_fields` -> `list_custom_field_options` -> `update_task` / `create_task` with a `custom_fields` object keyed by field ID.
 
 Generic mechanism (`src/tools/custom-fields.ts`, `src/tools/custom-field-resolver.ts`) replacing the old hardcoded per-field `update_task_sprint` tool -- works for any custom field on any task, not just one specific field.
 

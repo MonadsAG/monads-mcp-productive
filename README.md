@@ -201,8 +201,8 @@ Productive's UI calls this resource a "folder"; the API models it as a "board" (
 | Tool                                                                           | Description            |
 | ------------------------------------------------------------------------------ | ---------------------- |
 | `list_tasks` / `get_task` / `get_project_tasks` / `my_tasks`                   | Query tasks            |
-| `create_task` / `update_task_details` / `delete_task`                          | Task CRUD              |
-| `update_task_assignment` / `update_task_status`                                | Task state changes     |
+| `create_task` / `update_task` / `delete_task`                                  | Task CRUD              |
+| `update_task_status`                                                           | Task state changes     |
 | `list_custom_fields` / `list_custom_field_options`                             | Custom field discovery |
 | `move_task_to_list` / `add_to_backlog` / `reposition_task`                     | Task positioning       |
 | `list_subtasks` / `create_subtask`                                             | Subtask management     |

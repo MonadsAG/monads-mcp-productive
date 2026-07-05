@@ -12,15 +12,13 @@ import {
   getProjectTasksTool,
   getTaskTool,
   createTaskTool,
-  updateTaskAssignmentTool,
-  updateTaskDetailsTool,
+  updateTaskTool,
   deleteTaskTool,
   listTasksDefinition,
   getProjectTasksDefinition,
   getTaskDefinition,
   createTaskDefinition,
-  updateTaskAssignmentDefinition,
-  updateTaskDetailsDefinition,
+  updateTaskDefinition,
   deleteTaskDefinition,
 } from './tasks.js';
 import { listCompaniesTool, listCompaniesDefinition } from './companies.js';
@@ -238,8 +236,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     getProjectTasksDefinition,
     getTaskDefinition,
     createTaskDefinition,
-    updateTaskAssignmentDefinition,
-    updateTaskDetailsDefinition,
+    updateTaskDefinition,
     addTaskCommentDefinition,
     updateTaskStatusDefinition,
     listWorkflowStatusesDefinition,
@@ -356,10 +353,8 @@ export async function handleToolCall(
       return await myTasksTool(apiClient, config, args);
     case 'create_task':
       return await createTaskTool(apiClient, args, config);
-    case 'update_task_assignment':
-      return await updateTaskAssignmentTool(apiClient, args, config);
-    case 'update_task_details':
-      return await updateTaskDetailsTool(apiClient, args);
+    case 'update_task':
+      return await updateTaskTool(apiClient, args, config);
     case 'add_task_comment':
       return await addTaskCommentTool(apiClient, args);
     case 'update_task_status':

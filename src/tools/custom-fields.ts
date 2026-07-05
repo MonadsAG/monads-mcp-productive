@@ -82,7 +82,7 @@ export const listCustomFieldsDefinition = {
   name: 'list_custom_fields',
   description:
     'Discover custom fields defined in Productive.io (e.g. for tasks). Use this before calling ' +
-    'create_task / update_task_details with a custom_fields parameter, to find the correct field ID. ' +
+    'create_task / update_task with a custom_fields parameter, to find the correct field ID. ' +
     'NOTE: the generated OpenAPI spec for the custom_fields resource does not document exact attribute ' +
     'names, so this tool renders the full raw attributes defensively alongside the commonly expected ones.',
   inputSchema: {
@@ -101,7 +101,7 @@ export const listCustomFieldsDefinition = {
         description:
           'Filter by the entity type the field applies to. Values are lowercase plural, e.g. ' +
           '"tasks" (not "Task"). Used to find valid custom_field IDs for a given entity before ' +
-          'calling create_task / update_task_details.',
+          'calling create_task / update_task.',
       },
       archived: {
         type: 'boolean',
@@ -184,7 +184,7 @@ export const listCustomFieldOptionsDefinition = {
   description:
     'Discover the valid options (e.g. dropdown/multi-select choices) for a given custom field in ' +
     'Productive.io. Use this after list_custom_fields to find the correct option ID(s) before calling ' +
-    'create_task / update_task_details with a custom_fields parameter for that field.',
+    'create_task / update_task with a custom_fields parameter for that field.',
   inputSchema: {
     type: 'object',
     properties: {
