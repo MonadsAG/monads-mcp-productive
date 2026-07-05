@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveIncludedResource } from '../api/types.js';
+import { resolveMentions, MentionResolutionResult } from '../utils/mentions.js';
 
 type ToolResult = { content: Array<{ type: string; text: string }> };
 
@@ -17,9 +18,32 @@ function resolvePersonName(
   return `${first} ${last}`.trim() || undefined;
 }
 
-function truncateBody(body: string, maxLength = 200): string {
+function truncateBody(body: string | null | undefined, maxLength = 200): string {
+  if (!body) return '(no content)';
   if (body.length <= maxLength) return body;
   return body.substring(0, maxLength) + '...';
+}
+
+function formatMentionFeedback(result: MentionResolutionResult): string {
+  let feedback = '';
+  if (result.resolved.length > 0) {
+    feedback += `\nMentions resolved: ${result.resolved.map((r) => r.token.raw).join(', ')}`;
+  }
+  if (result.unresolved.length > 0) {
+    feedback += `\nWarning - unresolved mentions (left as plain text): ${result.unresolved.map((u) => u.raw).join(', ')}`;
+  }
+  return feedback;
+}
+
+function buildAmbiguousError(result: MentionResolutionResult): string {
+  return result.ambiguous
+    .map(
+      (a) =>
+        `"${a.token.raw}" matches multiple people: ${a.candidates
+          .map((c) => `${c.attributes.first_name} ${c.attributes.last_name} (ID: ${c.id})`)
+          .join(', ')}`,
+    )
+    .join('\n');
 }
 
 // ---- Add Task Comment ----
@@ -27,6 +51,7 @@ function truncateBody(body: string, maxLength = 200): string {
 const addTaskCommentSchema = z.object({
   task_id: z.string().min(1, 'Task ID is required'),
   comment: z.string().min(1, 'Comment text is required'),
+  hidden: z.boolean().optional(),
 });
 
 export async function addTaskCommentTool(
@@ -36,11 +61,21 @@ export async function addTaskCommentTool(
   try {
     const params = addTaskCommentSchema.parse(args);
 
+    const mentionResult = await resolveMentions(params.comment, client);
+
+    if (mentionResult.ambiguous.length > 0) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Ambiguous mentions found:\n${buildAmbiguousError(mentionResult)}\nPlease use full names to disambiguate.`,
+      );
+    }
+
     const commentData = {
       data: {
         type: 'comments' as const,
         attributes: {
-          body: params.comment,
+          body: mentionResult.resolvedBody,
+          ...(params.hidden !== undefined ? { hidden: params.hidden } : {}),
         },
         relationships: {
           task: {
@@ -55,13 +90,19 @@ export async function addTaskCommentTool(
 
     const response = await client.createComment(commentData);
 
-    let text = `Comment added successfully!\n`;
+    let text = params.hidden
+      ? `Hidden comment added successfully!\n`
+      : `Comment added successfully!\n`;
     text += `Task ID: ${params.task_id}\n`;
     text += `Comment: ${response.data.attributes.body}\n`;
     text += `Comment ID: ${response.data.id}`;
+    if (response.data.attributes.hidden !== undefined) {
+      text += `\nHidden: ${response.data.attributes.hidden}`;
+    }
     if (response.data.attributes.created_at) {
       text += `\nCreated at: ${response.data.attributes.created_at}`;
     }
+    text += formatMentionFeedback(mentionResult);
 
     return {
       content: [
@@ -89,7 +130,7 @@ export async function addTaskCommentTool(
 export const addTaskCommentDefinition = {
   name: 'add_task_comment',
   description:
-    "Post a new comment onto a task's activity feed. Use this to leave a fresh note or to follow up on something surfaced by list_comments. To change an existing comment instead, use update_comment; to acknowledge one without writing text, use add_comment_reaction.",
+    "Post a new comment onto a task's activity feed. Use this to leave a fresh note or to follow up on something surfaced by list_comments. Supports @mentions (e.g. @Jarrod Lawson) which are automatically resolved to notify the mentioned person. Set hidden to true to post an internal comment not visible to clients in the client portal. To change an existing comment instead, use update_comment; to acknowledge one without writing text, use add_comment_reaction.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -100,7 +141,12 @@ export const addTaskCommentDefinition = {
       comment: {
         type: 'string',
         description:
-          'Comment content (required). Plain text or HTML — supported tags include <div>, <p>, <strong>, <em>, <ul>, <li>, and <a href="">.',
+          'Comment content (required). Plain text or HTML — supported tags include <div>, <p>, <strong>, <em>, <ul>, <li>, and <a href="">. Supports @mentions (e.g. @Jarrod Lawson) to notify a person.',
+      },
+      hidden: {
+        type: 'boolean',
+        description:
+          'When true, posts a hidden (internal) comment not visible to clients in the client portal. Defaults to false. Note: hidden comments are not available in internal projects.',
       },
     },
     required: ['task_id', 'comment'],
@@ -210,7 +256,7 @@ export async function getCommentTool(
       resolvePersonName(creatorId, included) || `Person ${creatorId || 'unknown'}`;
 
     let text = `Comment ID: ${comment.id}\n`;
-    text += `Body: ${attrs.body}\n`;
+    text += `Body: ${attrs.body ?? '(no content)'}\n`;
     text += `Commentable Type: ${attrs.commentable_type}\n`;
     text += `Creator: ${creatorName}\n`;
     text += `Created: ${attrs.created_at}\n`;
@@ -271,21 +317,33 @@ export async function updateCommentTool(
   try {
     const params = updateCommentSchema.parse(args);
 
+    const mentionResult = await resolveMentions(params.body, client);
+
+    if (mentionResult.ambiguous.length > 0) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Ambiguous mentions found:\n${buildAmbiguousError(mentionResult)}\nPlease use full names to disambiguate.`,
+      );
+    }
+
     const response = await client.updateComment(params.comment_id, {
       data: {
         type: 'comments',
         id: params.comment_id,
         attributes: {
-          body: params.body,
+          body: mentionResult.resolvedBody,
         },
       },
     });
+
+    let text = `Comment ${params.comment_id} updated successfully.\nNew body: ${response.data.attributes.body}`;
+    text += formatMentionFeedback(mentionResult);
 
     return {
       content: [
         {
           type: 'text',
-          text: `Comment ${params.comment_id} updated successfully.\nNew body: ${response.data.attributes.body}`,
+          text,
         },
       ],
     };
@@ -307,7 +365,7 @@ export async function updateCommentTool(
 export const updateCommentDefinition = {
   name: 'update_comment',
   description:
-    'Replace the body of an existing comment. The new body overwrites the old one entirely — there is no append, so include any text you want to keep. To post a new comment instead of editing one, use add_task_comment.',
+    'Replace the body of an existing comment. The new body overwrites the old one entirely — there is no append, so include any text you want to keep. Supports @mentions (e.g. @Jarrod Lawson) which are automatically resolved. To post a new comment instead of editing one, use add_task_comment.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -318,7 +376,7 @@ export const updateCommentDefinition = {
       body: {
         type: 'string',
         description:
-          'The new comment body (required), which fully replaces the existing body. Plain text or HTML.',
+          'The new comment body (required), which fully replaces the existing body. Plain text or HTML. Supports @mentions (e.g. @Jarrod Lawson).',
       },
     },
     required: ['comment_id', 'body'],
