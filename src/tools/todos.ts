@@ -289,18 +289,19 @@ export async function deleteTodoTool(
 
 export const listTodosDefinition = {
   name: 'list_todos',
-  description: 'List todos from Productive.io, optionally filtered by task and status.',
+  description:
+    'List todo checklist items, each showing its open/closed state, description, due date, and resolved assignee/task/deal names. Filter by task_id and/or status. This is the entry point of the list_todos -> get_todo -> update_todo drill-down. Returns up to `limit` todos (default 50).',
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'Filter todos by task ID',
+        description: 'Filter to todos attached to a single task',
       },
       status: {
         type: 'string',
         enum: ['open', 'closed'],
-        description: 'Filter by status: "open" or "closed"',
+        description: 'Filter by state: "open" for outstanding todos, "closed" for completed ones',
       },
       limit: {
         type: 'number',
@@ -313,7 +314,8 @@ export const listTodosDefinition = {
 
 export const getTodoDefinition = {
   name: 'get_todo',
-  description: 'Get a single todo by ID from Productive.io with all attributes.',
+  description:
+    'Fetch one todo by ID with its full detail — description, open/closed state and closed_at, due date and time, position, and linked task/deal/assignee. Use after list_todos to inspect a single item before editing it with update_todo.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -328,25 +330,26 @@ export const getTodoDefinition = {
 
 export const createTodoDefinition = {
   name: 'create_todo',
-  description: 'Create a new todo in Productive.io.',
+  description:
+    'Create a todo checklist item, attaching it to a task and/or deal and optionally assigning it to a person with a due date. New todos start open; use update_todo later to close it or change its text.',
   inputSchema: {
     type: 'object',
     properties: {
       description: {
         type: 'string',
-        description: 'Description of the todo (required)',
+        description: 'Text of the todo item (required)',
       },
       task_id: {
         type: 'string',
-        description: 'ID of the task to associate the todo with',
+        description: 'ID of the task to attach this todo to',
       },
       deal_id: {
         type: 'string',
-        description: 'ID of the deal to associate the todo with',
+        description: 'ID of the deal to attach this todo to',
       },
       assignee_id: {
         type: 'string',
-        description: 'ID of the person to assign the todo to',
+        description: 'ID of the person to assign this todo to',
       },
       due_date: {
         type: 'string',
@@ -359,7 +362,8 @@ export const createTodoDefinition = {
 
 export const updateTodoDefinition = {
   name: 'update_todo',
-  description: 'Update an existing todo in Productive.io.',
+  description:
+    'Edit an existing todo: change its description or due date, or set closed=true to mark it done (closed=false reopens it) — the equivalent of ticking or unticking its checkbox. Omit a field to leave it unchanged. To remove a todo entirely rather than complete it, use delete_todo.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -369,11 +373,11 @@ export const updateTodoDefinition = {
       },
       description: {
         type: 'string',
-        description: 'Updated description for the todo',
+        description: 'Updated text for the todo',
       },
       closed: {
         type: 'boolean',
-        description: 'Set to true to close the todo, false to reopen it',
+        description: 'Set true to close/complete the todo, false to reopen it',
       },
       due_date: {
         type: 'string',
@@ -386,7 +390,8 @@ export const updateTodoDefinition = {
 
 export const deleteTodoDefinition = {
   name: 'delete_todo',
-  description: 'Delete a todo from Productive.io.',
+  description:
+    'Delete a todo, removing it from its task or deal entirely. This is distinct from completing it: to tick it off the checklist while keeping it, use update_todo with closed=true instead. The delete is not undoable through this server.',
   inputSchema: {
     type: 'object',
     properties: {

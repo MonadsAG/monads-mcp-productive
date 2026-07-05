@@ -105,7 +105,10 @@ export async function addToBacklog(
 export const addToBacklogTool = {
   name: 'add_to_backlog',
   description:
-    "Add a task to the project backlog. Creates a Backlog task list if it doesn't exist.",
+    "Move a task into its project's 'Backlog' task list, scanning every board in the project for a list named " +
+    "'Backlog' (case-insensitive) and creating one in the first board if none exists. " +
+    'Use this to park or deprioritize a task when you do not know a target list ID; use move_task_to_list when you ' +
+    'already have the destination task_list_id, or reposition_task to reorder a task within its current list.',
   inputSchema: {
     type: 'object',
     properties: {

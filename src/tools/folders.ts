@@ -11,9 +11,16 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 // ---- List Folders ----
 
 const ListFoldersSchema = z.object({
-  project_id: z.string().optional().describe('Filter folders by project ID'),
+  project_id: z
+    .string()
+    .optional()
+    .describe('Filter to Folders/Boards belonging to this project ID'),
   status: z.coerce.number().optional().describe('Filter by status (1=active, 2=archived)'),
-  limit: z.coerce.number().optional().default(30).describe('Number of folders to return (max 200)'),
+  limit: z.coerce
+    .number()
+    .optional()
+    .default(30)
+    .describe('Max number of Folders/Boards to return (default 30, max 200)'),
 });
 
 export async function listFolders(
@@ -85,13 +92,13 @@ export async function listFolders(
 export const listFoldersTool = {
   name: 'list_folders',
   description:
-    'Get a list of folders from Productive.io. Note: Productive\'s API models this resource as a "board" (see board_id on tasks/task lists); "folder" is the UI and tool-facing name -- there is no separate "board" tool.',
+    'List Folders in a project. A Folder is Productive UI name for a Board resource -- it is NOT a Task List. Folders sit directly inside a project (Customers -> Projects -> Folders/Boards -> Task Lists -> Tasks) and contain the task lists that hold tasks. The API models this resource as a "board" (see board_id on tasks/task lists); there is no separate "board" tool. Returns up to `limit` folders (default 30, max 200); pass project_id to scope to one project.',
   inputSchema: {
     type: 'object',
     properties: {
       project_id: {
         type: 'string',
-        description: 'Filter folders by project ID',
+        description: 'Filter to Folders/Boards belonging to this project ID',
       },
       status: {
         type: 'number',
@@ -99,7 +106,7 @@ export const listFoldersTool = {
       },
       limit: {
         type: 'number',
-        description: 'Number of folders to return (max 200)',
+        description: 'Max number of Folders/Boards to return (default 30, max 200)',
         default: 30,
       },
     },
@@ -109,7 +116,7 @@ export const listFoldersTool = {
 // ---- Get Folder ----
 
 const GetFolderSchema = z.object({
-  folder_id: z.string().describe('The ID of the folder to retrieve'),
+  folder_id: z.string().describe('The ID of the Folder/Board to retrieve'),
 });
 
 export async function getFolder(
@@ -168,13 +175,14 @@ export async function getFolder(
 
 export const getFolderTool = {
   name: 'get_folder',
-  description: 'Get details of a specific folder (Productive board) from Productive.io',
+  description:
+    'Get full details of one Folder by ID -- name, position, archived/hidden state, timestamps, and its parent Project ID. This is a Folder, i.e. a Board resource inside a project -- NOT a Task List (use get_task_list for those). The API models this resource as a "board".',
   inputSchema: {
     type: 'object',
     properties: {
       folder_id: {
         type: 'string',
-        description: 'The ID of the folder to retrieve',
+        description: 'The ID of the Folder/Board to retrieve',
       },
     },
     required: ['folder_id'],
@@ -184,8 +192,12 @@ export const getFolderTool = {
 // ---- Create Folder ----
 
 const CreateFolderSchema = z.object({
-  project_id: z.string().describe('The ID of the project to create the folder in'),
-  name: z.string().describe('Name of the folder'),
+  project_id: z
+    .string()
+    .describe(
+      'The ID of the project to create the Folder/Board in (a Folder always lives inside a project)',
+    ),
+  name: z.string().describe('Name for the new Folder/Board'),
 });
 
 export async function createFolder(
@@ -247,17 +259,19 @@ export async function createFolder(
 
 export const createFolderTool = {
   name: 'create_folder',
-  description: 'Create a new folder (Productive board) in a Productive.io project',
+  description:
+    'Create a new Folder (a Board resource) inside a project. This is a Folder/Board, NOT a Task List. It is the top drill-down step when setting up new work: create_folder -> create_task_list -> create_task. A Folder must belong to a project.',
   inputSchema: {
     type: 'object',
     properties: {
       project_id: {
         type: 'string',
-        description: 'The ID of the project to create the folder in',
+        description:
+          'The ID of the project to create the Folder/Board in (a Folder always lives inside a project)',
       },
       name: {
         type: 'string',
-        description: 'Name of the folder',
+        description: 'Name for the new Folder/Board',
       },
     },
     required: ['project_id', 'name'],
@@ -267,8 +281,8 @@ export const createFolderTool = {
 // ---- Update Folder ----
 
 const UpdateFolderSchema = z.object({
-  folder_id: z.string().describe('The ID of the folder to update'),
-  name: z.string().optional().describe('New name for the folder'),
+  folder_id: z.string().describe('The ID of the Folder/Board to update'),
+  name: z.string().optional().describe('New name for the Folder/Board'),
 });
 
 export async function updateFolder(
@@ -322,17 +336,18 @@ export async function updateFolder(
 
 export const updateFolderTool = {
   name: 'update_folder',
-  description: 'Update an existing folder (Productive board) in Productive.io',
+  description:
+    'Rename an existing Folder (Board) by ID. This is a Folder/Board, NOT a Task List -- use update_task_list to rename a task list.',
   inputSchema: {
     type: 'object',
     properties: {
       folder_id: {
         type: 'string',
-        description: 'The ID of the folder to update',
+        description: 'The ID of the Folder/Board to update',
       },
       name: {
         type: 'string',
-        description: 'New name for the folder',
+        description: 'New name for the Folder/Board',
       },
     },
     required: ['folder_id'],
@@ -342,7 +357,7 @@ export const updateFolderTool = {
 // ---- Archive Folder ----
 
 const ArchiveFolderSchema = z.object({
-  folder_id: z.string().describe('The ID of the folder to archive'),
+  folder_id: z.string().describe('The ID of the Folder/Board to archive'),
 });
 
 export async function archiveFolder(
@@ -380,13 +395,14 @@ export async function archiveFolder(
 
 export const archiveFolderTool = {
   name: 'archive_folder',
-  description: 'Archive a folder (Productive board) in Productive.io',
+  description:
+    'Archive a Folder (Board) by ID: hides it and its task lists/tasks from active project views while preserving all data, so it can be brought back later with restore_folder. This is a Folder/Board, NOT a Task List -- use archive_task_list to archive a single task list.',
   inputSchema: {
     type: 'object',
     properties: {
       folder_id: {
         type: 'string',
-        description: 'The ID of the folder to archive',
+        description: 'The ID of the Folder/Board to archive',
       },
     },
     required: ['folder_id'],
@@ -396,7 +412,7 @@ export const archiveFolderTool = {
 // ---- Restore Folder ----
 
 const RestoreFolderSchema = z.object({
-  folder_id: z.string().describe('The ID of the folder to restore'),
+  folder_id: z.string().describe('The ID of the archived Folder/Board to restore'),
 });
 
 export async function restoreFolder(
@@ -434,13 +450,14 @@ export async function restoreFolder(
 
 export const restoreFolderTool = {
   name: 'restore_folder',
-  description: 'Restore an archived folder (Productive board) in Productive.io',
+  description:
+    'Restore a previously archived Folder (Board) by ID, bringing it and its contents back into active project views (reverses archive_folder). This is a Folder/Board, NOT a Task List -- use restore_task_list for those.',
   inputSchema: {
     type: 'object',
     properties: {
       folder_id: {
         type: 'string',
-        description: 'The ID of the folder to restore',
+        description: 'The ID of the archived Folder/Board to restore',
       },
     },
     required: ['folder_id'],
@@ -450,9 +467,11 @@ export const restoreFolderTool = {
 // ---- Copy Folder ----
 
 const CopyFolderSchema = z.object({
-  name: z.string().describe('Name for the copied folder'),
-  template_id: z.string().describe('The ID of the source folder to copy from'),
-  project_id: z.string().describe('The ID of the project for the new folder'),
+  name: z.string().describe('Name for the new (copied) Folder/Board'),
+  template_id: z
+    .string()
+    .describe('The ID of the source Folder/Board to copy from (used as a template)'),
+  project_id: z.string().describe('The ID of the project the new Folder/Board will be created in'),
 });
 
 export async function copyFolder(
@@ -498,21 +517,22 @@ export async function copyFolder(
 
 export const copyFolderTool = {
   name: 'copy_folder',
-  description: 'Copy a folder (Productive board) from a template in Productive.io',
+  description:
+    'Duplicate an existing Folder (Board), used as a template, into a project -- creating a new Folder with the given name. This is a Folder/Board, NOT a Task List -- use copy_task_list to copy a single task list.',
   inputSchema: {
     type: 'object',
     properties: {
       name: {
         type: 'string',
-        description: 'Name for the copied folder',
+        description: 'Name for the new (copied) Folder/Board',
       },
       template_id: {
         type: 'string',
-        description: 'The ID of the source folder to copy from',
+        description: 'The ID of the source Folder/Board to copy from (used as a template)',
       },
       project_id: {
         type: 'string',
-        description: 'The ID of the project for the new folder',
+        description: 'The ID of the project the new Folder/Board will be created in',
       },
     },
     required: ['name', 'template_id', 'project_id'],
@@ -522,8 +542,10 @@ export const copyFolderTool = {
 // ---- Move Folder ----
 
 const MoveFolderSchema = z.object({
-  folder_id: z.string().describe('The ID of the folder to move'),
-  project_id: z.string().describe('The ID of the destination project'),
+  folder_id: z.string().describe('The ID of the Folder/Board to move'),
+  project_id: z
+    .string()
+    .describe('The ID of the destination project to move the Folder/Board into'),
 });
 
 export async function moveFolder(
@@ -561,17 +583,18 @@ export async function moveFolder(
 
 export const moveFolderTool = {
   name: 'move_folder',
-  description: 'Move a folder (Productive board) to a different project in Productive.io',
+  description:
+    'Move a Folder (Board), together with its task lists and tasks, to a different project. This is a Folder/Board, NOT a Task List -- use move_task_list to move a task list between folders/boards.',
   inputSchema: {
     type: 'object',
     properties: {
       folder_id: {
         type: 'string',
-        description: 'The ID of the folder to move',
+        description: 'The ID of the Folder/Board to move',
       },
       project_id: {
         type: 'string',
-        description: 'The ID of the destination project',
+        description: 'The ID of the destination project to move the Folder/Board into',
       },
     },
     required: ['folder_id', 'project_id'],
@@ -581,8 +604,10 @@ export const moveFolderTool = {
 // ---- Reposition Folder ----
 
 const RepositionFolderSchema = z.object({
-  folder_id: z.string().describe('The ID of the folder to reposition'),
-  move_before_id: z.string().describe('The ID of the folder to move before'),
+  folder_id: z.string().describe('The ID of the Folder/Board to reposition'),
+  move_before_id: z
+    .string()
+    .describe('The ID of the Folder/Board to place this one immediately before'),
 });
 
 export async function repositionFolder(
@@ -623,17 +648,18 @@ export async function repositionFolder(
 
 export const repositionFolderTool = {
   name: 'reposition_folder',
-  description: 'Reposition a folder (Productive board) before another folder in Productive.io',
+  description:
+    'Reorder a Folder (Board) within its project by placing it immediately before another folder (changes display order only). This is a Folder/Board, NOT a Task List -- use reposition_task_list for those.',
   inputSchema: {
     type: 'object',
     properties: {
       folder_id: {
         type: 'string',
-        description: 'The ID of the folder to reposition',
+        description: 'The ID of the Folder/Board to reposition',
       },
       move_before_id: {
         type: 'string',
-        description: 'The ID of the folder to move before',
+        description: 'The ID of the Folder/Board to place this one immediately before',
       },
     },
     required: ['folder_id', 'move_before_id'],

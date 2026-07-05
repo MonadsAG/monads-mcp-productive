@@ -81,10 +81,12 @@ export async function listCustomFieldsTool(
 export const listCustomFieldsDefinition = {
   name: 'list_custom_fields',
   description:
-    'Discover custom fields defined in Productive.io (e.g. for tasks). Use this before calling ' +
-    'create_task / update_task with a custom_fields parameter, to find the correct field ID. ' +
-    'NOTE: the generated OpenAPI spec for the custom_fields resource does not document exact attribute ' +
-    'names, so this tool renders the full raw attributes defensively alongside the commonly expected ones.',
+    'Step 1 of working with custom fields: discover the custom fields defined in Productive.io ' +
+    '(e.g. for tasks) and their field IDs. For dropdown/multi-select fields, follow up with ' +
+    'list_custom_field_options to get the valid option IDs. The field ID (and any option IDs) then ' +
+    'feed the custom_fields object of create_task / update_task. NOTE: the generated OpenAPI spec for ' +
+    'the custom_fields resource does not document exact attribute names, so this tool renders the full ' +
+    'raw attributes defensively alongside the commonly expected ones.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -182,9 +184,9 @@ export async function listCustomFieldOptionsTool(
 export const listCustomFieldOptionsDefinition = {
   name: 'list_custom_field_options',
   description:
-    'Discover the valid options (e.g. dropdown/multi-select choices) for a given custom field in ' +
-    'Productive.io. Use this after list_custom_fields to find the correct option ID(s) before calling ' +
-    'create_task / update_task with a custom_fields parameter for that field.',
+    'Step 2 of working with custom fields: after list_custom_fields (step 1) gives you a field ID, ' +
+    'discover the valid options (e.g. dropdown/multi-select choices) and their option IDs for that ' +
+    'field. Pass those option IDs in the custom_fields object of create_task / update_task.',
   inputSchema: {
     type: 'object',
     properties: {

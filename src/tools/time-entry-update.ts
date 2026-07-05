@@ -121,7 +121,7 @@ export async function updateTimeEntryTool(
 export const updateTimeEntryDefinition = {
   name: 'update_time_entry',
   description:
-    'Update an existing time entry in Productive.io. All fields except time_entry_id are optional - only provided fields will be updated. Use list_time_entries to find the time entry ID first.',
+    'Edit fields on a time entry that already exists — its date, duration, billable duration, or note. Use this to correct or annotate a previously logged entry, as opposed to create_time_entry which logs a new one. Partial update: pass only the fields you want to change; every field except time_entry_id is optional and untouched fields are left as-is. Cannot reassign the entry to a different service, task, or person — only the four editable attributes below. Find time_entry_id via list_time_entries.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -869,7 +869,7 @@ export const listDealServicesDefinition = {
 export const getProjectServicesDefinition = {
   name: 'get_project_services',
   description:
-    'DEPRECATED: Use the proper workflow instead: list_projects → list_project_deals → list_deal_services → create_time_entry. This tool does not properly handle the project → deal/budget → service hierarchy required for timesheet entries.',
+    'DEPRECATED — prefer list_project_deals followed by list_deal_services instead. This tool just re-implements that same two-step chain internally and less efficiently: it fetches every deal for the project, then makes one list_deal_services call per deal (N+1 API calls) to collect and de-duplicate their services. Kept only for backward compatibility; do not use it in new timesheet flows.',
   inputSchema: {
     type: 'object',
     properties: {

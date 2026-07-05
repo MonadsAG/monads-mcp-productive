@@ -343,26 +343,32 @@ function formatCustomFieldsBlock(
 
 export const listTasksDefinition = {
   name: 'list_tasks',
-  description: 'Get a list of tasks from Productive.io',
+  description:
+    'List tasks across Productive.io, optionally filtered by project, assignee, and open/closed status. ' +
+    'Reach for this for flexible or cross-project queries and whenever you are filtering by assignee. ' +
+    "Prefer get_project_tasks when you want one project's complete task list (it fetches up to 200; this defaults to 30), " +
+    "get_task when you already have a task ID and need its full record, or my_tasks for the current user's own tasks. " +
+    'Returns a paginated summary (default 30, max 200).',
   inputSchema: {
     type: 'object',
     properties: {
       project_id: {
         type: 'string',
-        description: 'Filter tasks by project ID',
+        description: 'Filter to tasks in this project ID. Omit to search across all projects.',
       },
       assignee_id: {
         type: 'string',
-        description: 'Filter tasks by assignee ID',
+        description:
+          "Filter to tasks assigned to this person ID. For the current user's own tasks, prefer my_tasks.",
       },
       status: {
         type: 'string',
         enum: ['open', 'closed'],
-        description: 'Filter by task status (open or closed)',
+        description: 'Filter by task status (open or closed). Omit to return both.',
       },
       limit: {
         type: 'number',
-        description: 'Number of tasks to return (1-200)',
+        description: 'Number of tasks to return (1-200, default 30).',
         minimum: 1,
         maximum: 200,
         default: 30,
@@ -375,7 +381,10 @@ export const listTasksDefinition = {
 export const getProjectTasksDefinition = {
   name: 'get_project_tasks',
   description:
-    'Get all tasks for a specific project. ALSO used as STEP 4 in timesheet workflow to find task_id for linking time entries to specific tasks. Workflow: list_projects → list_project_deals → list_deal_services → get_project_tasks → create_time_entry.',
+    'Get all tasks for a single project (fetches up to 200 in one call, unlike list_tasks which defaults to 30). ' +
+    "Prefer this over list_tasks when you need one project's complete task list; use list_tasks for cross-project or assignee-filtered queries. " +
+    'ALSO used as STEP 4 in the timesheet workflow to find task_id for linking time entries to specific tasks. ' +
+    'Workflow: list_projects → list_project_deals → list_deal_services → get_project_tasks → create_time_entry.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -396,7 +405,11 @@ export const getProjectTasksDefinition = {
 
 export const getTaskDefinition = {
   name: 'get_task',
-  description: 'Get detailed information about a specific task by ID',
+  description:
+    'Get the full record for one task by its ID — title, description, status, assignee, project, task list, ' +
+    'due/created/updated dates, priority, position, estimate, worked time, and resolved custom fields. ' +
+    'Use this when you already have a task_id and need its complete details; use list_tasks or get_project_tasks ' +
+    "to discover task IDs first, or list_subtasks to see a task's children.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -714,8 +727,7 @@ export async function updateTaskTool(
     if (resolvedAssigneeId !== undefined) {
       taskUpdate.data.relationships = {
         assignee: {
-          data:
-            resolvedAssigneeId === null ? null : { id: resolvedAssigneeId, type: 'people' },
+          data: resolvedAssigneeId === null ? null : { id: resolvedAssigneeId, type: 'people' },
         },
       };
     }
@@ -791,8 +803,8 @@ export async function updateTaskTool(
 export const updateTaskDefinition = {
   name: 'update_task',
   description:
-    'Update an existing task\'s title, description, assignee, and/or custom fields in a single call. ' +
-    'To change task status (open/closed) use update_task_status instead -- that\'s a separate workflow-state ' +
+    "Update an existing task's title, description, assignee, and/or custom fields in a single call. " +
+    "To change task status (open/closed) use update_task_status instead -- that's a separate workflow-state " +
     'transition, not a content edit. To move a task between task lists, use move_task_to_list. ' +
     'At least one field must be provided.',
   inputSchema: {

@@ -74,22 +74,23 @@ export async function listProjectsTool(
 
 export const listProjectsDefinition = {
   name: 'list_projects',
-  description: 'Get a list of projects from Productive.io',
+  description:
+    "List projects, optionally filtered by company_id or by active/archived status. Each result includes the project's ID, status, and resolved company name. Use a project ID to scope list_tasks, list_folders, and list_custom_fields to that project — the typical drill-down is list_companies -> list_projects -> list_tasks. Returns 30 results by default; raise limit (max 200) for large workspaces.",
   inputSchema: {
     type: 'object',
     properties: {
       status: {
         type: 'string',
         enum: ['active', 'archived'],
-        description: 'Filter by project status',
+        description: 'Filter by project status: active or archived',
       },
       company_id: {
         type: 'string',
-        description: 'Filter projects by company ID',
+        description: 'Filter projects to a single company (get the ID from list_companies)',
       },
       limit: {
         type: 'number',
-        description: 'Number of projects to return (1-200)',
+        description: 'Number of projects to return (default 30, max 200)',
         minimum: 1,
         maximum: 200,
         default: 30,

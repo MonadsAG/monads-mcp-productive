@@ -87,10 +87,7 @@ import {
   listDealServicesDefinition,
 } from './time-entries.js';
 import { updateTimeEntryTool, updateTimeEntryDefinition } from './time-entry-update.js';
-import {
-  setTimeEntryApprovalTool,
-  setTimeEntryApprovalDefinition,
-} from './time-entry-approval.js';
+import { setTimeEntryApprovalTool, setTimeEntryApprovalDefinition } from './time-entry-approval.js';
 import {
   getTimerTool,
   getTimerDefinition,

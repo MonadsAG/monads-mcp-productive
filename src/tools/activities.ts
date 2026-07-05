@@ -113,7 +113,7 @@ export async function listActivities(
 export const listActivitiesTool = {
   name: 'list_activities',
   description:
-    'List activities (changes/updates) from Productive.io with filtering options for tracking recent work',
+    'Retrieve the raw activity/audit feed: a chronological stream of create, update, and delete events on items (tasks, projects, etc.), each with a timestamp, event type, item type + ID, the changed fields, and the creator as a raw person ID (names are not resolved). Filter by task_id, project_id, person_id, item_type, event, or a date range (after/before, or the days_back helper); page through results with limit (max 200) and page. For a grouped high-level summary of only updates, use get_recent_updates instead.',
   inputSchema: {
     type: 'object',
     properties: {

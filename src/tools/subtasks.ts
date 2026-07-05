@@ -114,7 +114,10 @@ export async function listSubtasksTool(
 
 export const listSubtasksDefinition = {
   name: 'list_subtasks',
-  description: 'List subtasks of a parent task in Productive.io',
+  description:
+    'List the child subtasks nested under a specific parent task (its ID goes in parent_task_id). ' +
+    "Use this to see the breakdown items beneath a task; use get_task for the parent's own details, or " +
+    'list_tasks/get_project_tasks to find top-level tasks. Paginated (default 30 per page, max 200).',
   inputSchema: {
     type: 'object',
     properties: {
@@ -246,7 +249,10 @@ export async function createSubtaskTool(
 
 export const createSubtaskDefinition = {
   name: 'create_subtask',
-  description: 'Create a subtask under a parent task in Productive.io',
+  description:
+    'Create a new task nested under an existing parent task (set parent_task_id). ' +
+    'Use this instead of create_task when the task should appear as a child/subtask; create_task makes a top-level task. ' +
+    'Nothing is inherited from the parent automatically — pass project_id, task_list_id, or assignee_id explicitly if you need them set.',
   inputSchema: {
     type: 'object',
     properties: {

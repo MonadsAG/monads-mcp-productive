@@ -209,7 +209,7 @@ export async function updateBudgetTool(
 export const updateBudgetDefinition = {
   name: 'update_budget',
   description:
-    'Update a budget. Can change name, dates, currency, value, PO number, and budget warning threshold.',
+    "Edit an existing budget's own attributes — its name, start/end dates, currency, value, PO number, or budget-warning threshold. Partial update: pass budget_id plus only the fields you want to change. This is the follow-up editor for budgets made via create_budget or create_budget_from_deal; find budget_id with list_company_budgets. To add or edit the budget's line items instead, use create_budget_service/update_budget_service.",
   inputSchema: {
     type: 'object',
     required: ['budget_id'],

@@ -124,7 +124,7 @@ export async function getRecentUpdates(
 export const getRecentUpdatesTool = {
   name: 'get_recent_updates',
   description:
-    'Get a summary of recent updates and changes in the last N days, with detailed breakdown by item type',
+    'Summarize recent update events (edits only — not creates or deletes) from the last N days (default 7, max 30), grouped by item type with counts plus a chronological detail list. Optionally scope to one project_id. Built on the same activity feed as list_activities; reach for list_activities when you need the raw, fully filterable event stream (including creates/deletes or a custom date range). Creators are shown as raw person IDs, not resolved names.',
   inputSchema: {
     type: 'object',
     properties: {

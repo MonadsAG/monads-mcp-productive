@@ -51,7 +51,11 @@ export async function moveTaskToList(
 
 export const moveTaskToListTool = {
   name: 'move_task_to_list',
-  description: 'Move a task to a different task list within the same project',
+  description:
+    'Move a task into a specific task list by ID, changing which list it belongs to (e.g. from "To Do" to "In Review"). ' +
+    "Use this when you already know the destination task_list_id; use add_to_backlog to park a task in the project's " +
+    'Backlog without knowing its list ID, or reposition_task to reorder a task within its current list. ' +
+    "Does not change the task's assignee or status.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -61,7 +65,8 @@ export const moveTaskToListTool = {
       },
       task_list_id: {
         type: 'string',
-        description: 'ID of the task list to move the task to',
+        description:
+          'ID of the destination task list (must belong to the same project as the task)',
       },
     },
     required: ['task_id', 'task_list_id'],

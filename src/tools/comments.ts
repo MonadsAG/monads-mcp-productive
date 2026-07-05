@@ -88,7 +88,8 @@ export async function addTaskCommentTool(
 
 export const addTaskCommentDefinition = {
   name: 'add_task_comment',
-  description: 'Add a comment to a task in Productive.io. Supports HTML formatting.',
+  description:
+    "Post a new comment onto a task's activity feed. Use this to leave a fresh note or to follow up on something surfaced by list_comments. To change an existing comment instead, use update_comment; to acknowledge one without writing text, use add_comment_reaction.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -99,7 +100,7 @@ export const addTaskCommentDefinition = {
       comment: {
         type: 'string',
         description:
-          'Comment content (required). Supports HTML formatting with tags like <div>, <p>, <strong>, <em>, <ul>, <li>, <a href="">.',
+          'Comment content (required). Plain text or HTML — supported tags include <div>, <p>, <strong>, <em>, <ul>, <li>, and <a href="">.',
       },
     },
     required: ['task_id', 'comment'],
@@ -165,17 +166,18 @@ export async function listCommentsTool(
 
 export const listCommentsDefinition = {
   name: 'list_comments',
-  description: 'List comments in Productive.io, optionally filtered by task or project.',
+  description:
+    "List comments, each rendered with its body truncated to ~200 characters and a [PINNED] marker where applicable. Filter by task_id to read a single task's thread or by project_id to see a project's comments; omit both to list broadly. Use this to survey a thread, then call get_comment for one comment's full untruncated body and metadata. Returns up to `limit` comments.",
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'Filter comments by task ID',
+        description: "Filter to comments on a single task (the task's comment thread)",
       },
       project_id: {
         type: 'string',
-        description: 'Filter comments by project ID',
+        description: 'Filter to comments within a project',
       },
       limit: {
         type: 'number',
@@ -241,7 +243,8 @@ export async function getCommentTool(
 
 export const getCommentDefinition = {
   name: 'get_comment',
-  description: 'Get a single comment by ID from Productive.io with all attributes.',
+  description:
+    "Fetch one comment by ID with its complete untruncated body plus metadata that list_comments omits: creator, created/updated/edited/deleted timestamps, draft and hidden flags, pinned state, reactions, and version number. Use this when list_comments' 200-character preview isn't enough.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -303,7 +306,8 @@ export async function updateCommentTool(
 
 export const updateCommentDefinition = {
   name: 'update_comment',
-  description: 'Update the body of an existing comment in Productive.io.',
+  description:
+    'Replace the body of an existing comment. The new body overwrites the old one entirely — there is no append, so include any text you want to keep. To post a new comment instead of editing one, use add_task_comment.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -313,7 +317,8 @@ export const updateCommentDefinition = {
       },
       body: {
         type: 'string',
-        description: 'The new comment body content (required). Supports HTML formatting.',
+        description:
+          'The new comment body (required), which fully replaces the existing body. Plain text or HTML.',
       },
     },
     required: ['comment_id', 'body'],
@@ -360,7 +365,8 @@ export async function deleteCommentTool(
 
 export const deleteCommentDefinition = {
   name: 'delete_comment',
-  description: 'Delete a comment by ID from Productive.io.',
+  description:
+    'Delete a comment by ID, removing it from the thread. This removes the comment itself — if you only want to take a pinned comment out of the highlighted area while keeping it, use unpin_comment instead.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -413,7 +419,8 @@ export async function pinCommentTool(
 
 export const pinCommentDefinition = {
   name: 'pin_comment',
-  description: 'Pin a comment in Productive.io so it appears prominently.',
+  description:
+    "Pin a comment so it is highlighted at the top of its task's comment area; list_comments then shows it with a [PINNED] marker. The inverse action is unpin_comment.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -466,7 +473,8 @@ export async function unpinCommentTool(
 
 export const unpinCommentDefinition = {
   name: 'unpin_comment',
-  description: 'Unpin a previously pinned comment in Productive.io.',
+  description:
+    'Remove the pinned highlight from a comment previously pinned with pin_comment, leaving the comment itself in place in the thread. The inverse action is pin_comment.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -520,7 +528,8 @@ export async function addCommentReactionTool(
 
 export const addCommentReactionDefinition = {
   name: 'add_comment_reaction',
-  description: 'Add a reaction (e.g. "like") to a comment in Productive.io.',
+  description:
+    'Attach an emoji-style reaction (e.g. "like", "heart", "thumbsup") to a comment — a lightweight acknowledgement when you want to respond without writing a reply via add_task_comment.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -530,7 +539,7 @@ export const addCommentReactionDefinition = {
       },
       reaction: {
         type: 'string',
-        description: 'The reaction to add (e.g. "like", "heart", "thumbsup") (required)',
+        description: 'The reaction key to add, e.g. "like", "heart", or "thumbsup" (required)',
       },
     },
     required: ['comment_id', 'reaction'],
