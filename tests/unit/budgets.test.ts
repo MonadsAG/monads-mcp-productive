@@ -54,6 +54,21 @@ describe('createBudgetTool', () => {
     });
   });
 
+  it('treats responsible_id: "me" the same as omitting it', async () => {
+    const client = mockClient();
+
+    await createBudgetTool(
+      client,
+      { name: 'Q3 Budget', company_id: '123', responsible_id: 'me' },
+      { PRODUCTIVE_USER_ID: '789' },
+    );
+
+    const payload = (client.createDeal as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(payload.data.relationships.responsible).toEqual({
+      data: { id: '789', type: 'people' },
+    });
+  });
+
   it('throws InvalidParams when responsible_id is omitted and no PRODUCTIVE_USER_ID is configured', async () => {
     const client = mockClient();
 
@@ -160,5 +175,23 @@ describe('createBudgetFromDealTool', () => {
       /Invalid parameters/,
     );
     expect(client.createDealFromOrigin).not.toHaveBeenCalled();
+  });
+
+  it('still creates the budget when the advisory duplicate-check itself fails', async () => {
+    const client = {
+      listDealsByOriginId: vi.fn().mockRejectedValue(new Error('transient 500')),
+      createDealFromOrigin: vi.fn().mockResolvedValue({
+        data: { id: '999', type: 'deals', attributes: { name: 'Derived Budget' } },
+      }),
+    } as unknown as ProductiveAPIClient;
+
+    const result = await createBudgetFromDealTool(client, {
+      origin_deal_id: '2516475',
+      project_id: '633047',
+    });
+
+    expect(client.createDealFromOrigin).toHaveBeenCalledTimes(1);
+    expect(result.content[0].text).toContain('999');
+    expect(result.content[0].text).not.toContain('Warning');
   });
 });

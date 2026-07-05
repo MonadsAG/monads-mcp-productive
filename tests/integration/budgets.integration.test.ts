@@ -24,7 +24,9 @@ describe.skipIf(!process.env.PRODUCTIVE_API_TOKEN)(
       const ids = [...createdDealIds];
       createdDealIds.length = 0;
       for (const id of ids) {
-        await client.deleteDeal(id).catch(() => undefined);
+        await client.deleteDeal(id).catch((error) => {
+          console.error(`[integration cleanup] failed to delete deal ${id}:`, error);
+        });
       }
     });
 
@@ -131,6 +133,7 @@ describe.skipIf(!process.env.PRODUCTIVE_API_TOKEN)(
         project_id: projectId,
       });
       const secondMatch = secondDerived.content[0].text.match(/Budget ID: (\d+)/);
+      expect(secondMatch).not.toBeNull();
       createdDealIds.push(secondMatch![1]);
       expect(secondDerived.content[0].text).toContain('Warning');
       expect(secondDerived.content[0].text).toContain(firstMatch![1]);

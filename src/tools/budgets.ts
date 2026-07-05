@@ -33,7 +33,11 @@ export async function createBudgetTool(
   try {
     const params = createBudgetSchema.parse(args);
 
-    const responsibleId = params.responsible_id ?? config?.PRODUCTIVE_USER_ID;
+    // "me" mirrors the sentinel used by create_task/update_task_assignment;
+    // omitting the field entirely resolves to the same default.
+    const requestedResponsibleId =
+      params.responsible_id === 'me' ? undefined : params.responsible_id;
+    const responsibleId = requestedResponsibleId ?? config?.PRODUCTIVE_USER_ID;
     if (!responsibleId) {
       throw new McpError(
         ErrorCode.InvalidParams,
@@ -115,7 +119,8 @@ export const createBudgetDefinition = {
       responsible_id: {
         type: 'string',
         description:
-          'Person ID of the budget owner. Defaults to PRODUCTIVE_USER_ID if configured and omitted.',
+          'Person ID of the budget owner. Defaults to PRODUCTIVE_USER_ID if configured and ' +
+          'omitted, or pass "me" explicitly to the same effect.',
       },
       deal_type_id: {
         type: 'number',
@@ -229,6 +234,11 @@ export const updateBudgetDefinition = {
 // ---------------------------------------------------------------------------
 
 const createBudgetFromDealSchema = z.object({
+  // Unlike every other *_id field in this file, origin_deal_id is sent to
+  // Productive as a plain numeric attribute, not a relationship — hence the
+  // coercion to number here despite the string-typed JSON schema below,
+  // which stays "string" only for input-shape consistency with company_id/
+  // project_id/etc.
   origin_deal_id: z.coerce.number(),
   project_id: z.string().min(1, 'Project ID is required'),
   name: z.string().optional(),
@@ -243,8 +253,16 @@ export async function createBudgetFromDealTool(
   try {
     const params = createBudgetFromDealSchema.parse(args);
 
-    const existing = await client.listDealsByOriginId(params.origin_deal_id.toString());
-    const existingIds = existing.data.map((d) => d.id);
+    // Advisory only — if this check itself fails (network blip, transient
+    // 5xx), proceed with creation rather than blocking it. The point is to
+    // warn about likely duplicates, not to gate the primary operation.
+    let existingIds: string[] = [];
+    try {
+      const existing = await client.listDealsByOriginId(params.origin_deal_id.toString());
+      existingIds = existing.data.map((d) => d.id);
+    } catch {
+      // couldn't verify — proceed without a duplicate warning
+    }
 
     const data: ProductiveDealFromOrigin = {
       data: {
