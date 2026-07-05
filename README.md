@@ -224,12 +224,13 @@ the browser's `Accept-Language` (default English); append `?lang=de` / `?lang=en
 
 ### Time Tracking
 
-| Tool                                                                                        | Description             |
-| ------------------------------------------------------------------------------------------- | ----------------------- |
-| `list_time_entries` / `create_time_entry` / `update_time_entry`                             | Time entry CRUD         |
-| `approve_time_entry` / `unapprove_time_entry` / `reject_time_entry` / `unreject_time_entry` | Approval workflow       |
-| `start_timer` / `stop_timer` / `get_timer`                                                  | Real-time timers        |
-| `list_services` / `get_project_services` / `list_project_deals` / `list_deal_services`      | Budget & service lookup |
+| Tool                                                                                        | Description                     |
+| ------------------------------------------------------------------------------------------- | ------------------------------- |
+| `list_time_entries` / `create_time_entry` / `update_time_entry`                             | Time entry CRUD                 |
+| `approve_time_entry` / `unapprove_time_entry` / `reject_time_entry` / `unreject_time_entry` | Approval workflow               |
+| `start_timer` / `stop_timer` / `get_timer`                                                  | Real-time timers                |
+| `list_services` / `get_project_services` / `list_project_deals` / `list_deal_services`      | Budget & service lookup         |
+| `create_budget_service` / `update_budget_service`                                           | Budget service (line item) CRUD |
 
 ### Invoicing
 
@@ -285,6 +286,20 @@ Derived from an existing deal/contract (the deal must be in a "Won" status):
 ```
 list_project_deals → create_budget_from_deal
 ```
+
+### Budget Services
+
+Attach services (line items) to a budget:
+
+```
+create_budget → create_budget_service → update_budget_service (optional)
+```
+
+```json
+{ "budget_id": "123", "name": "Consulting Hours", "price": 150, "quantity": 20 }
+```
+
+`unit_id` (1=Hour, 2=Piece, 3=Day) defaults to `1`; `billing_type_id` (1=Fixed, 2=Actuals, 3=None, 4=Percentage) defaults to `2`.
 
 ## Development
 

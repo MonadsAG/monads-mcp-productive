@@ -543,6 +543,42 @@ export interface ProductiveDealFromOrigin {
   };
 }
 
+export interface ProductiveServiceCreate {
+  data: {
+    type: 'services';
+    attributes: {
+      name: string;
+      unit_id: number;
+      billing_type_id: number;
+      description?: string;
+      price?: number;
+      quantity?: number;
+      budgeted_time?: number;
+    };
+    relationships: {
+      // A Service references its parent budget/deal via `deal`, not `budget_id` --
+      // verified live, since Services and Budgets share the deals resource.
+      deal: { data: { id: string; type: 'deals' } };
+    };
+  };
+}
+
+export interface ProductiveServiceUpdate {
+  data: {
+    type: 'services';
+    id: string;
+    attributes?: {
+      name?: string;
+      description?: string;
+      price?: number;
+      quantity?: number;
+      unit_id?: number;
+      billing_type_id?: number;
+      budgeted_time?: number;
+    };
+  };
+}
+
 /**
  * Time entry creation interface for Productive API
  * Used when creating new time entries via POST requests
