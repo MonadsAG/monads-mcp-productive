@@ -1024,6 +1024,10 @@ export class ProductiveAPIClient {
     return this.makeRequest<ProductiveResponse<ProductiveIncludedResource>>('subsidiaries');
   }
 
+  async listDealStatuses(): Promise<ProductiveResponse<ProductiveIncludedResource>> {
+    return this.makeRequest<ProductiveResponse<ProductiveIncludedResource>>('deal_statuses');
+  }
+
   async listCompanyBudgets(params: {
     company_id: string;
     status?: number;

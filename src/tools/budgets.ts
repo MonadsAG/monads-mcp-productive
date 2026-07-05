@@ -291,10 +291,11 @@ export async function createBudgetFromDealTool(
 export const createBudgetFromDealDefinition = {
   name: 'create_budget_from_deal',
   description:
-    'Derive a new budget from an existing deal (contract). Productive copies the deal value, ' +
-    'budgeted time, PO number, currency, and deal type from the origin deal automatically. ' +
-    'Warns (but does not block) if a budget was already derived from this deal. Use ' +
-    'list_project_deals to find origin_deal_id.',
+    'Derive a new budget from an existing deal (contract). The origin deal must be in a "Won" ' +
+    'status — Productive rejects derivation from open/lost deals. Productive copies the deal ' +
+    'value, budgeted time, PO number, currency, and deal type from the origin deal ' +
+    'automatically. Warns (but does not block) if a budget was already derived from this deal. ' +
+    'Use list_project_deals to find origin_deal_id.',
   inputSchema: {
     type: 'object',
     required: ['origin_deal_id', 'project_id'],

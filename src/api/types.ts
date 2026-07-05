@@ -498,11 +498,16 @@ export interface ProductiveDealCreate {
       deal_value?: number;
       purchase_order_number?: string;
       budget_warning?: number;
+      // Only required by Productive when budget:false (a plain deal is on
+      // the sales pipeline) — budgets skip this validation.
+      probability?: number;
     };
     relationships: {
       company: { data: { id: string; type: 'companies' } };
       responsible: { data: { id: string; type: 'people' } };
       project?: { data: { id: string; type: 'projects' } };
+      // Only required alongside `probability` when budget:false.
+      deal_status?: { data: { id: string; type: 'deal_statuses' } };
     };
   };
 }
