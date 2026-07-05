@@ -76,6 +76,12 @@ Smart Defaults: `document_type_id`, `tax_rate_id`, `subsidiary_id` are auto-reso
 
 Generic mechanism (`src/tools/custom-fields.ts`, `src/tools/custom-field-resolver.ts`) replacing the old hardcoded per-field `update_task_sprint` tool -- works for any custom field on any task, not just one specific field.
 
+## Budget Workflow
+
+`create_budget` (direct) or `create_budget_from_deal` (derived from an existing deal/contract via `origin_deal_id` -- the origin deal must be in a "Won" status) -> `update_budget` for edits.
+
+Budgets are Deals with `budget: true` (`src/tools/budgets.ts`) -- same underlying resource as `list_company_budgets` and `list_project_deals`, distinguished by the `budget` attribute (not the `type` filter value used when listing). A plain deal (`budget: false`) additionally requires `probability` + `deal_status` on creation; budgets don't.
+
 ## Toolsets
 
 `PRODUCTIVE_TOOLSETS` (optional, comma-separated) restricts which domain groups of tools a deployment exposes -- unset/`all` means every tool, same as before this feature existed. Catalog lives in `src/tools/toolsets.ts`; `registry.ts`'s `getToolDefinitions`/`handleToolCall` filter `ListTools` and reject `CallTool` for disabled tools (not just hide them).
