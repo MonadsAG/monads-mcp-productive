@@ -233,11 +233,12 @@ the browser's `Accept-Language` (default English); append `?lang=de` / `?lang=en
 
 ### Invoicing
 
-| Tool                                                                                      | Description      |
-| ----------------------------------------------------------------------------------------- | ---------------- |
-| `list_invoices` / `get_invoice` / `create_invoice` / `update_invoice` / `delete_invoice`  | Invoice CRUD     |
-| `list_company_budgets` / `generate_line_items` / `finalize_invoice` / `mark_invoice_paid` | Invoice workflow |
-| `get_invoice_pdf_url` / `get_timesheet_report_url`                                        | Document URLs    |
+| Tool                                                                                     | Description              |
+| ---------------------------------------------------------------------------------------- | ------------------------ |
+| `list_invoices` / `get_invoice` / `create_invoice` / `update_invoice` / `delete_invoice` | Invoice CRUD             |
+| `list_company_budgets` / `create_budget` / `update_budget` / `create_budget_from_deal`   | Budget CRUD & derivation |
+| `generate_line_items` / `finalize_invoice` / `mark_invoice_paid`                         | Invoice workflow         |
+| `get_invoice_pdf_url` / `get_timesheet_report_url`                                       | Document URLs            |
 
 ### Activity & Workflow
 
@@ -269,6 +270,20 @@ Update by name — no ID lookup needed:
 
 ```
 list_companies → list_company_budgets → create_invoice → generate_line_items → finalize_invoice → mark_invoice_paid
+```
+
+### Budget
+
+Direct creation:
+
+```
+list_companies → create_budget → update_budget (optional)
+```
+
+Derived from an existing deal/contract (the deal must be in a "Won" status):
+
+```
+list_project_deals → create_budget_from_deal
 ```
 
 ## Development

@@ -484,6 +484,65 @@ export interface ProductiveDeal {
   };
 }
 
+export interface ProductiveDealCreate {
+  data: {
+    type: 'deals';
+    attributes: {
+      name: string;
+      deal_type_id: number;
+      date: string;
+      currency: string;
+      budget: boolean; // createBudgetTool always passes true; kept boolean so
+      // test setup can create a plain (budget:false) origin deal
+      end_date?: string;
+      deal_value?: number;
+      purchase_order_number?: string;
+      budget_warning?: number;
+      // Only required by Productive when budget:false (a plain deal is on
+      // the sales pipeline) — budgets skip this validation.
+      probability?: number;
+    };
+    relationships: {
+      company: { data: { id: string; type: 'companies' } };
+      responsible: { data: { id: string; type: 'people' } };
+      project?: { data: { id: string; type: 'projects' } };
+      // Only required alongside `probability` when budget:false.
+      deal_status?: { data: { id: string; type: 'deal_statuses' } };
+    };
+  };
+}
+
+export interface ProductiveDealUpdate {
+  data: {
+    type: 'deals';
+    id: string;
+    attributes?: {
+      name?: string;
+      date?: string;
+      end_date?: string;
+      currency?: string;
+      deal_value?: number;
+      purchase_order_number?: string;
+      budget_warning?: number;
+    };
+  };
+}
+
+export interface ProductiveDealFromOrigin {
+  data: {
+    type: 'deals';
+    attributes: {
+      origin_deal_id: number;
+      name?: string;
+      date?: string;
+      end_date?: string;
+    };
+    relationships: {
+      project: { data: { id: string; type: 'projects' } };
+    };
+  };
+}
+
 /**
  * Time entry creation interface for Productive API
  * Used when creating new time entries via POST requests

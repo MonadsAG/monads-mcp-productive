@@ -12,6 +12,9 @@ import {
   ProductiveService,
   ProductiveTimeEntry,
   ProductiveDeal,
+  ProductiveDealCreate,
+  ProductiveDealUpdate,
+  ProductiveDealFromOrigin,
   ProductiveFolder,
   ProductiveTodo,
   ProductivePage,
@@ -1021,6 +1024,10 @@ export class ProductiveAPIClient {
     return this.makeRequest<ProductiveResponse<ProductiveIncludedResource>>('subsidiaries');
   }
 
+  async listDealStatuses(): Promise<ProductiveResponse<ProductiveIncludedResource>> {
+    return this.makeRequest<ProductiveResponse<ProductiveIncludedResource>>('deal_statuses');
+  }
+
   async listCompanyBudgets(params: {
     company_id: string;
     status?: number;
@@ -1033,6 +1040,43 @@ export class ProductiveAPIClient {
     queryParams.append('include', 'project');
     if (params.limit) queryParams.append('page[size]', params.limit.toString());
     return this.makeRequest<ProductiveResponse<ProductiveDeal>>(`deals?${queryParams.toString()}`);
+  }
+
+  async createDeal(data: ProductiveDealCreate): Promise<ProductiveSingleResponse<ProductiveDeal>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveDeal>>('deals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDeal(
+    id: string,
+    data: ProductiveDealUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveDeal>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveDeal>>(`deals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createDealFromOrigin(
+    data: ProductiveDealFromOrigin,
+  ): Promise<ProductiveSingleResponse<ProductiveDeal>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveDeal>>('deals/create_from_origin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async listDealsByOriginId(originDealId: string): Promise<ProductiveResponse<ProductiveDeal>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('filter[origin_deal_id]', originDealId);
+    queryParams.append('filter[type]', '2');
+    return this.makeRequest<ProductiveResponse<ProductiveDeal>>(`deals?${queryParams.toString()}`);
+  }
+
+  async deleteDeal(id: string): Promise<void> {
+    return this.makeVoidRequest(`deals/${id}`, { method: 'DELETE' });
   }
 
   async deleteInvoice(id: string): Promise<void> {
