@@ -714,6 +714,10 @@ export class ProductiveAPIClient {
     );
   }
 
+  async deleteTimeEntry(id: string): Promise<void> {
+    return this.makeVoidRequest(`time_entries/${id}`, { method: 'DELETE' });
+  }
+
   /**
    * Approve a time entry
    */

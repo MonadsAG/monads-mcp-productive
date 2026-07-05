@@ -618,6 +618,14 @@ export interface ProductiveTimeEntryUpdate {
       billable_time?: number;
       note?: string;
     };
+    relationships?: {
+      service?: {
+        data: {
+          id: string;
+          type: 'services';
+        };
+      };
+    };
   };
 }
 
