@@ -133,9 +133,6 @@ export async function createTaskList(
       },
     };
 
-    // Debug: Log the request data
-    console.error('Creating task list with data:', JSON.stringify(taskListData, null, 2));
-
     const response = await client.createTaskList(taskListData);
 
     let text = `Task list created successfully!\n`;

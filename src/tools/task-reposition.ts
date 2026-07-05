@@ -220,10 +220,3 @@ Position updated according to the requested parameters.`,
     };
   }
 };
-
-export default {
-  name: 'reposition_task',
-  description: 'Reposition a task in a task list',
-  inputSchema: taskRepositionDefinition.inputSchema,
-  execute: repositionTask,
-};

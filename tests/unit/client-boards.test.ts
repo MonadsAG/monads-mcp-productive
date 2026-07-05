@@ -28,7 +28,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('ProductiveAPIClient board methods', () => {
-  it('listBoards calls /folders (not /boards) with filters', async () => {
+  it('listBoards calls /folders (not /boards) with filters and include=project', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
     const client = makeClient(fetchMock);
 
@@ -37,9 +37,24 @@ describe('ProductiveAPIClient board methods', () => {
     const url = fetchMock.mock.calls[0][0] as string;
     expect(url).toContain('/folders?');
     expect(url).not.toContain('/boards');
+    expect(url).toContain('include=project');
     expect(url).toContain('filter%5Bproject_id%5D=42');
     expect(url).toContain('filter%5Bstatus%5D=1');
     expect(url).toContain('page%5Bsize%5D=10');
+  });
+
+  it('getBoard requests include=project so the Project ID is populated', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        data: { id: '5', type: 'folders', attributes: { name: 'Board' } },
+      }),
+    );
+    const client = makeClient(fetchMock);
+
+    await client.getBoard('5');
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('/folders/5?include=project');
   });
 
   it('createBoard POSTs to /folders with type "folders"', async () => {

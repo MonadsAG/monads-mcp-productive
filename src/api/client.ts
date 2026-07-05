@@ -1188,16 +1188,18 @@ export class ProductiveAPIClient {
     page?: number;
   }): Promise<ProductiveResponse<ProductiveBoard>> {
     const q = new URLSearchParams();
+    q.append('include', 'project');
     if (params?.project_id) q.append('filter[project_id]', params.project_id);
     if (params?.status) q.append('filter[status]', params.status.toString());
     if (params?.limit) q.append('page[size]', params.limit.toString());
     if (params?.page) q.append('page[number]', params.page.toString());
-    const qs = q.toString();
-    return this.makeRequest<ProductiveResponse<ProductiveBoard>>(`folders${qs ? `?${qs}` : ''}`);
+    return this.makeRequest<ProductiveResponse<ProductiveBoard>>(`folders?${q.toString()}`);
   }
 
   async getBoard(boardId: string): Promise<ProductiveSingleResponse<ProductiveBoard>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveBoard>>(`folders/${boardId}`);
+    return this.makeRequest<ProductiveSingleResponse<ProductiveBoard>>(
+      `folders/${boardId}?include=project`,
+    );
   }
 
   async createBoard(
