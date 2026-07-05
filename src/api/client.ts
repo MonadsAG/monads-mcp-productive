@@ -15,6 +15,8 @@ import {
   ProductiveDealCreate,
   ProductiveDealUpdate,
   ProductiveDealFromOrigin,
+  ProductiveServiceCreate,
+  ProductiveServiceUpdate,
   ProductiveFolder,
   ProductiveTodo,
   ProductivePage,
@@ -1077,6 +1079,29 @@ export class ProductiveAPIClient {
 
   async deleteDeal(id: string): Promise<void> {
     return this.makeVoidRequest(`deals/${id}`, { method: 'DELETE' });
+  }
+
+  async createService(
+    data: ProductiveServiceCreate,
+  ): Promise<ProductiveSingleResponse<ProductiveService>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveService>>('services', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateService(
+    id: string,
+    data: ProductiveServiceUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveService>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveService>>(`services/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteService(id: string): Promise<void> {
+    return this.makeVoidRequest(`services/${id}`, { method: 'DELETE' });
   }
 
   async deleteInvoice(id: string): Promise<void> {
