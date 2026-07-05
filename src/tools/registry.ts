@@ -31,7 +31,6 @@ import {
   listCustomFieldOptionsDefinition,
 } from './custom-fields.js';
 import { myTasksTool, myTasksDefinition } from './my-tasks.js';
-import { listBoards, createBoard, listBoardsTool, createBoardTool } from './boards.js';
 import {
   listTaskLists,
   createTaskList,
@@ -154,6 +153,12 @@ import {
   archiveFolderTool,
   restoreFolder,
   restoreFolderTool,
+  copyFolder,
+  copyFolderTool,
+  moveFolder,
+  moveFolderTool,
+  repositionFolder,
+  repositionFolderTool,
 } from './folders.js';
 import {
   listSubtasksTool,
@@ -220,8 +225,6 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     whoAmITool,
     listCompaniesDefinition,
     listProjectsDefinition,
-    listBoardsTool,
-    createBoardTool,
     listTaskListsTool,
     createTaskListTool,
     getTaskListDefinition,
@@ -285,6 +288,9 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     updateFolderTool,
     archiveFolderTool,
     restoreFolderTool,
+    copyFolderTool,
+    moveFolderTool,
+    repositionFolderTool,
     listSubtasksDefinition,
     createSubtaskDefinition,
     listCommentsDefinition,
@@ -348,10 +354,6 @@ export async function handleToolCall(
       return await getTaskTool(apiClient, args);
     case 'my_tasks':
       return await myTasksTool(apiClient, config, args);
-    case 'list_boards':
-      return await listBoards(apiClient, args);
-    case 'create_board':
-      return await createBoard(apiClient, args);
     case 'create_task':
       return await createTaskTool(apiClient, args, config);
     case 'update_task_assignment':
@@ -473,6 +475,12 @@ export async function handleToolCall(
       return await archiveFolder(apiClient, args);
     case 'restore_folder':
       return await restoreFolder(apiClient, args);
+    case 'copy_folder':
+      return await copyFolder(apiClient, args);
+    case 'move_folder':
+      return await moveFolder(apiClient, args);
+    case 'reposition_folder':
+      return await repositionFolder(apiClient, args);
     case 'list_subtasks':
       return await listSubtasksTool(apiClient, args);
     case 'create_subtask':

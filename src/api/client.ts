@@ -17,7 +17,6 @@ import {
   ProductiveDealFromOrigin,
   ProductiveServiceCreate,
   ProductiveServiceUpdate,
-  ProductiveFolder,
   ProductiveTodo,
   ProductivePage,
   ProductiveResponse,
@@ -33,8 +32,7 @@ import {
   ProductiveTimeEntryUpdate,
   ProductiveTimer,
   ProductiveTimerCreate,
-  ProductiveFolderCreate,
-  ProductiveFolderUpdate,
+  ProductiveBoardUpdate,
   ProductiveTodoCreate,
   ProductiveTodoUpdate,
   ProductivePageCreate,
@@ -228,40 +226,6 @@ export class ProductiveAPIClient {
     const path = `tasks${queryString ? `?${queryString}` : ''}`;
 
     return this.makeRequest<ProductiveResponse<ProductiveTask>>(path);
-  }
-
-  async listBoards(params?: {
-    project_id?: string;
-    limit?: number;
-    page?: number;
-  }): Promise<ProductiveResponse<ProductiveBoard>> {
-    const queryParams = new URLSearchParams();
-
-    if (params?.project_id) {
-      queryParams.append('filter[project_id]', params.project_id);
-    }
-
-    if (params?.limit) {
-      queryParams.append('page[size]', params.limit.toString());
-    }
-
-    if (params?.page) {
-      queryParams.append('page[number]', params.page.toString());
-    }
-
-    const queryString = queryParams.toString();
-    const path = `boards${queryString ? `?${queryString}` : ''}`;
-
-    return this.makeRequest<ProductiveResponse<ProductiveBoard>>(path);
-  }
-
-  async createBoard(
-    boardData: ProductiveBoardCreate,
-  ): Promise<ProductiveSingleResponse<ProductiveBoard>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveBoard>>('boards', {
-      method: 'POST',
-      body: JSON.stringify(boardData),
-    });
   }
 
   async createTask(
@@ -1210,57 +1174,100 @@ export class ProductiveAPIClient {
     }
   }
 
-  // ---- Folder methods ----
+  // ---- Board methods ----
+  // Productive's UI/tool-facing name for this resource is "folder" (see
+  // src/tools/folders.ts). All nine methods below deliberately hit the
+  // literal path "folders" -- this tenant's live API 404s on "boards"
+  // (verified) despite that being the API's relationship-level vocabulary
+  // (ProductiveTask.board / ProductiveTaskList.board both use type 'boards').
 
-  async listFolders(params?: {
+  async listBoards(params?: {
     project_id?: string;
     status?: number;
     limit?: number;
     page?: number;
-  }): Promise<ProductiveResponse<ProductiveFolder>> {
+  }): Promise<ProductiveResponse<ProductiveBoard>> {
     const q = new URLSearchParams();
     if (params?.project_id) q.append('filter[project_id]', params.project_id);
     if (params?.status) q.append('filter[status]', params.status.toString());
     if (params?.limit) q.append('page[size]', params.limit.toString());
     if (params?.page) q.append('page[number]', params.page.toString());
     const qs = q.toString();
-    return this.makeRequest<ProductiveResponse<ProductiveFolder>>(`folders${qs ? `?${qs}` : ''}`);
+    return this.makeRequest<ProductiveResponse<ProductiveBoard>>(`folders${qs ? `?${qs}` : ''}`);
   }
 
-  async getFolder(folderId: string): Promise<ProductiveSingleResponse<ProductiveFolder>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveFolder>>(`folders/${folderId}`);
+  async getBoard(boardId: string): Promise<ProductiveSingleResponse<ProductiveBoard>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveBoard>>(`folders/${boardId}`);
   }
 
-  async createFolder(
-    data: ProductiveFolderCreate,
-  ): Promise<ProductiveSingleResponse<ProductiveFolder>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveFolder>>('folders', {
+  async createBoard(
+    data: ProductiveBoardCreate,
+  ): Promise<ProductiveSingleResponse<ProductiveBoard>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveBoard>>('folders', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateFolder(
-    folderId: string,
-    data: ProductiveFolderUpdate,
-  ): Promise<ProductiveSingleResponse<ProductiveFolder>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductiveFolder>>(`folders/${folderId}`, {
+  async updateBoard(
+    boardId: string,
+    data: ProductiveBoardUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveBoard>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveBoard>>(`folders/${boardId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
-  async archiveFolder(folderId: string): Promise<void> {
-    return this.makeVoidRequest(`folders/${folderId}/archive`, {
+  async archiveBoard(boardId: string): Promise<void> {
+    return this.makeVoidRequest(`folders/${boardId}/archive`, {
       method: 'PATCH',
       body: JSON.stringify({ data: { type: 'folders' } }),
     });
   }
 
-  async restoreFolder(folderId: string): Promise<void> {
-    return this.makeVoidRequest(`folders/${folderId}/restore`, {
+  async restoreBoard(boardId: string): Promise<void> {
+    return this.makeVoidRequest(`folders/${boardId}/restore`, {
       method: 'PATCH',
       body: JSON.stringify({ data: { type: 'folders' } }),
+    });
+  }
+
+  async moveBoard(boardId: string, projectId: string): Promise<void> {
+    return this.makeVoidRequest(`folders/${boardId}/move`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { type: 'folders', attributes: { project_id: projectId } },
+      }),
+    });
+  }
+
+  async repositionBoard(boardId: string, moveBeforeId: string): Promise<void> {
+    return this.makeVoidRequest(`folders/${boardId}/reposition`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: { type: 'folders', attributes: { move_before_id: moveBeforeId } },
+      }),
+    });
+  }
+
+  async copyBoard(params: {
+    name: string;
+    template_id: string;
+    project_id: string;
+  }): Promise<ProductiveSingleResponse<ProductiveBoard>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveBoard>>('folders/copy', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: {
+          type: 'folders',
+          attributes: {
+            name: params.name,
+            template_id: params.template_id,
+            project_id: params.project_id,
+          },
+        },
+      }),
     });
   }
 

@@ -15,8 +15,6 @@ export const TOOLSETS: Record<string, string[]> = {
     'get_recent_updates',
   ],
   tasks: [
-    'list_boards',
-    'create_board',
     'list_task_lists',
     'create_task_list',
     'get_task_list',
@@ -97,6 +95,9 @@ export const TOOLSETS: Record<string, string[]> = {
     'update_folder',
     'archive_folder',
     'restore_folder',
+    'copy_folder',
+    'move_folder',
+    'reposition_folder',
     'list_pages',
     'get_page',
     'create_page',

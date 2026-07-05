@@ -185,15 +185,16 @@ the browser's `Accept-Language` (default English); append `?lang=de` / `?lang=en
 | `list_companies` | List companies/customers            |
 | `list_projects`  | List projects with status filtering |
 
-### Folders, Boards & Task Lists
+### Folders (Boards) & Task Lists
 
-| Tool                                                                                                     | Description          |
-| -------------------------------------------------------------------------------------------------------- | -------------------- |
-| `list_folders` / `get_folder` / `create_folder` / `update_folder`                                        | Folder CRUD          |
-| `archive_folder` / `restore_folder`                                                                      | Folder lifecycle     |
-| `list_boards` / `create_board`                                                                           | Board management     |
-| `list_task_lists` / `create_task_list` / `get_task_list` / `update_task_list`                            | Task list CRUD       |
-| `archive_task_list` / `restore_task_list` / `copy_task_list` / `move_task_list` / `reposition_task_list` | Task list operations |
+Productive's UI calls this resource a "folder"; the API models it as a "board" (tasks and task lists reference their parent via a `board`/`board_id` relationship). One tool set covers it -- there is no separate "board" tool.
+
+| Tool                                                                                                     | Description                    |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `list_folders` / `get_folder` / `create_folder` / `update_folder`                                        | Folder CRUD                    |
+| `archive_folder` / `restore_folder` / `copy_folder` / `move_folder` / `reposition_folder`                | Folder lifecycle & positioning |
+| `list_task_lists` / `create_task_list` / `get_task_list` / `update_task_list`                            | Task list CRUD                 |
+| `archive_task_list` / `restore_task_list` / `copy_task_list` / `move_task_list` / `reposition_task_list` | Task list operations           |
 
 ### Tasks
 

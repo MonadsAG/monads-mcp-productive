@@ -96,11 +96,18 @@ export interface ProductiveResponse<T> {
 
 export interface ProductiveBoard {
   id: string;
-  type: 'boards';
+  // Wire value is 'folders' -- this tenant's REST route for this resource is
+  // /api/v2/folders (verified working), even though the API's relationship
+  // type for a board reference elsewhere (ProductiveTask.board,
+  // ProductiveTaskList.board) is 'boards'. Do not "fix" this to 'boards'.
+  type: 'folders';
   attributes: {
     name: string;
     description?: string;
     position?: number;
+    placement?: number;
+    archived_at?: string | null;
+    hidden?: boolean;
     created_at: string;
     updated_at: string;
     [key: string]: any;
@@ -174,24 +181,6 @@ export interface ProductiveTaskList {
       };
     };
     [key: string]: any;
-  };
-}
-
-export interface ProductiveBoardCreate {
-  data: {
-    type: 'boards';
-    attributes: {
-      name: string;
-      description?: string;
-    };
-    relationships: {
-      project: {
-        data: {
-          id: string;
-          type: 'projects';
-        };
-      };
-    };
   };
 }
 
@@ -687,28 +676,11 @@ export interface ProductiveTimerCreate {
   };
 }
 
-// ---- Folder types ----
+// ---- Board types ----
+// (Productive's UI/tool-facing name for this resource is "folder"; see
+// src/tools/folders.ts. The API relationship type is "boards".)
 
-export interface ProductiveFolder {
-  id: string;
-  type: 'folders';
-  attributes: {
-    name: string;
-    position?: number;
-    placement?: number;
-    archived_at?: string | null;
-    hidden?: boolean;
-    created_at: string;
-    updated_at: string;
-    [key: string]: unknown;
-  };
-  relationships?: {
-    project?: { data: { id: string; type: 'projects' } };
-    [key: string]: unknown;
-  };
-}
-
-export interface ProductiveFolderCreate {
+export interface ProductiveBoardCreate {
   data: {
     type: 'folders';
     attributes: { name: string };
@@ -718,7 +690,7 @@ export interface ProductiveFolderCreate {
   };
 }
 
-export interface ProductiveFolderUpdate {
+export interface ProductiveBoardUpdate {
   data: {
     type: 'folders';
     id: string;

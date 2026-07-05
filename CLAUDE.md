@@ -88,16 +88,16 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 
 `PRODUCTIVE_TOOLSETS` (optional, comma-separated) restricts which domain groups of tools a deployment exposes -- unset/`all` means every tool, same as before this feature existed. Catalog lives in `src/tools/toolsets.ts`; `registry.ts`'s `getToolDefinitions`/`handleToolCall` filter `ListTools` and reject `CallTool` for disabled tools (not just hide them).
 
-| Toolset         | Covers                                                                           |
-| --------------- | -------------------------------------------------------------------------------- |
-| `core`          | whoami, companies, projects, activities, recent updates, workflow statuses       |
-| `tasks`         | tasks, task lists, boards, subtasks, dependencies, backlog, reposition, my-tasks |
-| `custom_fields` | custom field discovery + generic get/set                                         |
-| `comments`      | task comments, pins, reactions                                                   |
-| `time_tracking` | time entries, timers, approvals, deals/services                                  |
-| `invoicing`     | invoices, company budgets, line items, PDF/timesheet URLs                        |
-| `docs`          | folders + pages                                                                  |
-| `todos`         | todos                                                                            |
+| Toolset         | Covers                                                                     |
+| --------------- | -------------------------------------------------------------------------- |
+| `core`          | whoami, companies, projects, activities, recent updates, workflow statuses |
+| `tasks`         | tasks, task lists, subtasks, dependencies, backlog, reposition, my-tasks   |
+| `custom_fields` | custom field discovery + generic get/set                                   |
+| `comments`      | task comments, pins, reactions                                             |
+| `time_tracking` | time entries, timers, approvals, deals/services                            |
+| `invoicing`     | invoices, company budgets, line items, PDF/timesheet URLs                  |
+| `docs`          | folders (boards) + pages                                                   |
+| `todos`         | todos                                                                      |
 
 ## Adding New Tools
 
@@ -125,6 +125,8 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 
 - **Amounts in cents**: API returns amounts as integer strings (e.g. "2506569" = 25065.69). Divide by 100 for display, send cents to API.
 - **Org ID for PDF URLs**: `PRODUCTIVE_ORG_ID` must include the slug (e.g. `12345-company-name`, not just `12345`) for PDF URL generation.
+- **Folders = Boards, one tool set only**: Productive's project→folder→task-list→task hierarchy is a single API resource. The API's own relationship/attribute vocabulary calls it a "board" (`board_id` on tasks and task lists, `type: 'boards'`), but this tenant's live REST route is `/api/v2/folders` -- `/api/v2/boards` 404s ("route not found", verified both against production and against a sandbox org). `src/tools/folders.ts` is the only tool set for it (`list_folders`, `get_folder`, `create_folder`, `update_folder`, `archive_folder`, `restore_folder`, `copy_folder`, `move_folder`, `reposition_folder`); `src/api/client.ts`'s `Board`-named methods (`listBoards`, `createBoard`, ...) are the only client implementation, and they deliberately hit the `folders` path. Do not add a parallel `boards.ts` tool file or a client method that hits `/boards` directly -- that was tried, always 404s, and was removed for exactly this reason.
+- **Relationship linkage needs `?include=`**: a plain (non-`include`) GET on a resource with a relationship (e.g. `folders/{id}`) returns that relationship as a stub (`{ "meta": { "included": false } }`, no `data`/id) -- not the linked resource's ID. `get_folder`'s "Project ID:" line is therefore always blank unless the request adds `?include=project` and reads the ID from the response's top-level `included` array (verified live against the sandbox API). This affects any tool reading a relationship ID off a plain GET response, not just folders.
 - **generate_line_items**: Uses a FLAT payload, not JSON API envelope. `invoicing_method` is hardcoded to `uninvoiced_time_and_expenses`.
 - **Line items not includable**: `get_invoice` cannot use `?include=line_items`. Fetch separately via `listLineItems`.
 - **McpServer vs Server**: The Worker uses the low-level `Server` class (not `McpServer`) because tool definitions use raw JSON Schema, which `McpServer.registerTool()` does not accept.
