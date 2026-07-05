@@ -10,6 +10,7 @@ const updateTimeEntrySchema = z.object({
   time: z.string().optional(),
   billable_time: z.string().optional(),
   note: z.string().optional(),
+  service_id: z.string().optional(),
 });
 
 export async function updateTimeEntryTool(
@@ -58,10 +59,16 @@ export async function updateTimeEntryTool(
       attributes.note = params.note;
     }
 
-    if (Object.keys(attributes).length === 0) {
+    const relationships: NonNullable<ProductiveTimeEntryUpdate['data']['relationships']> = {};
+
+    if (params.service_id !== undefined) {
+      relationships.service = { data: { id: params.service_id, type: 'services' } };
+    }
+
+    if (Object.keys(attributes).length === 0 && Object.keys(relationships).length === 0) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        'At least one field to update must be provided (date, time, billable_time, or note)',
+        'At least one field to update must be provided (date, time, billable_time, note, or service_id)',
       );
     }
 
@@ -70,6 +77,7 @@ export async function updateTimeEntryTool(
         type: 'time_entries',
         id: params.time_entry_id,
         attributes,
+        ...(Object.keys(relationships).length > 0 ? { relationships } : {}),
       },
     };
 
@@ -90,6 +98,10 @@ export async function updateTimeEntryTool(
 
     if (entry.attributes.note) {
       text += `\nNote: ${entry.attributes.note}`;
+    }
+
+    if (params.service_id !== undefined) {
+      text += `\nReassigned to Service ID: ${params.service_id}`;
     }
 
     if (entry.attributes.updated_at) {
@@ -121,7 +133,7 @@ export async function updateTimeEntryTool(
 export const updateTimeEntryDefinition = {
   name: 'update_time_entry',
   description:
-    'Edit fields on a time entry that already exists — its date, duration, billable duration, or note. Use this to correct or annotate a previously logged entry, as opposed to create_time_entry which logs a new one. Partial update: pass only the fields you want to change; every field except time_entry_id is optional and untouched fields are left as-is. Cannot reassign the entry to a different service, task, or person — only the four editable attributes below. Find time_entry_id via list_time_entries.',
+    "Edit fields on a time entry that already exists — its date, duration, billable duration, note, or service. Use this to correct or annotate a previously logged entry, as opposed to create_time_entry which logs a new one. Partial update: pass only the fields you want to change; every field except time_entry_id is optional and untouched fields are left as-is. Passing service_id reassigns the entry to a different service, which moves it onto that service's budget/deal — this is how you switch a time entry from one budget to another. Find the target service_id via list_services or get_project_services. Cannot reassign task or person. Find time_entry_id via list_time_entries.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -145,6 +157,11 @@ export const updateTimeEntryDefinition = {
       note: {
         type: 'string',
         description: 'Updated work description',
+      },
+      service_id: {
+        type: 'string',
+        description:
+          "Reassign the entry to a different service ID, moving it onto that service's budget/deal. Use list_services or get_project_services to find the target service ID.",
       },
     },
     required: ['time_entry_id'],
