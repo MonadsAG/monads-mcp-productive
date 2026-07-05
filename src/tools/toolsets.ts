@@ -75,6 +75,9 @@ export const TOOLSETS: Record<string, string[]> = {
   invoicing: [
     'list_invoices',
     'list_company_budgets',
+    'create_budget',
+    'update_budget',
+    'create_budget_from_deal',
     'get_invoice',
     'create_invoice',
     'update_invoice',

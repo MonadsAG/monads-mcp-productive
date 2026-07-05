@@ -199,6 +199,14 @@ import {
   deleteTaskDependencyTool,
   deleteTaskDependencyDefinition,
 } from './task-dependencies.js';
+import {
+  createBudgetTool,
+  createBudgetDefinition,
+  updateBudgetTool,
+  updateBudgetDefinition,
+  createBudgetFromDealTool,
+  createBudgetFromDealDefinition,
+} from './budgets.js';
 
 /** All tool definitions for ListTools, optionally filtered to an enabled toolset. */
 export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
@@ -250,6 +258,9 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     taskRepositionDefinition,
     listInvoicesDefinition,
     listCompanyBudgetsDefinition,
+    createBudgetDefinition,
+    updateBudgetDefinition,
+    createBudgetFromDealDefinition,
     getInvoiceDefinition,
     createInvoiceDefinition,
     updateInvoiceDefinition,
@@ -412,6 +423,12 @@ export async function handleToolCall(
       return await listInvoicesTool(apiClient, args);
     case 'list_company_budgets':
       return await listCompanyBudgetsTool(apiClient, args);
+    case 'create_budget':
+      return await createBudgetTool(apiClient, args, config);
+    case 'update_budget':
+      return await updateBudgetTool(apiClient, args);
+    case 'create_budget_from_deal':
+      return await createBudgetFromDealTool(apiClient, args);
     case 'get_invoice':
       return await getInvoiceTool(apiClient, args);
     case 'create_invoice':
