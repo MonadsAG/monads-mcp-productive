@@ -88,14 +88,8 @@ import {
 } from './time-entries.js';
 import { updateTimeEntryTool, updateTimeEntryDefinition } from './time-entry-update.js';
 import {
-  approveTimeEntryTool,
-  approveTimeEntryDefinition,
-  unapproveTimeEntryTool,
-  unapproveTimeEntryDefinition,
-  rejectTimeEntryTool,
-  rejectTimeEntryDefinition,
-  unrejectTimeEntryTool,
-  unrejectTimeEntryDefinition,
+  setTimeEntryApprovalTool,
+  setTimeEntryApprovalDefinition,
 } from './time-entry-approval.js';
 import {
   getTimerTool,
@@ -252,10 +246,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     createBudgetServiceDefinition,
     updateBudgetServiceDefinition,
     updateTimeEntryDefinition,
-    approveTimeEntryDefinition,
-    unapproveTimeEntryDefinition,
-    rejectTimeEntryDefinition,
-    unrejectTimeEntryDefinition,
+    setTimeEntryApprovalDefinition,
     getTimerDefinition,
     startTimerDefinition,
     stopTimerDefinition,
@@ -401,14 +392,8 @@ export async function handleToolCall(
       return await updateBudgetServiceTool(apiClient, args);
     case 'update_time_entry':
       return await updateTimeEntryTool(apiClient, args);
-    case 'approve_time_entry':
-      return await approveTimeEntryTool(apiClient, args);
-    case 'unapprove_time_entry':
-      return await unapproveTimeEntryTool(apiClient, args);
-    case 'reject_time_entry':
-      return await rejectTimeEntryTool(apiClient, args);
-    case 'unreject_time_entry':
-      return await unrejectTimeEntryTool(apiClient, args);
+    case 'set_time_entry_approval':
+      return await setTimeEntryApprovalTool(apiClient, args);
     case 'get_timer':
       return await getTimerTool(apiClient, args);
     case 'start_timer':

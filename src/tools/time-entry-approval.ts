@@ -4,14 +4,21 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTimeEntry } from '../api/types.js';
 import { formatMinutesDisplay } from './time-entries.js';
 
-const timeEntryIdSchema = z.object({
-  time_entry_id: z.string().min(1, 'Time entry ID is required'),
-});
-
-const rejectTimeEntrySchema = z.object({
-  time_entry_id: z.string().min(1, 'Time entry ID is required'),
-  rejected_reason: z.string().optional(),
-});
+const setTimeEntryApprovalSchema = z
+  .object({
+    time_entry_id: z.string().min(1, 'Time entry ID is required'),
+    action: z.enum(['approve', 'unapprove', 'reject', 'unreject']),
+    rejected_reason: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.rejected_reason !== undefined && data.action !== 'reject') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['rejected_reason'],
+        message: 'rejected_reason is only valid when action is "reject"',
+      });
+    }
+  });
 
 function formatTimeEntryResponse(
   action: string,
@@ -38,14 +45,32 @@ function formatTimeEntryResponse(
   return { content: [{ type: 'text', text }] };
 }
 
-export async function approveTimeEntryTool(
+export async function setTimeEntryApprovalTool(
   client: ProductiveAPIClient,
   args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
-    const params = timeEntryIdSchema.parse(args);
-    const response = await client.approveTimeEntry(params.time_entry_id);
-    return formatTimeEntryResponse('approved successfully', response.data);
+    const params = setTimeEntryApprovalSchema.parse(args);
+
+    switch (params.action) {
+      case 'approve': {
+        const response = await client.approveTimeEntry(params.time_entry_id);
+        return formatTimeEntryResponse('approved successfully', response.data);
+      }
+      case 'unapprove': {
+        const response = await client.unapproveTimeEntry(params.time_entry_id);
+        return formatTimeEntryResponse('unapproved successfully', response.data);
+      }
+      case 'reject': {
+        const response = await client.rejectTimeEntry(params.time_entry_id, params.rejected_reason);
+        const extra = params.rejected_reason ? `Reason: ${params.rejected_reason}` : undefined;
+        return formatTimeEntryResponse('rejected', response.data, extra);
+      }
+      case 'unreject': {
+        const response = await client.unrejectTimeEntry(params.time_entry_id);
+        return formatTimeEntryResponse('unrejected successfully', response.data);
+      }
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new McpError(
@@ -61,140 +86,38 @@ export async function approveTimeEntryTool(
   }
 }
 
-export async function unapproveTimeEntryTool(
-  client: ProductiveAPIClient,
-  args: unknown,
-): Promise<{ content: Array<{ type: string; text: string }> }> {
-  try {
-    const params = timeEntryIdSchema.parse(args);
-    const response = await client.unapproveTimeEntry(params.time_entry_id);
-    return formatTimeEntryResponse('unapproved successfully', response.data);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
-  }
-}
-
-export async function rejectTimeEntryTool(
-  client: ProductiveAPIClient,
-  args: unknown,
-): Promise<{ content: Array<{ type: string; text: string }> }> {
-  try {
-    const params = rejectTimeEntrySchema.parse(args);
-    const response = await client.rejectTimeEntry(params.time_entry_id, params.rejected_reason);
-    const extra = params.rejected_reason ? `Reason: ${params.rejected_reason}` : undefined;
-    return formatTimeEntryResponse('rejected', response.data, extra);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
-  }
-}
-
-export async function unrejectTimeEntryTool(
-  client: ProductiveAPIClient,
-  args: unknown,
-): Promise<{ content: Array<{ type: string; text: string }> }> {
-  try {
-    const params = timeEntryIdSchema.parse(args);
-    const response = await client.unrejectTimeEntry(params.time_entry_id);
-    return formatTimeEntryResponse('unrejected successfully', response.data);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
-  }
-}
-
-export const approveTimeEntryDefinition = {
-  name: 'approve_time_entry',
+export const setTimeEntryApprovalDefinition = {
+  name: 'set_time_entry_approval',
   description:
-    'Approve a time entry in Productive.io. Use list_time_entries to find the time entry ID first.',
+    'Change the approval state of a time entry: approve/unapprove (reviewer sign-off) or ' +
+    'reject/unreject (send back for correction, with an optional reason). Use list_time_entries ' +
+    'first to find the time_entry_id. This is a single state machine -- the four Productive.io ' +
+    'sub-endpoints (/approve, /unapprove, /reject, /unreject) are dispatched from the action value.',
   inputSchema: {
     type: 'object',
     properties: {
       time_entry_id: {
         type: 'string',
-        description: 'ID of the time entry to approve (required)',
+        description: 'ID of the time entry to update (required)',
       },
-    },
-    required: ['time_entry_id'],
-  },
-};
-
-export const unapproveTimeEntryDefinition = {
-  name: 'unapprove_time_entry',
-  description:
-    'Unapprove (reverse approval of) a time entry in Productive.io. Use list_time_entries to find the time entry ID first.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      time_entry_id: {
+      action: {
         type: 'string',
-        description: 'ID of the time entry to unapprove (required)',
-      },
-    },
-    required: ['time_entry_id'],
-  },
-};
-
-export const rejectTimeEntryDefinition = {
-  name: 'reject_time_entry',
-  description:
-    'Reject a time entry in Productive.io with an optional reason. Use list_time_entries to find the time entry ID first.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      time_entry_id: {
-        type: 'string',
-        description: 'ID of the time entry to reject (required)',
+        enum: ['approve', 'unapprove', 'reject', 'unreject'],
+        description: 'The approval action to apply.',
       },
       rejected_reason: {
         type: 'string',
-        description: 'Reason for rejecting the time entry (optional)',
+        description: 'Reason for rejecting the time entry. Only valid when action is "reject".',
       },
     },
-    required: ['time_entry_id'],
-  },
-};
-
-export const unrejectTimeEntryDefinition = {
-  name: 'unreject_time_entry',
-  description:
-    'Unreject (reverse rejection of) a time entry in Productive.io. Use list_time_entries to find the time entry ID first.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      time_entry_id: {
-        type: 'string',
-        description: 'ID of the time entry to unreject (required)',
+    required: ['time_entry_id', 'action'],
+    examples: [
+      { time_entry_id: '123', action: 'approve' },
+      {
+        time_entry_id: '123',
+        action: 'reject',
+        rejected_reason: 'Logged against the wrong project',
       },
-    },
-    required: ['time_entry_id'],
+    ],
   },
 };
