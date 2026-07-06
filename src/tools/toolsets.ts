@@ -10,6 +10,8 @@ export const TOOLSETS: Record<string, string[]> = {
     'whoami',
     'list_companies',
     'list_projects',
+    'list_people',
+    'get_person',
     'list_workflow_statuses',
     'list_activities',
     'get_recent_updates',

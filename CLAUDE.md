@@ -90,7 +90,7 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 
 | Toolset         | Covers                                                                     |
 | --------------- | -------------------------------------------------------------------------- |
-| `core`          | whoami, companies, projects, activities, recent updates, workflow statuses |
+| `core`          | whoami, companies, projects, people, activities, recent updates, workflow statuses |
 | `tasks`         | tasks, task lists, subtasks, dependencies, backlog, reposition, my-tasks   |
 | `custom_fields` | custom field discovery + generic get/set                                   |
 | `comments`      | task comments, pins, reactions                                             |

@@ -207,6 +207,12 @@ import {
   updateBudgetServiceTool,
   updateBudgetServiceDefinition,
 } from './budget-services.js';
+import {
+  listPeopleTool,
+  listPeopleDefinition,
+  getPersonTool,
+  getPersonDefinition,
+} from './people.js';
 
 /** All tool definitions for ListTools, optionally filtered to an enabled toolset. */
 export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
@@ -214,6 +220,8 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     whoAmITool,
     listCompaniesDefinition,
     listProjectsDefinition,
+    listPeopleDefinition,
+    getPersonDefinition,
     listTaskListsTool,
     createTaskListTool,
     getTaskListDefinition,
@@ -331,6 +339,10 @@ export async function handleToolCall(
       return await listCompaniesTool(apiClient, args);
     case 'list_projects':
       return await listProjectsTool(apiClient, args);
+    case 'list_people':
+      return await listPeopleTool(apiClient, args);
+    case 'get_person':
+      return await getPersonTool(apiClient, args);
     case 'list_tasks':
       return await listTasksTool(apiClient, args);
     case 'get_project_tasks':
