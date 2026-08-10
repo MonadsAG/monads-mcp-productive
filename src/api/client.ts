@@ -295,7 +295,10 @@ export class ProductiveAPIClient {
     }
 
     if (params?.is_active !== undefined) {
-      queryParams.append('filter[is_active]', params.is_active.toString());
+      // Productive's /people endpoint has no `is_active` filter -- `is_active`
+      // is only a response attribute. The documented filter is
+      // `filter[status]` (1: active, 2: deactivated).
+      queryParams.append('filter[status]', params.is_active ? '1' : '2');
     }
 
     if (params?.email) {
@@ -582,7 +585,10 @@ export class ProductiveAPIClient {
     queryParams.append('filter[project_id]', params.project_id);
 
     if (params.budget_type) {
-      queryParams.append('filter[budget_type]', params.budget_type.toString());
+      // Productive's /deals endpoint has no `budget_type` filter -- `budget_type`
+      // is only a response attribute. The documented filter is `filter[type]`
+      // (1: deal, 2: budget).
+      queryParams.append('filter[type]', params.budget_type.toString());
     }
 
     if (params.limit) {
@@ -1009,7 +1015,9 @@ export class ProductiveAPIClient {
   }): Promise<ProductiveResponse<ProductiveDeal>> {
     const queryParams = new URLSearchParams();
     queryParams.append('filter[type]', '2');
-    if (params.status) queryParams.append('filter[status]', params.status.toString());
+    // Productive's /deals endpoint has no `status` filter for open/closed --
+    // the documented filter is `filter[budget_status]` (1: open, 2: closed).
+    if (params.status) queryParams.append('filter[budget_status]', params.status.toString());
     queryParams.append('filter[company_id]', params.company_id);
     queryParams.append('include', 'project');
     if (params.limit) queryParams.append('page[size]', params.limit.toString());
