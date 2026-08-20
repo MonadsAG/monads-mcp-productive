@@ -240,8 +240,9 @@ function writeBaseline(findings: Finding[], baseline: Baseline): void {
     $comment:
       'Known, accepted deviations between src/api and the official spec. Only findings NOT ' +
       'listed here fail `npm run spec:impact`; this list should shrink over time. Most entries ' +
-      'are spec documentation gaps rather than real API changes: the official schemas omit ' +
-      'attributes the API does return (updated_at, is_active, description on several resources). ' +
+      'are attributes our code reads that the official schemas never documented (updated_at, ' +
+      'is_active, description on several resources) -- the changelog shows no removal for any of ' +
+      'them, but whether the API still returns them is UNVERIFIED against a live org. ' +
       'ignoreNewEndpoints: /api/v2/boards is documented but 404s on our tenant -- we use /api/v2/folders.',
     accepted,
     ignoreNewEndpoints: baseline.ignoreNewEndpoints,
