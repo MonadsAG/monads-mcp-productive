@@ -1,200 +1,426 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Teams
   version: 2.0.0
+description: Named groups of people used for reporting and access control. Teams can be granted access to projects and other resources via memberships. Each team has a list of member people.
+x-filters:
+  team:
+    name:
+      description: Filter by team name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Filter by team name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    color_id:
+      description: Filter by team color ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/teams:
     get:
-      summary: Get teams GET
-      operationId: getTeams
       tags:
-      - Teams
-      parameters:
-      - name: filter[color_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by color_id (string)
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by id (string)
-      - name: filter[name]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by name (string)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - name
-          - -name
-        description: Sort field. Prefix - for descending.
+        - Teams
+      summary: Get teams
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_team'
+      parameters:
+        - $ref: '#/components/parameters/sort_team'
+        - $ref: '#/components/parameters/filter_team'
+        - $ref: '#/components/parameters/header_organization'
+      operationId: teams-index
+      description: List all teams.
     post:
-      summary: Create a team POST
-      operationId: postTeams
       tags:
-      - Teams
-      parameters: []
+        - Teams
+      summary: Create a team
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_team'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/teams/{id}:
-    delete:
-      summary: Deletes a team DELETE
-      operationId: deleteTeamsId
-      tags:
-      - Teams
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: teams-create
+      requestBody:
+        $ref: '#/components/requestBodies/team'
+      description: Create a new team.
+  /api/v2/teams/{id}:
+    get:
+      tags:
+        - Teams
+      summary: Gets a team
+      responses:
+        '200':
+          $ref: '#/components/responses/single_team'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: teams-show
+      description: Retrieve a single team by ID.
+    patch:
+      tags:
+        - Teams
+      summary: Update a team
+      responses:
+        '200':
+          $ref: '#/components/responses/single_team'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: teams-update
+      requestBody:
+        $ref: '#/components/requestBodies/team'
+      description: Update a team.
+    delete:
+      tags:
+        - Teams
+      summary: Deletes a team
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a team GET
-      operationId: getTeamsId
-      tags:
-      - Teams
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: teams-destroy
+      description: Delete a team by ID.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_team:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.team at the top of this file.
+      required: false
+      description: Filters
+    sort_team:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - name
+            - -name
+          type: string
+        title: Sort team
+      explode: false
+      required: false
+      description: Sort team
+  requestBodies:
+    team:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a team PATCH
-      operationId: patchTeamsId
-      tags:
-      - Teams
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    required:
+                      - name
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_team/properties/name'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_team/properties/icon_id'
+                      color_id:
+                        $ref: '#/components/schemas/resource_team/properties/color_id'
+      description: Request body for creating or updating a team. Specify the team name. Members are managed via the team_memberships endpoint.
+  schemas:
+    resource_team:
+      type: object
+      title: Team Resource
+      properties:
+        members:
+          title: Members
+          description: The people who are members of this team.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: A search query used to filter teams by name.
+          example:
+            eq: value
+        icon_id:
+          type: string
+          title: Icon
+          description: The identifier of the icon associated with this team.
+          example:
+            - 123
+        color_id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Color
+          description: The identifier of the color associated with this team.
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this team.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: The name of this team.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this team belongs to.
+          example:
+            eq: value
+      description: Named group of people. Includes the team name and a list of member people (via has_many members). Teams are used for access control (memberships) and reporting groupings.
+      example:
+        id: '123'
+        type: teams
+        attributes:
+          name: Development Team
+          member_count: 8
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    _collection_relationship:
+      anyOf:
+        - type: object
+          title: Collection data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          description: Included variant — related resource identifiers are present in `data`.
+          example:
+            data:
+              - type: tasks
+                id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+  responses:
+    single_team:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_team/properties/name'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_team/properties/icon_id'
+                      color_id:
+                        $ref: '#/components/schemas/resource_team/properties/color_id'
+                  relationships:
+                    type: object
+                    properties:
+                      members:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single team
+    collection_team:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_team/properties/name'
+                        icon_id:
+                          $ref: '#/components/schemas/resource_team/properties/icon_id'
+                        color_id:
+                          $ref: '#/components/schemas/resource_team/properties/color_id'
                     relationships:
                       type: object
+                      properties:
+                        members:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection team

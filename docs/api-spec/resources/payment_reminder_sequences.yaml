@@ -1,188 +1,469 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Productive.io API – Payment Reminder Sequences
+  title: Productive.io API – Payment reminder sequences
   version: 2.0.0
+description: |-
+  The Payment reminder sequence object represents payment reminder templates.
+
+  You can find out more about them in our Help documentation: [Invoice Payment Reminders](https://help.productive.io/en/articles/7907557-invoice-payment-reminders).
+
+  Following diagram shows Payment reminder sequences in our data hierarchy:
+
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  *: {
+    class: default
+  }
+
+  # Define actors
+  payment_reminder_sequence: Payment Reminder Sequence {
+    class: primary
+  }
+  payment_reminder1: Payment Reminder
+  payment_reminder2: Payment Reminder
+  payment_reminder3: Payment Reminder
+
+  # Define connections
+  payment_reminder_sequence -> payment_reminder1
+  payment_reminder_sequence -> payment_reminder2
+  payment_reminder_sequence -> payment_reminder3
+  ```
+x-filters:
+  payment_reminder_sequence:
+    default_sequence:
+      description: Filter by default sequence status; when true, includes only the default payment reminder sequence.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/payment_reminder_sequences:
     get:
-      summary: Get payment reminder sequences GET
-      operationId: getPaymentReminderSequences
       tags:
-      - Payment Reminder Sequences
-      parameters:
-      - name: filter[default_sequence]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by default_sequence (string)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - default_sequence
-          - -default_sequence
-        description: Sort field. Prefix - for descending.
+        - Payment reminder sequences
+      summary: Get payment reminder sequences
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_payment_reminder_sequence'
+      parameters:
+        - $ref: '#/components/parameters/filter_payment_reminder_sequence'
+        - $ref: '#/components/parameters/sort_payment_reminder_sequence'
+        - $ref: '#/components/parameters/header_organization'
+      operationId: payment_reminder_sequences-index
+      description: List all payment reminder sequences.
     post:
-      summary: Create a payment reminder sequence POST
-      operationId: postPaymentReminderSequences
       tags:
-      - Payment Reminder Sequences
-      parameters: []
+        - Payment reminder sequences
+      summary: Create a payment reminder sequence
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
+          $ref: '#/components/responses/single_payment_reminder_sequence'
         '403':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
           description: Forbidden
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/payment_reminder_sequences/{id}:
-    delete:
-      summary: Deletes a payment reminder sequence DELETE
-      operationId: deletePaymentReminderSequencesId
-      tags:
-      - Payment Reminder Sequences
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: payment_reminder_sequences-create
+      requestBody:
+        $ref: '#/components/requestBodies/payment_reminder_sequence'
+      description: Create a new payment reminder sequence.
+  /api/v2/payment_reminder_sequences/{id}:
+    get:
+      tags:
+        - Payment reminder sequences
+      summary: Gets a payment reminder sequence
+      responses:
+        '200':
+          $ref: '#/components/responses/single_payment_reminder_sequence'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: payment_reminder_sequences-show
+      description: Retrieve a single payment reminder sequence by ID.
+    patch:
+      tags:
+        - Payment reminder sequences
+      summary: Update a payment reminder sequence
+      responses:
+        '200':
+          $ref: '#/components/responses/single_payment_reminder_sequence'
+        '403':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Forbidden
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: payment_reminder_sequences-update
+      requestBody:
+        $ref: '#/components/requestBodies/payment_reminder_sequence'
+      description: Update a payment reminder sequence.
+    delete:
+      tags:
+        - Payment reminder sequences
+      summary: Deletes a payment reminder sequence
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a payment reminder sequence GET
-      operationId: getPaymentReminderSequencesId
-      tags:
-      - Payment Reminder Sequences
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
+          description: No Content
+        '403':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
+                type: string
+          description: Forbidden
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: payment_reminder_sequences-destroy
+      description: Delete a payment reminder sequence by ID.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_payment_reminder_sequence:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - default_sequence
+            - -default_sequence
+          type: string
+        title: Sort payment reminder sequence
+      explode: false
+      required: false
+      description: Sort payment reminder sequence
+    filter_payment_reminder_sequence:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.payment_reminder_sequence at the top of this file.
+      required: false
+      description: Filters
+  requestBodies:
+    payment_reminder_sequence:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a payment reminder sequence PATCH
-      operationId: patchPaymentReminderSequencesId
-      tags:
-      - Payment Reminder Sequences
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/name'
+                      default_sequence:
+                        $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/default_sequence'
+      description: Request body for creating or updating a payment reminder sequence.
+  schemas:
+    resource_payment_reminder_sequence:
+      type: object
+      title: Payment reminder sequence Resource
+      properties:
+        default_sequence:
+          type: boolean
+          title: Default Sequence
+          description: When true, this sequence is used as the default reminder sequence for new invoices.
+          example:
+            eq: value
+        updater:
+          title: Updater
+          description: The person who last updated this payment reminder sequence.
+          example:
+            eq: value
+        payment_reminders:
+          title: Payment Reminders
+          description: Array of individual payment reminder steps in this sequence, each defining timing and message content.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this payment reminder sequence.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this payment reminder sequence belongs to.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The name of this payment reminder sequence.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this payment reminder sequence was created.
+          example:
+            gt: '2026-01-01'
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this payment reminder sequence was last updated.
+          example:
+            gt: '2026-01-01'
+      description: The resource payment reminder sequence.
+      example:
+        id: '2'
+        type: payment_reminder_sequences
+        attributes:
+          name: Standard Reminder
+          default: true
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _collection_relationship:
+      anyOf:
+        - type: object
+          title: Collection data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          description: Included variant — related resource identifiers are present in `data`.
+          example:
+            data:
+              - type: tasks
+                id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+  responses:
+    single_payment_reminder_sequence:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/name'
+                      created_at:
+                        $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/created_at'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/updated_at'
+                      default_sequence:
+                        $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/default_sequence'
+                  relationships:
+                    type: object
+                    properties:
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      payment_reminders:
+                        $ref: '#/components/schemas/_collection_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single payment reminder sequence
+    collection_payment_reminder_sequence:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/name'
+                        created_at:
+                          $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/created_at'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/updated_at'
+                        default_sequence:
+                          $ref: '#/components/schemas/resource_payment_reminder_sequence/properties/default_sequence'
                     relationships:
                       type: object
+                      properties:
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        payment_reminders:
+                          $ref: '#/components/schemas/_collection_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection payment reminder sequence

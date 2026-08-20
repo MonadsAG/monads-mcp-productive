@@ -1,206 +1,435 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Holidays
   version: 2.0.0
+description: |-
+  For more details on how to work with holidays please refer to: [Holidays Settings](https://help.productive.io/en/articles/2179650-holidays-settings).  
+  The Holiday entity represents a specific holiday that can be defined within the holiday calendar. One holiday calendar includes multiple holidays. 
+  The primary function of the holiday entity is to define an employee's availability on a specific calendar date based on their defined cost rate ([Salary entity](https://developer-staging.productive.io/salaries.html#salaries)).
+
+  You can find out more about how holidays affect availability and capacity in our Help article: [Capacity vs. Availability: What You Need To Know](https://help.productive.io/en/articles/2651833-capacity-vs-availability-what-you-need-to-know)
+
+  The following diagram shows holidays in our data hierarchy:
+
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  * {
+    class: default
+  }
+
+  # Define actors
+  person: Person
+  holiday_calendar: Holiday Calendar
+  salaries: Salaries
+  holidays: Holidays {
+    class: primary
+  }
+
+  # define connections
+  person -> salaries
+  holiday_calendar -> salaries
+  holiday_calendar -> holidays
+  ```
+x-filters:
+  holiday:
+    after:
+      description: Filter by after.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    holiday_calendar_id:
+      description: Filter by the associated holiday calendar.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    before:
+      description: Filter by before.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/holidays:
     get:
-      summary: Get all holidays GET
-      operationId: getHolidays
       tags:
-      - Holidays
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by id (string)
-      - name: filter[after]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by after (string)
-      - name: filter[before]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by before (string)
-      - name: filter[holiday_calendar_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by holiday_calendar_id (string)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - id
-          - -id
-        description: Sort field. Prefix - for descending.
+        - Holidays
+      summary: Get all holidays
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_holiday'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_holiday'
+        - $ref: '#/components/parameters/sort_holiday'
+      operationId: holidays-index
+      description: List holidays.
     post:
-      summary: Create a holiday POST
-      operationId: postHolidays
       tags:
-      - Holidays
-      parameters: []
+        - Holidays
+      summary: Create a holiday
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_holiday'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/holidays/{id}:
-    delete:
-      summary: Deletes a holiday DELETE
-      operationId: deleteHolidaysId
-      tags:
-      - Holidays
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: holidays-create
+      requestBody:
+        $ref: '#/components/requestBodies/holiday'
+      description: Create a new holiday.
+  /api/v2/holidays/{id}:
+    get:
+      tags:
+        - Holidays
+      summary: Get a holiday
+      responses:
+        '200':
+          $ref: '#/components/responses/single_holiday'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: holidays-show
+      description: Retrieve a single holiday.
+    patch:
+      tags:
+        - Holidays
+      summary: Update a holiday
+      responses:
+        '200':
+          $ref: '#/components/responses/single_holiday'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: holidays-update
+      requestBody:
+        $ref: '#/components/requestBodies/holiday'
+      description: Update a holiday.
+    delete:
+      tags:
+        - Holidays
+      summary: Deletes a holiday
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Get a holiday GET
-      operationId: getHolidaysId
-      tags:
-      - Holidays
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: holidays-destroy
+      description: Delete a holiday.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_holiday:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort holiday
+      explode: false
+      required: false
+      description: Sort holiday
+    filter_holiday:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.holiday at the top of this file.
+      required: false
+      description: Filters
+  requestBodies:
+    holiday:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a holiday PATCH
-      operationId: patchHolidaysId
-      tags:
-      - Holidays
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    required:
+                      - name
+                      - date
+                      - holiday_calendar_id
+                    properties:
+                      date:
+                        $ref: '#/components/schemas/resource_holiday/properties/date'
+                      name:
+                        $ref: '#/components/schemas/resource_holiday/properties/name'
+                      holiday_calendar_id:
+                        $ref: '#/components/schemas/resource_holiday/properties/holiday_calendar_id'
+      description: Request body for creating or updating a holiday.
+  schemas:
+    resource_holiday:
+      type: object
+      title: Holiday Resource
+      properties:
+        before:
+          type: string
+          title: Before
+          format: date
+          description: Filter to return holidays on or before this date.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this holiday entry.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The name of this holiday (e.g. Christmas Day).
+          example:
+            eq: value
+        holiday_calendar:
+          title: Holiday Calendar
+          description: The holiday calendar this holiday belongs to.
+          example:
+            eq: value
+        date:
+          type: string
+          title: Date
+          format: date
+          description: The date of this holiday.
+          example:
+            gt: '2026-01-01'
+        organization:
+          title: Organization
+          description: The organization this holiday belongs to.
+          example:
+            eq: value
+        holiday_calendar_id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Holiday Calendar
+          description: ID of the holiday calendar this holiday belongs to.
+          example:
+            - 123
+        after:
+          type: string
+          title: After
+          format: date
+          description: Filter to return holidays on or after this date.
+          example:
+            eq: value
+      description: A non-working day within a holiday calendar that affects person availability calculations.
+      example:
+        id: '45'
+        type: holidays
+        attributes:
+          name: New Year's Day
+          date: '2026-01-01'
+          half_day: false
+        relationships:
+          holiday_calendar:
+            data:
+              type: holiday_calendars
+              id: '3'
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_holiday:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      date:
+                        $ref: '#/components/schemas/resource_holiday/properties/date'
+                      name:
+                        $ref: '#/components/schemas/resource_holiday/properties/name'
+                  relationships:
+                    type: object
+                    properties:
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      holiday_calendar:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single holiday
+    collection_holiday:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        date:
+                          $ref: '#/components/schemas/resource_holiday/properties/date'
+                        name:
+                          $ref: '#/components/schemas/resource_holiday/properties/name'
                     relationships:
                       type: object
+                      properties:
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        holiday_calendar:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection holiday

@@ -1,189 +1,539 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Project Assignments
   version: 2.0.0
+description: |-
+  **Project assignments** link people to projects, granting access and [Memberships](openapi:group:memberships). They determine which projects appear in a person's task lists and time tracking views.
+
+  Manage assignments to control team composition and project visibility across your organization.
+x-filters:
+  project_assignment:
+    id:
+      description: Filter by project assignment ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_id:
+      description: Filter by specific person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/project_assignments:
     get:
-      summary: Get project assignments GET
-      operationId: getProjectAssignments
       tags:
-      - Project Assignments
-      parameters:
-      - name: filter[project_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by project_id (array)
-      - name: filter[person_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by person_id (array)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Project Assignments
+      summary: Get project assignments
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_project_assignment'
+      parameters:
+        - $ref: '#/components/parameters/sort_project_assignment'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_project_assignment'
+      operationId: project_assignments-index
+      description: List all project assignments.
     post:
-      summary: Create a project assignment POST
-      operationId: postProjectAssignments
       tags:
-      - Project Assignments
-      parameters: []
+        - Project Assignments
+      summary: Create a project assignment
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_project_assignment'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/project_assignments/{id}:
-    delete:
-      summary: Deletes a project assignment DELETE
-      operationId: deleteProjectAssignmentsId
-      tags:
-      - Project Assignments
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: project_assignments-create
+      requestBody:
+        $ref: '#/components/requestBodies/project_assignment'
+      description: Create a new project assignment.
+  /api/v2/project_assignments/{id}:
+    get:
+      tags:
+        - Project Assignments
+      summary: Gets a project assignment
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project_assignment'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: project_assignments-show
+      description: Retrieve a single project assignment by ID.
+    patch:
+      tags:
+        - Project Assignments
+      summary: Update a project assignment
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project_assignment'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: project_assignments-update
+      requestBody:
+        $ref: '#/components/requestBodies/project_assignment'
+      description: Update a project assignment.
+    delete:
+      tags:
+        - Project Assignments
+      summary: Deletes a project assignment
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a project assignment GET
-      operationId: getProjectAssignmentsId
-      tags:
-      - Project Assignments
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: project_assignments-destroy
+      description: Delete a project assignment by ID.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_project_assignment:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.project_assignment at the top of this file.
+      required: false
+      description: Filters
+    sort_project_assignment:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort project assignment
+      explode: false
+      required: false
+      description: Sort project assignment
+  requestBodies:
+    project_assignment:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a project assignment PATCH
-      operationId: patchProjectAssignmentsId
-      tags:
-      - Project Assignments
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    properties:
+                      watched:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/watched'
+                      person_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/person_id'
+                      subscribe:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/subscribe'
+                      project_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/project_id'
+                      preferences:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/preferences'
+                      unsubscribe:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/unsubscribe'
+                      docs_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/docs_filter_id'
+                      deals_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/deals_filter_id'
+                      tasks_layout_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/tasks_layout_id'
+                      budgets_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/budgets_filter_id'
+                      default_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/default_filter_id'
+                      invoices_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/invoices_filter_id'
+      description: Request body for creating or updating a project membership (project assignment).
+  schemas:
+    resource_project_assignment:
+      type: object
+      title: Project assignment Resource
+      properties:
+        default_filter_id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Default Filter
+          description: ID of the saved filter used as the default tasks view for this person in this project.
+          example:
+            - 123
+        favorite_filter:
+          title: Favorite Filter
+          description: The saved filter used as the default tasks view for this person in this project.
+          example:
+            eq: value
+        budgets_favorite_filter:
+          title: Budgets Favorite Filter
+          description: The saved filter used as the default budgets view for this person in this project.
+          example:
+            gt: 0
+        docs_filter_id:
+          type: integer
+          title: Docs Filter
+          description: ID of the saved filter used as the default docs view for this person in this project.
+          example:
+            - 123
+        project:
+          title: Project
+          description: The project this assignment belongs to.
+          example:
+            eq: value
+        deals_filter_id:
+          type: integer
+          title: Deals Filter
+          description: ID of the saved filter used as the default deals view for this person in this project.
+          example:
+            - 123
+        docs_favorite_filter:
+          title: Docs Favorite Filter
+          description: The saved filter used as the default docs view for this person in this project.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this project assignment belongs to.
+          example:
+            eq: value
+        person_id:
+          type: integer
+          title: Person
+          description: ID of the person assigned to this project.
+          example:
+            - 123
+        subscribe:
+          title: Subscribe
+          description: When true, the person is automatically subscribed to notifications for activity on this project.
+          example:
+            eq: value
+        deals_favorite_filter:
+          title: Deals Favorite Filter
+          description: The saved filter used as the default deals view for this person in this project.
+          example:
+            eq: value
+        preferences:
+          type: string
+          title: Preferences
+          description: User-specific preferences for this project assignment, stored as key-value settings.
+          example:
+            eq: value
+        tasks_layout_id:
+          type: integer
+          title: Tasks Layout
+          description: ID of the layout preset used for the tasks view in this project for this person.
+          example:
+            - 123
+        unsubscribe:
+          title: Unsubscribe
+          description: When true, the person is not subscribed to notifications for this project (write-only, use watched to read the current state).
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this project assignment was created.
+          example:
+            gt: '2026-01-01'
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this project assignment.
+          example:
+            - 123
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this assignment belongs to.
+          example:
+            - 123
+        watched:
+          title: Watched
+          description: Whether the person is watching (auto-subscribed to notifications for) this project.
+          example:
+            eq: value
+        person:
+          title: Person
+          description: The person assigned to this project.
+          example:
+            eq: value
+        invoices_filter_id:
+          type: integer
+          title: Invoices Filter
+          description: ID of the saved filter used as the default invoices view for this person in this project.
+          example:
+            - 123
+        budgets_filter_id:
+          type: integer
+          title: Budgets Filter
+          description: ID of the saved filter used as the default budgets view for this person in this project.
+          example:
+            - 123
+        invoices_favorite_filter:
+          title: Invoices Favorite Filter
+          description: The saved filter used as the default invoices view for this person in this project.
+          example:
+            eq: value
+      description: Represents a person's membership in a project, including their notification preferences, default filters, and layout settings.
+      example:
+        id: '123'
+        type: project_assignments
+        attributes: {}
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_project_assignment:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      watched:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/watched'
+                      created_at:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/created_at'
+                      preferences:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/preferences'
+                      docs_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/docs_filter_id'
+                      deals_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/deals_filter_id'
+                      tasks_layout_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/tasks_layout_id'
+                      budgets_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/budgets_filter_id'
+                      default_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/default_filter_id'
+                      invoices_filter_id:
+                        $ref: '#/components/schemas/resource_project_assignment/properties/invoices_filter_id'
+                  relationships:
+                    type: object
+                    properties:
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      favorite_filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      docs_favorite_filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deals_favorite_filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      budgets_favorite_filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      invoices_favorite_filter:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single project assignment
+    collection_project_assignment:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        watched:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/watched'
+                        created_at:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/created_at'
+                        preferences:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/preferences'
+                        docs_filter_id:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/docs_filter_id'
+                        deals_filter_id:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/deals_filter_id'
+                        tasks_layout_id:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/tasks_layout_id'
+                        budgets_filter_id:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/budgets_filter_id'
+                        default_filter_id:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/default_filter_id'
+                        invoices_filter_id:
+                          $ref: '#/components/schemas/resource_project_assignment/properties/invoices_filter_id'
                     relationships:
                       type: object
+                      properties:
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        favorite_filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        docs_favorite_filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deals_favorite_filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        budgets_favorite_filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        invoices_favorite_filter:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection project assignment

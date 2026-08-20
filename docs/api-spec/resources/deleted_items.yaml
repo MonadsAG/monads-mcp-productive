@@ -1,155 +1,417 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Deleted Items
   version: 2.0.0
+description: |-
+  The Deleted item object represents an deleted object (e.g., Task, Project, Doc) that can be found in the Recycle bin.
+
+  Deleted items can be restored, meaning the object they reference will be restored and it will disappear from the Recycle bin.
+  They can also be permanently deleted, meaning the object they reference will no longer be able to be retrieved from the Recycle bin.
+
+  You can find out more about Recycle bin in our Help documentation for [Recycle bin](https://help.productive.io/en/articles/5609401-recycle-bin)
+x-filters:
+  deleted_item:
+    location:
+      description: Filter by the location path where the item was deleted from.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    item_type:
+      description: Filter by the resource type of the deleted item.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    deleter_id:
+      description: Filter by the person who deleted the item.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by deleted item ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by the deleted item's name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Search deleted items by name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by deletion date range (`created_at` on the deleted item record).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/deleted_items:
     get:
-      summary: Get deleted items GET
-      operationId: getDeletedItems
       tags:
-      - Deleted Items
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by id (string)
-      - name: filter[item_type]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by item_type (string)
-      - name: filter[deleter_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by deleter_id (string)
-      - name: filter[name]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by name (string)
-      - name: filter[location]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by location (string)
-      - name: filter[created_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by created_at (date)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Deleted Items
+      summary: Get deleted items
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-  /api/v2/deleted_items/{id}:
-    get:
-      summary: Gets a deleted item GET
-      operationId: getDeletedItemsId
-      tags:
-      - Deleted Items
+          $ref: '#/components/responses/collection_deleted_item'
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_deleted_item'
+        - $ref: '#/components/parameters/sort_deleted_item'
+      operationId: deleted_items-index
+      description: List deleted items in the recycle bin.
   /api/v2/deleted_items/{id}/restore:
     patch:
-      summary: Restores deleted object PATCH
-      operationId: patchDeletedItemsIdRestore
       tags:
-      - Deleted Items
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Deleted Items
+      summary: Restores deleted object
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          $ref: '#/components/responses/single_deleted_item'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: deleted_items-restore-restore
+      description: Restore a deleted item from the recycle bin.
+  /api/v2/deleted_items/{id}:
+    get:
+      tags:
+        - Deleted Items
+      summary: Gets a deleted item
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deleted_item'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: deleted_items-show
+      description: Retrieve a single deleted item.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_deleted_item:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+            - location
+            - -location
+            - name
+            - -name
+          type: string
+        title: Sort deleted item
+      explode: false
+      required: false
+      description: Sort deleted item
+    filter_deleted_item:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.deleted_item at the top of this file.
+      required: false
+      description: Filters
+  responses:
+    single_deleted_item:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_deleted_item/properties/name'
+                      item_id:
+                        $ref: '#/components/schemas/resource_deleted_item/properties/item_id'
+                      private:
+                        $ref: '#/components/schemas/resource_deleted_item/properties/private'
+                      location:
+                        $ref: '#/components/schemas/resource_deleted_item/properties/location'
+                      item_type:
+                        $ref: '#/components/schemas/resource_deleted_item/properties/item_type'
+                      created_at:
+                        $ref: '#/components/schemas/resource_deleted_item/properties/created_at'
+                      deleter_id:
+                        $ref: '#/components/schemas/resource_deleted_item/properties/deleter_id'
+                      recovered_at:
+                        $ref: '#/components/schemas/resource_deleted_item/properties/recovered_at'
+                  relationships:
+                    type: object
+                    properties:
+                      deleter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single deleted item
+    collection_deleted_item:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_deleted_item/properties/name'
+                        item_id:
+                          $ref: '#/components/schemas/resource_deleted_item/properties/item_id'
+                        private:
+                          $ref: '#/components/schemas/resource_deleted_item/properties/private'
+                        location:
+                          $ref: '#/components/schemas/resource_deleted_item/properties/location'
+                        item_type:
+                          $ref: '#/components/schemas/resource_deleted_item/properties/item_type'
+                        created_at:
+                          $ref: '#/components/schemas/resource_deleted_item/properties/created_at'
+                        deleter_id:
+                          $ref: '#/components/schemas/resource_deleted_item/properties/deleter_id'
+                        recovered_at:
+                          $ref: '#/components/schemas/resource_deleted_item/properties/recovered_at'
                     relationships:
                       type: object
+                      properties:
+                        deleter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection deleted item
+  schemas:
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    resource_deleted_item:
+      type: object
+      title: Deleted item Resource
+      properties:
+        organization:
+          title: Organization
+          description: The organization this deleted item belongs to.
+          example:
+            eq: value
+        deleter:
+          title: Deleter
+          description: The person who deleted this item.
+          example:
+            eq: value
+        deleter_id:
+          type: integer
+          title: Deleter
+          description: The ID of the person who deleted this item.
+          example:
+            - 123
+        private:
+          type: boolean
+          title: Private
+          description: Whether this deleted item was marked as private at the time of deletion.
+          example: true
+        location:
+          type: string
+          title: Location
+          description: The location description indicating where the item was before deletion (e.g. project name, folder).
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when the item was deleted.
+          example:
+            gt: '2026-01-01'
+        query:
+          type: string
+          title: Query
+          description: A text search query used to filter deleted items by name.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the deleted item record.
+          example:
+            - 123
+        item_id:
+          type: integer
+          title: Item
+          description: The ID of the original resource that was deleted.
+          example:
+            - 123
+        item_type:
+          type: string
+          title: Item Type
+          description: The type of resource that was deleted (e.g. task, deal, project).
+          example:
+            eq: active
+        name:
+          type: string
+          title: Name
+          description: The name of the deleted item at the time it was deleted.
+          example:
+            eq: value
+        recovered_at:
+          type: string
+          title: Recovered At
+          format: date-time
+          description: Timestamp when this deleted item was restored, or null if it has not been recovered.
+          example:
+            gt: '2026-01-01'
+      description: A soft-deleted record that can be restored from the recycle bin, including the item type, deletion details, and location.
+      example:
+        id: '123'
+        type: deleted_items
+        attributes:
+          item_type: task
+          item_id: '456'
+          deleted_at: '2026-01-15T10:00:00Z'
+          deleted_by: 12
+        relationships: {}

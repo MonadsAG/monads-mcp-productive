@@ -1,181 +1,644 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Pulses
   version: 2.0.0
+description: |-
+  A Pulse is an automated report delivery service that makes it easy to stay updated without having to manually check your reports. You can set up Pulses for any of your reports, choosing how often you’d like to receive them — whether it's daily, weekly, bi-weekly, or monthly. This way, important data arrives straight to your inbox or Slack, keeping you informed at your preferred schedule.
+
+  Email recipients are managed in two ways:
+  - Memberships: link existing Productive users or teams to a pulse (done via the [memberships endpoint](https://developer.productive.io/memberships.html#memberships)).
+  - `recipients` attribute: specify additional email addresses that are not linked to any user in the app.
+
+  More about Pulses in our [help center](https://help.productive.io/en/articles/5178713-using-pulse-to-automate-your-reports)
+x-filters:
+  pulse:
+    creator_id:
+      description: Filter by the person who created the Pulse entry.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    filter_id:
+      description: Filter by the associated saved filter used to generate the Pulse.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subscriber_id:
+      description: Filter by the person subscribed to the Pulse.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/pulses:
     get:
-      summary: Get pulses GET
-      operationId: getPulses
       tags:
-      - Pulses
-      parameters:
-      - name: filter[filter_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by filter_id (array)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Pulses
+      summary: Get pulses
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_pulse'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_pulse'
+        - $ref: '#/components/parameters/filter_pulse'
+      operationId: pulses-index
+      description: List all pulses.
     post:
-      summary: Creates a pulse POST
-      operationId: postPulses
       tags:
-      - Pulses
-      parameters: []
+        - Pulses
+      summary: Creates a pulse
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_pulse'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/pulses/{id}:
-    delete:
-      summary: Deletes a pulse DELETE
-      operationId: deletePulsesId
-      tags:
-      - Pulses
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: pulses-create
+      requestBody:
+        $ref: '#/components/requestBodies/pulse'
+      description: Create a new pulse.
+  /api/v2/pulses/{id}:
+    get:
+      tags:
+        - Pulses
+      summary: Gets a pulse
+      responses:
+        '200':
+          $ref: '#/components/responses/single_pulse'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: pulses-show
+      description: Retrieve a single pulse by ID.
+    patch:
+      tags:
+        - Pulses
+      summary: Updates a pulse
+      responses:
+        '200':
+          $ref: '#/components/responses/single_pulse'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: pulses-update
+      requestBody:
+        $ref: '#/components/requestBodies/pulse'
+      description: Update a pulse.
+    delete:
+      tags:
+        - Pulses
+      summary: Deletes a pulse
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a pulse GET
-      operationId: getPulsesId
-      tags:
-      - Pulses
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: pulses-destroy
+      description: Delete a pulse by ID.
+  /api/v2/pulses/{id}/send:
     patch:
-      summary: Updates a pulse PATCH
-      operationId: patchPulsesId
       tags:
-      - Pulses
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Pulses
+      summary: Send a pulse
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          $ref: '#/components/responses/single_pulse'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: pulses-send-send_pulse
+      description: Send a pulse to recipients.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_pulse:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.pulse at the top of this file.
+      required: false
+      description: Filters
+    sort_pulse:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort pulse
+      explode: false
+      required: false
+      description: Sort pulse
+  responses:
+    single_pulse:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      type_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/type_id'
+                      recipients:
+                        $ref: '#/components/schemas/resource_pulse/properties/recipients'
+                      teams_team:
+                        $ref: '#/components/schemas/resource_pulse/properties/teams_team'
+                      test_pulse:
+                        $ref: '#/components/schemas/resource_pulse/properties/test_pulse'
+                      export_params:
+                        $ref: '#/components/schemas/resource_pulse/properties/export_params'
+                      schedule_hour:
+                        $ref: '#/components/schemas/resource_pulse/properties/schedule_hour'
+                      skip_if_empty:
+                        $ref: '#/components/schemas/resource_pulse/properties/skip_if_empty'
+                      slack_channel:
+                        $ref: '#/components/schemas/resource_pulse/properties/slack_channel'
+                      teams_channel:
+                        $ref: '#/components/schemas/resource_pulse/properties/teams_channel'
+                      deactivated_at:
+                        $ref: '#/components/schemas/resource_pulse/properties/deactivated_at'
+                      schedule_day_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/schedule_day_id'
+                      schedule_frame_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/schedule_frame_id'
+                      document_format_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/document_format_id'
+                      repeat_schedule_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/repeat_schedule_id'
+                  relationships:
+                    type: object
+                    properties:
+                      filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      memberships:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single pulse
+    collection_pulse:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        type_id:
+                          $ref: '#/components/schemas/resource_pulse/properties/type_id'
+                        recipients:
+                          $ref: '#/components/schemas/resource_pulse/properties/recipients'
+                        teams_team:
+                          $ref: '#/components/schemas/resource_pulse/properties/teams_team'
+                        test_pulse:
+                          $ref: '#/components/schemas/resource_pulse/properties/test_pulse'
+                        export_params:
+                          $ref: '#/components/schemas/resource_pulse/properties/export_params'
+                        schedule_hour:
+                          $ref: '#/components/schemas/resource_pulse/properties/schedule_hour'
+                        skip_if_empty:
+                          $ref: '#/components/schemas/resource_pulse/properties/skip_if_empty'
+                        slack_channel:
+                          $ref: '#/components/schemas/resource_pulse/properties/slack_channel'
+                        teams_channel:
+                          $ref: '#/components/schemas/resource_pulse/properties/teams_channel'
+                        deactivated_at:
+                          $ref: '#/components/schemas/resource_pulse/properties/deactivated_at'
+                        schedule_day_id:
+                          $ref: '#/components/schemas/resource_pulse/properties/schedule_day_id'
+                        schedule_frame_id:
+                          $ref: '#/components/schemas/resource_pulse/properties/schedule_frame_id'
+                        document_format_id:
+                          $ref: '#/components/schemas/resource_pulse/properties/document_format_id'
+                        repeat_schedule_id:
+                          $ref: '#/components/schemas/resource_pulse/properties/repeat_schedule_id'
                     relationships:
                       type: object
+                      properties:
+                        filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        memberships:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection pulse
+  schemas:
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    _collection_relationship:
+      anyOf:
+        - type: object
+          title: Collection data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          description: Included variant — related resource identifiers are present in `data`.
+          example:
+            data:
+              - type: tasks
+                id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    resource_pulse:
+      type: object
+      title: Pulse Resource
+      properties:
+        schedule_day_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+            - 7
+          type: integer
+          title: Schedule Day
+          description: The ID of the day within the repeat schedule on which the pulse is sent.
+          example:
+            - 123
+        export_params:
+          type: object
+          title: Export Params
+          description: Export configuration parameters for the report attached to this pulse.
+          example:
+            eq: value
+        schedule_frame_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Schedule Frame
+          description: The ID of the schedule frame (e.g. this week, last month) for the report period.
+          example:
+            - 123
+        filter:
+          title: Filter
+          description: The saved filter (report) delivered by this pulse.
+          example:
+            eq: value
+        teams_channel:
+          type: string
+          title: Teams Channel
+          description: The Microsoft Teams channel name within the team where pulse notifications are delivered.
+          example:
+            eq: value
+        memberships:
+          title: Memberships
+          description: The memberships (recipients) that have access to this pulse.
+          example:
+            eq: value
+        repeat_schedule_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+          type: integer
+          title: Repeat Schedule
+          description: The ID of the repeat schedule setting (e.g. daily, weekly, monthly).
+          example:
+            - 123
+        skip_if_empty:
+          type: boolean
+          title: Skip If Empty
+          description: When true, the pulse is not sent if the report contains no data.
+          example:
+            eq: value
+        version:
+          type: integer
+          title: Version
+          description: The version number of this pulse configuration, incremented on each update.
+          example:
+            eq: value
+        filter_id:
+          type: integer
+          title: Filter
+          description: The ID of the saved filter (report) delivered by this pulse.
+          example:
+            - 123
+        document_format_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Document Format
+          description: The ID of the document format used when exporting the report.
+          example:
+            - 123
+        deactivated_at:
+          type: string
+          title: Deactivated At
+          format: date-time
+          description: Timestamp when the pulse was deactivated, or null if still active.
+          example:
+            gt: '2026-01-01'
+        slack_channel:
+          type: string
+          title: Slack Channel
+          description: The Slack channel where this pulse is delivered, if configured.
+          example:
+            eq: value
+        type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Type
+          description: ID of the pulse delivery type (email, Slack, or Microsoft Teams).
+          example:
+            - 123
+        test_pulse:
+          type: boolean
+          title: Test Pulse
+          description: When true, this is a test pulse used for previewing output without sending to real recipients.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the pulse.
+          example:
+            - 123
+        creator_id:
+          type: integer
+          title: Creator
+          description: The ID of the person who created this pulse.
+          example:
+            - 123
+        subscriber_id:
+          type: integer
+          title: Subscriber
+          description: ID of the person subscribed to receive this pulse.
+          example:
+            - 123
+        recipients:
+          type: object
+          title: Recipients
+          description: Email addresses of recipients who receive this pulse delivery.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this pulse.
+          example:
+            eq: value
+        teams_team:
+          type: string
+          title: Teams Team
+          description: The Microsoft Teams team name where pulse notifications are delivered.
+          example:
+            eq: value
+        schedule_hour:
+          type: integer
+          title: Schedule Hour
+          description: The hour of the day (0-23) when the pulse is sent.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this pulse belongs to.
+          example:
+            eq: value
+      description: A pulse (scheduled report delivery) that sends a saved report to recipients via email or Slack on a recurring schedule.
+      example:
+        id: '123'
+        type: pulses
+        attributes:
+          score: 8
+          response_at: '2026-01-15T10:00:00Z'
+          person_id: 12
+        relationships: {}
+  requestBodies:
+    pulse:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      type_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/type_id'
+                      version:
+                        $ref: '#/components/schemas/resource_pulse/properties/version'
+                      filter_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/filter_id'
+                      recipients:
+                        $ref: '#/components/schemas/resource_pulse/properties/recipients'
+                      teams_team:
+                        $ref: '#/components/schemas/resource_pulse/properties/teams_team'
+                      test_pulse:
+                        $ref: '#/components/schemas/resource_pulse/properties/test_pulse'
+                      export_params:
+                        $ref: '#/components/schemas/resource_pulse/properties/export_params'
+                      schedule_hour:
+                        $ref: '#/components/schemas/resource_pulse/properties/schedule_hour'
+                      skip_if_empty:
+                        $ref: '#/components/schemas/resource_pulse/properties/skip_if_empty'
+                      slack_channel:
+                        $ref: '#/components/schemas/resource_pulse/properties/slack_channel'
+                      teams_channel:
+                        $ref: '#/components/schemas/resource_pulse/properties/teams_channel'
+                      schedule_day_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/schedule_day_id'
+                      schedule_frame_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/schedule_frame_id'
+                      document_format_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/document_format_id'
+                      repeat_schedule_id:
+                        $ref: '#/components/schemas/resource_pulse/properties/repeat_schedule_id'
+      description: Request body for creating or updating a pulse.

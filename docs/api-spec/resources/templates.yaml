@@ -1,0 +1,678 @@
+openapi: 3.1.0
+info:
+  title: Productive.io API – Templates
+  version: 2.0.0
+description: Reusable starting points for projects, budgets, deals, and pages. Each template wraps a real entity (its `target`) created with template semantics; the `target_type` discriminator determines the per-target shape required when creating a new template.
+x-filters:
+  template:
+    query:
+      description: Free-text query — matches against the wrapped target name.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Numeric identifier of the template.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    target_type:
+      description: Identifies which entity type the template wraps. On create, selects the per-target `model_attributes` shape. `task` is read-only.
+      operators:
+        - eq
+        - not_eq
+    task_project_id:
+      description: Filter-only field — limits task templates (`target_type=task`) to those whose underlying task belongs to the given project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    target_id:
+      description: Id of the wrapped target.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Project identifier — filterable to scope templates to a specific project context.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+paths:
+  /api/v2/templates:
+    get:
+      tags:
+        - Templates
+      summary: Get templates
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_template'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_template'
+        - $ref: '#/components/parameters/sort_template'
+      operationId: templates-index
+      description: List templates the requester has access to. Supports filtering by id, project, target type (with `deal`/`budget` discriminated via the underlying quote), free-text query, and a task-template-only `task_project_id` filter.
+    post:
+      tags:
+        - Templates
+      summary: Create a template
+      responses:
+        '201':
+          $ref: '#/components/responses/single_template'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Validation error — for example, missing or invalid `target_type`, or a per-target permission failure.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: templates-create
+      requestBody:
+        $ref: '#/components/requestBodies/template'
+      description: |-
+        Create a new template. The `attributes.target_type` field is a discriminator that selects one of four creation paths, each with its own required `model_attributes` shape and permission check.
+
+        | target_type | Creates | Required `model_attributes` keys | Permission |
+        |---|---|---|---|
+        | `project` | Empty workspace (no copy support — see `/projects/copy`) | `client_id`, `project_manager_id`, `project_type_id`, `workflow_id` | `projects.manage` (project manager) |
+        | `budget` | New quote (or copies one when `target_id` is set) | none required; optional `editor_config`, `tracking_type_id`, `color_id` | `can_manage_budgets?` |
+        | `deal` | New quote (or copies one when `target_id` is set) | none required; optional `editor_config`, `color_id`, `retainer_interval` / `retainer_interval_count` (retainer feature only) | `can_manage_deals?` |
+        | `page` | New page (or copies one when `target_id` is set); supports `copy_attributes.copy_memberships` and `copy_attributes.copy_subpages` | none | `can_manage_docs?` |
+
+        ### Create a project template (fresh workspace)
+        ```json
+        {
+          "data": {
+            "type": "templates",
+            "attributes": {
+              "name": "Onboarding playbook",
+              "description": "Standard intake project for new clients.",
+              "target_type": "project",
+              "model_attributes": {
+                "client_id": 412,
+                "project_manager_id": 13,
+                "project_type_id": 2,
+                "workflow_id": 1,
+                "project_color_id": 5
+              }
+            }
+          }
+        }
+        ```
+
+        ### Create a budget template (fresh quote)
+        ```json
+        {
+          "data": {
+            "type": "templates",
+            "attributes": {
+              "name": "Standard retainer scaffold",
+              "target_type": "budget",
+              "model_attributes": {
+                "tracking_type_id": 1,
+                "color_id": 5
+              }
+            }
+          }
+        }
+        ```
+
+        ### Create a budget template by copying an existing budget
+        ```json
+        {
+          "data": {
+            "type": "templates",
+            "attributes": {
+              "name": "Q3 enterprise migration template",
+              "target_type": "budget",
+              "target_id": "98231",
+              "model_attributes": { "color_id": 5 }
+            }
+          }
+        }
+        ```
+
+        ### Create a deal template
+        ```json
+        {
+          "data": {
+            "type": "templates",
+            "attributes": {
+              "name": "Standard outbound deal",
+              "target_type": "deal",
+              "model_attributes": {
+                "color_id": 5,
+                "retainer_interval": "month",
+                "retainer_interval_count": 12
+              }
+            }
+          }
+        }
+        ```
+
+        ### Create a page template by copying an existing page
+        ```json
+        {
+          "data": {
+            "type": "templates",
+            "attributes": {
+              "name": "Engineering RFC template",
+              "target_type": "page",
+              "target_id": "55421",
+              "copy_attributes": { "copy_memberships": false, "copy_subpages": true }
+            }
+          }
+        }
+        ```
+
+        **Save as Template** — to create a project template from an **existing** project (boards, tasks, settings copied), use [`POST /projects/copy`](#tag/Projects/operation/projects-copy) with `attributes.copy_as_template: true`. The `target_type=project` path on this endpoint only creates a **fresh, empty** template.
+  /api/v2/templates/{id}:
+    get:
+      tags:
+        - Templates
+      summary: Gets a template
+      responses:
+        '200':
+          $ref: '#/components/responses/single_template'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Numeric template id.
+      operationId: templates-show
+      description: Fetch a single template by id.
+    patch:
+      tags:
+        - Templates
+      summary: Update a template
+      responses:
+        '200':
+          $ref: '#/components/responses/single_template'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Validation error from the target-specific update form.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Numeric template id.
+        - $ref: '#/components/parameters/header_organization'
+      operationId: templates-update
+      requestBody:
+        $ref: '#/components/requestBodies/template'
+      description: |-
+        Update a template's name, description, and target-specific fields inside `model_attributes`. The dispatcher routes to a target-aware form: `deal` updates retainer fields (when the retainer feature is enabled), `budget` updates color (propagated to the underlying budget). Renaming a template also renames the wrapped target.
+
+        ### Rename a template
+        ```json
+        { "data": { "type": "templates", "attributes": { "name": "Onboarding playbook v2" } } }
+        ```
+
+        ### Update a deal template's retainer cadence
+        ```json
+        {
+          "data": {
+            "type": "templates",
+            "attributes": {
+              "model_attributes": {
+                "retainer_interval": "month",
+                "retainer_interval_count": 6
+              }
+            }
+          }
+        }
+        ```
+
+        ### Update a budget template's color
+        ```json
+        {
+          "data": {
+            "type": "templates",
+            "attributes": { "model_attributes": { "color_id": 7 } }
+          }
+        }
+        ```
+    delete:
+      tags:
+        - Templates
+      summary: Deletes a template
+      responses:
+        '204':
+          description: Template soft-deleted successfully.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Numeric template id.
+      operationId: templates-destroy
+      description: Soft-delete a template and its wrapped target. The deletion is recorded in `deleted_items` and is recoverable from Trash.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_template:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+            - id
+            - -id
+            - project_id
+            - -project_id
+            - target_id
+            - -target_id
+            - target_type
+            - -target_type
+            - updated_at
+            - -updated_at
+          type: string
+        title: Sort template
+      explode: false
+      required: false
+      description: Sort the templates collection by one or more fields. Prefix a field with `-` for descending order.
+    filter_template:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.template at the top of this file.
+      required: false
+      description: Filter the templates collection. Accepts a deepObject of operator-keyed fields (see `_filter_root_template`).
+  requestBodies:
+    template:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_template/properties/name'
+                      target_id:
+                        $ref: '#/components/schemas/resource_template/properties/target_id'
+                      description:
+                        $ref: '#/components/schemas/resource_template/properties/description'
+                      target_type:
+                        $ref: '#/components/schemas/resource_template/properties/target_type'
+                      copy_attributes:
+                        $ref: '#/components/schemas/resource_template/properties/copy_attributes'
+                      model_attributes:
+                        $ref: '#/components/schemas/resource_template/properties/model_attributes'
+      description: JSON:API payload for creating or updating a template. `attributes.target_type` discriminates which `model_attributes` keys are required.
+  schemas:
+    resource_template:
+      type: object
+      title: Template Resource
+      properties:
+        copy_attributes:
+          type: object
+          title: Copy Attributes
+          additionalProperties: true
+          description: Form-only copy-behavior flags applied when `target_id` is supplied. See the create endpoint for per-target options.
+          example:
+            copy_memberships: true
+            copy_subpages: true
+        deal:
+          title: Deal
+          description: Deal target when `target_type` is `deal`.
+          example:
+            data: null
+        project:
+          title: Project
+          description: Project this template was scoped under (denormalized via the wrapped target).
+          example:
+            data:
+              type: projects
+              id: '258974'
+        name:
+          type: string
+          title: Name
+          maxLength: 255
+          description: Display name of the template. Required on create. Updates also rename the wrapped target.
+          example: 'Offboarding: General'
+        description:
+          type: string
+          title: Description
+          nullable: true
+          description: Free-text note attached to the template.
+          example: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+        id:
+          type: integer
+          title: Id
+          description: Numeric identifier of the template.
+          example: '18'
+        page:
+          title: Page
+          description: Page target when `target_type` is `page`.
+          example:
+            data: null
+        creator:
+          title: Creator
+          description: Person who created the template.
+          example:
+            data:
+              type: people
+              id: '13'
+        query:
+          type: string
+          title: Query
+          description: Free-text query — matches against the wrapped target name.
+          example: offboarding
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp of the most recent change to the template.
+          example: '2026-04-29T12:27:06.627+02:00'
+        color_id:
+          type: integer
+          title: Color
+          nullable: true
+          description: Color label assigned to the template.
+          example: null
+        target_type:
+          enum:
+            - budget
+            - deal
+            - project
+            - page
+            - task
+            - report
+          type: string
+          title: Target Type
+          description: Identifies which entity type the template wraps. On create, selects the per-target `model_attributes` shape. `task` is read-only.
+          example: project
+        task:
+          title: Task
+          description: Task target when `target_type` is `task`.
+          example:
+            data: null
+        project_id:
+          type: integer
+          title: Project
+          description: Project identifier — filterable to scope templates to a specific project context.
+          example: 271026
+        deleted_at:
+          type: string
+          title: Deleted At
+          format: date-time
+          nullable: true
+          description: Timestamp marking soft deletion. Non-null values mean the template is in Trash and recoverable via the `/deleted_items` endpoint.
+          example: null
+        model_attributes:
+          type: object
+          title: Model Attributes
+          additionalProperties: true
+          description: Form-only polymorphic input bag. Required keys depend on `target_type` — see the create endpoint description for the per-target schema.
+          example:
+            client_id: 412
+            project_manager_id: 13
+            project_type_id: 2
+            workflow_id: 1
+            project_color_id: 5
+        task_project_id:
+          type: integer
+          title: Task Project
+          description: Filter-only field — limits task templates (`target_type=task`) to those whose underlying task belongs to the given project.
+          example: 271026
+        target_id:
+          type: integer
+          title: Target
+          description: Id of the wrapped target.
+          example: '258974'
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp of when the template was created.
+          example: '2023-01-24T14:08:06.857+01:00'
+      description: Reusable starting point for a project, budget, deal, or page. Each template wraps a real entity (its `target`) created with template semantics; `target_type` discriminates the polymorphic create payload.
+      example:
+        type: templates
+        id: '18'
+        attributes:
+          name: 'Offboarding: General'
+          description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+          target_id: '258974'
+          target_type: project
+          color_id: null
+          created_at: '2023-01-24T14:08:06.857+01:00'
+          updated_at: '2026-04-29T12:27:06.627+02:00'
+          deleted_at: null
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_template:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_template/properties/name'
+                      color_id:
+                        $ref: '#/components/schemas/resource_template/properties/color_id'
+                      target_id:
+                        $ref: '#/components/schemas/resource_template/properties/target_id'
+                      created_at:
+                        $ref: '#/components/schemas/resource_template/properties/created_at'
+                      deleted_at:
+                        $ref: '#/components/schemas/resource_template/properties/deleted_at'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_template/properties/updated_at'
+                      description:
+                        $ref: '#/components/schemas/resource_template/properties/description'
+                      target_type:
+                        $ref: '#/components/schemas/resource_template/properties/target_type'
+                  relationships:
+                    type: object
+                    properties:
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      page:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Successful response containing the requested template.
+    collection_template:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_template/properties/name'
+                        color_id:
+                          $ref: '#/components/schemas/resource_template/properties/color_id'
+                        target_id:
+                          $ref: '#/components/schemas/resource_template/properties/target_id'
+                        created_at:
+                          $ref: '#/components/schemas/resource_template/properties/created_at'
+                        deleted_at:
+                          $ref: '#/components/schemas/resource_template/properties/deleted_at'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_template/properties/updated_at'
+                        description:
+                          $ref: '#/components/schemas/resource_template/properties/description'
+                        target_type:
+                          $ref: '#/components/schemas/resource_template/properties/target_type'
+                    relationships:
+                      type: object
+                      properties:
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        page:
+                          $ref: '#/components/schemas/_single_relationship'
+                        task:
+                          $ref: '#/components/schemas/_single_relationship'
+                        filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Successful response containing a paginated list of templates.

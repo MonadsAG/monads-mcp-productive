@@ -1,252 +1,492 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Contracts
   version: 2.0.0
+description: |-
+  For more details on contracts please refer to the [help article](https://help.productive.io/en/articles/2179582-recurring-budgets).
+
+  The contract object represents recurring financial commitments such as recurring budgets. Recurring commitments are either created automatically or triggered manually.
+
+  Please note that we rate limit POST requests for generating recurring budgets to 50 requests per minute.
+x-filters:
+  contract:
+    starts_on:
+      description: Filter by contract start date range (`starts_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    contract_interval_id:
+      description: Filter by the associated contract interval.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    ends_on:
+      description: Filter by contract end date range (`ends_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by contract ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    next_occurrence_on:
+      description: Filter by next occurrence date range (`next_occurrence_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/contracts:
     get:
-      summary: Get contracts GET
-      operationId: getContracts
       tags:
-      - Contracts
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by id (integer)
-      - name: filter[contract_interval_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by contract_interval_id (integer)
-      - name: filter[starts_on]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by starts_on (date)
-      - name: filter[ends_on]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by ends_on (date)
-      - name: filter[next_occurrence_on]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by next_occurrence_on (date)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Contracts
+      summary: Get contracts
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_contract'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_contract'
+        - $ref: '#/components/parameters/filter_contract'
+      operationId: contracts-index
+      description: List contracts with optional filters and pagination.
     post:
-      summary: Create a contract POST
-      operationId: postContracts
       tags:
-      - Contracts
-      parameters: []
+        - Contracts
+      summary: Create a contract
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_contract'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/contracts/{id}:
-    delete:
-      summary: Deletes a contract DELETE
-      operationId: deleteContractsId
-      tags:
-      - Contracts
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: contracts-create
+      requestBody:
+        $ref: '#/components/requestBodies/contract'
+      description: Create a new contract.
+  /api/v2/contracts/{id}:
+    get:
+      tags:
+        - Contracts
+      summary: Gets a contract
+      responses:
+        '200':
+          $ref: '#/components/responses/single_contract'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: contracts-show
+      description: Retrieve a single contract by ID.
+    patch:
+      tags:
+        - Contracts
+      summary: Update a contract
+      responses:
+        '200':
+          $ref: '#/components/responses/single_contract'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: contracts-update
+      requestBody:
+        $ref: '#/components/requestBodies/contract'
+      description: Update a contract.
+    delete:
+      tags:
+        - Contracts
+      summary: Deletes a contract
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a contract GET
-      operationId: getContractsId
-      tags:
-      - Contracts
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a contract PATCH
-      operationId: patchContractsId
-      tags:
-      - Contracts
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: contracts-destroy
+      description: Delete a contract.
   /api/v2/contracts/{id}/generate:
     post:
-      summary: Generates new budget POST
-      operationId: postContractsIdGenerate
       tags:
-      - Contracts
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Contracts
+      summary: Generates new budget
       responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        '200':
+          $ref: '#/components/responses/single_contract'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: contracts-generate-generate
+      description: Generate a contract.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_contract:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.contract at the top of this file.
+      required: false
+      description: Filters
+    sort_contract:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort contract
+      explode: false
+      required: false
+      description: Sort contract
+  responses:
+    single_contract:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      ends_on:
+                        $ref: '#/components/schemas/resource_contract/properties/ends_on'
+                      starts_on:
+                        $ref: '#/components/schemas/resource_contract/properties/starts_on'
+                      interval_id:
+                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                      copy_expenses:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
+                      next_occurrence_on:
+                        $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                      use_rollover_hours:
+                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
+                      copy_purchase_order_number:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                  relationships:
+                    type: object
+                    properties:
+                      template:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single contract
+    collection_contract:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        ends_on:
+                          $ref: '#/components/schemas/resource_contract/properties/ends_on'
+                        starts_on:
+                          $ref: '#/components/schemas/resource_contract/properties/starts_on'
+                        interval_id:
+                          $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                        copy_expenses:
+                          $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
+                        next_occurrence_on:
+                          $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                        use_rollover_hours:
+                          $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
+                        copy_purchase_order_number:
+                          $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
                     relationships:
                       type: object
+                      properties:
+                        template:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection contract
+  schemas:
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    resource_contract:
+      type: object
+      title: Contract Resource
+      properties:
+        template_id:
+          title: Template
+          description: ID of the budget used as the template for generating new budgets from this contract.
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this contract.
+          example:
+            - 123
+        template:
+          title: Template
+          description: The budget used as the template for generating new budgets from this contract.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this contract belongs to.
+          example:
+            eq: value
+        next_occurrence_on:
+          type: string
+          title: Next Occurrence On
+          format: date
+          description: The date of the next occurrence.
+          example:
+            eq: value
+        copy_expenses:
+          type: boolean
+          title: Copy Expenses
+          description: Whether to copy expenses from the template.
+          example:
+            eq: value
+        starts_on:
+          type: string
+          title: Starts On
+          format: date
+          description: Date when this contract starts.
+          example:
+            eq: value
+        use_rollover_hours:
+          type: boolean
+          title: Use Rollover Hours
+          description: Whether to roll over unused hours.
+          example:
+            eq: value
+        interval_id:
+          type: integer
+          title: Interval
+          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
+          example:
+            - 123
+        contract_interval_id:
+          type: integer
+          title: Contract Interval
+          description: ID of the recurrence interval (e.g. monthly, quarterly, annually) for this contract.
+          example:
+            - 123
+        copy_purchase_order_number:
+          type: boolean
+          title: Copy Purchase Order Number
+          description: Whether to copy the purchase order number.
+          example: PO-2024-017
+        ends_on:
+          type: string
+          title: Ends On
+          format: date
+          description: Date when this contract ends, or null if it has no end date.
+          example:
+            eq: value
+      description: A recurring retainer contract that auto-generates budgets at set intervals with optional rollover of unused amounts.
+      example:
+        id: '11'
+        type: contracts
+        attributes:
+          name: Master Services Agreement
+          status: active
+          start_date: '2026-01-01'
+          end_date: '2026-12-31'
+          created_at: '2026-01-01T00:00:00.000+00:00'
+        relationships:
+          company:
+            data:
+              type: companies
+              id: '65111'
+  requestBodies:
+    contract:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    required:
+                      - interval_id
+                      - template_id
+                    properties:
+                      ends_on:
+                        $ref: '#/components/schemas/resource_contract/properties/ends_on'
+                      interval_id:
+                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                      template_id:
+                        $ref: '#/components/schemas/resource_contract/properties/template_id'
+                      copy_expenses:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
+                      next_occurrence_on:
+                        $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                      use_rollover_hours:
+                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
+                      copy_purchase_order_number:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+      description: Request body for creating or updating a contract (recurring retainer). Specify the template deal, interval (monthly, quarterly, etc.), start and end dates, and options for rolling over hours and copying purchase order numbers and expenses.

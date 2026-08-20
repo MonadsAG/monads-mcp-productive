@@ -1,15 +1,18 @@
 # Productive.io API Spec – Claude Code Context
 
-Dieses Verzeichnis enthält die OpenAPI 3.0 Spec für die Productive.io API,
-generiert aus der offiziellen Dokumentation (https://developer.productive.io).
+Dieses Verzeichnis enthält die **offizielle** OpenAPI 3.1 Spec der Productive.io API,
+heruntergeladen von <https://developer.productive.io/reference/download_spec>.
+Nicht mehr gescraped — Productive veröffentlicht die Spec selbst.
 
-## Spec generieren / aktualisieren
+## Spec aktualisieren
 
 ```bash
-cd docs/api-spec
-pip install requests beautifulsoup4 pyyaml   # einmalig
-python productive_to_openapi.py              # erzeugt productive-openapi.yaml + CHANGELOG.md
+npm run spec:sync      # Spec laden, splitten, CHANGELOG.md fortschreiben
+npm run spec:impact    # prüfen, ob src/api noch zur Spec passt
 ```
+
+Montags läuft das automatisch (`.github/workflows/api-spec-sync.yml`) und öffnet
+bei Änderungen einen PR mit Impact-Analyse.
 
 ## API Basics
 
@@ -47,6 +50,13 @@ python productive_to_openapi.py              # erzeugt productive-openapi.yaml +
 
 Operatoren: `eq`, `not_eq`, `contains`, `not_contain`, `gt`, `gt_eq`, `lt`, `lt_eq`
 
+**Gültige Filter-Keys stehen im `x-filters`-Block von `resources/{slug}.yaml`** —
+pro Key mit Beschreibung und unterstützten Operatoren. Productive antwortet auf
+unbekannte Keys mit 422; Filter-Keys heissen oft anders als das gleichnamige
+Response-Attribut (`person.is_active` → `filter[status]`).
+
+Beim manuellen Curlen dieser Endpoints `-g`/`--globoff` übergeben — curl interpretiert nackte `[`/`]` in einer URL als eigene Range-Globbing-Syntax und verstümmelt `filter[x]=y` sonst stillschweigend.
+
 ### Pagination
 
 ```
@@ -82,6 +92,10 @@ Operatoren: `eq`, `not_eq`, `contains`, `not_contain`, `gt`, `gt_eq`, `lt`, `lt_
 
 ## Spec lesen
 
-1. **Index lesen:** `docs/api-spec/resources/_index.yaml` — Überblick aller Resources + Endpoints
-2. **Detail lesen:** `docs/api-spec/resources/{resource}.yaml` — vollständige Spec einer Resource
-3. **Vollständige Spec:** `docs/api-spec/productive-openapi.yaml` — nur für Codegen, NICHT direkt lesen
+1. **Index lesen:** `docs/api-spec/resources/_index.yaml` — alle Resources, Beschreibung + Endpoints
+2. **Detail lesen:** `docs/api-spec/resources/{resource}.yaml` — eigenständige Spec einer Resource:
+   `x-filters` (gültige Filter-Keys), `paths` (Operationen), `components.schemas`
+   (`resource_*` = Response-Attribute)
+3. **Reports:** `docs/api-spec/resources/reports/{report}.yaml` — der `Reports`-Tag ist zu gross
+   für eine Datei und liegt pro Endpoint getrennt
+4. **Vollständige Spec:** `docs/api-spec/productive-openapi.yaml` — nur für Codegen, NICHT direkt lesen

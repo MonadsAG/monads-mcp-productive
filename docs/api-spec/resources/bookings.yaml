@@ -1,450 +1,1294 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Bookings
   version: 2.0.0
+description: |-
+  The Booking object represents a scheduled time allocation for a person, serving as a core component for tracking time, managing availability, and organizing resource allocation. There are two main types of bookings:
+
+  1. Budget bookings - where a person is allocated to work on a specific deal/budget. These bookings are linked to a [service](https://developer.productive.io/services.html#services) object, which represents the actual work being done.
+
+  2. Absence bookings - which track time off and remote work absences. These bookings are linked to an [event](https://developer.productive.io/events.html#events) object, representing the type of absence (time off or remote work).
+
+  Each booking method defines how time is allocated and requires specific attributes to be set: Per day (requires `hours` and `time` attributes to specify hours and time for each day), Percentage (requires `percentage` attribute to allocate a portion of a person's available time) and Total hours (requires `total_time` attribute to specify the total amount of hours for the selected period).
+
+  Bookings can have different states depending on their type:
+  - Budget bookings can be either Tentative (when there's a possibility of the time allocation but it's not yet confirmed, indicated by `draft: true`) or Confirmed
+  - Absence bookings go through an approval workflow with the following states: Pending (waiting for approval), Approved, Rejected (with a reason), or Canceled (if cancelled after submitting for approval)
+
+  Bookings can also be customized with custom fields to store additional information about booking. Custom fields allow you to add custom attributes or any other metadata relevant to your booking workflow. For more details on how to work with custom fields please refer to [Working with custom fields](https://developer.productive.io/working_with_custom_fields.html#working_with_custom_fields) guide.
+
+  The following diagram shows bookings in our data hierarchy:
+
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  *: {
+    class: default
+  }
+
+  # Define actors
+  person: Person
+  service: Service
+  event: Event
+  booking: Booking {
+    class: primary
+  }
+
+  # Define connections
+  person -> booking
+  service -> booking
+  event -> booking
+  ```
+x-filters:
+  booking:
+    person_type:
+      description: Filter by the type of person assigned (e.g. employee, contractor, placeholder).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    canceled:
+      description: Filter by whether the booking has been canceled (true = canceled, false = not canceled).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    approved_at:
+      description: Filter by approval date range (approved_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    after:
+      description: Filter bookings that overlap with or start after a given date.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    stage_type:
+      description: Filter by the stage type of the booking's associated deal.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status:
+      description: Filter by booking status (e.g. pending, approved, rejected).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    approver_id:
+      description: Filter by the person who approved the booking.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    billing_type_id:
+      description: Filter by billing type.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    booking_type:
+      description: Filter by booking type — project booking or absence booking.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    ended_on:
+      description: Filter by booking end date range (ended_on).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by booking creation date range (created_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    task_id:
+      description: Filter by the associated task.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    custom_fields:
+      description: Filter by custom field values.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_id:
+      description: Filter by the booked person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    tags:
+      description: Filter by tag.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    budget_id:
+      description: Filter by the ID of the budget (deal) associated with the booking's service.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    started_on:
+      description: Filter by booking start date range (started_on).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    people_custom_fields:
+      description: Filter by custom field values on the booked person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    before:
+      description: Filter bookings that overlap with or end before a given date.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    origin_id:
+      description: Filter by the origin booking ID (the source booking this was created from).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_type:
+      description: Filter by project type (e.g. billable or internal).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    canceled_at:
+      description: Filter by cancellation date range (canceled_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    autotracking:
+      description: Filter by whether the booking uses automatic time tracking.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by booking ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    draft:
+      description: Filter by whether the booking is a draft (tentative) or confirmed.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    event_id:
+      description: Filter by the ID of the absence event category (e.g. vacation, sick leave).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    with_draft:
+      description: When true, includes draft (tentative) bookings in results alongside confirmed bookings.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    rejected_at:
+      description: Filter by rejection date range (rejected_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    approval_status:
+      description: Filter by approval status. Use eq/not_eq to match a specific approval status value.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    updated_at:
+      description: Filter by booking last updated date range (updated_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    note:
+      description: Filter by booking note text content.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    resource_request_id:
+      description: Filter by the associated resource request.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    last_activity_at:
+      description: Filter by last activity date range (last_activity_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    company_id:
+      description: Filter by the client company associated with the booking's service.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_subsidiary_id:
+      description: Filter by the subsidiary the booked person belongs to.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/bookings:
     get:
-      summary: Get bookings GET
-      operationId: getBookings
       tags:
-      - Bookings
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by id (integer)
-      - name: filter[person_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by person_id (integer)
-      - name: filter[approver_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by approver_id (integer)
-      - name: filter[event_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by event_id (integer)
-      - name: filter[task_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by task_id (integer)
-      - name: filter[draft]
-        in: query
-        required: false
-        schema:
-          type: boolean
-        description: Filter by draft (boolean)
-      - name: filter[with_draft]
-        in: query
-        required: false
-        schema:
-          type: boolean
-        description: Filter by with_draft (boolean)
-      - name: filter[approved_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by approved_at (date)
-      - name: filter[created_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by created_at (date)
-      - name: filter[updated_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by updated_at (date)
-      - name: filter[rejected_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by rejected_at (date)
-      - name: filter[canceled_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by canceled_at (date)
-      - name: filter[last_activity_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by last_activity_at (date)
-      - name: filter[origin_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by origin_id (integer)
-      - name: filter[company_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by company_id (integer)
-      - name: filter[budget_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by budget_id (integer)
-      - name: filter[project_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by project_id (integer)
-      - name: filter[tags]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by tags (array)
-      - name: filter[after]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by after (date)
-      - name: filter[before]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by before (date)
-      - name: filter[started_on]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by started_on (date)
-      - name: filter[ended_on]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by ended_on (date)
-      - name: filter[people_custom_fields]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by people_custom_fields (string)
-      - name: filter[note]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by note (string)
-      - name: filter[project_type]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by project_type (array)
-      - name: filter[person_type]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: 'Filter by person_type (1: user, 2: contact, 3: placeholder)'
-      - name: filter[approval_status]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by approval_status (array)
-      - name: filter[status]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by status (array)
-      - name: filter[billing_type_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by billing_type_id (integer)
-      - name: filter[autotracking]
-        in: query
-        required: false
-        schema:
-          type: boolean
-        description: Filter by autotracking (boolean)
-      - name: filter[booking_type]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by booking_type (event, service)
-      - name: filter[person_subsidiary_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by person_subsidiary_id (integer)
-      - name: filter[canceled]
-        in: query
-        required: false
-        schema:
-          type: boolean
-        description: Filter by canceled (boolean)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - id (integer)
-          - started_on (date)
-          - last_activity_at (date)
-          - draft (boolean)
-          - -id (integer)
-          - -started_on (date)
-          - -last_activity_at (date)
-          - -draft (boolean)
-        description: Sort field. Prefix - for descending.
+        - Bookings
+      summary: Get bookings
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_booking'
+      parameters:
+        - $ref: '#/components/parameters/sort_booking'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_booking'
+      operationId: bookings-index
+      description: List bookings with optional filters and pagination.
     post:
-      summary: Create a booking POST
-      operationId: postBookings
       tags:
-      - Bookings
-      parameters: []
+        - Bookings
+      summary: Create a booking
       responses:
         '201':
-          description: Success
+          $ref: '#/components/responses/single_booking'
+        '400':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
+                type: string
+          description: Bad Request
         '403':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
           description: Forbidden
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/bookings/{id}:
-    delete:
-      summary: Deletes a booking DELETE
-      operationId: deleteBookingsId
-      tags:
-      - Bookings
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: bookings-create
+      requestBody:
+        $ref: '#/components/requestBodies/booking'
+      description: Create a new booking.
+  /api/v2/bookings/{id}:
+    get:
+      tags:
+        - Bookings
+      summary: Gets a booking
+      responses:
+        '200':
+          $ref: '#/components/responses/single_booking'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: bookings-show
+      description: Retrieve a single booking by ID.
+    patch:
+      tags:
+        - Bookings
+      summary: Update a booking
+      responses:
+        '200':
+          $ref: '#/components/responses/single_booking'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: bookings-update
+      requestBody:
+        $ref: '#/components/requestBodies/booking'
+      description: Update a booking.
+    delete:
+      tags:
+        - Bookings
+      summary: Deletes a booking
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a booking GET
-      operationId: getBookingsId
-      tags:
-      - Bookings
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: bookings-destroy
+      description: Delete a booking.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_booking:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.booking at the top of this file.
+      required: false
+      description: Filters
+    sort_booking:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - draft
+            - -draft
+            - last_activity_at
+            - -last_activity_at
+            - started_on
+            - -started_on
+          type: string
+        title: Sort booking
+      explode: false
+      required: false
+      description: Sort booking
+  requestBodies:
+    booking:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a booking PATCH
-      operationId: patchBookingsId
-      tags:
-      - Bookings
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    required:
+                      - person_id
+                      - started_on
+                      - ended_on
+                    properties:
+                      note:
+                        $ref: '#/components/schemas/resource_booking/properties/note'
+                      time:
+                        $ref: '#/components/schemas/resource_booking/properties/time'
+                      draft:
+                        $ref: '#/components/schemas/resource_booking/properties/draft'
+                      task_id:
+                        $ref: '#/components/schemas/resource_booking/properties/task_id'
+                      ended_on:
+                        $ref: '#/components/schemas/resource_booking/properties/ended_on'
+                      event_id:
+                        $ref: '#/components/schemas/resource_booking/properties/event_id'
+                      origin_id:
+                        $ref: '#/components/schemas/resource_booking/properties/origin_id'
+                      person_id:
+                        $ref: '#/components/schemas/resource_booking/properties/person_id'
+                      percentage:
+                        $ref: '#/components/schemas/resource_booking/properties/percentage'
+                      service_id:
+                        $ref: '#/components/schemas/resource_booking/properties/service_id'
+                      started_on:
+                        $ref: '#/components/schemas/resource_booking/properties/started_on'
+                      total_time:
+                        $ref: '#/components/schemas/resource_booking/properties/total_time'
+                      approver_id:
+                        $ref: '#/components/schemas/resource_booking/properties/approver_id'
+                      autotracking:
+                        $ref: '#/components/schemas/resource_booking/properties/autotracking'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_booking/properties/custom_fields'
+                      attachment_ids:
+                        $ref: '#/components/schemas/resource_booking/properties/attachment_ids'
+                      rejected_reason:
+                        $ref: '#/components/schemas/resource_booking/properties/rejected_reason'
+                      booking_method_id:
+                        $ref: '#/components/schemas/resource_booking/properties/booking_method_id'
+                      resource_request_id:
+                        $ref: '#/components/schemas/resource_booking/properties/resource_request_id'
+                      use_salary_currency:
+                        $ref: '#/components/schemas/resource_booking/properties/use_salary_currency'
+      description: Request body for creating or updating a booking.
+  schemas:
+    resource_booking:
+      type: object
+      title: Booking Resource
+      properties:
+        origin_id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Origin
+          description: The ID of the origin record (e.g. resource request) that created this booking.
+          example:
+            - 123
+        resource_request_id:
+          type: integer
+          title: Resource Request
+          description: ID of the resource request this booking fulfills.
+          example:
+            - 123
+        person_id:
+          type: integer
+          title: Person
+          description: ID of the person assigned to this booking.
+          example:
+            - 123
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: File attachments linked via custom fields on this booking.
+          example:
+            gt: '2026-01-01'
+        before:
+          type: string
+          title: Before
+          format: date
+          description: Internal field used for date-range filtering.
+          example:
+            eq: value
+        task_id:
+          type: integer
+          title: Task
+          description: The ID of the task associated with this booking, if applicable.
+          example:
+            - 123
+        last_activity_at:
+          type: string
+          title: Last Activity At
+          format: date-time
+          description: Timestamp of the last activity recorded on this booking.
+          example:
+            gt: '2026-01-01'
+        with_draft:
+          type: boolean
+          title: With Draft
+          description: When true, draft bookings are included in availability and planning views.
+          example:
+            eq: value
+        rejected_reason:
+          type: string
+          title: Rejected Reason
+          description: Reason provided when the booking was rejected.
+          example:
+            eq: value
+        approval_statuses:
+          title: Approval Statuses
+          description: Per-approver approval status records for this booking.
+          example:
+            eq: active
+        status:
+          title: Status
+          description: The current approval status of the booking (e.g. pending, approved, rejected).
+          example:
+            eq: active
+        event:
+          title: Event
+          description: The absence event category (e.g. vacation, sick leave) for absence bookings.
+          example:
+            eq: value
+        canceler:
+          title: Canceler
+          description: The person who canceled this booking.
+          example:
+            eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this booking relates to.
+          example:
+            - 123
+        updater:
+          title: Updater
+          description: The person who last updated this booking.
+          example:
+            eq: value
+        origin:
+          title: Origin
+          description: The booking origin (e.g. the resource request that generated this booking).
+          example:
+            eq: value
+        rejecter:
+          title: Rejecter
+          description: The person who rejected this booking.
+          example:
+            eq: value
+        booking_method_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Booking Method
+          description: ID of the booking method used to create this booking (e.g. hours per day, percentage, total hours).
+          example:
+            - 123
+        service:
+          title: Service
+          description: The budget service being scheduled in this booking.
+          example:
+            eq: value
+        project_type:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Project Type
+          description: Type of the associated project (e.g. billable or internal).
+          example:
+            eq: active
+        time:
+          type: integer
+          title: Time
+          description: The booked time in minutes per day.
+          example:
+            gt: 0
+        after:
+          type: string
+          title: After
+          format: date
+          description: Internal field used for date-range filtering.
+          example:
+            eq: value
+        draft:
+          type: boolean
+          title: Draft
+          description: Whether the booking is tentative (draft) or confirmed.
+          example:
+            eq: value
+        approval_status:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 5
+          type: integer
+          title: Approval Status
+          description: Whether the booking has been approved. Reflects the overall approval_status.
+          example:
+            eq: active
+        approved_at:
+          type: string
+          title: Approved At
+          format: date-time
+          description: Timestamp when the booking was approved, or null if not yet approved.
+          example:
+            gt: '2026-01-01'
+        custom_field_people:
+          title: Custom Field People
+          description: People linked via custom fields on this booking.
+          example:
+            eq: value
+        resource_request:
+          title: Resource Request
+          description: The resource request this booking fulfills, if applicable.
+          example:
+            eq: value
+        service_id:
+          type: integer
+          title: Service
+          description: The ID of the service this booking is scheduled against.
+          example:
+            - 123
+        person_subsidiary_id:
+          type: integer
+          title: Person Subsidiary
+          description: ID of the subsidiary the assigned person belongs to.
+          example:
+            - 123
+        approved:
+          title: Approved
+          description: Indicates whether the booking has been approved.
+          example:
+            eq: value
+        total_working_days:
+          type: integer
+          title: Total Working Days
+          description: The total number of working days covered by this booking.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this booking belongs to.
+          example:
+            eq: value
+        person_type:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Person Type
+          description: Type of the assigned person (e.g. employee, contractor, placeholder).
+          example:
+            eq: active
+        tags:
+          type: integer
+          title: Tags
+          description: Tags associated with this booking.
+          example:
+            eq: value
+        external_id:
+          type: string
+          title: External
+          description: External identifier for integration with third-party systems.
+          example:
+            - 123
+        ended_on:
+          type: string
+          title: Ended On
+          format: date
+          description: Booking end date.
+          example:
+            eq: value
+        task:
+          title: Task
+          description: The task associated with this booking, if applicable.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Date when the booking was created.
+          example:
+            gt: '2026-01-01'
+        total_time:
+          type: integer
+          title: Total Time
+          description: The total booked time in minutes across the entire booking period.
+          example:
+            gt: 0
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this booking was last updated.
+          example:
+            gt: '2026-01-01'
+        approver:
+          title: Approver
+          description: The person who approved this booking.
+          example:
+            eq: value
+        booking_type:
+          type: string
+          title: Booking Type
+          description: Whether this is a project booking or an absence booking.
+          example:
+            eq: active
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: Custom field values for this booking.
+          example:
+            eq: value
+        event_id:
+          type: integer
+          title: Event
+          description: ID of the absence event category for this booking.
+          example:
+            - 123
+        percentage:
+          type: integer
+          title: Percentage
+          description: Scheduled time as a percentage of the person's daily capacity.
+          example:
+            eq: value
+        people_custom_fields:
+          type: string
+          title: People Custom Fields
+          description: Custom field values defined on the assigned person.
+          example:
+            eq: value
+        person:
+          title: Person
+          description: The person assigned to this booking.
+          example:
+            eq: value
+        autotracking:
+          type: boolean
+          title: Autotracking
+          description: When true, time entries are automatically tracked against this booking.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier of the booking.
+          example:
+            - 123
+        note:
+          type: string
+          title: Note
+          description: An optional note or description for this booking.
+          example:
+            eq: value
+        approver_id:
+          type: integer
+          title: Approver
+          description: The ID of the person who approved this booking.
+          example:
+            - 123
+        billing_type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Billing Type
+          description: ID of the billing type of the associated service.
+          example:
+            - 123
+        scenario_item:
+          title: Scenario Item
+          description: The scenario item this booking is linked to, if created from a scenario.
+          example:
+            eq: value
+        budget_id:
+          type: integer
+          title: Budget
+          description: ID of the budget (deal) associated with the booking's service.
+          example:
+            - 123
+        hours:
+          type: integer
+          title: Hours
+          description: Scheduled hours per day for this booking.
+          example:
+            eq: value
+        rejected:
+          title: Rejected
+          description: Whether this booking has been rejected.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this booking.
+          example:
+            eq: value
+        canceled_at:
+          type: string
+          title: Canceled At
+          format: date-time
+          description: Date when the booking was canceled.
+          example:
+            gt: '2026-01-01'
+        attachments:
+          title: Attachments
+          description: Files attached to this booking.
+          example:
+            eq: value
+        canceled:
+          type: boolean
+          title: Canceled
+          description: Whether this booking has been canceled.
+          example:
+            eq: value
+        rejected_at:
+          type: string
+          title: Rejected At
+          format: date-time
+          description: Date when the booking was rejected.
+          example:
+            gt: '2026-01-01'
+        use_salary_currency:
+          type: boolean
+          title: Use Salary Currency
+          description: When true, cost calculations use the person's salary currency instead of the service currency.
+          example:
+            eq: value
+        attachment_ids:
+          title: Attachment Ids
+          description: Array of IDs of files attached to this booking.
+          example:
+            - 123
+            - 456
+        company_id:
+          type: integer
+          title: Company
+          description: ID of the client company associated with this booking.
+          example:
+            - 123
+        stage_type:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Stage Type
+          description: The stage type of the booking within the resource planning workflow.
+          example:
+            eq: active
+        started_on:
+          type: string
+          title: Started On
+          format: date
+          description: The start date of the booking.
+          example:
+            eq: value
+      description: A booking represents planned work or an absence scheduled for a person, linked to a service or absence category.
+      example:
+        id: '1594'
+        type: bookings
+        attributes:
+          hours: 8
+          time: 480
+          started_on: '2026-03-17'
+          ended_on: '2026-03-21'
+          total_time: 2400
+          total_working_days: 5
+          percentage: null
+          note: null
+          created_at: '2026-03-01T09:00:00.000+00:00'
+          updated_at: '2026-03-01T09:00:00.000+00:00'
+          people_custom_fields: {}
+          approved: false
+          approved_at: null
+          rejected: false
+          rejected_reason: null
+          rejected_at: null
+          canceled: false
+          canceled_at: null
+          booking_method_id: 1
+          autotracking: false
+          draft: false
+          custom_fields: null
+          last_activity_at: '2026-03-01T09:00:00.000+00:00'
+        relationships:
+          person:
+            data:
+              type: people
+              id: '12'
+          service:
+            data:
+              type: services
+              id: '1856422'
+          event:
+            data: null
+          task:
+            data: null
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _collection_relationship:
+      anyOf:
+        - type: object
+          title: Collection data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          description: Included variant — related resource identifiers are present in `data`.
+          example:
+            data:
+              - type: tasks
+                id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+  responses:
+    single_booking:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      note:
+                        $ref: '#/components/schemas/resource_booking/properties/note'
+                      time:
+                        $ref: '#/components/schemas/resource_booking/properties/time'
+                      draft:
+                        $ref: '#/components/schemas/resource_booking/properties/draft'
+                      hours:
+                        $ref: '#/components/schemas/resource_booking/properties/hours'
+                      approved:
+                        $ref: '#/components/schemas/resource_booking/properties/approved'
+                      canceled:
+                        $ref: '#/components/schemas/resource_booking/properties/canceled'
+                      ended_on:
+                        $ref: '#/components/schemas/resource_booking/properties/ended_on'
+                      rejected:
+                        $ref: '#/components/schemas/resource_booking/properties/rejected'
+                      created_at:
+                        $ref: '#/components/schemas/resource_booking/properties/created_at'
+                      percentage:
+                        $ref: '#/components/schemas/resource_booking/properties/percentage'
+                      stage_type:
+                        $ref: '#/components/schemas/resource_booking/properties/stage_type'
+                      started_on:
+                        $ref: '#/components/schemas/resource_booking/properties/started_on'
+                      total_time:
+                        $ref: '#/components/schemas/resource_booking/properties/total_time'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_booking/properties/updated_at'
+                      approved_at:
+                        $ref: '#/components/schemas/resource_booking/properties/approved_at'
+                      canceled_at:
+                        $ref: '#/components/schemas/resource_booking/properties/canceled_at'
+                      external_id:
+                        $ref: '#/components/schemas/resource_booking/properties/external_id'
+                      rejected_at:
+                        $ref: '#/components/schemas/resource_booking/properties/rejected_at'
+                      autotracking:
+                        $ref: '#/components/schemas/resource_booking/properties/autotracking'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_booking/properties/custom_fields'
+                      rejected_reason:
+                        $ref: '#/components/schemas/resource_booking/properties/rejected_reason'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_booking/properties/last_activity_at'
+                      booking_method_id:
+                        $ref: '#/components/schemas/resource_booking/properties/booking_method_id'
+                      total_working_days:
+                        $ref: '#/components/schemas/resource_booking/properties/total_working_days'
+                      people_custom_fields:
+                        $ref: '#/components/schemas/resource_booking/properties/people_custom_fields'
+                  relationships:
+                    type: object
+                    properties:
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      event:
+                        $ref: '#/components/schemas/_single_relationship'
+                      origin:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      service:
+                        $ref: '#/components/schemas/_single_relationship'
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approver:
+                        $ref: '#/components/schemas/_single_relationship'
+                      canceler:
+                        $ref: '#/components/schemas/_single_relationship'
+                      rejecter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      scenario_item:
+                        $ref: '#/components/schemas/_single_relationship'
+                      resource_request:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approval_statuses:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      custom_field_attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single booking
+    collection_booking:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        note:
+                          $ref: '#/components/schemas/resource_booking/properties/note'
+                        time:
+                          $ref: '#/components/schemas/resource_booking/properties/time'
+                        draft:
+                          $ref: '#/components/schemas/resource_booking/properties/draft'
+                        hours:
+                          $ref: '#/components/schemas/resource_booking/properties/hours'
+                        approved:
+                          $ref: '#/components/schemas/resource_booking/properties/approved'
+                        canceled:
+                          $ref: '#/components/schemas/resource_booking/properties/canceled'
+                        ended_on:
+                          $ref: '#/components/schemas/resource_booking/properties/ended_on'
+                        rejected:
+                          $ref: '#/components/schemas/resource_booking/properties/rejected'
+                        created_at:
+                          $ref: '#/components/schemas/resource_booking/properties/created_at'
+                        percentage:
+                          $ref: '#/components/schemas/resource_booking/properties/percentage'
+                        stage_type:
+                          $ref: '#/components/schemas/resource_booking/properties/stage_type'
+                        started_on:
+                          $ref: '#/components/schemas/resource_booking/properties/started_on'
+                        total_time:
+                          $ref: '#/components/schemas/resource_booking/properties/total_time'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_booking/properties/updated_at'
+                        approved_at:
+                          $ref: '#/components/schemas/resource_booking/properties/approved_at'
+                        canceled_at:
+                          $ref: '#/components/schemas/resource_booking/properties/canceled_at'
+                        external_id:
+                          $ref: '#/components/schemas/resource_booking/properties/external_id'
+                        rejected_at:
+                          $ref: '#/components/schemas/resource_booking/properties/rejected_at'
+                        autotracking:
+                          $ref: '#/components/schemas/resource_booking/properties/autotracking'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_booking/properties/custom_fields'
+                        rejected_reason:
+                          $ref: '#/components/schemas/resource_booking/properties/rejected_reason'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_booking/properties/last_activity_at'
+                        booking_method_id:
+                          $ref: '#/components/schemas/resource_booking/properties/booking_method_id'
+                        total_working_days:
+                          $ref: '#/components/schemas/resource_booking/properties/total_working_days'
+                        people_custom_fields:
+                          $ref: '#/components/schemas/resource_booking/properties/people_custom_fields'
                     relationships:
                       type: object
-  /api/v2/bookings/{id}/unapprove:
-    patch:
-      summary: Unapproves a booking PATCH
-      operationId: patchBookingsIdUnapprove
-      tags:
-      - Bookings
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+                      properties:
+                        task:
+                          $ref: '#/components/schemas/_single_relationship'
+                        event:
+                          $ref: '#/components/schemas/_single_relationship'
+                        origin:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service:
+                          $ref: '#/components/schemas/_single_relationship'
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                        approver:
+                          $ref: '#/components/schemas/_single_relationship'
+                        canceler:
+                          $ref: '#/components/schemas/_single_relationship'
+                        rejecter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        scenario_item:
+                          $ref: '#/components/schemas/_single_relationship'
+                        resource_request:
+                          $ref: '#/components/schemas/_single_relationship'
+                        approval_statuses:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection booking

@@ -1,371 +1,1112 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Companies
   version: 2.0.0
+description: |-
+  Company resources are used to keep track of clients and manage their associated deals, budgets, contacts (people) and projects.
+  More information about Companies can be found in our Help documentation: [Adding Client Companies](https://help.productive.io/en/articles/2179668-adding-client-companies).
+
+  The `/companies` endpoint allows you to create, update, delete, archive or unarchive (restore) Companies.
+
+  The following diagram shows Companies in our data hierarchy:
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  * {
+    class: default
+  }
+
+  # Define actors
+  company: Company {
+    class: primary
+  }
+  deals: Deals
+  projects: Projects
+  people: People
+  subsidiary: Subsidiary
+
+  # define connections
+  company -> deals
+  company -> projects
+  company -> people
+  company <- subsidiary
+  ```
+
+  Since companies can have custom fields, please refer to the [Working with custom fields](https://developer.productive.io/working_with_custom_fields.html#working_with_custom_fields) guide for more details on how to work with them.
+x-filters:
+  company:
+    subscriber_id:
+      description: Filter by subscriber (person subscribed to company notifications).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by company ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    archived_at:
+      description: Filter by archive date range (`archived_at`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    jump_query:
+      description: Quick search query for jumping to a specific company by name.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status:
+      description: Filter by company status (active or archived).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    default_tax_rate_id:
+      description: Filter by the company's default tax rate.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Search companies by name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    full_query:
+      description: Full-text search across company name, billing name, and other text fields.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    exclude_company_and_children:
+      description: Filter by excluding a company and all its subsidiaries from results.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    default_subsidiary_id:
+      description: Filter by the company's default subsidiary.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    payment_terms_type:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by company name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    company_code:
+      description: Filter by company code (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    last_activity_at:
+      description: Filter by last activity date range (`last_activity_at`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subsidiary_id:
+      description: Filter by the company's subsidiary (alias for `default_subsidiary_id`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    vat:
+      description: Filter by VAT / tax ID number.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    payment_terms:
+      description: Filter by payment terms (days until invoice due).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    due_days:
+      description: Filter by default payment terms (days).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by creation date range (`created_at`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    company_id:
+      description: Filter by company ID (alias for `id`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    custom_fields:
+      description: Filter by custom field values.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    tags:
+      description: Filter by tag.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    default_currency:
+      description: Filter by the company's default invoice currency.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    billing_name:
+      description: Filter by billing name (full legal company name).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by companies associated with a project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    has_parent_company:
+      description: Filter by whether the company has a parent company assigned.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    parent_company_id:
+      description: Filter by the parent company of the company.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    fuzzy_dates:
+      description: Filter by fuzzy date range (e.g. this_week, last_month).
+      operators:
+        - eq
+        - not_eq
+    fuzzy_people:
+      description: Filter by person using fuzzy matching.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
-  /api/v2/companies:
-    get:
-      summary: Get companies GET
-      operationId: getCompanies
-      tags:
-      - Companies
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by id (integer)
-      - name: filter[company_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by company_id (integer)
-      - name: filter[name]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by name (string)
-      - name: filter[company_code]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by company_code (string)
-      - name: filter[billing_name]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by billing_name (string)
-      - name: filter[default_currency]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by default_currency (string)
-      - name: filter[default_subsidiary_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by default_subsidiary_id (string)
-      - name: filter[subsidiary_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by subsidiary_id (integer)
-      - name: filter[default_tax_rate_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by default_tax_rate_id (integer)
-      - name: filter[project_id]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by project_id (integer)
-      - name: filter[vat]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by vat (string)
-      - name: filter[status]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by status (integer)
-      - name: filter[1]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by 1 (Active)
-      - name: filter[2]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by 2 (Archived)
-      - name: filter[tags]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by tags (string)
-      - name: filter[created_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by created_at (date)
-      - name: filter[archived_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by archived_at (date)
-      - name: filter[last_activity_at]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by last_activity_at (date)
-      - name: filter[due_days]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by due_days (integer)
-      - name: filter[payment_terms]
-        in: query
-        required: false
-        schema:
-          type: integer
-        description: Filter by payment_terms (integer)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    post:
-      summary: Create a company POST
-      operationId: postCompanies
-      tags:
-      - Companies
-      parameters: []
-      responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/companies/{id}:
-    get:
-      summary: Gets a company GET
-      operationId: getCompaniesId
-      tags:
-      - Companies
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a company PATCH
-      operationId: patchCompaniesId
-      tags:
-      - Companies
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
   /api/v2/companies/{id}/archive:
     patch:
-      summary: Archives a company PATCH
-      operationId: patchCompaniesIdArchive
       tags:
-      - Companies
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Companies
+      summary: Archives a company
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_company'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: companies-archive-archive
+      description: Archive a company.
+  /api/v2/companies:
+    get:
+      tags:
+        - Companies
+      summary: Get companies
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_company'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_company'
+        - $ref: '#/components/parameters/filter_company'
+      operationId: companies-index
+      description: List companies with optional filters and pagination.
+    post:
+      tags:
+        - Companies
+      summary: Create a company
+      responses:
+        '201':
+          $ref: '#/components/responses/single_company'
         '422':
-          description: Validation error
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: companies-create
       requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        $ref: '#/components/requestBodies/company'
+      description: Create a new company.
   /api/v2/companies/{id}/restore:
     patch:
-      summary: Restores a company PATCH
-      operationId: patchCompaniesIdRestore
       tags:
-      - Companies
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Companies
+      summary: Restores a company
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/single_company'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: companies-restore-restore
+      description: Restore a company.
+  /api/v2/companies/{id}:
+    get:
+      tags:
+        - Companies
+      summary: Gets a company
+      responses:
+        '200':
+          $ref: '#/components/responses/single_company'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: companies-show
+      description: Retrieve a single company by ID.
+    patch:
+      tags:
+        - Companies
+      summary: Update a company
+      responses:
+        '200':
+          $ref: '#/components/responses/single_company'
+        '422':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: companies-update
+      requestBody:
+        $ref: '#/components/requestBodies/company'
+      description: Update a company.
+components:
+  requestBodies:
+    company:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    required:
+                      - name
+                    properties:
+                      vat:
+                        $ref: '#/components/schemas/resource_company/properties/vat'
+                      name:
+                        $ref: '#/components/schemas/resource_company/properties/name'
+                      domain:
+                        $ref: '#/components/schemas/resource_company/properties/domain'
+                      contact:
+                        $ref: '#/components/schemas/resource_company/properties/contact'
+                      due_days:
+                        $ref: '#/components/schemas/resource_company/properties/due_days'
+                      settings:
+                        $ref: '#/components/schemas/resource_company/properties/settings'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_company/properties/tag_list'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_company/properties/avatar_url'
+                      billing_name:
+                        $ref: '#/components/schemas/resource_company/properties/billing_name'
+                      company_code:
+                        $ref: '#/components/schemas/resource_company/properties/company_code'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_company/properties/custom_fields'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_company/properties/subscriber_ids'
+                      default_currency:
+                        $ref: '#/components/schemas/resource_company/properties/default_currency'
+                      parent_company_id:
+                        $ref: '#/components/schemas/resource_company/properties/parent_company_id'
+                      payment_terms_type:
+                        $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
+                      default_tax_rate_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_tax_rate_id'
+                      default_subsidiary_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_subsidiary_id'
+                      default_document_type_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
+      description: Request body for creating or updating a company.
+  schemas:
+    resource_company:
+      type: object
+      title: Company Resource
+      properties:
+        subsidiary_id:
+          type: integer
+          title: Subsidiary
+          description: ID of the subsidiary associated with this company.
+          example:
+            - 123
+        sample_data:
+          type: boolean
+          title: Sample Data
+          description: Whether this record is demo/sample data.
+          example:
+            eq: value
+        custom_field_people:
+          title: Custom Field People
+          description: People in person-type custom fields.
+          example:
+            eq: value
+        fuzzy_people:
+          type: string
+          title: Fuzzy People
+          description: Fuzzy person search value.
+          example:
+            eq: value
+        invoice_email_recipients:
+          type: string
+          title: Invoice Email Recipients
+          description: Email addresses to receive invoices for this company.
+          example:
+            eq: value
+        default_document_type:
+          title: Default Document Type
+          description: The default document type applied to invoices and proposals for this company.
+          example:
+            eq: active
+        tag_list:
+          type: string
+          title: Tag List
+          description: Tags applied to this company.
+          example:
+            eq: value
+        default_tax_rate_id:
+          type: integer
+          title: Default Tax Rate
+          description: ID of the default tax rate applied to this company's invoices.
+          example:
+            - 123
+        projectless_budgets:
+          type: boolean
+          title: Projectless Budgets
+          description: Whether this company allows budgets without an associated project.
+          example:
+            gt: 0
+        default_document_type_id:
+          type: integer
+          title: Default Document Type
+          description: ID of the default document type template used for PDF generation.
+          example:
+            - 123
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: Files in file-type custom fields.
+          example:
+            gt: '2026-01-01'
+        payment_terms_type:
+          enum:
+            - days_after_invoice_date
+            - end_of_month
+            - due_upon_receipt
+          type: string
+          title: Payment Terms Type
+          nullable: true
+          description: Default payment terms for this company's invoices; used in preference to the organization default.
+        company_code:
+          type: string
+          title: Company Code
+          description: An internal or external company code used for integrations or accounting references.
+          example:
+            eq: value
+        original_avatar_url:
+          title: Original Avatar Url
+          description: URL of the original full-size avatar image for this company before resizing.
+          example:
+            eq: value
+        subscriber_ids:
+          title: Subscriber Ids
+          description: IDs of people subscribed to follow updates on this company.
+          example:
+            - 123
+            - 456
+        payment_terms:
+          type: integer
+          title: Payment Terms
+          description: Payment terms label (e.g. Net 30).
+          example:
+            eq: value
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: The current status of this company (e.g. active or archived).
+          example:
+            eq: active
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when the company was archived.
+          example:
+            gt: '2026-01-01'
+        avatar_url:
+          type: string
+          title: Avatar Url
+          description: URL of the company avatar image.
+          example:
+            eq: value
+        tags:
+          type: string
+          title: Tags
+          description: Tags applied to this company.
+          example:
+            eq: value
+        billing_name:
+          type: string
+          title: Billing Name
+          description: The billing name used on invoices, if different from the company's display name.
+          example:
+            eq: value
+        external_sync:
+          type: boolean
+          title: External Sync
+          description: Indicates whether this company is synced with an external integration (e.g. accounting software).
+          example:
+            eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project associated with this company.
+          example:
+            - 123
+        settings:
+          type: object
+          title: Settings
+          description: Company-level settings controlling notification preferences and other configuration options.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for this company.
+          example:
+            - 123
+        import:
+          title: Import
+        due_days:
+          type: integer
+          title: Due Days
+          description: 'Default day offset paired with `payment_terms_type` (company level): `days_after_invoice_date` — > 0, after the invoice date; `end_of_month` — >= 0, after the invoice month''s end; `due_upon_receipt` — ignored.'
+          example:
+            eq: value
+        external_id:
+          type: string
+          title: External
+          description: External ID from an integrated third-party system.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: The name of this company.
+          example:
+            eq: value
+        has_parent_company:
+          type: boolean
+          title: Has Parent Company
+          description: When true, this company has a parent company in the hierarchy.
+          example:
+            eq: value
+        default_tax_rate:
+          title: Default Tax Rate
+          description: Default tax rate for this company.
+          example:
+            gt: 0
+        last_activity_at:
+          type: string
+          title: Last Activity At
+          format: date-time
+          description: Timestamp of the most recent activity on this company.
+          example:
+            gt: '2026-01-01'
+        full_query:
+          type: string
+          title: Full Query
+          description: A concatenated string used for full-text search across company fields.
+          example:
+            eq: value
+        contact:
+          type: object
+          title: Contact
+          description: Primary contact details for the company (name, email, phone).
+          example:
+            eq: value
+        parent_company_id:
+          type: integer
+          title: Parent Company
+          description: ID of the parent company in the organizational hierarchy.
+          example:
+            - 123
+        default_subsidiary_id:
+          type: integer
+          title: Default Subsidiary
+          description: ID of the default subsidiary used for this company's invoices.
+          example:
+            - 123
+        jump_query:
+          type: string
+          title: Jump Query
+          description: Quick jump search query used to navigate to this company.
+          example:
+            eq: value
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: Custom field values for this company.
+          example:
+            eq: value
+        exclude_company_and_children:
+          type: integer
+          title: Exclude Company And Children
+          description: When true, excludes this company and all its subsidiaries from results when filtering by parent company.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Date when the company was created.
+          example:
+            gt: '2026-01-01'
+        subscriber_id:
+          type: integer
+          title: Subscriber
+          description: ID of a person subscribed to follow updates on this company.
+          example:
+            - 123
+        einvoice_identity:
+          title: Einvoice Identity
+          description: E-invoicing identity configuration for this company.
+          example:
+            data:
+              type: einvoice_identities
+              id: '567'
+        parent_company:
+          title: Parent Company
+          description: The parent company of this company in the hierarchy.
+          example:
+            eq: value
+        domain:
+          type: string
+          title: Domain
+          description: Email domain associated with this company.
+          example:
+            eq: value
+        company_id:
+          type: integer
+          title: Company
+          description: The parent company ID if this company is a subsidiary of another company.
+          example:
+            - 123
+        default_subsidiary:
+          title: Default Subsidiary
+          description: Default subsidiary for this company's invoices.
+          example:
+            eq: value
+        fuzzy_dates:
+          type: string
+          title: Fuzzy Dates
+          description: Company-level settings for displaying approximate or fuzzy dates on documents.
+          example:
+            gt: '2026-01-01'
+        default_currency:
+          type: string
+          title: Default Currency
+          description: Default currency for this company's deals and invoices.
+          example:
+            eq: value
+        vat:
+          type: string
+          title: Vat
+          description: Tax ID / VAT number.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: Keyword query used for searching this company.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this company belongs to.
+          example:
+            eq: value
+        integration_exporter_configuration:
+          title: Integration Exporter Configuration
+          description: Integration exporter configuration linked to this company.
+          example:
+            eq: value
+      description: A client company linked to deals, budgets, projects, and invoices, with invoicing settings and rate card configuration.
+      example:
+        id: '65111'
+        type: companies
+        attributes:
+          name: Acme Corp
+          billing_name: Acme Corporation Ltd
+          vat: DE123456789
+          default_currency: USD
+          created_at: '2026-01-01T00:00:00.000+00:00'
+          last_activity_at: '2026-03-10T14:00:00.000+00:00'
+          archived_at: null
+          avatar_url: null
+          original_avatar_url: null
+          invoice_email_recipients: {}
+          custom_fields: null
+          company_code: ACME1
+          domain: acme.com
+          domains:
+            - acme.com
+          projectless_budgets: false
+          default_subsidiary_id: null
+          default_tax_rate_id: null
+          default_document_type_id: null
+          due_days: 30
+          tag_list:
+            - enterprise
+          contact: {}
+          sample_data: false
+          settings: {}
+          external_id: null
+          external_sync: false
+          parent_company_id: null
+        relationships:
+          default_subsidiary:
+            data: null
+          default_document_type:
+            data: null
+          parent_company:
+            data: null
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    _collection_relationship:
+      anyOf:
+        - type: object
+          title: Collection data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          description: Included variant — related resource identifiers are present in `data`.
+          example:
+            data:
+              - type: tasks
+                id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_company:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.company at the top of this file.
+      required: false
+      description: Filters
+    sort_company:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - company_code
+            - -company_code
+            - created_at
+            - -created_at
+            - custom_fields
+            - -custom_fields
+            - last_activity_at
+            - -last_activity_at
+            - name
+            - -name
+            - parent_company
+            - -parent_company
+          type: string
+        title: Sort company
+      explode: false
+      required: false
+      description: Sort company
+  responses:
+    single_company:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      vat:
+                        $ref: '#/components/schemas/resource_company/properties/vat'
+                      name:
+                        $ref: '#/components/schemas/resource_company/properties/name'
+                      domain:
+                        $ref: '#/components/schemas/resource_company/properties/domain'
+                      contact:
+                        $ref: '#/components/schemas/resource_company/properties/contact'
+                      due_days:
+                        $ref: '#/components/schemas/resource_company/properties/due_days'
+                      settings:
+                        $ref: '#/components/schemas/resource_company/properties/settings'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_company/properties/tag_list'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_company/properties/avatar_url'
+                      created_at:
+                        $ref: '#/components/schemas/resource_company/properties/created_at'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_company/properties/archived_at'
+                      external_id:
+                        $ref: '#/components/schemas/resource_company/properties/external_id'
+                      sample_data:
+                        $ref: '#/components/schemas/resource_company/properties/sample_data'
+                      billing_name:
+                        $ref: '#/components/schemas/resource_company/properties/billing_name'
+                      company_code:
+                        $ref: '#/components/schemas/resource_company/properties/company_code'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_company/properties/custom_fields'
+                      external_sync:
+                        $ref: '#/components/schemas/resource_company/properties/external_sync'
+                      default_currency:
+                        $ref: '#/components/schemas/resource_company/properties/default_currency'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_company/properties/last_activity_at'
+                      parent_company_id:
+                        $ref: '#/components/schemas/resource_company/properties/parent_company_id'
+                      payment_terms_type:
+                        $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
+                      default_tax_rate_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_tax_rate_id'
+                      original_avatar_url:
+                        $ref: '#/components/schemas/resource_company/properties/original_avatar_url'
+                      projectless_budgets:
+                        $ref: '#/components/schemas/resource_company/properties/projectless_budgets'
+                      default_subsidiary_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_subsidiary_id'
+                      default_document_type_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
+                      invoice_email_recipients:
+                        $ref: '#/components/schemas/resource_company/properties/invoice_email_recipients'
+                  relationships:
+                    type: object
+                    properties:
+                      import:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      parent_company:
+                        $ref: '#/components/schemas/_single_relationship'
+                      default_tax_rate:
+                        $ref: '#/components/schemas/_single_relationship'
+                      einvoice_identity:
+                        $ref: '#/components/schemas/_single_relationship'
+                      default_subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      default_document_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      integration_exporter_configuration:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single company
+    collection_company:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        vat:
+                          $ref: '#/components/schemas/resource_company/properties/vat'
+                        name:
+                          $ref: '#/components/schemas/resource_company/properties/name'
+                        domain:
+                          $ref: '#/components/schemas/resource_company/properties/domain'
+                        contact:
+                          $ref: '#/components/schemas/resource_company/properties/contact'
+                        due_days:
+                          $ref: '#/components/schemas/resource_company/properties/due_days'
+                        settings:
+                          $ref: '#/components/schemas/resource_company/properties/settings'
+                        tag_list:
+                          $ref: '#/components/schemas/resource_company/properties/tag_list'
+                        avatar_url:
+                          $ref: '#/components/schemas/resource_company/properties/avatar_url'
+                        created_at:
+                          $ref: '#/components/schemas/resource_company/properties/created_at'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_company/properties/archived_at'
+                        external_id:
+                          $ref: '#/components/schemas/resource_company/properties/external_id'
+                        sample_data:
+                          $ref: '#/components/schemas/resource_company/properties/sample_data'
+                        billing_name:
+                          $ref: '#/components/schemas/resource_company/properties/billing_name'
+                        company_code:
+                          $ref: '#/components/schemas/resource_company/properties/company_code'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_company/properties/custom_fields'
+                        external_sync:
+                          $ref: '#/components/schemas/resource_company/properties/external_sync'
+                        default_currency:
+                          $ref: '#/components/schemas/resource_company/properties/default_currency'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_company/properties/last_activity_at'
+                        parent_company_id:
+                          $ref: '#/components/schemas/resource_company/properties/parent_company_id'
+                        payment_terms_type:
+                          $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
+                        default_tax_rate_id:
+                          $ref: '#/components/schemas/resource_company/properties/default_tax_rate_id'
+                        original_avatar_url:
+                          $ref: '#/components/schemas/resource_company/properties/original_avatar_url'
+                        projectless_budgets:
+                          $ref: '#/components/schemas/resource_company/properties/projectless_budgets'
+                        default_subsidiary_id:
+                          $ref: '#/components/schemas/resource_company/properties/default_subsidiary_id'
+                        default_document_type_id:
+                          $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
+                        invoice_email_recipients:
+                          $ref: '#/components/schemas/resource_company/properties/invoice_email_recipients'
                     relationships:
                       type: object
+                      properties:
+                        import:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        parent_company:
+                          $ref: '#/components/schemas/_single_relationship'
+                        default_tax_rate:
+                          $ref: '#/components/schemas/_single_relationship'
+                        einvoice_identity:
+                          $ref: '#/components/schemas/_single_relationship'
+                        default_subsidiary:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        default_document_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        integration_exporter_configuration:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection company

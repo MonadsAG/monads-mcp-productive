@@ -1,315 +1,1159 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Purchase Orders
   version: 2.0.0
+description: |-
+  In Productive purchase orders are documents that serve as a buyer's request to a seller to order goods or services.
+  You can find out more about purchase orders in our Help documentation: [Purchase Orders](https://help.productive.io/en/articles/8266926-purchase-orders)
+
+  Purchase Orders always belong to a budget and a vendor (seller). They can have multiple expenses, bills and bill items.
+
+  Following diagram shows services in our data hierarchy:
+
+  ```d2
+  ...@template
+  *: {
+    class: default
+  }
+
+  # Define actors
+  budget: Budget
+  purchase_order: Purchase Order {
+    class: primary
+  }
+  expense: Expense
+  bill: Bill
+  bill_item: Bill Item
+
+  # define connections
+  budget -> purchase_order -> expense -> bill_item
+  purchase_order -> bill -> bill_item
+  ```
+
+  The enumeration `status_id` can be:
+  - 1 (Draft)
+  - 2 (Finalized)
+
+  The enumeration `payment_status_id` can be:
+  - 1 (Not received)
+  - 2 (Partially received)
+  - 3 (Fully received)
+x-filters:
+  purchase_order:
+    received_on:
+      description: Filter by the date goods or services were received.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    payment_status_id:
+      description: Filter by payment status.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filter by the person who created the purchase order.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    issued_on:
+      description: Filter by issue date.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    number:
+      description: Filter by the human-readable purchase order number.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    total_received:
+      description: Filter by amount already received.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    delivery_on:
+      description: Filter by expected delivery date.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    sent_on:
+      description: Filter by the date the purchase order was sent.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status_id:
+      description: Filter by purchase order status.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    deal_id:
+      description: Filter by the parent deal (budget) the purchase order belongs to.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    total_cost:
+      description: Filter by pre-tax total amount.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    sent_status:
+      description: Filter by whether the purchase order has been sent. One of `sent` or `not_sent`.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the project the parent deal belongs to.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    vendor_id:
+      description: Filter by the vendor company fulfilling the purchase order.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by creation timestamp.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by purchase order ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    total_cost_with_tax:
+      description: Filter by total amount including tax.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Free-text search across the purchase order number and quick-search terms.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
-  /api/v2/purchase_orders:
-    post:
-      summary: Create a purchase order POST
-      operationId: postPurchaseOrders
-      tags:
-      - Purchase Orders
-      parameters: []
-      responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
   /api/v2/purchase_orders/copy:
     post:
-      summary: Copies a purchase order POST
-      operationId: postPurchaseOrdersCopy
       tags:
-      - Purchase Orders
-      parameters: []
+        - Purchase Orders
+      summary: Copies a purchase order
+      responses:
+        '200':
+          $ref: '#/components/responses/single_purchase_order'
+        '201':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Created
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: purchase_orders-copy-copy
+      requestBody:
+        $ref: '#/components/requestBodies/purchase_order_copy'
+      description: Copy an existing purchase order.
+  /api/v2/purchase_orders:
+    get:
+      tags:
+        - Purchase Orders
+      summary: Get purchase orders
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_purchase_order'
+      parameters:
+        - $ref: '#/components/parameters/filter_purchase_order'
+        - $ref: '#/components/parameters/sort_purchase_order'
+        - $ref: '#/components/parameters/header_organization'
+      operationId: purchase_orders-index
+      description: Lists purchase orders in the current account with pagination, filtering, sorting, and sparse fieldsets. Returns a JSON:API collection of `purchase_orders` resources.
+    post:
+      tags:
+        - Purchase Orders
+      summary: Create a purchase order
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_purchase_order'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/purchase_orders/{id}:
-    delete:
-      summary: Deletes a purchase order DELETE
-      operationId: deletePurchaseOrdersId
-      tags:
-      - Purchase Orders
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: purchase_orders-create
+      requestBody:
+        $ref: '#/components/requestBodies/purchase_order'
+      description: Create a new purchase order.
+  /api/v2/purchase_orders/{id}:
+    get:
+      tags:
+        - Purchase Orders
+      summary: Gets a purchase order
+      responses:
+        '200':
+          $ref: '#/components/responses/single_purchase_order'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: purchase_orders-show
+      description: Retrieve a single purchase order by ID.
+    patch:
+      tags:
+        - Purchase Orders
+      summary: Update a purchase order
+      responses:
+        '200':
+          $ref: '#/components/responses/single_purchase_order'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: purchase_orders-update
+      requestBody:
+        $ref: '#/components/requestBodies/purchase_order'
+      description: Update a purchase order.
+    delete:
+      tags:
+        - Purchase Orders
+      summary: Deletes a purchase order
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a purchase order GET
-      operationId: getPurchaseOrdersId
-      tags:
-      - Purchase Orders
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a purchase order PATCH
-      operationId: patchPurchaseOrdersId
-      tags:
-      - Purchase Orders
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: purchase_orders-destroy
+      description: Delete a purchase order by ID.
   /api/v2/purchase_orders/{id}/export:
     patch:
-      summary: Exports a purchase order PATCH
-      operationId: patchPurchaseOrdersIdExport
       tags:
-      - Purchase Orders
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Purchase Orders
+      summary: Exports a purchase order
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/single_purchase_order'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: purchase_orders-export-export
       requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        $ref: '#/components/requestBodies/purchase_order_export'
+      description: Export a purchase order to an external format.
   /api/v2/purchase_orders/{id}/export_update:
     patch:
-      summary: Updates exported purchase order PATCH
-      operationId: patchPurchaseOrdersIdExportUpdate
       tags:
-      - Purchase Orders
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Purchase Orders
+      summary: Updates exported purchase order
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/single_purchase_order'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: purchase_orders-export_update-export_update
       requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        $ref: '#/components/requestBodies/purchase_order_export'
+      description: Update the export status of a purchase order.
   /api/v2/purchase_orders/{id}/send:
     patch:
-      summary: Sends a purchase order PATCH
-      operationId: patchPurchaseOrdersIdSend
       tags:
-      - Purchase Orders
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Purchase Orders
+      summary: Sends a purchase order
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/single_purchase_order'
+        '422':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: purchase_orders-send-send_mail
+      requestBody:
+        $ref: '#/components/requestBodies/purchase_order_send'
+      description: Send a purchase order to a vendor.
+components:
+  requestBodies:
+    purchase_order_send:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    required:
+                      - to
+                      - subject
+                      - body
+                    properties:
+                      cc:
+                        type: array
+                        items:
+                          type: string
+                        title: CC
+                      to:
+                        type: array
+                        items:
+                          type: string
+                        title: To
+                      bcc:
+                        type: array
+                        items:
+                          type: string
+                        title: BCC
+                      body:
+                        type: string
+                        title: Body
+                      from:
+                        type: string
+                        title: From
+                      subject:
+                        type: string
+                        title: Subject
+                      attachment_ids:
+                        type: array
+                        items:
+                          type: integer
+                        title: Attachment IDs
+      description: Payload for sending a purchase order to the vendor via email. On success the purchase order is marked as sent today.
+    purchase_order_export:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      xero_status_id:
+                        type: integer
+                        title: Xero Status
+                      company_reference_id:
+                        type: string
+                        title: Company Reference ID
+      description: Payload for exporting a purchase order to a connected Xero accounting integration.
+    purchase_order:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    required:
+                      - currency
+                      - issued_on
+                    properties:
+                      note:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/note'
+                      deal_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/deal_id'
+                      sent_on:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/sent_on'
+                      subject:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/subject'
+                      currency:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/currency'
+                      issued_on:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/issued_on'
+                      status_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/status_id'
+                      vendor_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/vendor_id'
+                      delivery_on:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/delivery_on'
+                      attachment_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/attachment_id'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/subscriber_ids'
+                      document_type_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/document_type_id'
+      description: Request body for creating or updating a purchase order. Specify the vendor company, deal (budget), document type, subject, status, dates, currency, note, and footer. Line items (expenses) are managed via associated bill records.
+    purchase_order_copy:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    required:
+                      - template_id
+                      - deal_id
+                    properties:
+                      deal_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/deal_id'
+                      template_id:
+                        type: integer
+                        title: Template
+      description: Payload for copying an existing purchase order onto a target deal. Requires `template_id` and `deal_id`.
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_purchase_order:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+            - deal_id
+            - -deal_id
+            - deal_name
+            - -deal_name
+            - delivery_on
+            - -delivery_on
+            - id
+            - -id
+            - issued_on
+            - -issued_on
+            - number
+            - -number
+            - payment_status_id
+            - -payment_status_id
+            - received_on
+            - -received_on
+            - sent_on
+            - -sent_on
+            - status_id
+            - -status_id
+            - total_cost
+            - -total_cost
+            - total_cost_with_tax
+            - -total_cost_with_tax
+            - total_received
+            - -total_received
+            - vendor_id
+            - -vendor_id
+          type: string
+        title: Sort purchase order
+      explode: false
+      required: false
+      description: JSON:API `sort` query parameter for the purchase orders collection. Comma-separated list of sort keys — prefix with `-` for descending.
+    filter_purchase_order:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.purchase_order at the top of this file.
+      required: false
+      description: JSON:API `filter` query parameter for the purchase orders collection. Accepts a nested object keyed by field name and operator (`eq`, `not_eq`, `contains`, `not_contain`, `gt`, `lt`, …).
+  responses:
+    single_purchase_order:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      note:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/note'
+                      footer:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/footer'
+                      number:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/number'
+                      sent_on:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/sent_on'
+                      subject:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/subject'
+                      currency:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/currency'
+                      exported:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/exported'
+                      email_key:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/email_key'
+                      export_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/export_id'
+                      issued_on:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/issued_on'
+                      status_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/status_id'
+                      created_at:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/created_at'
+                      export_url:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/export_url'
+                      total_cost:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_cost'
+                      delivery_on:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/delivery_on'
+                      exported_at:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/exported_at'
+                      received_on:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/received_on'
+                      exchange_date:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/exchange_date'
+                      exchange_rate:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/exchange_rate'
+                      total_received:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_received'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/currency_default'
+                      note_interpolated:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/note_interpolated'
+                      payment_status_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/payment_status_id'
+                      total_cost_default:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_default'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/currency_normalized'
+                      footer_interpolated:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/footer_interpolated'
+                      total_cost_with_tax:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax'
+                      total_cost_normalized:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_normalized'
+                      total_received_default:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_received_default'
+                      total_received_normalized:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_received_normalized'
+                      export_integration_type_id:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/export_integration_type_id'
+                      total_cost_with_tax_default:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax_default'
+                      total_cost_with_tax_normalized:
+                        $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax_normalized'
+                  relationships:
+                    type: object
+                    properties:
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      vendor:
+                        $ref: '#/components/schemas/_single_relationship'
+                      bill_to:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      bill_from:
+                        $ref: '#/components/schemas/_single_relationship'
+                      attachment:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      document_type:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single purchase order
+    collection_purchase_order:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        note:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/note'
+                        footer:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/footer'
+                        number:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/number'
+                        sent_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/sent_on'
+                        subject:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/subject'
+                        currency:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/currency'
+                        exported:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/exported'
+                        email_key:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/email_key'
+                        export_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/export_id'
+                        issued_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/issued_on'
+                        status_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/status_id'
+                        created_at:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/created_at'
+                        export_url:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/export_url'
+                        total_cost:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost'
+                        delivery_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/delivery_on'
+                        exported_at:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/exported_at'
+                        received_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/received_on'
+                        exchange_date:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/exchange_date'
+                        exchange_rate:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/exchange_rate'
+                        total_received:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_received'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/currency_default'
+                        note_interpolated:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/note_interpolated'
+                        payment_status_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/payment_status_id'
+                        total_cost_default:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_default'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/currency_normalized'
+                        footer_interpolated:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/footer_interpolated'
+                        total_cost_with_tax:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax'
+                        total_cost_normalized:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_normalized'
+                        total_received_default:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_received_default'
+                        total_received_normalized:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_received_normalized'
+                        export_integration_type_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/export_integration_type_id'
+                        total_cost_with_tax_default:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax_default'
+                        total_cost_with_tax_normalized:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax_normalized'
                     relationships:
                       type: object
+                      properties:
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        vendor:
+                          $ref: '#/components/schemas/_single_relationship'
+                        bill_to:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        bill_from:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachment:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        document_type:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Paginated list of purchase orders in JSON:API format, with related vendor, deal, creator, document type, bill-to, bill-from, and attachment resources available via `include`.
+  schemas:
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    resource_purchase_order:
+      type: object
+      title: Purchase order Resource
+      properties:
+        bill_from:
+          title: Bill From
+          description: The billing address of the sender (bill from contact data) on this purchase order.
+          example:
+            data:
+              type: contact_entries
+              id: '79'
+        total_cost_with_tax_default:
+          title: Total Cost With Tax Default
+          description: The total cost with tax default.
+          example: 187500
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project associated with the deal this purchase order is linked to.
+          example: 567890
+        document_type_id:
+          type: integer
+          title: Document Type
+          description: ID of the document type associated with this purchase order.
+          example: 12
+        sent_on:
+          type: string
+          title: Sent On
+          format: date
+          description: Date when this purchase order was sent to the vendor.
+          example: '2026-04-10'
+        footer_interpolated:
+          title: Footer Interpolated
+          description: The footer text with template placeholders replaced by actual values from the purchase order.
+          example: 'Payment terms: net 30.'
+        total_cost_normalized:
+          title: Total Cost Normalized
+          description: The total cost converted to the normalized (reporting) currency.
+          example: 150000
+        export_integration_type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+            - 7
+            - 8
+            - 9
+            - 10
+            - 11
+          type: integer
+          title: Export Integration Type
+          description: The export integration type id.
+          example: 3
+        footer:
+          title: Footer
+          description: The footer text template for this purchase order, sourced from the associated document type.
+          example: 'Payment terms: net 30.'
+        vendor:
+          title: Vendor
+          description: The vendor (client/company) this purchase order was sent to.
+          example:
+            data:
+              type: companies
+              id: '234567'
+        currency_default:
+          title: Currency Default
+          description: The purchase order amount converted to the organization's default currency.
+          example: USD
+        total_cost_with_tax:
+          title: Total Cost With Tax
+          description: The total cost with tax.
+          example: 187500
+        organization:
+          title: Organization
+          description: The organization this purchase order belongs to.
+          example:
+            data:
+              type: organizations
+              id: '109'
+        exported_at:
+          type: string
+          title: Exported At
+          format: date-time
+          description: Timestamp when this purchase order was exported to an accounting system, or null if not yet exported.
+          example: '2026-04-12T14:22:00.000+01:00'
+        total_received:
+          title: Total Received
+          description: The total amount received against this purchase order in the purchase order's currency.
+          example: 150000
+        total_cost:
+          title: Total Cost
+          description: The total cost of this purchase order (excluding tax) in the purchase order's currency.
+          example: 150000
+        query:
+          type: string
+          title: Query
+          description: A full-text search query to filter purchase orders by number, subject, or vendor name.
+          example: PO-2024
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this purchase order was created.
+          example: '2026-04-01T09:00:00.000+01:00'
+        bill_to:
+          title: Bill To
+          description: The billing address of the recipient (bill to contact data) on this purchase order.
+          example:
+            data:
+              type: contact_entries
+              id: '78'
+        total_received_default:
+          title: Total Received Default
+          description: The total amount received converted to the organization's default currency.
+          example: 150000
+        vendor_id:
+          type: integer
+          title: Vendor
+          description: ID of the vendor (client/company) this purchase order was sent to.
+          example: 234567
+        deal_id:
+          type: integer
+          title: Deal
+          description: ID of the deal (budget) this purchase order is linked to.
+          example: 456789
+        subject:
+          type: string
+          title: Subject
+          description: The subject line of this purchase order.
+          example: Purchase Order PO-2024-017
+        payment_status_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Payment Status
+          description: The payment status ID indicating how much of this purchase order has been received (1=not received, 2=partially received, 3=fully received).
+          example: 1
+        export_url:
+          type: string
+          title: Export Url
+          description: The URL of the exported purchase order in the external accounting system.
+          example: https://go.xero.com/PurchaseOrders/Edit/abc123
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier of this purchase order.
+          example: 1234567
+        total_cost_default:
+          title: Total Cost Default
+          description: The total cost converted to the organization's default currency.
+          example: 150000
+        deal_name:
+          title: Deal Name
+          description: The name of the deal (budget) this purchase order is linked to.
+          example: Q2 Marketing Campaign
+        exchange_rate:
+          type: number
+          title: Exchange Rate
+          description: The exchange rate applied to convert this purchase order's currency to the organization's default currency.
+          example: '1.00000000000000000000'
+        export_id:
+          type: string
+          title: Export
+          description: The external identifier assigned when this purchase order was exported to an accounting system.
+          example: xero-abc123
+        attachment_id:
+          type: integer
+          title: Attachment
+          description: ID of the file attachment associated with this purchase order.
+          example: 89012
+        email_key:
+          type: string
+          title: Email Key
+          description: A unique key used to identify this purchase order when receiving it via email.
+          example: po-7f3c9b2a
+        deal:
+          title: Deal
+          description: The deal (budget) this purchase order is linked to.
+          example:
+            data:
+              type: deals
+              id: '456789'
+        exchange_date:
+          type: string
+          title: Exchange Date
+          format: date
+          description: The date used for applying the exchange rate when converting this purchase order's currency.
+          example: '2026-04-10'
+        creator:
+          title: Creator
+          description: The person who created this purchase order.
+          example:
+            data:
+              type: people
+              id: '345678'
+        delivery_on:
+          type: string
+          title: Delivery On
+          format: date
+          description: Date when the goods or services covered by this purchase order are expected to be delivered.
+          example: '2026-04-17'
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who created this purchase order.
+          example: 345678
+        status_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: The ID of the approval status of this purchase order (e.g. draft, pending, finalized).
+          example: 1
+        total_received_normalized:
+          title: Total Received Normalized
+          description: The total amount received converted to the normalized (reporting) currency.
+          example: 150000
+        issued_on:
+          type: string
+          title: Issued On
+          format: date
+          description: Date when this purchase order was issued.
+          example: '2026-04-10'
+        number:
+          type: string
+          title: Number
+          description: The auto-generated reference number of this purchase order.
+          example: PO-2024-017
+        note_interpolated:
+          title: Note Interpolated
+          description: The note text with template placeholders replaced by actual values from the purchase order.
+          example: Please confirm delivery date for PO-2024-017.
+        total_cost_with_tax_normalized:
+          title: Total Cost With Tax Normalized
+          description: The total cost with tax normalized.
+          example: 187500
+        currency:
+          type: string
+          title: Currency
+          description: The currency of this purchase order.
+          example: USD
+        document_type:
+          title: Document Type
+          description: The document type associated with this purchase order.
+          example:
+            data:
+              type: document_types
+              id: '12'
+        received_on:
+          type: string
+          title: Received On
+          format: date-time
+          description: Timestamp when this purchase order was received by the vendor, or null if not yet received.
+          example: '2026-04-15T10:30:00.000+01:00'
+        exported:
+          title: Exported
+          description: Whether this purchase order has been exported to an accounting system.
+          example: true
+        sent_status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Sent Status
+          description: The sent status of this purchase order, indicating whether it has been sent (1=sent, 2=not sent).
+          example: 1
+        attachment:
+          title: Attachment
+          description: The file attachment associated with this purchase order.
+          example:
+            data:
+              type: attachments
+              id: '89012'
+        note:
+          title: Note
+          description: The note or description body of this purchase order.
+          example: Please confirm delivery date for the attached items.
+        currency_normalized:
+          title: Currency Normalized
+          description: The purchase order amount converted to the normalized (reporting) currency.
+          example: USD
+        subscriber_ids:
+          title: Subscriber Ids
+          description: Array of IDs of users subscribed to receive notifications about this purchase order.
+          example:
+            - 345678
+            - 456789
+      description: Vendor procurement document on a budget. Tracks subject, status, issued/delivery/received dates, vendor, amounts, and export status for accounting integration. Line items (expenses) are created from the PO and billed via bills.
+      example:
+        id: '45'
+        type: purchase_orders
+        attributes:
+          number: PO-2026-045
+          status: approved
+          amount: '25000.00'
+          currency: USD
+          date: '2026-02-01'
+          created_at: '2026-02-01T10:00:00.000+00:00'
+        relationships:
+          company:
+            data:
+              type: companies
+              id: '65111'

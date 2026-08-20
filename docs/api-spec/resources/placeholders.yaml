@@ -1,232 +1,500 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Placeholders
   version: 2.0.0
+description: |-
+  **Placeholders** are unnamed resource slots used in capacity planning before a specific person is assigned. They represent a role, skill, or headcount requirement on a project — allowing teams to schedule capacity without committing to a named individual.
+
+  Placeholders can be converted to real person assignments once staffing decisions are made.
+x-filters:
+  placeholder:
+    created_at:
+      description: Filter by creation date range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    category:
+      description: Filter by placeholder category.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    type:
+      description: Filter by placeholder type.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    usage_project_id:
+      description: Filter placeholders that are used in tasks or todos belonging to the specified project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Filter placeholders by name (text search on the name field).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/placeholders:
     get:
-      summary: Get placeholders GET
-      operationId: getPlaceholders
       tags:
-      - Placeholders
-      parameters:
-      - name: filter[category]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by category (array)
-      - name: filter[created_at]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by created_at (string)
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by id (array)
-      - name: filter[name]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by name (string)
-      - name: filter[project_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by project_id (array)
-      - name: filter[type]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by type (array)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - category
-          - id
-          - name
-          - type
-          - -category
-          - -id
-          - -name
-          - -type
-        description: Sort field. Prefix - for descending.
+        - Placeholders
+      summary: Get placeholders
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_placeholder'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_placeholder'
+        - $ref: '#/components/parameters/filter_placeholder'
+      operationId: placeholders-index
+      description: List all placeholders.
     post:
-      summary: Create a placeholder POST
-      operationId: postPlaceholders
       tags:
-      - Placeholders
-      parameters: []
+        - Placeholders
+      summary: Create a placeholder
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_placeholder'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/placeholders/{id}:
-    delete:
-      summary: Deletes a placeholder DELETE
-      operationId: deletePlaceholdersId
-      tags:
-      - Placeholders
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: placeholders-create
+      requestBody:
+        $ref: '#/components/requestBodies/placeholder'
+      description: Create a new placeholder.
+  /api/v2/placeholders/{id}:
+    get:
+      tags:
+        - Placeholders
+      summary: Gets a placeholder
+      responses:
+        '200':
+          $ref: '#/components/responses/single_placeholder'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder to retrieve.
+      operationId: placeholders-show
+      description: Retrieve a single placeholder by ID.
+    patch:
+      tags:
+        - Placeholders
+      summary: Update a placeholder
+      responses:
+        '200':
+          $ref: '#/components/responses/single_placeholder'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder to update.
+        - $ref: '#/components/parameters/header_organization'
+      operationId: placeholders-update
+      requestBody:
+        $ref: '#/components/requestBodies/placeholder'
+      description: Update a placeholder.
+    delete:
+      tags:
+        - Placeholders
+      summary: Deletes a placeholder
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a placeholder GET
-      operationId: getPlaceholdersId
-      tags:
-      - Placeholders
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder to delete.
+        - $ref: '#/components/parameters/header_organization'
+      operationId: placeholders-destroy
+      description: Delete a placeholder by ID.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_placeholder:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.placeholder at the top of this file.
+      required: false
+      description: Filter parameter for querying placeholders.
+    sort_placeholder:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - category
+            - -category
+            - id
+            - -id
+            - name
+            - -name
+            - type
+            - -type
+          type: string
+        title: Sort placeholder
+      explode: false
+      required: false
+      description: Sort order for placeholder list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
+  requestBodies:
+    placeholder:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a placeholder PATCH
-      operationId: patchPlaceholdersId
-      tags:
-      - Placeholders
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    properties:
+                      icon:
+                        $ref: '#/components/schemas/resource_placeholder/properties/icon'
+                      name:
+                        $ref: '#/components/schemas/resource_placeholder/properties/name'
+                      type:
+                        $ref: '#/components/schemas/resource_placeholder/properties/type'
+                      color:
+                        $ref: '#/components/schemas/resource_placeholder/properties/color'
+                      category:
+                        $ref: '#/components/schemas/resource_placeholder/properties/category'
+                      project_id:
+                        $ref: '#/components/schemas/resource_placeholder/properties/project_id'
+      description: Request body for creating or updating a placeholder.
+  schemas:
+    resource_placeholder:
+      type: object
+      title: Placeholder Resource
+      properties:
+        organization:
+          title: Organization
+          description: The organization this placeholder belongs to.
+          example:
+            eq: value
+        project_id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Project
+          description: ID of the project this placeholder is scoped to, or null if it is organization-wide.
+          example:
+            - 123
+        type:
+          enum:
+            - person
+            - date
+          type: string
+          title: Type
+          description: The type of placeholder, either person or date.
+          example:
+            eq: active
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this placeholder was last updated.
+          example:
+            gt: '2026-01-01'
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this placeholder.
+          example:
+            - 123
+        category:
+          enum:
+            - project
+          type: string
+          title: Category
+          description: The category of this placeholder, indicating the context in which it is used (e.g. project).
+          example:
+            eq: active
+        name:
+          type: string
+          title: Name
+          description: The display name of this placeholder (e.g. Frontend Developer).
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: A text search query to filter placeholders by name.
+          example:
+            eq: value
+        icon:
+          type: string
+          title: Icon
+          description: The icon identifier used to visually represent this placeholder.
+          example:
+            eq: value
+        color:
+          type: string
+          title: Color
+          description: The color identifier used to visually represent this placeholder.
+          example:
+            eq: value
+        project:
+          title: Project
+          description: The project this placeholder is scoped to, or null if it is organization-wide.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this placeholder was created.
+          example:
+            gt: '2026-01-01'
+        usage_project_id:
+          type: integer
+          title: Usage Project
+          description: Filter placeholders to those used in tasks or todos within the specified project.
+          example:
+            - 123
+      description: A named generic resource used in task assignment and scheduling without mapping to a specific person.
+      example:
+        id: '56'
+        type: placeholders
+        attributes:
+          name: UX Designer (contractor)
+          color_id: '4'
+          archived_at: null
+          custom_fields: null
+        relationships:
+          service_types:
+            data:
+              - type: service_types
+                id: '5'
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_placeholder:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      icon:
+                        $ref: '#/components/schemas/resource_placeholder/properties/icon'
+                      name:
+                        $ref: '#/components/schemas/resource_placeholder/properties/name'
+                      type:
+                        $ref: '#/components/schemas/resource_placeholder/properties/type'
+                      color:
+                        $ref: '#/components/schemas/resource_placeholder/properties/color'
+                      category:
+                        $ref: '#/components/schemas/resource_placeholder/properties/category'
+                      created_at:
+                        $ref: '#/components/schemas/resource_placeholder/properties/created_at'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_placeholder/properties/updated_at'
+                  relationships:
+                    type: object
+                    properties:
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single placeholder
+    collection_placeholder:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        icon:
+                          $ref: '#/components/schemas/resource_placeholder/properties/icon'
+                        name:
+                          $ref: '#/components/schemas/resource_placeholder/properties/name'
+                        type:
+                          $ref: '#/components/schemas/resource_placeholder/properties/type'
+                        color:
+                          $ref: '#/components/schemas/resource_placeholder/properties/color'
+                        category:
+                          $ref: '#/components/schemas/resource_placeholder/properties/category'
+                        created_at:
+                          $ref: '#/components/schemas/resource_placeholder/properties/created_at'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_placeholder/properties/updated_at'
                     relationships:
                       type: object
+                      properties:
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection placeholder

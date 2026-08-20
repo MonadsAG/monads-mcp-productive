@@ -11,6 +11,8 @@ npm run worker:types             # wrangler types (generate CF type defs — NOT
 npx tsc -p tsconfig.worker.json  # typecheck the Worker (no npm script for this)
 npm run build                    # tsc + chmod (stdio build, legacy fallback)
 npx prettier --write .           # format (there is no `npm run format` script)
+npm run spec:sync                # download the official OpenAPI spec, regenerate docs/api-spec/
+npm run spec:impact              # check src/api against the spec (endpoints, filters, attributes)
 ```
 
 ## Project Structure
@@ -41,7 +43,8 @@ src/
 │   └── ...               # 29 tool files total
 ├── prompts/
 │   └── timesheet.ts      # Guided timesheet workflow
-docs/api-spec/            # Generated API specs (see below)
+scripts/                  # spec sync + impact analysis (tsx, see API Spec)
+docs/api-spec/            # Official OpenAPI spec + per-resource split (see below)
 wrangler.jsonc            # Cloudflare Worker config (KV bindings)
 tsconfig.json             # Stdio TypeScript config (excludes worker files)
 tsconfig.worker.json      # Worker TypeScript config (all files)
@@ -88,21 +91,22 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 
 `PRODUCTIVE_TOOLSETS` (optional, comma-separated) restricts which domain groups of tools a deployment exposes -- unset/`all` means every tool, same as before this feature existed. Catalog lives in `src/tools/toolsets.ts`; `registry.ts`'s `getToolDefinitions`/`handleToolCall` filter `ListTools` and reject `CallTool` for disabled tools (not just hide them).
 
-| Toolset         | Covers                                                                     |
-| --------------- | -------------------------------------------------------------------------- |
+| Toolset         | Covers                                                                             |
+| --------------- | ---------------------------------------------------------------------------------- |
 | `core`          | whoami, companies, projects, people, activities, recent updates, workflow statuses |
-| `tasks`         | tasks, task lists, subtasks, dependencies, backlog, reposition, my-tasks   |
-| `custom_fields` | custom field discovery + generic get/set                                   |
-| `comments`      | task comments, pins, reactions                                             |
-| `time_tracking` | time entries, timers, approvals, deals/services                            |
-| `invoicing`     | invoices, company budgets, line items, PDF/timesheet URLs                  |
-| `docs`          | folders (boards) + pages                                                   |
-| `todos`         | todos                                                                      |
+| `tasks`         | tasks, task lists, subtasks, dependencies, backlog, reposition, my-tasks           |
+| `custom_fields` | custom field discovery + generic get/set                                           |
+| `comments`      | task comments, pins, reactions                                                     |
+| `time_tracking` | time entries, timers, approvals, deals/services                                    |
+| `invoicing`     | invoices, company budgets, line items, PDF/timesheet URLs                          |
+| `docs`          | folders (boards) + pages                                                           |
+| `todos`         | todos                                                                              |
 
 ## Adding New Tools
 
 1. Read API spec: `docs/api-spec/resources/_index.yaml` (endpoint overview)
-2. Read resource detail: `docs/api-spec/resources/{resource}.yaml`
+2. Read resource detail: `docs/api-spec/resources/{resource}.yaml` -- `x-filters` lists the valid
+   filter keys, `components.schemas.resource_*` the response attributes
 3. Create tool file in `src/tools/{resource}.ts`
 4. Export tool definition + handler, add to `src/tools/registry.ts`
 5. Follow existing patterns (Zod input schema, apiClient calls, JSON API format)
@@ -111,15 +115,22 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 
 ## API Spec
 
-Generated docs in `docs/api-spec/`:
+The **official** OpenAPI 3.1 spec from <https://developer.productive.io/reference/download_spec>,
+split per resource. It is no longer scraped from HTML -- Productive publishes the spec itself.
 
-- `resources/_index.yaml` -- compact index of all 105 resources + endpoints
-- `resources/{slug}.yaml` -- full OpenAPI spec per resource
-- `productive-openapi.yaml` -- complete spec (for codegen only, don't read directly)
-- `CHANGELOG.md` -- tracks API changes between scraper runs
+- `resources/_index.yaml` -- index of all resources: file, description, endpoints
+- `resources/{slug}.yaml` -- self-contained spec per resource; `x-filters` = valid filter keys,
+  `components.schemas.resource_*` = response attributes
+- `resources/reports/*.yaml` -- the `Reports` tag is too big for one file, split per endpoint
+- `productive-openapi.yaml` -- the official spec verbatim (codegen + diff baseline, don't read directly)
+- `CHANGELOG.md` -- semantic diff per sync: paths, methods, filter keys, attributes
+- `impact-baseline.json` -- known, accepted deviations between `src/api` and the spec
 
-Regenerate: `cd docs/api-spec && python productive_to_openapi.py`
-Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_to_openapi.py`
+Regenerate: `npm run spec:sync` (sends the stored ETag; a `304` means nothing changed)
+Check our code against it: `npm run spec:impact`
+
+`.github/workflows/api-spec-sync.yml` runs this weekly and opens a PR on `chore/api-spec-sync`
+when the spec moved, with the impact analysis in the PR body.
 
 ## Gotchas
 
@@ -132,8 +143,10 @@ Lint scraper: `pylint --rcfile=docs/api-spec/.pylintrc docs/api-spec/productive_
 - **McpServer vs Server**: The Worker uses the low-level `Server` class (not `McpServer`) because tool definitions use raw JSON Schema, which `McpServer.registerTool()` does not accept.
 - **Streamable HTTP transport**: The Worker uses `createMcpHandler` (stateless, no Durable Object). Each request creates a fresh `Server` instance. Do NOT use `McpAgent` — it requires persistent SSE connections that get killed by Worker timeouts.
 - **Two tsconfigs**: `tsconfig.worker.json` type-checks everything (with CF types); the stdio `tsconfig.json` **excludes** every Worker-only file. A new file that uses the edge runtime (`crypto.subtle`, `KVNamespace`, `btoa`/`atob` — most of `src/auth/`) **must be added to `tsconfig.json`'s `exclude`**, or the stdio `npm run build` fails.
-- **Custom field value shapes**: a `custom_fields` entry's value shape depends on the field's `field_type` — an array of option ID strings for dropdown/multi-select fields, an ISO date string for date fields, or the raw value for text/number/checkbox fields. The generated OpenAPI spec for the `custom_fields`/`custom_field_options` resources does not document exact attribute names -- real attribute keys were only confirmed via a live API test.
+- **Custom field value shapes**: a `custom_fields` entry's value shape depends on the field's data type — an array of option ID strings for dropdown/multi-select fields, an ISO date string for date fields, or the raw value for text/number/checkbox fields. The official spec documents the `custom_fields`/`custom_field_options` attributes (the type attribute is `data_type_id`, **not** `field_type`), but not which enum value means which type, and `resource_*.custom_fields` is only `type: object` — so the value shape per field type is still only confirmed by a live API test.
 - **New tool, new toolset entry**: added a tool to `registry.ts` without adding its name to `src/tools/toolsets.ts`? It silently disappears for any deployment with a restrictive `PRODUCTIVE_TOOLSETS` set (still works when unset, since that means "no filtering"). `tests/unit/toolsets.test.ts` has a completeness check that catches this at test time, not just in production.
+- **`filter[...]` keys can differ from the matching response attribute name**: Productive 422s on unrecognized filter keys ("Filter 'x' is not supported on this endpoint"). Confirmed traps: person `is_active` attribute → filter is `filter[status]` (1: active/2: deactivated); deal `budget_type` attribute → filter is `filter[type]` (1: deal/2: budget); deal open/closed → `filter[budget_status]` (not `filter[status]`, which means something unrelated — `status_id`, a pipeline-stage relationship). Verify against the `x-filters` block in `docs/api-spec/resources/{resource}.yaml` before adding a new filter to `client.ts` — don't assume the attribute name is the filter name. `npm run spec:impact` checks every `filter[...]` key in `client.ts` against that list and fails on an unknown one.
+- **Tool-level tests don't catch wrong `filter[...]` keys**: tests like `tests/unit/people.test.ts` typically assert only on the params passed into a _mocked_ `client.ts` method, not the actual request URL — the bug above shipped invisibly for exactly this reason. When you touch filter-building code in `client.ts`, add/extend a `client-*.test.ts` test (pattern: `tests/unit/client-boards.test.ts`, `client-filters.test.ts`) that stubs `global.fetch` and asserts on the real query string.
 
 ## Environment Variables
 
@@ -167,4 +180,5 @@ KV namespaces (`wrangler.jsonc`): `OAUTH_KV`, `USER_MAPPING_KV` (oid → person 
 - **Origin**: `MonadsAG/monads-mcp-productive` — all PRs go here
 - **Upstream**: `berwickgeek/productive-mcp` — fork source, **NEVER create PRs here**
 - **CRITICAL**: Always use `--repo MonadsAG/monads-mcp-productive` when running `gh pr create`. The `gh` CLI defaults to the upstream fork (`berwickgeek/productive-mcp`) which is wrong.
-- **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production (there is no `.github/workflows` CI, so don't assume deploys are manual). `npm run worker:deploy` is only for deliberate out-of-band/test deploys.
+- **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production (the only `.github/workflows` entry is the weekly API-spec sync; it does not deploy). `npm run worker:deploy` is only for deliberate out-of-band/test deploys.
+- **PRs are squash-merged** (`gh pr merge --squash --delete-branch`) — confirmed by `main`'s single-commit-per-PR history. Afterward, local feature branches need `git branch -D` (not `-d`) to clean up, since git doesn't recognize a squash commit as merged via ancestry.

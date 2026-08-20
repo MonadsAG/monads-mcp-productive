@@ -1,82 +1,318 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Webhook Logs
   version: 2.0.0
+description: The Webhook Log object represents a record of an unsuccessful webhook delivery attempt. When a webhook fails to deliver, a log is created with details about the failure.
+x-filters:
+  webhook_log:
+    after:
+      description: Filter by after.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    retry_job_id:
+      description: Filter by the background job ID used for scheduling the retry delivery.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    webhook_id:
+      description: Filter by the associated webhook.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    before:
+      description: Filter by before.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    retry_attempt:
+      description: Filter by the retry attempt number for failed deliveries.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by webhook log ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/webhook_logs:
     get:
-      summary: Get webhook logs GET
-      operationId: getWebhookLogs
       tags:
-      - Webhook Logs
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by id (string)
-      - name: filter[webhook_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by webhook_id (array)
-      - name: filter[retry_attempt]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by retry_attempt (string)
-      - name: filter[retry_job_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by retry_job_id (string)
-      - name: filter[before]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by before (date)
-      - name: filter[after]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by after (date)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Webhook Logs
+      summary: Get webhook logs
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_webhook_log'
+      parameters:
+        - $ref: '#/components/parameters/sort_webhook_log'
+        - $ref: '#/components/parameters/filter_webhook_log'
+        - $ref: '#/components/parameters/header_organization'
+      operationId: webhook_logs-index
+      description: List all webhook logs.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_webhook_log:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.webhook_log at the top of this file.
+      required: false
+      description: Filters
+    sort_webhook_log:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort webhook log
+      explode: false
+      required: false
+      description: Sort webhook log
+  schemas:
+    resource_webhook_log:
+      type: object
+      title: Webhook log Resource
+      properties:
+        webhook:
+          title: Webhook
+          description: The webhook that generated this log entry.
+          example:
+            eq: value
+        target_url:
+          type: string
+          title: Target Url
+          description: The URL to which the webhook payload was delivered.
+          example:
+            eq: value
+        status_code:
+          type: integer
+          title: Status Code
+          description: The HTTP response status code returned by the target URL.
+          example:
+            eq: active
+        organization:
+          title: Organization
+          description: The organization this webhook log entry belongs to.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this webhook log entry.
+          example:
+            - 123
+        after:
+          type: string
+          title: After
+          format: date
+          description: Filter to return only webhook log entries created after this date.
+          example:
+            eq: value
+        retry_attempt:
+          type: integer
+          title: Retry Attempt
+          description: The retry attempt number for this delivery, where 0 is the initial attempt.
+          example:
+            gt: '2026-01-01'
+        payload:
+          type: string
+          title: Payload
+          description: The JSON payload that was sent to the target URL.
+          example:
+            eq: value
+        before:
+          type: string
+          title: Before
+          format: date
+          description: Filter to return only webhook log entries created before this date.
+          example:
+            eq: value
+        retry_job_id:
+          type: string
+          title: Retry Job
+          description: The background job ID for a scheduled retry of this delivery, or null if no retry is pending.
+          example:
+            - 123
+        webhook_id:
+          type: integer
+          title: Webhook
+          description: ID of the webhook that generated this log entry.
+          example:
+            - 123
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this webhook delivery attempt was made.
+          example:
+            gt: '2026-01-01'
+      description: A webhook log records a single delivery attempt of a webhook event to its target URL, capturing the payload sent, HTTP response code, and retry details.
+      example:
+        id: '123'
+        type: webhook_logs
+        attributes:
+          event_type: task.created
+          status: success
+          response_code: 200
+          sent_at: '2026-01-15T10:00:00Z'
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    collection_webhook_log:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        payload:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/payload'
+                        created_at:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/created_at'
+                        target_url:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/target_url'
+                        status_code:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/status_code'
+                        retry_job_id:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/retry_job_id'
+                        retry_attempt:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/retry_attempt'
+                    relationships:
+                      type: object
+                      properties:
+                        webhook:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection webhook log

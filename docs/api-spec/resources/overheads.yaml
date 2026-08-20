@@ -1,163 +1,863 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Overheads
   version: 2.0.0
+description: |-
+  For more details about what overheads are, please refer to the [help article](https://help.productive.io/en/articles/6839043-overhead-cost).
+
+  The Overhead object represents overhead costs for a particular month of a fiscal year. Productive generates overhead objects automatically every month, starting the month when you opened your Productive account.
+
+  Please note that some overhead settings are also defined at the organisation level. This settings can be changed by modifying the Organizations object.
+x-filters:
+  overhead:
+    overhead_type_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subsidiary_id:
+      description: Filter by the associated subsidiary.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/overheads:
     get:
-      summary: Get overheads GET
-      operationId: getOverheads
       tags:
-      - Overheads
-      parameters:
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Overheads
+      summary: Get overheads
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-  /api/v2/overheads/{id}:
-    get:
-      summary: Gets an overhead GET
-      operationId: getOverheadsId
-      tags:
-      - Overheads
+          $ref: '#/components/responses/collection_overhead'
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update an overhead PATCH
-      operationId: patchOverheadsId
-      tags:
-      - Overheads
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        - $ref: '#/components/parameters/filter_overhead'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_overhead'
+      operationId: overheads-index
+      description: List overheads.
   /api/v2/overheads/{id}/recalculate:
     patch:
-      summary: Recalculate an overhead PATCH
-      operationId: patchOverheadsIdRecalculate
       tags:
-      - Overheads
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Overheads
+      summary: Recalculate an overhead
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/single_overhead'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: overheads-recalculate-recalculate
+      description: Recalculate overhead costs for a period.
+  /api/v2/overheads/{id}:
+    get:
+      tags:
+        - Overheads
+      summary: Gets an overhead
+      responses:
+        '200':
+          $ref: '#/components/responses/single_overhead'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: overheads-show
+      description: Retrieve a single overhead record.
+    patch:
+      tags:
+        - Overheads
+      summary: Update an overhead
+      responses:
+        '200':
+          $ref: '#/components/responses/single_overhead'
+        '422':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: overheads-update
+      requestBody:
+        $ref: '#/components/requestBodies/overhead'
+      description: Update an overhead record.
+components:
+  requestBodies:
+    overhead:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      use_overhead:
+                        $ref: '#/components/schemas/resource_overhead/properties/use_overhead'
+                      facility_costs:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_costs'
+                      averaging_period:
+                        $ref: '#/components/schemas/resource_overhead/properties/averaging_period'
+                      overhead_controls:
+                        $ref: '#/components/schemas/resource_overhead/properties/overhead_controls'
+                      facility_costs_breakdown:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_costs_breakdown'
+      description: Request body for creating or updating an overhead configuration.
+  schemas:
+    resource_overhead:
+      type: object
+      title: Overhead Resource
+      properties:
+        currency_default:
+          title: Currency Default
+          description: The monetary values in this overhead record converted to the organization's default currency.
+          example:
+            eq: value
+        time_off_costs_default:
+          title: Time Off Costs Default
+          description: The time off costs default.
+          example:
+            gt: 0
+        organization:
+          title: Organization
+          description: The organization this overhead record belongs to.
+          example:
+            eq: value
+        overhead_hours:
+          type: number
+          title: Overhead Hours
+          description: Total hours marked as overhead across all project types during this period.
+          example:
+            eq: value
+        overtracked_hours:
+          type: number
+          title: Overtracked Hours
+          description: Hours tracked in excess of the employee's scheduled capacity during this period.
+          example:
+            eq: value
+        internal_work_costs_default:
+          title: Internal Work Costs Default
+          description: The internal work costs default.
+          example:
+            eq: value
+        time_off_hours:
+          type: number
+          title: Time Off Hours
+          description: Total paid time-off hours taken by employees during this overhead period.
+          example:
+            gt: 0
+        time_off_costs_normalized:
+          title: Time Off Costs Normalized
+          description: The time off costs normalized.
+          example:
+            gt: 0
+        overhead_controls:
+          type: object
+          title: Overhead Controls
+          description: A set of flags controlling which overhead types (facility, work, time-off, expense, undertime, overtime) are included in cost calculations.
+          example:
+            eq: value
+        internal_work_costs_normalized:
+          title: Internal Work Costs Normalized
+          description: The internal work costs normalized.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The monetary values in this overhead record in the normalized (display) currency.
+          example:
+            eq: value
+        overtracked_costs:
+          title: Overtracked Costs
+          description: The cost associated with overtracked hours — when employees tracked more time than their scheduled capacity.
+          example:
+            eq: value
+        undertracked_costs_normalized:
+          title: Undertracked Costs Normalized
+          description: The undertracked costs in the normalized (display) currency.
+          example:
+            eq: value
+        facility_costs:
+          type: integer
+          title: Facility Costs
+          description: The total facility (office and infrastructure) costs allocated to this overhead period.
+          example:
+            eq: value
+        internal_componentized_costs_default:
+          title: Internal Componentized Costs Default
+          description: The internal componentized costs default.
+          example:
+            eq: value
+        internal_expense_costs:
+          title: Internal Expense Costs
+          description: The total cost of internal expense reports during this overhead period.
+          example:
+            eq: value
+        time_off_overhead_hours:
+          type: number
+          title: Time Off Overhead Hours
+          description: The time off overhead hours.
+          example:
+            gt: 0
+        intercompany_hours:
+          type: number
+          title: Intercompany Hours
+        recalculating_status:
+          type: object
+          title: Recalculating Status
+          description: The current recalculation status of this overhead, tracking whether bookings and time entries have been processed.
+          example:
+            eq: active
+        averaging_period:
+          type: integer
+          title: Averaging Period
+          description: The number of past overhead periods used to calculate projected estimates when averaging is enabled.
+          example:
+            eq: value
+        ended_on:
+          type: string
+          title: Ended On
+          format: date
+          description: Date when this overhead period ends, or null if this is the current projection period.
+          example:
+            eq: value
+        facility_cost_per_hour_default:
+          title: Facility Cost Per Hour Default
+          description: The facility cost per hour default.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this overhead record was last updated.
+          example:
+            gt: '2026-01-01'
+        client_hours:
+          type: number
+          title: Client Hours
+          description: Total hours tracked on billable client projects during this overhead period.
+          example:
+            eq: value
+        time_off_costs:
+          title: Time Off Costs
+          description: The total cost of paid time-off hours during this overhead period.
+          example:
+            gt: 0
+        internal_componentized_costs:
+          title: Internal Componentized Costs
+          description: The total internal costs including work, time-off, and expenses, adjusted for overhead inclusion controls.
+          example:
+            eq: value
+        internal_work_costs:
+          title: Internal Work Costs
+          description: The total cost of time tracked on internal projects during this overhead period.
+          example:
+            eq: value
+        internal_expense_costs_default:
+          title: Internal Expense Costs Default
+          description: The internal expense costs default.
+          example:
+            eq: value
+        undertracked_costs:
+          title: Undertracked Costs
+          description: The cost associated with undertracked hours — when employees tracked less time than their scheduled capacity.
+          example:
+            eq: value
+        recalculated_at:
+          type: string
+          title: Recalculated At
+          format: date-time
+          description: Timestamp when the overhead costs were last recalculated from tracked time and bookings.
+          example:
+            gt: '2026-01-01'
+        internal_expense_costs_normalized:
+          title: Internal Expense Costs Normalized
+          description: The internal expense costs normalized.
+          example:
+            eq: value
+        facility_cost_per_hour_normalized:
+          title: Facility Cost Per Hour Normalized
+          description: The facility cost per hour normalized.
+          example:
+            eq: value
+        overtracked_costs_normalized:
+          title: Overtracked Costs Normalized
+          description: The overtracked costs in the normalized (display) currency.
+          example:
+            eq: value
+        overtracked_costs_default:
+          title: Overtracked Costs Default
+          description: The overtracked costs converted to the organization's default currency.
+          example:
+            eq: value
+        capacity:
+          type: number
+          title: Capacity
+          description: The total available work capacity in hours for the period, based on employee schedules.
+          example:
+            eq: value
+        facility_costs_normalized:
+          title: Facility Costs Normalized
+          description: The facility costs in the normalized (display) currency.
+          example:
+            eq: value
+        internal_overhead_hours:
+          type: number
+          title: Internal Overhead Hours
+          description: Hours tracked on internal projects that are marked as overhead during this period.
+          example:
+            eq: value
+        subsidiary:
+          title: Subsidiary
+          description: The subsidiary this overhead record is associated with (null for global overheads).
+          example:
+            eq: value
+        internal_hours:
+          type: number
+          title: Internal Hours
+          description: Total hours tracked on internal (non-billable) projects during this overhead period.
+          example:
+            eq: value
+        new_internal_cost_per_hour_normalized:
+          title: New Internal Cost Per Hour Normalized
+          description: The new internal cost per hour normalized.
+          example:
+            eq: value
+        updater:
+          title: Updater
+          description: The person who last updated this overhead record.
+          example:
+            eq: value
+        facility_costs_default:
+          title: Facility Costs Default
+          description: The facility costs converted to the organization's default currency.
+          example:
+            eq: value
+        client_overhead_hours:
+          type: number
+          title: Client Overhead Hours
+          description: Hours tracked on billable client projects that are marked as overhead during this period.
+          example:
+            eq: value
+        currency:
+          type: string
+          title: Currency
+          description: The currency of monetary values in this overhead record.
+          example:
+            eq: value
+        uses_averaging:
+          type: boolean
+          title: Uses Averaging
+          description: When true, overhead costs are averaged over multiple past periods rather than using a single period's values.
+          example:
+            eq: value
+        new_internal_cost_per_hour:
+          title: New Internal Cost Per Hour
+          description: The new internal cost per hour.
+          example:
+            eq: value
+        exchange_rate:
+          type: number
+          title: Exchange Rate
+          description: The exchange rate used to convert costs to the organization's default currency for this period.
+          example:
+            gt: 0
+        started_on:
+          type: string
+          title: Started On
+          format: date
+          description: Date when this overhead period starts.
+          example:
+            eq: value
+        internal_componentized_costs_normalized:
+          title: Internal Componentized Costs Normalized
+          description: The internal componentized costs normalized.
+          example:
+            eq: value
+        overhead_type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Overhead Type
+        facility_costs_breakdown:
+          type: object
+          title: Facility Costs Breakdown
+          description: A breakdown of facility costs by category (e.g. rent, utilities) for this overhead period.
+          example:
+            eq: value
+        facility_cost_per_hour:
+          title: Facility Cost Per Hour
+          description: The facility cost per hour.
+          example:
+            eq: value
+        total_hours:
+          type: number
+          title: Total Hours
+          description: Total hours tracked across all project types during this overhead period.
+          example:
+            eq: value
+        undertracked_costs_default:
+          title: Undertracked Costs Default
+          description: The undertracked costs converted to the organization's default currency.
+          example:
+            eq: value
+        undertracked_hours:
+          type: number
+          title: Undertracked Hours
+          description: Hours not tracked by employees relative to their scheduled capacity during this period.
+          example:
+            eq: value
+        new_internal_cost_per_hour_default:
+          title: New Internal Cost Per Hour Default
+          description: The new internal cost per hour default.
+          example:
+            eq: value
+        use_overhead:
+          type: boolean
+          title: Use Overhead
+          description: When true, overhead calculations are enabled and applied to cost rate computations for this subsidiary.
+          example:
+            eq: value
+        subsidiary_id:
+          type: integer
+          title: Subsidiary
+          description: ID of the subsidiary this overhead record is associated with (null for global overheads).
+          example:
+            - 123
+      description: An overhead record representing the internal cost breakdown for a subsidiary over a billing period.
+      example:
+        id: '23'
+        type: overheads
+        attributes:
+          name: Team Building & Offsites
+          archived_at: null
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_overhead:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - ended_on
+            - -ended_on
+            - started_on
+            - -started_on
+          type: string
+        title: Sort overhead
+      explode: false
+      required: false
+      description: Sort overhead
+    filter_overhead:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.overhead at the top of this file.
+      required: false
+      description: Filters
+  responses:
+    single_overhead:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      capacity:
+                        $ref: '#/components/schemas/resource_overhead/properties/capacity'
+                      currency:
+                        $ref: '#/components/schemas/resource_overhead/properties/currency'
+                      ended_on:
+                        $ref: '#/components/schemas/resource_overhead/properties/ended_on'
+                      started_on:
+                        $ref: '#/components/schemas/resource_overhead/properties/started_on'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_overhead/properties/updated_at'
+                      total_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/total_hours'
+                      client_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/client_hours'
+                      use_overhead:
+                        $ref: '#/components/schemas/resource_overhead/properties/use_overhead'
+                      exchange_rate:
+                        $ref: '#/components/schemas/resource_overhead/properties/exchange_rate'
+                      facility_costs:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_costs'
+                      internal_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_hours'
+                      overhead_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/overhead_hours'
+                      time_off_costs:
+                        $ref: '#/components/schemas/resource_overhead/properties/time_off_costs'
+                      time_off_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/time_off_hours'
+                      uses_averaging:
+                        $ref: '#/components/schemas/resource_overhead/properties/uses_averaging'
+                      recalculated_at:
+                        $ref: '#/components/schemas/resource_overhead/properties/recalculated_at'
+                      averaging_period:
+                        $ref: '#/components/schemas/resource_overhead/properties/averaging_period'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/currency_default'
+                      overhead_type_id:
+                        $ref: '#/components/schemas/resource_overhead/properties/overhead_type_id'
+                      overhead_controls:
+                        $ref: '#/components/schemas/resource_overhead/properties/overhead_controls'
+                      overtracked_costs:
+                        $ref: '#/components/schemas/resource_overhead/properties/overtracked_costs'
+                      overtracked_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/overtracked_hours'
+                      intercompany_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/intercompany_hours'
+                      undertracked_costs:
+                        $ref: '#/components/schemas/resource_overhead/properties/undertracked_costs'
+                      undertracked_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/undertracked_hours'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/currency_normalized'
+                      internal_work_costs:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_work_costs'
+                      recalculating_status:
+                        $ref: '#/components/schemas/resource_overhead/properties/recalculating_status'
+                      client_overhead_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/client_overhead_hours'
+                      facility_cost_per_hour:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_cost_per_hour'
+                      facility_costs_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_costs_default'
+                      internal_expense_costs:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_expense_costs'
+                      time_off_costs_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/time_off_costs_default'
+                      internal_overhead_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_overhead_hours'
+                      time_off_overhead_hours:
+                        $ref: '#/components/schemas/resource_overhead/properties/time_off_overhead_hours'
+                      facility_costs_breakdown:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_costs_breakdown'
+                      facility_costs_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_costs_normalized'
+                      overtracked_costs_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/overtracked_costs_default'
+                      time_off_costs_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/time_off_costs_normalized'
+                      new_internal_cost_per_hour:
+                        $ref: '#/components/schemas/resource_overhead/properties/new_internal_cost_per_hour'
+                      undertracked_costs_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/undertracked_costs_default'
+                      internal_work_costs_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_work_costs_default'
+                      internal_componentized_costs:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_componentized_costs'
+                      overtracked_costs_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/overtracked_costs_normalized'
+                      undertracked_costs_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/undertracked_costs_normalized'
+                      facility_cost_per_hour_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_cost_per_hour_default'
+                      internal_expense_costs_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_expense_costs_default'
+                      internal_work_costs_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_work_costs_normalized'
+                      facility_cost_per_hour_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/facility_cost_per_hour_normalized'
+                      internal_expense_costs_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_expense_costs_normalized'
+                      new_internal_cost_per_hour_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/new_internal_cost_per_hour_default'
+                      internal_componentized_costs_default:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_componentized_costs_default'
+                      new_internal_cost_per_hour_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/new_internal_cost_per_hour_normalized'
+                      internal_componentized_costs_normalized:
+                        $ref: '#/components/schemas/resource_overhead/properties/internal_componentized_costs_normalized'
+                  relationships:
+                    type: object
+                    properties:
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                      subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single overhead
+    collection_overhead:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        capacity:
+                          $ref: '#/components/schemas/resource_overhead/properties/capacity'
+                        currency:
+                          $ref: '#/components/schemas/resource_overhead/properties/currency'
+                        ended_on:
+                          $ref: '#/components/schemas/resource_overhead/properties/ended_on'
+                        started_on:
+                          $ref: '#/components/schemas/resource_overhead/properties/started_on'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_overhead/properties/updated_at'
+                        total_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/total_hours'
+                        client_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/client_hours'
+                        use_overhead:
+                          $ref: '#/components/schemas/resource_overhead/properties/use_overhead'
+                        exchange_rate:
+                          $ref: '#/components/schemas/resource_overhead/properties/exchange_rate'
+                        facility_costs:
+                          $ref: '#/components/schemas/resource_overhead/properties/facility_costs'
+                        internal_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_hours'
+                        overhead_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/overhead_hours'
+                        time_off_costs:
+                          $ref: '#/components/schemas/resource_overhead/properties/time_off_costs'
+                        time_off_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/time_off_hours'
+                        uses_averaging:
+                          $ref: '#/components/schemas/resource_overhead/properties/uses_averaging'
+                        recalculated_at:
+                          $ref: '#/components/schemas/resource_overhead/properties/recalculated_at'
+                        averaging_period:
+                          $ref: '#/components/schemas/resource_overhead/properties/averaging_period'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/currency_default'
+                        overhead_type_id:
+                          $ref: '#/components/schemas/resource_overhead/properties/overhead_type_id'
+                        overhead_controls:
+                          $ref: '#/components/schemas/resource_overhead/properties/overhead_controls'
+                        overtracked_costs:
+                          $ref: '#/components/schemas/resource_overhead/properties/overtracked_costs'
+                        overtracked_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/overtracked_hours'
+                        intercompany_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/intercompany_hours'
+                        undertracked_costs:
+                          $ref: '#/components/schemas/resource_overhead/properties/undertracked_costs'
+                        undertracked_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/undertracked_hours'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/currency_normalized'
+                        internal_work_costs:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_work_costs'
+                        recalculating_status:
+                          $ref: '#/components/schemas/resource_overhead/properties/recalculating_status'
+                        client_overhead_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/client_overhead_hours'
+                        facility_cost_per_hour:
+                          $ref: '#/components/schemas/resource_overhead/properties/facility_cost_per_hour'
+                        facility_costs_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/facility_costs_default'
+                        internal_expense_costs:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_expense_costs'
+                        time_off_costs_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/time_off_costs_default'
+                        internal_overhead_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_overhead_hours'
+                        time_off_overhead_hours:
+                          $ref: '#/components/schemas/resource_overhead/properties/time_off_overhead_hours'
+                        facility_costs_breakdown:
+                          $ref: '#/components/schemas/resource_overhead/properties/facility_costs_breakdown'
+                        facility_costs_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/facility_costs_normalized'
+                        overtracked_costs_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/overtracked_costs_default'
+                        time_off_costs_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/time_off_costs_normalized'
+                        new_internal_cost_per_hour:
+                          $ref: '#/components/schemas/resource_overhead/properties/new_internal_cost_per_hour'
+                        undertracked_costs_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/undertracked_costs_default'
+                        internal_work_costs_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_work_costs_default'
+                        internal_componentized_costs:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_componentized_costs'
+                        overtracked_costs_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/overtracked_costs_normalized'
+                        undertracked_costs_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/undertracked_costs_normalized'
+                        facility_cost_per_hour_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/facility_cost_per_hour_default'
+                        internal_expense_costs_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_expense_costs_default'
+                        internal_work_costs_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_work_costs_normalized'
+                        facility_cost_per_hour_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/facility_cost_per_hour_normalized'
+                        internal_expense_costs_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_expense_costs_normalized'
+                        new_internal_cost_per_hour_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/new_internal_cost_per_hour_default'
+                        internal_componentized_costs_default:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_componentized_costs_default'
+                        new_internal_cost_per_hour_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/new_internal_cost_per_hour_normalized'
+                        internal_componentized_costs_normalized:
+                          $ref: '#/components/schemas/resource_overhead/properties/internal_componentized_costs_normalized'
                     relationships:
                       type: object
+                      properties:
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                        subsidiary:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection overhead
