@@ -1,198 +1,419 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Deal Cost Rates
   version: 2.0.0
+description: |-
+  For an overview of deal cost rates please refer to the [help article](https://help.productive.io/en/articles/8795140-custom-cost-rates-on-budgets-and-deals).
+
+  Besides having default [cost rates](https://help.productive.io/en/articles/2179644-understanding-and-setting-up-cost-rates-in-productive) for the team,
+  a custom cost rate for specific deal or budget can be set, which will override the default value.
+  Only one per person, per deal can be created.
+
+  Following depicts the Deal cost rate entity relationship diagram:
+
+  ```d2
+  ...@template
+  *: {
+    class: default
+  }
+
+  # Define actors
+  deal: Deal / Budget
+  person: Person
+  deal_cost_rate: DealCostRate {
+    class: primary
+  }
+
+  deal -> deal_cost_rate <- person
+  ```
+x-filters:
+  deal_cost_rate:
+    person_id:
+      description: Filter by person ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    deal_id:
+      description: Filter by deal ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/deal_cost_rates:
     get:
-      summary: Get deal cost rates GET
-      operationId: getDealCostRates
       tags:
-      - Deal Cost Rates
-      parameters:
-      - name: filter[deal_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by deal_id (array)
-      - name: filter[person_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by person_id (array)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - rate_cents
-          - -rate_cents
-        description: Sort field. Prefix - for descending.
+        - Deal Cost Rates
+      summary: Get deal cost rates
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_deal_cost_rate'
+      parameters:
+        - $ref: '#/components/parameters/filter_deal_cost_rate'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_deal_cost_rate'
+      operationId: deal_cost_rates-index
+      description: List deal cost rates with optional filters and pagination.
     post:
-      summary: Create a deal cost rate POST
-      operationId: postDealCostRates
       tags:
-      - Deal Cost Rates
-      parameters: []
+        - Deal Cost Rates
+      summary: Create a deal cost rate
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_deal_cost_rate'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/deal_cost_rates/{id}:
-    delete:
-      summary: Deletes a deal cost rate DELETE
-      operationId: deleteDealCostRatesId
-      tags:
-      - Deal Cost Rates
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: deal_cost_rates-create
+      requestBody:
+        $ref: '#/components/requestBodies/deal_cost_rate'
+      description: Create a new deal cost rate.
+  /api/v2/deal_cost_rates/{id}:
+    get:
+      tags:
+        - Deal Cost Rates
+      summary: Gets a deal cost rate
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deal_cost_rate'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: deal_cost_rates-show
+      description: Retrieve a single deal cost rate by ID.
+    patch:
+      tags:
+        - Deal Cost Rates
+      summary: Update a deal cost rate
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deal_cost_rate'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: deal_cost_rates-update
+      requestBody:
+        $ref: '#/components/requestBodies/deal_cost_rate'
+      description: Update a deal cost rate.
+    delete:
+      tags:
+        - Deal Cost Rates
+      summary: Deletes a deal cost rate
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a deal cost rate GET
-      operationId: getDealCostRatesId
-      tags:
-      - Deal Cost Rates
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: deal_cost_rates-destroy
+      description: Delete a deal cost rate.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_deal_cost_rate:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - rate_cents
+            - -rate_cents
+          type: string
+        title: Sort deal cost rate
+      explode: false
+      required: false
+      description: Sort deal cost rate
+    filter_deal_cost_rate:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.deal_cost_rate at the top of this file.
+      required: false
+      description: Filters
+  requestBodies:
+    deal_cost_rate:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a deal cost rate PATCH
-      operationId: patchDealCostRatesId
-      tags:
-      - Deal Cost Rates
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    properties:
+                      deal_id:
+                        $ref: '#/components/schemas/resource_deal_cost_rate/properties/deal_id'
+                      currency:
+                        $ref: '#/components/schemas/resource_deal_cost_rate/properties/currency'
+                      person_id:
+                        $ref: '#/components/schemas/resource_deal_cost_rate/properties/person_id'
+                      rate_cents:
+                        $ref: '#/components/schemas/resource_deal_cost_rate/properties/rate_cents'
+      description: Request body for creating or updating a deal cost rate.
+  schemas:
+    resource_deal_cost_rate:
+      type: object
+      title: Deal cost rate Resource
+      properties:
+        person_id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Person
+          description: The ID of the person this cost rate applies to.
+          example:
+            - 123
+        currency:
+          type: string
+          title: Currency
+          description: The currency of the cost rate.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this deal cost rate belongs to.
+          example:
+            eq: value
+        person:
+          title: Person
+          description: The person this cost rate applies to.
+          example:
+            eq: value
+        deal_id:
+          type: integer
+          title: Deal
+          description: The ID of the deal (budget) this cost rate applies to.
+          example:
+            - 123
+        rate_cents:
+          type: number
+          title: Rate Cents
+          description: The cost rate in cents (smallest currency unit).
+          example:
+            gt: 0
+        deal:
+          title: Deal
+          description: The deal (budget) this cost rate applies to.
+          example:
+            eq: value
+      description: A person-specific cost rate override for a deal, used when the person's cost differs from the standard salary rate.
+      example:
+        id: '89'
+        type: deal_cost_rates
+        attributes:
+          rate: '120.00'
+          currency: USD
+          valid_from: '2026-01-01'
+        relationships:
+          deal:
+            data:
+              type: deals
+              id: '89'
+          person:
+            data:
+              type: people
+              id: '12'
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_deal_cost_rate:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      currency:
+                        $ref: '#/components/schemas/resource_deal_cost_rate/properties/currency'
+                      rate_cents:
+                        $ref: '#/components/schemas/resource_deal_cost_rate/properties/rate_cents'
+                  relationships:
+                    type: object
+                    properties:
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single deal cost rate
+    collection_deal_cost_rate:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        currency:
+                          $ref: '#/components/schemas/resource_deal_cost_rate/properties/currency'
+                        rate_cents:
+                          $ref: '#/components/schemas/resource_deal_cost_rate/properties/rate_cents'
                     relationships:
                       type: object
+                      properties:
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection deal cost rate

@@ -1,0 +1,90 @@
+name: API Spec Sync
+
+# Pulls the official Productive.io OpenAPI spec, regenerates docs/api-spec/, and
+# opens (or updates) a PR when anything changed. The impact analysis in the PR
+# body says whether src/api has to follow.
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Kept so the impact analysis can tell new endpoints from existing ones.
+      - name: Snapshot the current spec
+        run: git show HEAD:docs/api-spec/productive-openapi.yaml > "$RUNNER_TEMP/previous-spec.yaml" || true
+
+      - name: Download and split the official spec
+        run: npm run spec:sync -- --summary-out "$RUNNER_TEMP/spec-diff.md"
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet -- docs/api-spec; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'Spec unchanged -- nothing to do.'
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Analyse impact on the MCP server
+        id: impact
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          set +e
+          npm run --silent spec:impact -- --markdown --previous "$RUNNER_TEMP/previous-spec.yaml" > "$RUNNER_TEMP/impact.md"
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+          cat "$RUNNER_TEMP/impact.md"
+
+      - name: Assemble the PR body
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          {
+            echo 'Automated sync of the official Productive.io OpenAPI spec.'
+            echo 'Source: <https://developer.productive.io/reference/download_spec>'
+            echo
+            cat "$RUNNER_TEMP/impact.md"
+            echo
+            npm run --silent spec:changelog || true
+            echo
+            echo '<details><summary>Spec diff</summary>'
+            echo
+            cat "$RUNNER_TEMP/spec-diff.md"
+            echo
+            echo '</details>'
+          } > "$RUNNER_TEMP/pr-body.md"
+
+      - name: Create or update the sync PR
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/api-spec-sync
+          base: main
+          title: 'chore: sync Productive.io API spec'
+          commit-message: 'chore: sync Productive.io API spec'
+          body-path: ${{ runner.temp }}/pr-body.md
+          labels: api-spec
+          add-paths: docs/api-spec
+
+      # Runs after the PR exists so the finding is visible as a red check on it.
+      - name: Fail on breaking changes
+        if: steps.changes.outputs.changed == 'true' && steps.impact.outputs.exit_code != '0'
+        run: |
+          echo '::error::The new spec breaks endpoints, filters or attributes used by src/api -- see the PR body.'
+          exit 1

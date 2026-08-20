@@ -1,0 +1,394 @@
+openapi: 3.1.0
+info:
+  title: Productive.io API – Custom Field Section
+  version: 2.0.0
+description: |-
+  CustomFieldSection is an entity that serves as a container for employee custom fields, enabling the grouping of those fields. Also in this way, employee custom fields cannot exist without belonging to a section.
+  Each employee custom field belongs to a specific section and has section_id set, while one section contains several possible employee custom fields.
+
+  For more details on how to work with custom fields please refer to [Working with custom fields](https://developer.productive.io/working_with_custom_fields.html#working_with_custom_fields) guide.
+
+  Following diagram shows custom field sections in our data hierarchy:
+
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  *: {
+    class: default
+  }
+
+  # Define actors
+  custom_field_section: Custom Field Section {
+    class: primary
+  }
+  custom_fields: Custom Fields
+
+  # define connections
+  custom_field_section -> custom_fields
+  ```
+x-filters:
+  custom_field_section:
+    status:
+      description: Filter by active/archived status.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+paths:
+  /api/v2/custom_field_sections/{id}/archive:
+    patch:
+      tags:
+        - Custom Field Section
+      summary: Archives the custom field section
+      responses:
+        '200':
+          $ref: '#/components/responses/single_custom_field_section'
+        '409':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Conflict
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: custom_field_sections-archive-archive
+      description: Archive a custom field section.
+  /api/v2/custom_field_sections:
+    get:
+      tags:
+        - Custom Field Section
+      summary: Get custom field sections
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_custom_field_section'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_custom_field_section'
+        - $ref: '#/components/parameters/filter_custom_field_section'
+      operationId: custom_field_sections-index
+      description: List custom field sections with optional filters and pagination.
+    post:
+      tags:
+        - Custom Field Section
+      summary: Creates the custom field section
+      responses:
+        '201':
+          $ref: '#/components/responses/single_custom_field_section'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: custom_field_sections-create
+      requestBody:
+        $ref: '#/components/requestBodies/custom_field_section'
+      description: Create a new custom field section.
+  /api/v2/custom_field_sections/{id}:
+    get:
+      tags:
+        - Custom Field Section
+      summary: Gets the custom field section
+      responses:
+        '200':
+          $ref: '#/components/responses/single_custom_field_section'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: custom_field_sections-show
+      description: Retrieve a single custom field section by ID.
+    patch:
+      tags:
+        - Custom Field Section
+      summary: Updates the custom field section
+      responses:
+        '200':
+          $ref: '#/components/responses/single_custom_field_section'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: custom_field_sections-update
+      requestBody:
+        $ref: '#/components/requestBodies/custom_field_section'
+      description: Update a custom field section.
+components:
+  requestBodies:
+    custom_field_section:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    required:
+                      - name
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_custom_field_section/properties/name'
+                      position:
+                        $ref: '#/components/schemas/resource_custom_field_section/properties/position'
+                      customizable_type:
+                        $ref: '#/components/schemas/resource_custom_field_section/properties/customizable_type'
+      description: Request body for creating or updating a custom field section.
+  schemas:
+    resource_custom_field_section:
+      type: object
+      title: Custom field section Resource
+      properties:
+        position:
+          type: integer
+          title: Position
+          description: The display order position of this section among custom field sections.
+          example:
+            eq: value
+        customizable_type:
+          title: Customizable Type
+          description: The type of resource whose custom fields this section groups (e.g. tasks, projects, people).
+          example:
+            eq: active
+        name:
+          type: string
+          title: Name
+          description: The display name of this custom field section.
+          example:
+            eq: value
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: The current status of the custom field section (e.g. active).
+          example:
+            eq: active
+        organization:
+          title: Organization
+          description: The organization this custom field section belongs to.
+          example:
+            eq: value
+      description: The resource custom field section.
+      example:
+        id: '12'
+        type: custom_field_sections
+        attributes:
+          name: Project Fields
+          position: 1
+          item_type: project
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_custom_field_section:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.custom_field_section at the top of this file.
+      required: false
+      description: Filters
+    sort_custom_field_section:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort custom field section
+      explode: false
+      required: false
+      description: Sort custom field section
+  responses:
+    single_custom_field_section:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_custom_field_section/properties/name'
+                      position:
+                        $ref: '#/components/schemas/resource_custom_field_section/properties/position'
+                  relationships:
+                    type: object
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single custom field section
+    collection_custom_field_section:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_custom_field_section/properties/name'
+                        position:
+                          $ref: '#/components/schemas/resource_custom_field_section/properties/position'
+                    relationships:
+                      type: object
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection custom field section

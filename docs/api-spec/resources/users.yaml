@@ -1,163 +1,538 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Users
   version: 2.0.0
+description: |-
+  **User accounts** for people who log into Productive. Manage credentials, preferences, and authentication settings.
+
+  Each user is linked to one or more **organization memberships** that control their access level and permissions across the platform.
 paths:
   /api/v2/users:
     get:
-      summary: Gets users GET
-      operationId: getUsers
       tags:
-      - Users
-      parameters:
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Users
+      summary: Gets users
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
+          $ref: '#/components/responses/collection_user'
         '401':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
           description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_user'
+        - $ref: '#/components/parameters/sort_user'
+      operationId: users-index
+      description: List all users.
   /api/v2/users/{id}:
     get:
-      summary: Gets a user GET
-      operationId: getUsersId
       tags:
-      - Users
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Users
+      summary: Gets a user
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/single_user'
+        '404':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+                type: string
+          description: Not Found
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: users-show
+      description: Retrieve a single user by ID.
     patch:
-      summary: Update a user PATCH
-      operationId: patchUsersId
       tags:
-      - Users
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Users
+      summary: Update a user
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_user'
         '422':
-          description: Validation error
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: users-update
       requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        $ref: '#/components/requestBodies/user'
+      description: Update a user.
   /api/v2/users/{id}/update_password:
     patch:
-      summary: Update password for a user PATCH
-      operationId: patchUsersIdUpdatePassword
       tags:
-      - Users
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Users
+      summary: Update password for a user
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          $ref: '#/components/responses/single_user'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: users-update_password-update_password
+      description: Update the password for a user.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_user:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort user
+      explode: false
+      required: false
+      description: Sort user
+    filter_user:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.user at the top of this file.
+      required: false
+      description: Filters
+  responses:
+    single_user:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      email:
+                        $ref: '#/components/schemas/resource_user/properties/email'
+                      flags:
+                        $ref: '#/components/schemas/resource_user/properties/flags'
+                      locale:
+                        $ref: '#/components/schemas/resource_user/properties/locale'
+                      sysadmin:
+                        $ref: '#/components/schemas/resource_user/properties/sysadmin'
+                      last_name:
+                        $ref: '#/components/schemas/resource_user/properties/last_name'
+                      time_zone:
+                        $ref: '#/components/schemas/resource_user/properties/time_zone'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_user/properties/avatar_url'
+                      first_name:
+                        $ref: '#/components/schemas/resource_user/properties/first_name'
+                      ical_token:
+                        $ref: '#/components/schemas/resource_user/properties/ical_token'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_user/properties/updated_at'
+                      preferences:
+                        $ref: '#/components/schemas/resource_user/properties/preferences'
+                      intercom_hash:
+                        $ref: '#/components/schemas/resource_user/properties/intercom_hash'
+                      sso_provision:
+                        $ref: '#/components/schemas/resource_user/properties/sso_provision'
+                      two_factor_auth:
+                        $ref: '#/components/schemas/resource_user/properties/two_factor_auth'
+                      newsletter_consent:
+                        $ref: '#/components/schemas/resource_user/properties/newsletter_consent'
+                      sysadmin_permissions:
+                        $ref: '#/components/schemas/resource_user/properties/sysadmin_permissions'
+                      newsletter_consent_at:
+                        $ref: '#/components/schemas/resource_user/properties/newsletter_consent_at'
+                      default_organization_id:
+                        $ref: '#/components/schemas/resource_user/properties/default_organization_id'
+                      account_access_expires_at:
+                        $ref: '#/components/schemas/resource_user/properties/account_access_expires_at'
+                      default_organization_slug:
+                        $ref: '#/components/schemas/resource_user/properties/default_organization_slug'
+                  relationships:
+                    type: object
+                    properties: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single user
+    collection_user:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        email:
+                          $ref: '#/components/schemas/resource_user/properties/email'
+                        flags:
+                          $ref: '#/components/schemas/resource_user/properties/flags'
+                        locale:
+                          $ref: '#/components/schemas/resource_user/properties/locale'
+                        sysadmin:
+                          $ref: '#/components/schemas/resource_user/properties/sysadmin'
+                        last_name:
+                          $ref: '#/components/schemas/resource_user/properties/last_name'
+                        time_zone:
+                          $ref: '#/components/schemas/resource_user/properties/time_zone'
+                        avatar_url:
+                          $ref: '#/components/schemas/resource_user/properties/avatar_url'
+                        first_name:
+                          $ref: '#/components/schemas/resource_user/properties/first_name'
+                        ical_token:
+                          $ref: '#/components/schemas/resource_user/properties/ical_token'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_user/properties/updated_at'
+                        preferences:
+                          $ref: '#/components/schemas/resource_user/properties/preferences'
+                        intercom_hash:
+                          $ref: '#/components/schemas/resource_user/properties/intercom_hash'
+                        sso_provision:
+                          $ref: '#/components/schemas/resource_user/properties/sso_provision'
+                        two_factor_auth:
+                          $ref: '#/components/schemas/resource_user/properties/two_factor_auth'
+                        newsletter_consent:
+                          $ref: '#/components/schemas/resource_user/properties/newsletter_consent'
+                        sysadmin_permissions:
+                          $ref: '#/components/schemas/resource_user/properties/sysadmin_permissions'
+                        newsletter_consent_at:
+                          $ref: '#/components/schemas/resource_user/properties/newsletter_consent_at'
+                        default_organization_id:
+                          $ref: '#/components/schemas/resource_user/properties/default_organization_id'
+                        account_access_expires_at:
+                          $ref: '#/components/schemas/resource_user/properties/account_access_expires_at'
+                        default_organization_slug:
+                          $ref: '#/components/schemas/resource_user/properties/default_organization_slug'
                     relationships:
                       type: object
+                      properties: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection user
+  schemas:
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    resource_user:
+      type: object
+      title: User Resource
+      properties:
+        avatar_url:
+          type: string
+          title: Avatar Url
+          description: URL of the user's profile avatar image.
+          example:
+            eq: value
+        default_organization_slug:
+          title: Default Organization Slug
+          description: URL slug of the user's default organization.
+          example:
+            eq: value
+        sysadmin_permissions:
+          type: object
+          title: Sysadmin Permissions
+          description: The specific system administrator permissions granted to this user.
+          example:
+            eq: value
+        flags:
+          type: object
+          title: Flags
+          description: Feature flag overrides applied to this user's account.
+          example:
+            eq: value
+        last_name:
+          type: string
+          title: Last Name
+          description: The last name of the user.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this user was last updated.
+          example:
+            gt: '2026-01-01'
+        two_factor_auth:
+          type: boolean
+          title: Two Factor Auth
+          description: When true, two-factor authentication is enabled for this user.
+          example:
+            eq: value
+        email:
+          type: string
+          title: Email
+          description: The email address used to log in to Productive.
+          example:
+            eq: value
+        locale:
+          enum:
+            - en_US
+            - de_DE
+            - fr_FR
+            - es_ES
+            - it_IT
+          type: string
+          title: Locale
+          description: The preferred language locale for this user's interface.
+          example:
+            eq: value
+        sysadmin:
+          type: boolean
+          title: Sysadmin
+          description: When true, this user has system administrator privileges.
+          example:
+            eq: value
+        preferences:
+          type: string
+          title: Preferences
+          description: User interface preferences and settings stored as key-value pairs.
+          example:
+            eq: value
+        sso_provision:
+          type: boolean
+          title: Sso Provision
+          description: When true, this user account was provisioned via single sign-on.
+          example:
+            eq: value
+        newsletter_consent_at:
+          type: string
+          title: Newsletter Consent At
+          format: date-time
+          description: Timestamp when the user gave newsletter consent, or null if not consented.
+          example:
+            gt: '2026-01-01'
+        default_organization_id:
+          type: integer
+          title: Default Organization
+          description: ID of the organization this user logs into by default.
+          example:
+            - 123
+        first_name:
+          type: string
+          title: First Name
+          description: The first name of the user.
+          example:
+            eq: value
+        ical_token:
+          type: string
+          title: Ical Token
+          description: Authentication token used to access this user's iCal calendar feed.
+          example:
+            eq: value
+        account_access_expires_at:
+          type: string
+          title: Account Access Expires At
+          format: date-time
+          description: The account access expires at.
+          example:
+            gt: '2026-01-01'
+        newsletter_consent:
+          title: Newsletter Consent
+          description: When true, the user has consented to receive marketing newsletters.
+          example:
+            eq: value
+        time_zone:
+          type: string
+          title: Time Zone
+          description: The IANA time zone identifier for this user's preferred time zone.
+          example:
+            gt: 0
+        intercom_hash:
+          title: Intercom Hash
+          description: HMAC hash used to verify this user's identity with Intercom.
+          example:
+            eq: value
+      description: A user represents a login account in Productive, holding authentication credentials and preferences. It is distinct from a person, which represents the employee profile linked to an organization.
+      example:
+        id: '28'
+        type: users
+        attributes:
+          updated_at: '2026-04-15T21:36:35.262+02:00'
+          email: stjepan.hadjic@productive.io
+          first_name: Stjepan
+          last_name: Hadjić
+          time_zone: Zagreb
+          avatar_url: https://files.productive.io/people/avatars/2b43c75d-4ed4-4fa6-bb0f-b9f7341d6548/thumb/Productive-281-ova_copy.jpg
+          default_organization_id: 109
+          default_organization_slug: 109-productive
+          intercom_hash: 9bf829ef0d00e44a74b67a8f5a977d6bfa5563bd7af914adb3a55b95e00099d5
+          flags:
+            docs: true
+            aiSearch: true
+            biAccess: true
+            resolveIds: true
+            automations: true
+            customRoles: true
+            ganttLayout: true
+            permissions: true
+            apiSkipCache: true
+            paramsStruct: true
+            newReportView: true
+            searchNoCount: true
+            escToBlurInput: true
+            myTimeCalendar: true
+            docsAnchorLinks: true
+            newTimeInterval: true
+            economicCustomer: true
+            projectTemplates: true
+            positioningRevamp: true
+            redesignedSidebar: true
+            debugRepositioning: true
+            navigationByModule: true
+            personManagerField: true
+            reportsQueryFields: true
+            thirdLevelGrouping: true
+            mainSidebarQuickAdd: true
+            time_entry_interval: true
+            docsNewMentionSearch: true
+            newRelationshipJoins: true
+            jumpSearchQuickSearch: true
+            tasksNewMentionSearch: true
+            apiAttributesOnlyCache: false
+            multiselect_custom_field: true
+            rebrandingModalDismissed: true
+            projectNavigationRedesign: true
+            personNicknameCustomization: true
+            dismissedDashboardIntroductionModal: true
+            optimizedNestedServicePickerForTimeTracking: true
+          newsletter_consent: false
+          newsletter_consent_at: null
+          ical_token: null
+          preferences: '{"theme":"system","is_board_switcher_open":true,"is_sidebar_expanded":true,"is_weekend_collapsed":false,"scheduling_is_spacy":false,"activity_filter_params":{"task":{"type":["comment","changeset","email"],"parent_type":["project","task","page","deal-invoice","deal","invoice","person","company"],"has_attachments":false},"project":{"type":["comment"],"parent_type":["deal-invoice","deal","invoice","person","company","task","page"],"has_attachments":true},"person":{"type":["comment","changeset","email"],"parent_type":["project","task","page","deal-invoice","deal","invoice","person","company","purchase_order"],"has_attachments":false},"person_work_log":{"type":["comment","changeset","email"],"parent_type":["task","deal-invoice","deal","invoice"],"has_attachments":false}},"is_notifications_compact":false,"scheduling_layout_id":"people","app_entry_event_time":1604560856897,"is_do_not_disturb_enabled":false,"is_closed_todos_shown":false,"notifications_auto_advance_mode":"older","scheduling_row_layout_id":"stacked","frequent_emojis":["😷","🔥","⚠️","🗑","📏","🌟","💨","✈️","📖","⌚","😢","🌟","🛠","🤩","🎲","💎","🏗","📝","📚","💡","🤷","🔥","❄️","🤷","💫","🔗","1️⃣","2️⃣","1️⃣","👍","⌨","🧳","👍","👍","👍","😭","👍","👍","📘","📖","👍","👍","📪","📫","❓","📖","👍","👍","🤩","👍"],"is_time_interval_info_popover_dismissed":true,"is_todo_list_collapsed":false,"is_subtask_list_collapsed":false,"time_layout_id":"1","show_shrinked_capacity_indicators_in_scheduling":true,"active_time_entry_suggestions":["3"],"pinned_time_entry_service_ids":["4300991"],"is_closed_subtasks_shown":false,"tasks_layout_id":"100","draft_comments":{"task2086759":{"comment_hidden":false,"comment_body":"<div>Yes 🙂&nbsp;<br><br><br></div>"}},"is_me_filter_turned_on":false,"task_in_sidebar_layout":false,"is_task_dependency_list_collapsed":false,"projects_layout_type":"100","day_view_active_tab":"form","collapsed_suggested_service_sections":[],"deal_financials_mode":"budget","last_seen_product_update_preview_date":"2025-12-02T16:07:24","include_time_off_in_time_aggregations":false,"last_product_update_fetch_date":"2026-04-15T19:36:35.156Z","new_product_update_articles_count":10,"is_sidebar_expanded_deals":false,"time_locking_snoozed_until":"2023-11-18T13:18:36.678Z","sales_layout_type":"101","invoicing_method":"service-percentage","last_seen_product_update_post_date":"2023-12-13T09:53:50","is_closed_dependent_tasks_shown":true,"is_docs_ai_info_dismissed":true,"scheduling_zoom":"1","scheduling_custom_collapsed_rows_map":{"event36":false}}'
+          sysadmin: true
+          sysadmin_permissions:
+            - settings
+            - release_read_only
+            - release
+            - modify_user
+            - modify_organization
+            - impersonate
+            - marketing
+            - flags
+            - modify_features
+          two_factor_auth: true
+          sso_provision: false
+          account_access_expires_at: null
+          locale: en_US
+  requestBodies:
+    user:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      email:
+                        $ref: '#/components/schemas/resource_user/properties/email'
+                      locale:
+                        $ref: '#/components/schemas/resource_user/properties/locale'
+                      last_name:
+                        $ref: '#/components/schemas/resource_user/properties/last_name'
+                      time_zone:
+                        $ref: '#/components/schemas/resource_user/properties/time_zone'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_user/properties/avatar_url'
+                      first_name:
+                        $ref: '#/components/schemas/resource_user/properties/first_name'
+                      ical_token:
+                        $ref: '#/components/schemas/resource_user/properties/ical_token'
+                      preferences:
+                        $ref: '#/components/schemas/resource_user/properties/preferences'
+                      newsletter_consent:
+                        $ref: '#/components/schemas/resource_user/properties/newsletter_consent'
+                      default_organization_id:
+                        $ref: '#/components/schemas/resource_user/properties/default_organization_id'
+                      account_access_expires_at:
+                        $ref: '#/components/schemas/resource_user/properties/account_access_expires_at'
+      description: Request body for creating or updating a user.

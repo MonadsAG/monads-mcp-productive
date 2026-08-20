@@ -1,420 +1,831 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Task Lists
   version: 2.0.0
+description: |-
+  The Task list object represents a task list within the project management system. It sits between Folders and Tasks, meaning it belongs to a folder and contains multiple tasks.
+
+  You can find out more about task lists in our Help documentation: [Task lists](https://help.productive.io/en/articles/2179617-task-lists)
+
+  Following diagram shows task lists in our data hierarchy:
+
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  * {
+    class: default
+  }
+
+  # Define actors
+  project: Project
+  folder: Folder
+  task_list: Task list {
+    class: primary
+  }
+  task: Task
+  comments: Comments
+  subtasks: Subtasks
+  todos: Todos
+
+  # define connections
+  project -> folder -> task_list -> task
+  task -> comments
+  task -> subtasks
+  task -> todos
+  ```
+x-filters:
+  task_list:
+    query:
+      description: Filter by task list name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    restorable:
+      description: Filter to task lists that are archived but whose parent folder is still active (can be restored).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status:
+      description: Filter by task list status (active or archived).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by project ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by task list ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    folder_id:
+      description: Filter by folder ID (alias for board_id).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
-  /api/v2/task_lists:
-    get:
-      summary: Get task lists GET
-      operationId: getTaskLists
-      tags:
-      - Task Lists
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by id (string)
-      - name: filter[project_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by project_id (array)
-      - name: filter[board_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by board_id (array)
-      - name: filter[status]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: 'Filter by status (active: 1, archived: 2)'
-      - name: filter[board]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by board (string)
-      - name: filter[project]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by project (string)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    post:
-      summary: Create a task list POST
-      operationId: postTaskLists
-      tags:
-      - Task Lists
-      parameters: []
-      responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/task_lists/copy:
-    post:
-      summary: Copies a task list POST
-      operationId: postTaskListsCopy
-      tags:
-      - Task Lists
-      parameters: []
-      responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/task_lists/{id}:
-    get:
-      summary: Gets a task list GET
-      operationId: getTaskListsId
-      tags:
-      - Task Lists
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a task list PATCH
-      operationId: patchTaskListsId
-      tags:
-      - Task Lists
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
   /api/v2/task_lists/{id}/archive:
     patch:
-      summary: Archives a task list PATCH
-      operationId: patchTaskListsIdArchive
       tags:
-      - Task Lists
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Task Lists
+      summary: Archives a task list
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_task_list'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: task_lists-archive-archive
+      description: Archives a task list, hiding it from active task list views. Reversible via [`/task_lists/{id}/restore`](#tag/Task-Lists/operation/task_lists-restore-restore).
+  /api/v2/task_lists/copy:
+    post:
+      tags:
+        - Task Lists
+      summary: Copies a task list
+      responses:
+        '201':
+          $ref: '#/components/responses/single_task_list'
         '422':
-          description: Validation error
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Returned when the copy request body fails validation.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: task_lists-copy-copy
       requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        $ref: '#/components/requestBodies/task_list_copy'
+      description: |-
+        Creates a new task list by copying a **source task list** (`template_id`) into a target project and folder. By default only the task list shell is copied; enable the `copy_*` flags to duplicate its tasks and their details.
+
+        Required: `name`, `template_id` (the source task list), `project_id`, and the target `folder_id`.
+
+        ### Copy flags
+
+        All `copy_*` flags default to `false`. Every flag below requires the "tasks" gate — at least one of `copy_open_tasks` / `copy_closed_tasks`.
+
+        | Flag(s) | Prerequisite | Notes |
+        |---|---|---|
+        | `copy_open_tasks`, `copy_closed_tasks` | — | The "tasks" gate |
+        | `copy_task_comments`, `copy_task_description`, `copy_task_subscribers`, `copy_task_attachments` | `copy_open_tasks` or `copy_closed_tasks` | — |
+        | `copy_task_open_todos`, `copy_task_closed_todos` | `copy_open_tasks` or `copy_closed_tasks` | — |
+        | `copy_task_open_subtasks`, `copy_task_closed_subtasks` | `copy_open_tasks` or `copy_closed_tasks` | — |
+        | `copy_task_dependencies` | `copy_open_tasks` or `copy_closed_tasks` | — |
+        | `copy_assignees`, `copy_tags`, `copy_due_date`, `copy_start_date`, `copy_repeat`, `copy_estimate` | `copy_open_tasks` or `copy_closed_tasks` | — |
+        | `copy_custom_fields` | `copy_open_tasks` or `copy_closed_tasks` | Task custom field values |
+
+        Enabling any dependent flag without a tasks gate returns `422` (`tasks_required`).
+
+        ### Minimal copy (shell only)
+        ```json
+        {
+          "data": {
+            "type": "task_lists",
+            "attributes": {
+              "name": "Sprint 5",
+              "template_id": 884412,
+              "project_id": 31002,
+              "folder_id": 7781
+            }
+          }
+        }
+        ```
+
+        ### Full copy with tasks
+        ```json
+        {
+          "data": {
+            "type": "task_lists",
+            "attributes": {
+              "name": "Sprint 5 (copy)",
+              "template_id": 884412,
+              "project_id": 31002,
+              "folder_id": 7781,
+              "copy_open_tasks": true,
+              "copy_task_comments": true,
+              "copy_task_description": true,
+              "copy_task_subscribers": true,
+              "copy_task_attachments": true,
+              "copy_task_open_todos": true,
+              "copy_task_open_subtasks": true,
+              "copy_task_dependencies": true,
+              "copy_assignees": true,
+              "copy_tags": true,
+              "copy_due_date": true,
+              "copy_start_date": true,
+              "copy_repeat": true,
+              "copy_estimate": true,
+              "copy_custom_fields": true
+            }
+          }
+        }
+        ```
+  /api/v2/task_lists:
+    get:
+      tags:
+        - Task Lists
+      summary: Get task lists
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_task_list'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_task_list'
+        - $ref: '#/components/parameters/sort_task_list'
+      operationId: task_lists-index
+      description: Returns a paginated list of task lists — the task groupings inside a project's folders. By default, task lists that belong to project templates are excluded; filtering by a specific project returns its task lists even when that project is a template. Supports filtering by project, folder, status, and free-text query, and sorting by board, folder, project, or company name.
+    post:
+      tags:
+        - Task Lists
+      summary: Create a task list
+      responses:
+        '201':
+          $ref: '#/components/responses/single_task_list'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: task_lists-create
+      requestBody:
+        $ref: '#/components/requestBodies/task_list'
+      description: |-
+        Creates a task list inside a folder. Requires a `name`, the `project_id`, and the target `folder_id`.
+
+        ```json
+        {
+          "data": {
+            "type": "task_lists",
+            "attributes": {
+              "name": "Sprint 5",
+              "project_id": 31002,
+              "folder_id": 7781
+            }
+          }
+        }
+        ```
   /api/v2/task_lists/{id}/move:
     patch:
-      summary: Moves a task list PATCH
-      operationId: patchTaskListsIdMove
       tags:
-      - Task Lists
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Task Lists
+      summary: Moves a task list
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_task_list'
         '422':
-          description: Validation error
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: task_lists-move-move
       requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        $ref: '#/components/requestBodies/task_list_move'
+      description: |-
+        Moves a task list — and all of its tasks — to a different folder, optionally in a different project. Provide the target `folder_id`.
+
+        When the target project uses a **different workflow** than the source, a `map` of workflow status IDs is required: keys are the source workflow's status IDs, values are the target workflow's status IDs. The map must cover **every** status in the source workflow.
+
+        Tasks are reassigned to the target project and their statuses remapped accordingly. Assignees and subscribers who are not members of the target project are removed from the moved tasks.
+
+        ```json
+        {
+          "data": {
+            "type": "task_lists",
+            "attributes": {
+              "folder_id": 9912,
+              "map": { "101": 205, "102": 206, "103": 207 }
+            }
+          }
+        }
+        ```
   /api/v2/task_lists/{id}/reposition:
     patch:
-      summary: Repoisition a task list PATCH
-      operationId: patchTaskListsIdReposition
       tags:
-      - Task Lists
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Task Lists
+      summary: Repositions a task list
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/single_task_list'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: task_lists-reposition-reposition
       requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        $ref: '#/components/requestBodies/task_list_reposition'
+      description: |-
+        Reorders a task list among the other task lists in its project. Pass `move_before_id` and/or `move_after_id` — the IDs of the task lists to position it relative to. When both are provided, the task list is placed between them.
+
+        ```json
+        {
+          "data": {
+            "type": "task_lists",
+            "attributes": { "move_after_id": 7740 }
+          }
+        }
+        ```
   /api/v2/task_lists/{id}/restore:
     patch:
-      summary: Restores a task list PATCH
-      operationId: patchTaskListsIdRestore
       tags:
-      - Task Lists
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Task Lists
+      summary: Restores a task list
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/single_task_list'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: task_lists-restore-restore
+      description: Restores an archived task list back to active status.
+  /api/v2/task_lists/{id}:
+    get:
+      tags:
+        - Task Lists
+      summary: Gets a task list
+      responses:
+        '200':
+          $ref: '#/components/responses/single_task_list'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: task_lists-show
+      description: Returns a single task list by ID.
+    patch:
+      tags:
+        - Task Lists
+      summary: Update a task list
+      responses:
+        '200':
+          $ref: '#/components/responses/single_task_list'
+        '422':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
+                type: string
+          description: Returned when the update request body fails validation.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: task_lists-update
+      requestBody:
+        $ref: '#/components/requestBodies/task_list_update'
+      description: Updates a task list. Only the provided attributes are modified — rename it or reassign it to a different folder via `folder_id`. To relocate a task list to a **different project** (which remaps task workflow statuses), use [`PATCH /task_lists/{id}/move`](#tag/Task-Lists/operation/task_lists-move) instead.
+components:
+  requestBodies:
+    task_list_update:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_task_list/properties/name'
+                      position:
+                        $ref: '#/components/schemas/resource_task_list/properties/position'
+                      folder_id:
+                        $ref: '#/components/schemas/resource_task_list/properties/folder_id'
+                      project_id:
+                        $ref: '#/components/schemas/resource_task_list/properties/project_id'
+      description: Request body for creating or updating a task list. Specify the project, optional folder, name, position, and placement. Use archived_at to archive the list.
+    task_list_reposition:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      move_after_id:
+                        type: integer
+                        description: Place the task list directly after the task list with this ID. When both move_before_id and move_after_id are passed, the task list is placed between them.
+                      move_before_id:
+                        type: integer
+                        description: Place the task list directly before the task list with this ID.
+      description: Request body for reordering a task list relative to its sibling task lists.
+    task_list_move:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    required:
+                      - folder_id
+                    properties:
+                      map:
+                        type: object
+                        description: Workflow status ID mapping. Required when the target project uses a different workflow than the source — keys are source workflow status IDs, values are target workflow status IDs.
+                        additionalProperties:
+                          type: integer
+                      folder_id:
+                        $ref: '#/components/schemas/resource_task_list/properties/folder_id'
+      description: Request body for moving a task list to a different folder, optionally remapping task workflow statuses.
+    task_list:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    required:
+                      - name
+                      - project_id
+                      - folder_id
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_task_list/properties/name'
+                      position:
+                        $ref: '#/components/schemas/resource_task_list/properties/position'
+                      folder_id:
+                        $ref: '#/components/schemas/resource_task_list/properties/folder_id'
+                      project_id:
+                        $ref: '#/components/schemas/resource_task_list/properties/project_id'
+      description: Request body for creating or updating a task list. Specify the project, optional board (folder), name, position, and placement. Use archived_at to archive the list.
+    task_list_copy:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    required:
+                      - name
+                      - template_id
+                      - project_id
+                      - folder_id
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_task_list/properties/name'
+                      folder_id:
+                        $ref: '#/components/schemas/resource_task_list/properties/folder_id'
+                      project_id:
+                        $ref: '#/components/schemas/resource_task_list/properties/project_id'
+                      template_id:
+                        type: integer
+                        description: ID of the source task list being copied.
+      description: Request body for copying a task list — see the operation description for the full set of `copy_*` flags and their effects.
+  schemas:
+    resource_task_list:
+      type: object
+      title: Task list Resource
+      properties:
+        project_name:
+          type: string
+          title: Project Name
+          description: The name of the project this task list belongs to.
+          example:
+            eq: value
+        placement:
+          type: integer
+          title: Placement
+          description: The display placement position of this task list within its folder.
+          example:
+            eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this task list belongs to.
+          example:
+            - 123
+        project:
+          title: Project
+          description: The project this task list belongs to.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The name of this task list.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: A search query string used to filter task lists by name.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this task list belongs to.
+          example:
+            eq: value
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: 'The archival status of this task list: active or archived.'
+          example:
+            eq: active
+        restorable:
+          type: string
+          title: Restorable
+          description: Whether this task list is restorable (archived while its parent folder is still active).
+          example:
+            eq: value
+        folder_name:
+          type: string
+          title: Folder Name
+          description: The name of the folder this task list belongs to.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this task list.
+          example:
+            - 123
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when this task list was archived, or null if active.
+          example:
+            gt: '2026-01-01'
+        email_key:
+          type: string
+          title: Email Key
+          description: A unique key used to create tasks in this task list via email.
+          example:
+            eq: value
+        position:
+          type: integer
+          title: Position
+          description: The sort position of this task list within its project.
+          example:
+            eq: value
+        folder:
+          title: Folder
+          description: The folder this task list belongs to.
+          example:
+            eq: value
+        company_name:
+          type: string
+          title: Company Name
+          description: The name of the client company associated with the project this task list belongs to.
+          example:
+            eq: value
+        folder_id:
+          type: integer
+          title: Folder
+          description: ID of the folder this task list belongs to.
+          example:
+            - 123
+      description: Task grouping within a project folder. Supports name, position ordering, placement, archiving, and an email_key for creating tasks via email. Task lists belong to a project and optionally to a board (folder).
+      example:
+        id: '14308'
+        type: task_lists
+        attributes:
+          name: Sprint 42
+          position: 1
+          placement: 1000000
+          archived_at: null
+          email_key: a1b2c3d4e5f6789012345678901234ab
+        relationships:
+          project:
+            data:
+              type: projects
+              id: '6899'
+          board:
+            data: null
+          folder:
+            data:
+              type: folders
+              id: '5522'
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_task_list:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - board_name
+            - -board_name
+            - company_name
+            - -company_name
+            - folder_name
+            - -folder_name
+            - project_name
+            - -project_name
+          type: string
+        title: Sort task list
+      explode: false
+      required: false
+      description: Sort task list
+    filter_task_list:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.task_list at the top of this file.
+      required: false
+      description: Filters
+  responses:
+    single_task_list:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_task_list/properties/name'
+                      position:
+                        $ref: '#/components/schemas/resource_task_list/properties/position'
+                      email_key:
+                        $ref: '#/components/schemas/resource_task_list/properties/email_key'
+                      placement:
+                        $ref: '#/components/schemas/resource_task_list/properties/placement'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_task_list/properties/archived_at'
+                  relationships:
+                    type: object
+                    properties:
+                      board:
+                        $ref: '#/components/schemas/_single_relationship'
+                      folder:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single task list
+    collection_task_list:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_task_list/properties/name'
+                        position:
+                          $ref: '#/components/schemas/resource_task_list/properties/position'
+                        email_key:
+                          $ref: '#/components/schemas/resource_task_list/properties/email_key'
+                        placement:
+                          $ref: '#/components/schemas/resource_task_list/properties/placement'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_task_list/properties/archived_at'
                     relationships:
                       type: object
+                      properties:
+                        board:
+                          $ref: '#/components/schemas/_single_relationship'
+                        folder:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection task list

@@ -1,219 +1,589 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Events
   version: 2.0.0
+description: |-
+  Event resources represent Absence categories. More information about the Absence categories can be found in our Help documentation: [Configuring Your Time Off Settings](https://help.productive.io/en/articles/3154360-configuring-your-time-off-settings).
+
+  The `/events` endpoint allows you to create, update, delete, archive or unarchive (restore) Events.
+
+  The following diagram shows Events in our data hierarchy:
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  * {
+    class: default
+  }
+
+  # Define actors
+  event: Event {
+    class: primary
+  }
+  bookings: Bookings
+  entitlements: Entitlements
+  approval_workflows: Approval Workflows
+
+  # define connections
+  event -> bookings
+  event -> entitlements
+  event -> approval_workflows
+  ```
+
+  For limited Events, absence bookings can only be created if the assignee has sufficient available hours or days defined via [Entitlements](https://developer.productive.io/entitlements.html#entitlements).
+  Approvers and subscribers for a Person’s absence booking on a specific Event can be managed through [ApprovalWorkflows](https://developer.productive.io/approval_workflows.html#approval-workflows).
+
+  Also, we differentiate between time off (e.g. vacation, sick leave) and remote work (e.g. work from home) events. This is defined via the `absence_type` attribute.
+  It is possible to change an event from the `remote_work` to the `time_off` absence type and vice versa, but please note that remote work events will always have the Unpaid event type.
+
+  For more details on how to work with remote work events, please refer to the [Remote Work](https://help.productive.io/en/articles/11026966-remote-work-beta) help article.
+x-filters:
+  event:
+    sync_personal_integrations:
+      description: Filter by whether the event type syncs with personal calendar integrations.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    absence_type:
+      description: Filter by absence type (e.g. vacation, sick leave).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by event type ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    half_day_bookings:
+      description: Filter by whether the event type allows half-day bookings.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by the name of the absence category (event).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    limitation_type:
+      description: Filter by the limitation type applied to entitlement accrual.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status:
+      description: Filter by active/archived status.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    limited:
+      description: Filter by whether the event type has an entitlement limit (true) or is unlimited (false).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
-  /api/v2/events:
-    get:
-      summary: Get events GET
-      operationId: getEvents
-      tags:
-      - Events
-      parameters:
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    post:
-      summary: Create an event POST
-      operationId: postEvents
-      tags:
-      - Events
-      parameters: []
-      responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/events/{id}:
-    delete:
-      summary: Deletes an event DELETE
-      operationId: deleteEventsId
-      tags:
-      - Events
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a event GET
-      operationId: getEventsId
-      tags:
-      - Events
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update an event PATCH
-      operationId: patchEventsId
-      tags:
-      - Events
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
   /api/v2/events/{id}/archive:
     patch:
-      summary: Archives an event PATCH
-      operationId: patchEventsIdArchive
       tags:
-      - Events
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Events
+      summary: Archives an event
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/single_event'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: events-archive-archive
+      description: Archive an event.
+  /api/v2/events:
+    get:
+      tags:
+        - Events
+      summary: Get events
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_event'
+      parameters:
+        - $ref: '#/components/parameters/sort_event'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_event'
+      operationId: events-index
+      description: List events.
+    post:
+      tags:
+        - Events
+      summary: Create an event
+      responses:
+        '201':
+          $ref: '#/components/responses/single_event'
+        '422':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: events-create
+      requestBody:
+        $ref: '#/components/requestBodies/event'
+      description: Create a new event.
+  /api/v2/events/{id}:
+    get:
+      tags:
+        - Events
+      summary: Get an event
+      responses:
+        '200':
+          $ref: '#/components/responses/single_event'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: events-show
+      description: Retrieve a single event.
+    patch:
+      tags:
+        - Events
+      summary: Update an event
+      responses:
+        '200':
+          $ref: '#/components/responses/single_event'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: events-update
+      requestBody:
+        $ref: '#/components/requestBodies/event'
+      description: Update an event.
+    delete:
+      tags:
+        - Events
+      summary: Deletes an event
+      responses:
+        '204':
+          description: No Content
+        '409':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Conflict
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: events-destroy
+      description: Delete an event.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_event:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.event at the top of this file.
+      required: false
+      description: Filters
+    sort_event:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort event
+      explode: false
+      required: false
+      description: Sort event
+  requestBodies:
+    event:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    required:
+                      - name
+                      - event_type_id
+                      - limitation_type_id
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_event/properties/name'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_event/properties/icon_id'
+                      color_id:
+                        $ref: '#/components/schemas/resource_event/properties/color_id'
+                      absence_type:
+                        $ref: '#/components/schemas/resource_event/properties/absence_type'
+                      event_type_id:
+                        $ref: '#/components/schemas/resource_event/properties/event_type_id'
+                      half_day_bookings:
+                        $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
+                      limitation_type_id:
+                        $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
+                      sync_personal_integrations:
+                        $ref: '#/components/schemas/resource_event/properties/sync_personal_integrations'
+      description: Request body for creating or updating an absence category.
+  schemas:
+    resource_event:
+      type: object
+      title: Event Resource
+      properties:
+        limited:
+          type: boolean
+          title: Limited
+          description: When true, this event has a limit on the amount of time-off that can be booked.
+          example:
+            eq: value
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: The archival status of this event, either active (1) or archived (2).
+          example:
+            eq: active
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when this event was archived, or null if it is still active.
+          example:
+            gt: '2026-01-01'
+        name:
+          type: string
+          title: Name
+          description: The display name of this event.
+          example:
+            eq: value
+        limitation_type:
+          enum:
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Limitation Type
+          description: The limitation type of this event used for filtering (limited by days, limited by hours, or unlimited by hours).
+          example:
+            eq: active
+        sync_personal_integrations:
+          type: boolean
+          title: Sync Personal Integrations
+          description: When true, bookings for this event are automatically synced to personal calendar integrations.
+          example:
+            eq: value
+        half_day_bookings:
+          type: boolean
+          title: Half Day Bookings
+          description: When true, bookings for this event can be created in half-day increments.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this event.
+          example:
+            - 123
+        color_id:
+          type: integer
+          title: Color
+          description: ID of the color associated with this event for display purposes.
+          example:
+            - 123
+        description:
+          type: string
+          title: Description
+          example:
+            eq: value
+        absence_type:
+          enum:
+            - time_off
+            - remote_work
+          type: string
+          title: Absence Type
+          description: The absence category of this event, either time_off (standard time-off) or remote_work.
+          example:
+            eq: active
+        icon_id:
+          type: string
+          title: Icon
+          description: The icon identifier used to visually represent this event in the UI.
+          example:
+            - 123
+        limitation_type_id:
+          enum:
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Limitation Type
+          description: 'ID of the limitation type controlling how time-off for this event is tracked: limited by days (2), limited by hours (3), or unlimited by hours (4).'
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this event belongs to.
+          example:
+            eq: value
+        event_type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Event Type
+          description: ID of the event type indicating whether this absence is paid (1) or unpaid (2).
+          example:
+            - 123
+      description: An absence event type (e.g. vacation, sick leave) used to categorize time-off bookings in the resource planner.
+      example:
+        id: '123'
+        type: events
+        attributes:
+          event_type: task.created
+          occurred_at: '2026-01-15T10:00:00Z'
+          payload: {}
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_event:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_event/properties/name'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_event/properties/icon_id'
+                      color_id:
+                        $ref: '#/components/schemas/resource_event/properties/color_id'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_event/properties/archived_at'
+                      description:
+                        $ref: '#/components/schemas/resource_event/properties/description'
+                      absence_type:
+                        $ref: '#/components/schemas/resource_event/properties/absence_type'
+                      event_type_id:
+                        $ref: '#/components/schemas/resource_event/properties/event_type_id'
+                      half_day_bookings:
+                        $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
+                      limitation_type_id:
+                        $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
+                      sync_personal_integrations:
+                        $ref: '#/components/schemas/resource_event/properties/sync_personal_integrations'
+                  relationships:
+                    type: object
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single event
+    collection_event:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_event/properties/name'
+                        icon_id:
+                          $ref: '#/components/schemas/resource_event/properties/icon_id'
+                        color_id:
+                          $ref: '#/components/schemas/resource_event/properties/color_id'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_event/properties/archived_at'
+                        description:
+                          $ref: '#/components/schemas/resource_event/properties/description'
+                        absence_type:
+                          $ref: '#/components/schemas/resource_event/properties/absence_type'
+                        event_type_id:
+                          $ref: '#/components/schemas/resource_event/properties/event_type_id'
+                        half_day_bookings:
+                          $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
+                        limitation_type_id:
+                          $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
+                        sync_personal_integrations:
+                          $ref: '#/components/schemas/resource_event/properties/sync_personal_integrations'
                     relationships:
                       type: object
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection event

@@ -1,213 +1,442 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Dashboards
   version: 2.0.0
+description: |
+  The Dashboard object represents the main component of the dashboard system.
+
+  It functions as a container for Widgets, enabling users to edit and arrange them as needed, allowing you to have all essential information in one place.
+
+  You can find out more about dashboards in our Help documentation for [Dashboards](https://help.productive.io/en/articles/6423123-dashboards)
+x-filters:
+  dashboard:
+    query:
+      description: Search dashboards by name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    editable:
+      description: Filter to include only dashboards the current user can edit.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
-  /api/v2/dashboards:
-    get:
-      summary: Get all dashboards GET
-      operationId: getDashboards
-      tags:
-      - Dashboards
-      parameters:
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    post:
-      summary: Create a dashboard POST
-      operationId: postDashboards
-      tags:
-      - Dashboards
-      parameters: []
-      responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
   /api/v2/dashboards/copy:
     post:
-      summary: Copy a dashboard POST
-      operationId: postDashboardsCopy
       tags:
-      - Dashboards
-      parameters: []
+        - Dashboards
+      summary: Copy a dashboard
+      responses:
+        '200':
+          $ref: '#/components/responses/single_dashboard'
+        '201':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Created
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: dashboards-copy-copy
+      description: Copy a dashboard.
+  /api/v2/dashboards:
+    get:
+      tags:
+        - Dashboards
+      summary: Get all dashboards
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_dashboard'
+      parameters:
+        - $ref: '#/components/parameters/sort_dashboard'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_dashboard'
+      operationId: dashboards-index
+      description: List dashboards with optional filters and pagination.
+    post:
+      tags:
+        - Dashboards
+      summary: Create a dashboard
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_dashboard'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/dashboards/{id}:
-    delete:
-      summary: Delete a dashboard DELETE
-      operationId: deleteDashboardsId
-      tags:
-      - Dashboards
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: dashboards-create
+      requestBody:
+        $ref: '#/components/requestBodies/dashboard'
+      description: Create a new dashboard.
+  /api/v2/dashboards/{id}:
+    get:
+      tags:
+        - Dashboards
+      summary: Get a dashboard
+      responses:
+        '200':
+          $ref: '#/components/responses/single_dashboard'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: dashboards-show
+      description: Retrieve a single dashboard by ID.
+    patch:
+      tags:
+        - Dashboards
+      summary: Update a dashboard
+      responses:
+        '200':
+          $ref: '#/components/responses/single_dashboard'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: dashboards-update
+      requestBody:
+        $ref: '#/components/requestBodies/dashboard'
+      description: Update a dashboard.
+    delete:
+      tags:
+        - Dashboards
+      summary: Delete a dashboard
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Get a dashboard GET
-      operationId: getDashboardsId
-      tags:
-      - Dashboards
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: dashboards-destroy
+      description: Delete a dashboard.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_dashboard:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.dashboard at the top of this file.
+      required: false
+      description: Filters
+    sort_dashboard:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort dashboard
+      explode: false
+      required: false
+      description: Sort dashboard
+  requestBodies:
+    dashboard:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a dashboard PATCH
-      operationId: patchDashboardsId
-      tags:
-      - Dashboards
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    required:
+                      - name
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_dashboard/properties/name'
+                      is_private:
+                        $ref: '#/components/schemas/resource_dashboard/properties/is_private'
+                      project_id:
+                        $ref: '#/components/schemas/resource_dashboard/properties/project_id'
+      description: Request body for creating or updating a dashboard.
+  schemas:
+    resource_dashboard:
+      type: object
+      title: Dashboard Resource
+      properties:
+        creator:
+          title: Creator
+          description: The person who created this dashboard.
+          example:
+            eq: value
+        project:
+          title: Project
+          description: The project this dashboard is scoped to, if project-level.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: A saved filter query applied to this dashboard's data.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this dashboard belongs to.
+          example:
+            eq: value
+        editable:
+          type: boolean
+          title: Editable
+          description: Indicates whether the current user can edit this dashboard.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this dashboard was last updated.
+          example:
+            gt: '2026-01-01'
+        name:
+          type: string
+          title: Name
+          description: The display name of the dashboard.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when the dashboard was created.
+          example:
+            gt: '2026-01-01'
+        is_private:
+          type: boolean
+          title: Is Private
+          description: When true, this dashboard is private and only visible to the creator.
+          example:
+            eq: value
+        project_id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Project
+          description: The ID of the project this dashboard is scoped to, if project-level.
+          example:
+            - 123
+      description: A configurable dashboard with widgets displaying KPIs, charts, and project summaries.
+      example:
+        id: '34'
+        type: dashboards
+        attributes:
+          name: Project Overview
+          shared: false
+          created_at: '2026-01-20T09:00:00.000+00:00'
+          updated_at: '2026-03-01T10:00:00.000+00:00'
+        relationships:
+          owner:
+            data:
+              type: people
+              id: '12'
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_dashboard:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_dashboard/properties/name'
+                      created_at:
+                        $ref: '#/components/schemas/resource_dashboard/properties/created_at'
+                      is_private:
+                        $ref: '#/components/schemas/resource_dashboard/properties/is_private'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_dashboard/properties/updated_at'
+                  relationships:
+                    type: object
+                    properties:
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single dashboard
+    collection_dashboard:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_dashboard/properties/name'
+                        created_at:
+                          $ref: '#/components/schemas/resource_dashboard/properties/created_at'
+                        is_private:
+                          $ref: '#/components/schemas/resource_dashboard/properties/is_private'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_dashboard/properties/updated_at'
                     relationships:
                       type: object
+                      properties:
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection dashboard

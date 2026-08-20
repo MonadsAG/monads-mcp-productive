@@ -1,203 +1,602 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Subsidiaries
   version: 2.0.0
+description: |-
+  ### Subsidiary Tax ID
+
+  The Tax ID displayed in **Settings → Company info → Edit Subsidiary** can be retrieved through the API via the related bill_from contact entry by calling:
+
+  `GET /api/v2/subsidiaries/{id}?include=bill_from`
+
+  The Tax ID is returned in the included section, inside the contact_entries object, where type is bill_from, under the `vat` attribute.
+x-filters:
+  subsidiary:
+    status:
+      description: Filter by status (active or archived).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
-  /api/v2/subsidiaries:
-    get:
-      summary: Gets all subsidiaries GET
-      operationId: getSubsidiaries
-      tags:
-      - Subsidiaries
-      parameters:
-      - name: filter[status]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: 'Filter by status (1: active, 2: archived)'
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    post:
-      summary: Create a subsidiary POST
-      operationId: postSubsidiaries
-      tags:
-      - Subsidiaries
-      parameters: []
-      responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/subsidiaries/:
-    patch:
-      summary: Update a subsidiary PATCH
-      operationId: patchSubsidiaries
-      tags:
-      - Subsidiaries
-      parameters: []
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/subsidiaries/{id}:
-    get:
-      summary: Gets a subsidiary GET
-      operationId: getSubsidiariesId
-      tags:
-      - Subsidiaries
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
   /api/v2/subsidiaries/{id}/archive:
     patch:
-      summary: Archives a subsidiary PATCH
-      operationId: patchSubsidiariesIdArchive
       tags:
-      - Subsidiaries
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Subsidiaries
+      summary: Archives a subsidiary
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/single_subsidiary'
+        '409':
           content:
-            application/vnd.api+json:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
               schema:
+                type: string
+          description: Conflict
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: subsidiaries-archive-archive
+      description: Archive a subsidiary to deactivate it.
+  /api/v2/subsidiaries:
+    get:
+      tags:
+        - Subsidiaries
+      summary: Gets all subsidiaries
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_subsidiary'
+      parameters:
+        - $ref: '#/components/parameters/sort_subsidiary'
+        - $ref: '#/components/parameters/filter_subsidiary'
+        - $ref: '#/components/parameters/header_organization'
+      operationId: subsidiaries-index
+      description: List all subsidiaries.
+    post:
+      tags:
+        - Subsidiaries
+      summary: Create a subsidiary
+      responses:
+        '201':
+          $ref: '#/components/responses/single_subsidiary'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: subsidiaries-create
+      requestBody:
+        $ref: '#/components/requestBodies/subsidiary'
+      description: Create a new subsidiary.
+  /api/v2/subsidiaries/{id}:
+    get:
+      tags:
+        - Subsidiaries
+      summary: Gets a subsidiary
+      responses:
+        '200':
+          $ref: '#/components/responses/single_subsidiary'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: subsidiaries-show
+      description: Retrieve a single subsidiary by ID.
+    patch:
+      tags:
+        - Subsidiaries
+      summary: Update a subsidiary
+      responses:
+        '200':
+          $ref: '#/components/responses/single_subsidiary'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: subsidiaries-update
+      requestBody:
+        $ref: '#/components/requestBodies/subsidiary'
+      description: Update a subsidiary.
+components:
+  requestBodies:
+    subsidiary:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    required:
+                      - name
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/name'
+                      facility_costs:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs'
+                      custom_domain_id:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/custom_domain_id'
+                      invoice_logo_url:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/invoice_logo_url'
+                      show_delivery_date:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/show_delivery_date'
+                      default_tax_rate_id:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/default_tax_rate_id'
+                      invoice_number_scope:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/invoice_number_scope'
+                      invoice_number_format:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/invoice_number_format'
+                      default_bank_account_id:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/default_bank_account_id'
+                      default_document_type_id:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/default_document_type_id'
+                      facility_costs_breakdown:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs_breakdown'
+      description: Request body for creating or updating a subsidiary (legal entity). Specify the name, invoice number format, invoice number scope, and optional branding (logo, document style) and default tax rate and bank account.
+  schemas:
+    resource_subsidiary:
+      type: object
+      title: Subsidiary Resource
+      properties:
+        invoice_number_format:
+          type: string
+          title: Invoice Number Format
+          description: The format template for generating invoice numbers for this subsidiary (e.g. INV-{year}-{number}).
+          example:
+            eq: value
+        integration:
+          title: Integration
+          description: Linked accounting or export integration for this subsidiary.
+          example:
+            eq: value
+        default_bank_account:
+          title: Default Bank Account
+          description: Default bank account used for outgoing payments from this subsidiary.
+          example:
+            gt: 0
+        custom_domain:
+          title: Custom Domain
+          description: Custom email domain linked to this subsidiary for outgoing communication.
+          example:
+            eq: value
+        facility_costs:
+          title: Facility Costs
+          description: Monthly facility/overhead costs allocated to this subsidiary.
+          example:
+            eq: value
+        status:
+          type: integer
+          title: Status
+          description: The status of this subsidiary, indicating whether it is active or archived.
+          example:
+            eq: active
+        default_document_type:
+          title: Default Document Type
+          description: Default document type template applied to invoices from this subsidiary.
+          example:
+            eq: active
+        default_document_type_id:
+          type: integer
+          title: Default Document Type
+          description: Default document type (PDF template) applied to invoices from this subsidiary.
+          example:
+            - 123
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when the subsidiary was archived, or null if active.
+          example:
+            gt: '2026-01-01'
+        bill_from:
+          title: Bill From
+          description: Billing address details used on invoices issued by this subsidiary.
+          example:
+            eq: value
+        einvoice_configuration:
+          title: Einvoice Configuration
+          description: E-invoicing configuration for this subsidiary (formats, routing, transmission settings).
+          example:
+            data:
+              type: einvoice_configurations
+              id: '1234'
+        einvoice_identity:
+          title: Einvoice Identity
+          description: E-invoicing identity details for this subsidiary (PEPPOL endpoint, routing identifiers).
+          example:
+            data:
+              type: einvoice_identities
+              id: '568'
+        show_delivery_date:
+          type: boolean
+          title: Show Delivery Date
+          description: When true, the delivery date is shown on invoices generated for this subsidiary.
+          example:
+            gt: '2026-01-01'
+        default_bank_account_id:
+          type: integer
+          title: Default Bank Account
+          description: ID of the default bank account for this subsidiary.
+          example:
+            - 123
+        export_integration_type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+            - 7
+            - 8
+            - 9
+            - 10
+            - 11
+          type: integer
+          title: Export Integration Type
+          description: Integration type used for exporting documents from this subsidiary.
+          example:
+            - 123
+        custom_domain_id:
+          type: integer
+          title: Custom Domain
+          description: ID of the custom domain linked to this subsidiary for email sending.
+          example:
+            - 123
+        invoice_number_scope:
+          type: string
+          title: Invoice Number Scope
+          description: The scope that determines invoice number sequencing — whether numbers are shared across the organization or unique per subsidiary.
+          example:
+            eq: value
+        default_tax_rate_id:
+          type: integer
+          title: Default Tax Rate
+          description: ID of the default tax rate for this subsidiary.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: Display name of the subsidiary legal entity.
+          example:
+            eq: value
+        default_tax_rate:
+          title: Default Tax Rate
+          description: Default tax rate applied to invoice line items for this subsidiary.
+          example:
+            gt: 0
+        invoice_logo_url:
+          type: string
+          title: Invoice Logo Url
+          description: The URL of the logo image used on invoices for this subsidiary.
+          example:
+            eq: value
+        facility_costs_normalized:
+          title: Facility Costs Normalized
+          description: Facility costs normalized to a common currency for cross-subsidiary comparison.
+          example:
+            eq: value
+        facility_costs_breakdown:
+          type: object
+          title: Facility Costs Breakdown
+          description: Breakdown of facility costs into component categories.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this subsidiary.
+          example:
+            - 123
+        facility_costs_default:
+          title: Facility Costs Default
+          description: Facility costs in the organization's default currency.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this subsidiary belongs to.
+          example:
+            eq: value
+      description: A legal entity within the organization with its own billing identity, tax rates, bank accounts, and address.
+      example:
+        id: '123'
+        type: subsidiaries
+        attributes:
+          name: Agency EU
+          country: DE
+          currency: EUR
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_subsidiary:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.subsidiary at the top of this file.
+      required: false
+      description: Filters
+    sort_subsidiary:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - name
+            - -name
+          type: string
+        title: Sort subsidiary
+      explode: false
+      required: false
+      description: Sort subsidiary
+  responses:
+    single_subsidiary:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/name'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/archived_at'
+                      facility_costs:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs'
+                      invoice_logo_url:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/invoice_logo_url'
+                      show_delivery_date:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/show_delivery_date'
+                      invoice_number_scope:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/invoice_number_scope'
+                      invoice_number_format:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/invoice_number_format'
+                      facility_costs_default:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs_default'
+                      facility_costs_breakdown:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs_breakdown'
+                      facility_costs_normalized:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs_normalized'
+                      export_integration_type_id:
+                        $ref: '#/components/schemas/resource_subsidiary/properties/export_integration_type_id'
+                  relationships:
+                    type: object
+                    properties:
+                      bill_from:
+                        $ref: '#/components/schemas/_single_relationship'
+                      integration:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_domain:
+                        $ref: '#/components/schemas/_single_relationship'
+                      default_tax_rate:
+                        $ref: '#/components/schemas/_single_relationship'
+                      einvoice_identity:
+                        $ref: '#/components/schemas/_single_relationship'
+                      default_bank_account:
+                        $ref: '#/components/schemas/_single_relationship'
+                      default_document_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                      einvoice_configuration:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single subsidiary
+    collection_subsidiary:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/name'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/archived_at'
+                        facility_costs:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs'
+                        invoice_logo_url:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/invoice_logo_url'
+                        show_delivery_date:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/show_delivery_date'
+                        invoice_number_scope:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/invoice_number_scope'
+                        invoice_number_format:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/invoice_number_format'
+                        facility_costs_default:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs_default'
+                        facility_costs_breakdown:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs_breakdown'
+                        facility_costs_normalized:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/facility_costs_normalized'
+                        export_integration_type_id:
+                          $ref: '#/components/schemas/resource_subsidiary/properties/export_integration_type_id'
                     relationships:
                       type: object
+                      properties:
+                        bill_from:
+                          $ref: '#/components/schemas/_single_relationship'
+                        integration:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_domain:
+                          $ref: '#/components/schemas/_single_relationship'
+                        default_tax_rate:
+                          $ref: '#/components/schemas/_single_relationship'
+                        einvoice_identity:
+                          $ref: '#/components/schemas/_single_relationship'
+                        default_bank_account:
+                          $ref: '#/components/schemas/_single_relationship'
+                        default_document_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        einvoice_configuration:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection subsidiary

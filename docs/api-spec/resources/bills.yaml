@@ -1,137 +1,425 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Bills
   version: 2.0.0
+description: Receipt records against a purchase order tracking vendor deliveries. Each bill captures the invoice number, date, due date, description, and amounts received. Bill items link PO expenses to received quantities.
 paths:
   /api/v2/bills:
     post:
-      summary: Create a bill POST
-      operationId: postBills
       tags:
-      - Bills
-      parameters: []
+        - Bills
+      summary: Create a bill
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_bill'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/bills/{id}:
-    delete:
-      summary: Deletes a bill DELETE
-      operationId: deleteBillsId
-      tags:
-      - Bills
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: bills-create
+      requestBody:
+        $ref: '#/components/requestBodies/bill'
+      description: Create a new bill.
+  /api/v2/bills/{id}:
+    get:
+      tags:
+        - Bills
+      summary: Gets a bill
+      responses:
+        '200':
+          $ref: '#/components/responses/single_bill'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: bills-show
+      description: Retrieve a single bill by ID.
+    patch:
+      tags:
+        - Bills
+      summary: Update a bill
+      responses:
+        '200':
+          $ref: '#/components/responses/single_bill'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: bills-update
+      requestBody:
+        $ref: '#/components/requestBodies/bill'
+      description: Update a bill.
+    delete:
+      tags:
+        - Bills
+      summary: Deletes a bill
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a bill GET
-      operationId: getBillsId
-      tags:
-      - Bills
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: bills-destroy
+      description: Delete a bill.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+  requestBodies:
+    bill:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a bill PATCH
-      operationId: patchBillsId
-      tags:
-      - Bills
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    required:
+                      - purchase_order_id
+                    properties:
+                      date:
+                        $ref: '#/components/schemas/resource_bill/properties/date'
+                      due_date:
+                        $ref: '#/components/schemas/resource_bill/properties/due_date'
+                      attachment_id:
+                        $ref: '#/components/schemas/resource_bill/properties/attachment_id'
+                      invoice_number:
+                        $ref: '#/components/schemas/resource_bill/properties/invoice_number'
+                      purchase_order_id:
+                        $ref: '#/components/schemas/resource_bill/properties/purchase_order_id'
+      description: Request body for creating or updating a bill (vendor receipt). Specify the purchase order, date, due date, invoice number, description, currency, and total amounts. Attach a document via the attachment relationship.
+  schemas:
+    resource_bill:
+      type: object
+      title: Bill Resource
+      properties:
+        due_date:
+          type: string
+          title: Due Date
+          format: date
+          description: The payment due date for this bill.
+          example:
+            gt: '2026-01-01'
+        invoice_number:
+          type: string
+          title: Invoice Number
+          description: The vendor's invoice number or reference code for this bill.
+          example:
+            eq: value
+        total_cost_normalized:
+          title: Total Cost Normalized
+          description: The total cost of this bill expressed in the normalized (common reporting) currency.
+          example:
+            eq: value
+        total_received_default:
+          title: Total Received Default
+          description: The total amount received expressed in the organization's default currency.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this bill.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The currency used for amounts expressed in the normalized (common reporting) currency.
+          example:
+            eq: value
+        id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Id
+          description: Unique identifier for the bill.
+          example:
+            - 123
+        total_received:
+          title: Total Received
+          description: The total amount received or recognized from the vendor in the bill's currency.
+          example:
+            eq: value
+        attachment_id:
+          type: integer
+          title: Attachment
+          description: The ID of the attachment associated with this bill.
+          example:
+            - 123
+        currency:
+          title: Currency
+          description: The currency of the bill amounts.
+          example:
+            eq: value
+        date:
+          type: string
+          title: Date
+          format: date
+          description: The date the bill was issued.
+          example:
+            gt: '2026-01-01'
+        attachment:
+          title: Attachment
+          description: The attachment (receipt or document) associated with this bill.
+          example:
+            eq: value
+        total_cost_default:
+          title: Total Cost Default
+          description: The total cost of this bill expressed in the organization's default currency.
+          example:
+            eq: value
+        total_cost:
+          title: Total Cost
+          description: The total cost of goods or services received in this bill, in the bill's currency.
+          example:
+            eq: value
+        purchase_order:
+          title: Purchase Order
+          description: The purchase order this bill is received against.
+          example:
+            data:
+              type: purchase_orders
+              id: '1234567'
+        total_received_normalized:
+          title: Total Received Normalized
+          description: The total amount received expressed in the normalized (common reporting) currency.
+          example:
+            eq: value
+        purchase_order_id:
+          type: integer
+          title: Purchase Order
+          description: The ID of the purchase order this bill is received against.
+          example: 1234567
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when the bill was created.
+          example:
+            gt: '2026-01-01'
+        currency_default:
+          title: Currency Default
+          description: The currency used for amounts expressed in the organization's default currency.
+          example:
+            eq: value
+        deleted_at:
+          type: string
+          title: Deleted At
+          format: date-time
+          description: Timestamp when the bill was deleted, or null if active.
+          example:
+            gt: '2026-01-01'
+        deal:
+          title: Deal
+          description: The budget (deal) this bill is associated with.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this bill belongs to.
+          example:
+            eq: value
+      description: Receipt record against a purchase order. Tracks the vendor invoice number, date, due date, description, and total amounts received and cost. Links to a deal and has an optional attachment for the vendor invoice document.
+      example:
+        id: '34'
+        type: bills
+        attributes:
+          name: Software Subscription
+          amount: '299.00'
+          currency: USD
+          date: '2026-03-01'
+          status: pending
+          created_at: '2026-03-01T09:00:00.000+00:00'
+        relationships:
+          company:
+            data:
+              type: companies
+              id: '65111'
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_bill:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+                    properties:
+                      date:
+                        $ref: '#/components/schemas/resource_bill/properties/date'
+                      currency:
+                        $ref: '#/components/schemas/resource_bill/properties/currency'
+                      due_date:
+                        $ref: '#/components/schemas/resource_bill/properties/due_date'
+                      created_at:
+                        $ref: '#/components/schemas/resource_bill/properties/created_at'
+                      deleted_at:
+                        $ref: '#/components/schemas/resource_bill/properties/deleted_at'
+                      total_cost:
+                        $ref: '#/components/schemas/resource_bill/properties/total_cost'
+                      invoice_number:
+                        $ref: '#/components/schemas/resource_bill/properties/invoice_number'
+                      total_received:
+                        $ref: '#/components/schemas/resource_bill/properties/total_received'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_bill/properties/currency_default'
+                      total_cost_default:
+                        $ref: '#/components/schemas/resource_bill/properties/total_cost_default'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_bill/properties/currency_normalized'
+                      total_cost_normalized:
+                        $ref: '#/components/schemas/resource_bill/properties/total_cost_normalized'
+                      total_received_default:
+                        $ref: '#/components/schemas/resource_bill/properties/total_received_default'
+                      total_received_normalized:
+                        $ref: '#/components/schemas/resource_bill/properties/total_received_normalized'
+                  relationships:
+                    type: object
+                    properties:
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      attachment:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      purchase_order:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single bill

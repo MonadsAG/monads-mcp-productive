@@ -1,254 +1,498 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Surveys
   version: 2.0.0
+description: Project forms for structured data collection. Surveys can trigger automations on submission, making them useful for intake forms, onboarding workflows, and status updates. Supports custom fields for form fields.
+x-filters:
+  survey:
+    query:
+      description: Filter by title (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by creation date range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filter by the person who created the survey.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    title:
+      description: Filter by survey title (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    editable:
+      description: Filter to include only surveys that the current user has full edit access to.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
-  /api/v2/surveys:
-    get:
-      summary: Get surveys GET
-      operationId: getSurveys
-      tags:
-      - Surveys
-      parameters:
-      - name: filter[created_at]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by created_at (string)
-      - name: filter[creator_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by creator_id (string)
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by id (string)
-      - name: filter[project_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by project_id (string)
-      - name: filter[title]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by title (string)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - id
-          - title
-          - -id
-          - -title
-        description: Sort field. Prefix - for descending.
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    post:
-      summary: Create a survey POST
-      operationId: postSurveys
-      tags:
-      - Surveys
-      parameters: []
-      responses:
-        '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
   /api/v2/surveys/copy:
     post:
-      summary: Copies a survey POST
-      operationId: postSurveysCopy
       tags:
-      - Surveys
-      parameters: []
+        - Surveys
+      summary: Copies a survey
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey'
+        '201':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Created
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: surveys-copy-copy
+      description: Copy an existing survey.
+  /api/v2/surveys:
+    get:
+      tags:
+        - Surveys
+      summary: Get surveys
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_survey'
+      parameters:
+        - $ref: '#/components/parameters/filter_survey'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_survey'
+      operationId: surveys-index
+      description: List all surveys.
+    post:
+      tags:
+        - Surveys
+      summary: Create a survey
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/surveys/{id}:
-    delete:
-      summary: Deletes a survey DELETE
-      operationId: deleteSurveysId
-      tags:
-      - Surveys
+          $ref: '#/components/responses/single_survey'
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: surveys-create
+      requestBody:
+        $ref: '#/components/requestBodies/survey'
+      description: Create a new survey.
+  /api/v2/surveys/{id}:
+    get:
+      tags:
+        - Surveys
+      summary: Gets a survey
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the survey to retrieve.
+      operationId: surveys-show
+      description: Retrieve a single survey by ID.
+    patch:
+      tags:
+        - Surveys
+      summary: Update a survey
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the survey to update.
+        - $ref: '#/components/parameters/header_organization'
+      operationId: surveys-update
+      requestBody:
+        $ref: '#/components/requestBodies/survey'
+      description: Update a survey.
+    delete:
+      tags:
+        - Surveys
+      summary: Deletes a survey
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a survey GET
-      operationId: getSurveysId
-      tags:
-      - Surveys
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the survey to delete.
+        - $ref: '#/components/parameters/header_organization'
+      operationId: surveys-destroy
+      description: Delete a survey by ID.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_survey:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - id
+            - -id
+            - title
+            - -title
+          type: string
+        title: Sort survey
+      explode: false
+      required: false
+      description: Sort order for survey list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
+    filter_survey:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.survey at the top of this file.
+      required: false
+      description: Filter parameter for querying surveys.
+  requestBodies:
+    survey:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update a survey PATCH
-      operationId: patchSurveysId
-      tags:
-      - Surveys
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
+                    required:
+                      - title
+                      - project_id
+                    properties:
+                      title:
+                        $ref: '#/components/schemas/resource_survey/properties/title'
+                      project_id:
+                        $ref: '#/components/schemas/resource_survey/properties/project_id'
+                      submission_access:
+                        $ref: '#/components/schemas/resource_survey/properties/submission_access'
+      description: Request body for creating or updating a survey. Specify the project, name, and configuration. Survey fields are managed separately via the survey_fields endpoint.
+  schemas:
+    resource_survey:
+      type: object
+      title: Survey Resource
+      properties:
+        organization:
+          title: Organization
+          description: The organization this survey belongs to.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this survey was created.
+          example:
+            gt: '2026-01-01'
+        creator_id:
           type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          title: Creator
+          description: ID of the person who created this survey.
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this survey.
+          example:
+            - 123
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this survey is associated with.
+          example:
+            - 123
+        submission_access:
+          enum:
+            - nobody
+            - project_members
+            - organization
+            - public
+          type: string
+          title: Submission Access
+          description: 'Controls who can submit responses to this survey: nobody, project_members, organization, or public.'
+          example:
+            eq: value
+        public_uuid:
+          type: string
+          title: Public Uuid
+          description: Public UUID used to identify this survey in shareable links.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this survey.
+          example:
+            eq: value
+        editable:
+          type: boolean
+          title: Editable
+          description: Whether the current user can edit this survey.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: Text search query applied when filtering surveys.
+          example:
+            eq: value
+        updater:
+          title: Updater
+          description: The person who last updated this survey.
+          example:
+            eq: value
+        title:
+          type: string
+          title: Title
+          description: The title of this survey.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this survey was last updated.
+          example:
+            gt: '2026-01-01'
+        project:
+          title: Project
+          description: The project this survey is associated with.
+          example:
+            eq: value
+      description: Project form for structured data collection. Supports automation triggers on submission. Responses are stored as survey_response records with field values.
+      example:
+        id: '7'
+        type: surveys
+        attributes:
+          title: Client Satisfaction Q1 2026
+          status: published
+          created_at: '2026-01-15T10:00:00.000+00:00'
+        relationships:
+          project:
+            data:
+              type: projects
+              id: '6899'
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_survey:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      title:
+                        $ref: '#/components/schemas/resource_survey/properties/title'
+                      created_at:
+                        $ref: '#/components/schemas/resource_survey/properties/created_at'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_survey/properties/updated_at'
+                      public_uuid:
+                        $ref: '#/components/schemas/resource_survey/properties/public_uuid'
+                      submission_access:
+                        $ref: '#/components/schemas/resource_survey/properties/submission_access'
+                  relationships:
+                    type: object
+                    properties:
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single survey
+    collection_survey:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        title:
+                          $ref: '#/components/schemas/resource_survey/properties/title'
+                        created_at:
+                          $ref: '#/components/schemas/resource_survey/properties/created_at'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_survey/properties/updated_at'
+                        public_uuid:
+                          $ref: '#/components/schemas/resource_survey/properties/public_uuid'
+                        submission_access:
+                          $ref: '#/components/schemas/resource_survey/properties/submission_access'
                     relationships:
                       type: object
+                      properties:
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection survey

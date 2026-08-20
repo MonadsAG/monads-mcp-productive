@@ -1,127 +1,290 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Tags
   version: 2.0.0
+description: |-
+  **Tags** are labels applied to tasks and other resources for categorization and filtering.
+
+  Create and manage the tag definitions available in your organization, then attach them to records to enable tag-based search and reporting.
+x-filters:
+  tag:
+    name:
+      description: Filter by tag name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    company_id:
+      description: Filter to tags applied to the given company.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    deal_id:
+      description: Filter to tags applied to the given deal.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    task_id:
+      description: Filter to tags applied to the given task.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter to tags applied to tasks within the given project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    invoice_id:
+      description: Filter to tags applied to the given invoice.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    taggable_type:
+      description: Filter by the type of resource the tag is applied to (e.g. deal, task, person).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_id:
+      description: Filter to tags applied to the given person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/tags:
     get:
-      summary: Get tags GET
-      operationId: getTags
       tags:
-      - Tags
-      parameters:
-      - name: filter[person_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by person_id (array)
-      - name: filter[company_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by company_id (array)
-      - name: filter[deal_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by deal_id (array)
-      - name: filter[task_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by task_id (array)
-      - name: filter[invoice_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by invoice_id (array)
-      - name: filter[project_id]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-        description: Filter by project_id (array)
-      - name: filter[taggable_type]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by taggable_type (budget, deal, task, company, person,
-          invoice)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Tags
+      summary: Get tags
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_tag'
+      parameters:
+        - $ref: '#/components/parameters/filter_tag'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_tag'
+      operationId: tags-index
+      description: List all tags.
   /api/v2/tags/{id}:
     get:
-      summary: Gets a tag GET
-      operationId: getTagsId
       tags:
-      - Tags
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Tags
+      summary: Gets a tag
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          $ref: '#/components/responses/single_tag'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: tags-show
+      description: Retrieve a single tag by ID.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_tag:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort tag
+      explode: false
+      required: false
+      description: Sort tag
+    filter_tag:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.tag at the top of this file.
+      required: false
+      description: Filters
+  responses:
+    single_tag:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_tag/properties/name'
+                      color_id:
+                        $ref: '#/components/schemas/resource_tag/properties/color_id'
+                  relationships:
+                    type: object
+                    properties: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single tag
+    collection_tag:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_tag/properties/name'
+                        color_id:
+                          $ref: '#/components/schemas/resource_tag/properties/color_id'
+                    relationships:
+                      type: object
+                      properties: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection tag
+  schemas:
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    resource_tag:
+      type: object
+      title: Tag Resource
+      properties:
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this tag is applied to, if tagged to a project.
+          example:
+            - 123
+        taggable_type:
+          type: string
+          title: Taggable Type
+          description: The type of resource this tag is applied to (e.g. Company, Deal, Invoice, Person, Project, Task).
+          example:
+            eq: active
+        name:
+          type: string
+          title: Name
+          description: The name of this tag.
+          example:
+            eq: value
+        task_id:
+          type: integer
+          title: Task
+          description: ID of the task this tag is applied to, if tagged to a task.
+          example:
+            - 123
+        color_id:
+          type: integer
+          title: Color
+          description: ID of the color used to visually distinguish this tag.
+          example:
+            - 123
+        person_id:
+          type: integer
+          title: Person
+          description: ID of the person this tag is applied to, if tagged to a person.
+          example:
+            - 123
+        invoice_id:
+          type: integer
+          title: Invoice
+          description: ID of the invoice this tag is applied to, if tagged to an invoice.
+          example:
+            - 123
+        company_id:
+          type: integer
+          title: Company
+          description: ID of the company this tag is applied to, if tagged to a company.
+          example:
+            - 123
+        deal_id:
+          type: integer
+          title: Deal
+          description: ID of the deal this tag is applied to, if tagged to a deal.
+          example:
+            - 123
+      description: A label that can be applied to companies, deals, invoices, people, projects, or tasks for categorization and filtering.
+      example:
+        id: '121711'
+        type: tags
+        attributes:
+          name: backend
+          color_id: '3'

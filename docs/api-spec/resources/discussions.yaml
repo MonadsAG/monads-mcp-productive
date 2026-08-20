@@ -1,388 +1,498 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Discussions
   version: 2.0.0
+description: Discussion is a thread of comments related to the highlighted part of docs (page) content.
+x-filters:
+  discussion:
+    id:
+      description: Filter by discussion ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    page_id:
+      description: Filter by the associated document page.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status:
+      description: Filter by discussion status (active or resolved).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/discussions:
     get:
-      summary: Get discussions GET
-      operationId: getDiscussions
       tags:
-      - Discussions
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by id (string)
-      - name: filter[page_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by page_id (string)
-      - name: filter[status]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: 'Filter by status (1: active, 2: resolved)'
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
-      - name: sort
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - created_at
-          - resolved_at
-          - updated_at
-          - -created_at
-          - -resolved_at
-          - -updated_at
-        description: Sort field. Prefix - for descending.
+        - Discussions
+      summary: Get discussions
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_discussion'
+      parameters:
+        - $ref: '#/components/parameters/sort_discussion'
+        - $ref: '#/components/parameters/filter_discussion'
+        - $ref: '#/components/parameters/header_organization'
+      operationId: discussions-index
+      description: List discussions.
     post:
-      summary: Create an discussion POST
-      operationId: postDiscussions
       tags:
-      - Discussions
-      parameters: []
+        - Discussions
+      summary: Create an discussion
       responses:
         '201':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
+          $ref: '#/components/responses/single_discussion'
         '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
-  /api/v2/discussions/{id}:
-    delete:
-      summary: Deletes a discussion DELETE
-      operationId: deleteDiscussionsId
-      tags:
-      - Discussions
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - $ref: '#/components/parameters/header_organization'
+      operationId: discussions-create
+      requestBody:
+        $ref: '#/components/requestBodies/discussion'
+      description: Create a new discussion.
+  /api/v2/discussions/{id}:
+    get:
+      tags:
+        - Discussions
+      summary: Gets a discussion
+      responses:
+        '200':
+          $ref: '#/components/responses/single_discussion'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: discussions-show
+      description: Retrieve a single discussion.
+    patch:
+      tags:
+        - Discussions
+      summary: Update an discussion
+      responses:
+        '200':
+          $ref: '#/components/responses/single_discussion'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: discussions-update
+      requestBody:
+        $ref: '#/components/requestBodies/discussion'
+      description: Update a discussion.
+    delete:
+      tags:
+        - Discussions
+      summary: Deletes a discussion
       responses:
         '204':
-          description: Deleted
-        '404':
-          description: Not found
-    get:
-      summary: Gets a discussion GET
-      operationId: getDiscussionsId
-      tags:
-      - Discussions
+          description: No Content
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-    patch:
-      summary: Update an discussion PATCH
-      operationId: patchDiscussionsId
-      tags:
-      - Discussions
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
-      responses:
-        '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: discussions-destroy
+      description: Delete a discussion.
   /api/v2/discussions/{id}/reopen:
     patch:
-      summary: Reopens a discussion PATCH
-      operationId: patchDiscussionsIdReopen
       tags:
-      - Discussions
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Discussions
+      summary: Reopens a discussion
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+          $ref: '#/components/responses/single_discussion'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: discussions-reopen-reopen
+      description: Reopen a resolved discussion.
   /api/v2/discussions/{id}/resolve:
     patch:
-      summary: Resolves a discussion PATCH
-      operationId: patchDiscussionsIdResolve
       tags:
-      - Discussions
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Discussions
+      summary: Resolves a discussion
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+          $ref: '#/components/responses/single_discussion'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: discussions-resolve-resolve
+      description: Resolve an open discussion.
   /api/v2/discussions/{id}/subscribe:
     patch:
-      summary: Subscribes to discussion PATCH
-      operationId: patchDiscussionsIdSubscribe
       tags:
-      - Discussions
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Discussions
+      summary: Subscribes to discussion
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
-                  type: object
-                  properties:
-                    type:
-                      type: string
-                    attributes:
-                      type: object
-                    relationships:
-                      type: object
+          $ref: '#/components/responses/single_discussion'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: discussions-subscribe-subscribe
+      description: Subscribe to a discussion.
   /api/v2/discussions/{id}/unsubscribe:
     patch:
-      summary: Unsubscribes from discussion PATCH
-      operationId: patchDiscussionsIdUnsubscribe
       tags:
-      - Discussions
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Discussions
+      summary: Unsubscribes from discussion
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          $ref: '#/components/responses/single_discussion'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: discussions-unsubscribe-unsubscribe
+      description: Unsubscribe from a discussion.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_discussion:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.discussion at the top of this file.
+      required: false
+      description: Filters
+    sort_discussion:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+            - resolved_at
+            - -resolved_at
+            - updated_at
+            - -updated_at
+          type: string
+        title: Sort discussion
+      explode: false
+      required: false
+      description: Sort discussion
+  responses:
+    single_discussion:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
-      requestBody:
-        required: true
-        content:
-          application/vnd.api+json:
-            schema:
-              type: object
-              properties:
-                data:
+                    properties:
+                      excerpt:
+                        $ref: '#/components/schemas/resource_discussion/properties/excerpt'
+                      resolved_at:
+                        $ref: '#/components/schemas/resource_discussion/properties/resolved_at'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_discussion/properties/subscriber_ids'
+                  relationships:
+                    type: object
+                    properties:
+                      page:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single discussion
+    collection_discussion:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
                   type: object
                   properties:
-                    type:
-                      type: string
                     attributes:
                       type: object
+                      properties:
+                        excerpt:
+                          $ref: '#/components/schemas/resource_discussion/properties/excerpt'
+                        resolved_at:
+                          $ref: '#/components/schemas/resource_discussion/properties/resolved_at'
+                        subscriber_ids:
+                          $ref: '#/components/schemas/resource_discussion/properties/subscriber_ids'
                     relationships:
                       type: object
+                      properties:
+                        page:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection discussion
+  schemas:
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    resource_discussion:
+      type: object
+      title: Discussion Resource
+      properties:
+        excerpt:
+          type: string
+          title: Excerpt
+          description: A short text preview of the first comment or content in this discussion.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this discussion belongs to.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this discussion.
+          example:
+            - 123
+        resolved_at:
+          type: string
+          title: Resolved At
+          format: date-time
+          description: Timestamp when this discussion was marked as resolved, or null if it is still active.
+          example:
+            gt: '2026-01-01'
+        page:
+          title: Page
+          description: The page this discussion is attached to.
+          example:
+            eq: value
+        page_id:
+          type: integer
+          title: Page
+          description: ID of the page this discussion is attached to.
+          example:
+            - 123
+        created_at:
+          title: Created At
+          description: Timestamp when this discussion was created.
+          example:
+            gt: '2026-01-01'
+        updated_at:
+          title: Updated At
+          description: Timestamp when this discussion was last updated.
+          example:
+            gt: '2026-01-01'
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: The status of this discussion, either active (1) or resolved (2).
+          example:
+            eq: active
+        subscriber_ids:
+          title: Subscriber Ids
+          description: An array of IDs of people who are subscribed to notifications for this discussion.
+          example:
+            - 123
+            - 456
+      description: A threaded discussion attached to a page, task, or other resource, allowing team members to comment and resolve topics.
+      example:
+        id: '78'
+        type: discussions
+        attributes:
+          title: API Design Review
+          note: Let's discuss the new API endpoint design for the authentication module
+          created_at: '2026-02-01T10:00:00.000+00:00'
+          updated_at: '2026-03-01T09:00:00.000+00:00'
+          last_activity_at: '2026-03-01T09:00:00.000+00:00'
+        relationships:
+          project:
+            data:
+              type: projects
+              id: '6899'
+          author:
+            data:
+              type: people
+              id: '12'
+  requestBodies:
+    discussion:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      excerpt:
+                        $ref: '#/components/schemas/resource_discussion/properties/excerpt'
+                      page_id:
+                        $ref: '#/components/schemas/resource_discussion/properties/page_id'
+      description: Request body for creating or updating a discussion.

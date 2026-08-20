@@ -1,72 +1,527 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Permission Sets
   version: 2.0.0
+description: |
+  The Permission Set object represents a set of permissions that can be assigned to a user.
+
+  You can find out more about permission sets in our Help documentation: [Permission Sets](https://help.productive.io/en/articles/8517221-permission-builder)
+x-filters:
+  role:
+    active_agents_count:
+      description: Filter by the number of active agent (bot) users assigned this role.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    inactive_agents_count:
+      description: Filter by the number of inactive agent (bot) users assigned this role.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    inactive_users_count:
+      description: Filter by the number of inactive human users assigned this role.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    base_role_id:
+      description: Filter by base role ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by role name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    active_users_count:
+      description: Filter by the number of active human users assigned this role.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    user_type_id:
+      description: Filter by user type ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    permissions:
+      description: Filter by permission (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/roles:
     get:
-      summary: Get permission sets GET
-      operationId: getRoles
       tags:
-      - Permission Sets
-      parameters:
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Permission Sets
+      summary: Get permission sets
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_role'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_role'
+        - $ref: '#/components/parameters/sort_role'
+      operationId: roles-index
+      description: List all roles.
+    post:
+      tags:
+        - Permission Sets
+      summary: Create a permission set
+      responses:
+        '201':
+          $ref: '#/components/responses/single_role'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: roles-create
+      requestBody:
+        $ref: '#/components/requestBodies/role'
   /api/v2/roles/{id}:
     get:
-      summary: Gets a permission set GET
-      operationId: getRolesId
       tags:
-      - Permission Sets
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Permission Sets
+      summary: Get a permission set
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/single_role'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: roles-show
+      description: Retrieve a single role by ID.
+    patch:
+      tags:
+        - Permission Sets
+      summary: Update a permission set
+      responses:
+        '200':
+          $ref: '#/components/responses/single_role'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      operationId: roles-update
+      requestBody:
+        $ref: '#/components/requestBodies/role'
+    delete:
+      tags:
+        - Permission Sets
+      summary: Delete a permission set
+      responses:
+        '204':
           content:
-            application/vnd.api+json:
-              schema:
+            any: {}
+          headers: {}
+          description: No Content
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      operationId: roles-destroy
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_role:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - active_agents_count
+            - -active_agents_count
+            - active_users_count
+            - -active_users_count
+            - description
+            - -description
+            - inactive_agents_count
+            - -inactive_agents_count
+            - inactive_users_count
+            - -inactive_users_count
+            - name
+            - -name
+          type: string
+        title: Sort role
+      explode: false
+      required: false
+      description: Sort role
+    filter_role:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.role at the top of this file.
+      required: false
+      description: Filters
+  requestBodies:
+    role:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+                    required:
+                      - name
+                      - user_type_id
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_role/properties/name'
+                      description:
+                        $ref: '#/components/schemas/resource_role/properties/description'
+                      permissions:
+                        $ref: '#/components/schemas/resource_role/properties/permissions'
+                      base_role_id:
+                        $ref: '#/components/schemas/resource_role/properties/base_role_id'
+                      user_type_id:
+                        $ref: '#/components/schemas/resource_role/properties/user_type_id'
+  schemas:
+    resource_role:
+      type: object
+      title: Role Resource
+      properties:
+        active_agents_count:
+          type: integer
+          title: Active Agents Count
+          description: The number of active AI agents currently assigned to this role.
+          example:
+            gt: 0
+        base_role_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+            - 7
+            - 8
+            - 9
+            - 10
+            - 11
+            - 12
+            - 13
+            - 14
+          type: integer
+          title: Base Role
+          description: ID of the base role type this custom role is derived from (determines the permission baseline).
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this role belongs to.
+          example:
+            eq: value
+        editable_by_user:
+          type: boolean
+          title: Editable By User
+          description: Whether this role can be modified by regular users, or is a system-managed role.
+          example:
+            eq: value
+        resolved_permissions:
+          title: Resolved Permissions
+          description: The effective resolved permissions for this role, including inherited permissions from the base role.
+          example:
+            eq: value
+        inactive_users_count:
+          type: integer
+          title: Inactive Users Count
+          description: The number of inactive users assigned to this role.
+          example:
+            gt: 0
+        inactive_agents_count:
+          type: integer
+          title: Inactive Agents Count
+          description: The number of inactive AI agents assigned to this role.
+          example:
+            gt: 0
+        people_count:
+          type: integer
+          title: People Count
+          description: The number of people currently assigned to this role.
+          example:
+            gt: 0
+        active_users_count:
+          type: integer
+          title: Active Users Count
+          description: The number of active users currently assigned to this role.
+          example:
+            gt: 0
+        permissions:
+          type: object
+          title: Permissions
+          description: The explicit permission settings configured for this role.
+          example:
+            eq: value
+        user_type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: User Type
+          description: ID of the user type associated with this role (e.g. full user, limited user).
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this role.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: The display name of this role.
+          example:
+            eq: value
+        description:
+          type: string
+          title: Description
+          example:
+            eq: value
+      description: A role defines a set of permissions that control what members assigned to it can access and do within the organization.
+      example:
+        id: '123'
+        type: roles
+        attributes:
+          name: Project Manager
+          description: Manages project delivery
+        relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+  responses:
+    single_role:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_role/properties/name'
+                      description:
+                        $ref: '#/components/schemas/resource_role/properties/description'
+                      permissions:
+                        $ref: '#/components/schemas/resource_role/properties/permissions'
+                      base_role_id:
+                        $ref: '#/components/schemas/resource_role/properties/base_role_id'
+                      people_count:
+                        $ref: '#/components/schemas/resource_role/properties/people_count'
+                      user_type_id:
+                        $ref: '#/components/schemas/resource_role/properties/user_type_id'
+                      editable_by_user:
+                        $ref: '#/components/schemas/resource_role/properties/editable_by_user'
+                      active_users_count:
+                        $ref: '#/components/schemas/resource_role/properties/active_users_count'
+                      active_agents_count:
+                        $ref: '#/components/schemas/resource_role/properties/active_agents_count'
+                      inactive_users_count:
+                        $ref: '#/components/schemas/resource_role/properties/inactive_users_count'
+                      resolved_permissions:
+                        $ref: '#/components/schemas/resource_role/properties/resolved_permissions'
+                      inactive_agents_count:
+                        $ref: '#/components/schemas/resource_role/properties/inactive_agents_count'
+                  relationships:
+                    type: object
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single role
+    collection_role:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_role/properties/name'
+                        description:
+                          $ref: '#/components/schemas/resource_role/properties/description'
+                        permissions:
+                          $ref: '#/components/schemas/resource_role/properties/permissions'
+                        base_role_id:
+                          $ref: '#/components/schemas/resource_role/properties/base_role_id'
+                        people_count:
+                          $ref: '#/components/schemas/resource_role/properties/people_count'
+                        user_type_id:
+                          $ref: '#/components/schemas/resource_role/properties/user_type_id'
+                        editable_by_user:
+                          $ref: '#/components/schemas/resource_role/properties/editable_by_user'
+                        active_users_count:
+                          $ref: '#/components/schemas/resource_role/properties/active_users_count'
+                        active_agents_count:
+                          $ref: '#/components/schemas/resource_role/properties/active_agents_count'
+                        inactive_users_count:
+                          $ref: '#/components/schemas/resource_role/properties/inactive_users_count'
+                        resolved_permissions:
+                          $ref: '#/components/schemas/resource_role/properties/resolved_permissions'
+                        inactive_agents_count:
+                          $ref: '#/components/schemas/resource_role/properties/inactive_agents_count'
+                    relationships:
+                      type: object
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection role

@@ -1,97 +1,459 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Productive.io API – Time Entry Versions
   version: 2.0.0
+description: |-
+  Time entry versions store the history of changes on a time entry.
+
+  Time entry versions are automatically created on every time entry create, update or delete event.
+
+  Time entry version tracks the event that triggered its creation. This event can be: 
+  - create
+  - update
+  - delete
+  - restore
+  - approve
+  - unapprove
+  - reject
+  - unreject
+
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  *: {
+    class: default
+  }
+
+  # Define actors
+  time_entry: Time Entry
+  time_entry_version: Time entry version {
+    class: primary
+    style: {
+      multiple: true
+    }
+  }
+
+  # define connections
+  time_entry -> time_entry_version
+  ```
+x-filters:
+  time_entry_version:
+    date:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    time_entry_id:
+      description: Filter by the associated time entry.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    service_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    event:
+      description: Filter by the type of change event (e.g. create, update, delete, approve, reject).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filter by the person who made the change.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by the version creation date range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by time entry version ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    deal_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/time_entry_versions:
     get:
-      summary: Get time entry versions GET
-      operationId: getTimeEntryVersions
       tags:
-      - Time Entry Versions
-      parameters:
-      - name: filter[id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by id (string)
-      - name: filter[creator_id]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by creator_id (string)
-      - name: filter[event]
-        in: query
-        required: false
-        schema:
-          type: string
-          format: date
-        description: Filter by event ( create, update, destroy, restore)
-      - name: filter[created_at]
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Filter by created_at (string)
-      - name: page[number]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 1
-      - name: page[size]
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 30
-          maximum: 200
+        - Time Entry Versions
+      summary: Get time entry versions
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
-                type: object
-                properties:
-                  data: {}
-                  meta:
-                    type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+          $ref: '#/components/responses/collection_time_entry_version'
+      parameters:
+        - $ref: '#/components/parameters/filter_time_entry_version'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_time_entry_version'
+      operationId: time_entry_versions-index
+      description: List all time entry versions.
   /api/v2/time_entry_versions/{id}:
     get:
-      summary: Gets a time entry version GET
-      operationId: getTimeEntryVersionsId
       tags:
-      - Time Entry Versions
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-        description: id of the resource
+        - Time Entry Versions
+      summary: Gets a time entry version
       responses:
         '200':
-          description: Success
-          content:
-            application/vnd.api+json:
-              schema:
+          $ref: '#/components/responses/single_time_entry_version'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      operationId: time_entry_versions-show
+      description: Retrieve a single time entry version by ID.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_time_entry_version:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+          type: string
+        title: Sort time entry version
+      explode: false
+      required: false
+      description: Sort time entry version
+    filter_time_entry_version:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.time_entry_version at the top of this file.
+      required: false
+      description: Filters
+  responses:
+    single_time_entry_version:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
                 type: object
                 properties:
-                  data: {}
-                  meta:
+                  attributes:
                     type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation error
+                    properties:
+                      event:
+                        $ref: '#/components/schemas/resource_time_entry_version/properties/event'
+                      item_id:
+                        $ref: '#/components/schemas/resource_time_entry_version/properties/item_id'
+                      changeset:
+                        $ref: '#/components/schemas/resource_time_entry_version/properties/changeset'
+                      item_name:
+                        $ref: '#/components/schemas/resource_time_entry_version/properties/item_name'
+                      item_type:
+                        $ref: '#/components/schemas/resource_time_entry_version/properties/item_type'
+                      created_at:
+                        $ref: '#/components/schemas/resource_time_entry_version/properties/created_at'
+                      object_changes:
+                        $ref: '#/components/schemas/resource_time_entry_version/properties/object_changes'
+                  relationships:
+                    type: object
+                    properties:
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      service:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single time entry version
+    collection_time_entry_version:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        event:
+                          $ref: '#/components/schemas/resource_time_entry_version/properties/event'
+                        item_id:
+                          $ref: '#/components/schemas/resource_time_entry_version/properties/item_id'
+                        changeset:
+                          $ref: '#/components/schemas/resource_time_entry_version/properties/changeset'
+                        item_name:
+                          $ref: '#/components/schemas/resource_time_entry_version/properties/item_name'
+                        item_type:
+                          $ref: '#/components/schemas/resource_time_entry_version/properties/item_type'
+                        created_at:
+                          $ref: '#/components/schemas/resource_time_entry_version/properties/created_at'
+                        object_changes:
+                          $ref: '#/components/schemas/resource_time_entry_version/properties/object_changes'
+                    relationships:
+                      type: object
+                      properties:
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection time entry version
+  schemas:
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    resource_time_entry_version:
+      type: object
+      title: Time entry version Resource
+      properties:
+        deal_id:
+          type: integer
+          title: Deal
+        object_changes:
+          type: object
+          title: Object Changes
+          description: The field-level changes recorded in this version as a map of field names to before and after values.
+          example:
+            eq: value
+        person_id:
+          type: integer
+          title: Person
+        changeset:
+          title: Changeset
+          description: A map of field names to before/after values representing changes made to the time entry in this version.
+          example:
+            eq: value
+        deal:
+          title: Deal
+        date:
+          type: string
+          title: Date
+          format: date
+        organization:
+          title: Organization
+          description: The organization this time entry version belongs to.
+          example:
+            eq: value
+        item_type:
+          type: string
+          title: Item Type
+          description: The resource type of the versioned item, always TimeEntry.
+          example:
+            eq: active
+        time_entry_id:
+          type: integer
+          title: Time Entry
+          description: The ID of the time entry this version record belongs to.
+          example:
+            - 123
+        item_name:
+          title: Item Name
+          description: The display name of the time entry at the time of this version (e.g., the service or task name).
+          example:
+            eq: value
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who made the change that created this version.
+          example:
+            - 123
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this version record was created.
+          example:
+            gt: '2026-01-01'
+        service:
+          title: Service
+          description: The service the time entry was logged against at the time of this version.
+          example:
+            eq: value
+        event:
+          type: string
+          title: Event
+          description: The type of change event recorded by this version (e.g. create, update, destroy).
+          example:
+            eq: value
+        service_id:
+          type: integer
+          title: Service
+        creator:
+          title: Creator
+          description: The person who made the change that created this version.
+          example:
+            eq: value
+        person:
+          title: Person
+        item_id:
+          type: integer
+          title: Item
+          description: The ID of the time entry this version record belongs to.
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this time entry version record.
+          example:
+            - 123
+      description: The resource time entry version.
+      example:
+        id: '123'
+        type: time_entry_versions
+        attributes:
+          changed_at: '2026-01-15T10:00:00Z'
+          changes: {}
+          time_entry_id: 789
+        relationships: {}

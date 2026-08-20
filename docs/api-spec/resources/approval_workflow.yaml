@@ -1,0 +1,432 @@
+openapi: 3.1.0
+info:
+  title: Productive.io API – Approval Workflow
+  version: 2.0.0
+description: |-
+  The ApprovalWorkflow entity serves as the core component of the [ApprovalPolicy](https://developer-staging.productive.io/approval_policies.html#approval-policies) object. It defines and manages information about approvers and subscribers, including the explicit and dynamic approvers and subscribers.
+  Explicit approvers or subscribers can be assigned using the `approver_ids` or `subscriber_ids` arrays, which contain the IDs of the respective person objects designated as approvers or subscribers. Dynamic approvers and subscribers can be configured using the `dynamic_approvers_ids` or `dynamic_subscriber_ids` arrays, which include the ID of one of the following options:
+  - Manager (id: 1) – The person's manager is automatically assigned as the approver or subscriber for the corresponding request.
+
+  When creating an approval workflow, it is necessary to define the `approval_requirement_id`, which determines whether approval is required for the corresponding requests and, if so, it defines the level of the needed approval. The available values for `approval_requirement_id` are:
+  - `approval_requirement_id: 1` - None -> No approval is required for the request to be considered approved.
+  - `approval_requirement_id: 2` - Any of the listed approvers -> Approval from at least one approver is sufficient for the request to be considered approved.
+  - `approval_requirement_id: 3` - All listed approvers -> Approval from all listed approvers is required for the request to be considered approved.
+
+  Following diagram shows approval workflows in our data hierarchy:
+
+  ```d2
+  ...@template
+  # template cant import globs just yet
+  * {
+    class: default
+  }
+
+  # Define actors
+  approval_policy: Approval Policy
+  approval_workflows: Approval Workflows {
+      class: primary
+  }
+  approval_policy_assignment: Approval Policy Assignment
+  person: Person
+
+  # define connections
+  person -> approval_policy_assignment
+  approval_policy -> approval_policy_assignment
+  approval_policy -> approval_workflows
+  ```
+paths:
+  /api/v2/approval_workflows:
+    post:
+      tags:
+        - Approval Workflow
+      summary: Creates the approval workflow
+      responses:
+        '201':
+          $ref: '#/components/responses/single_approval_workflow'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      operationId: approval_workflows-create
+      requestBody:
+        $ref: '#/components/requestBodies/approval_workflow'
+      description: Create a new approval workflow.
+  /api/v2/approval_workflows/{id}:
+    get:
+      tags:
+        - Approval Workflow
+      summary: Gets the approval workflow
+      responses:
+        '200':
+          $ref: '#/components/responses/single_approval_workflow'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: approval_workflows-show
+      description: Retrieve a single approval workflow by ID.
+    patch:
+      tags:
+        - Approval Workflow
+      summary: Updates the approval workflow
+      responses:
+        '200':
+          $ref: '#/components/responses/single_approval_workflow'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: approval_workflows-update
+      requestBody:
+        $ref: '#/components/requestBodies/approval_workflow'
+      description: Update an approval workflow.
+    delete:
+      tags:
+        - Approval Workflow
+      summary: Deletes the approval workflow
+      responses:
+        '204':
+          description: No Content
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      operationId: approval_workflows-destroy
+      description: Delete an approval workflow.
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+  requestBodies:
+    approval_workflow:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      event_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/event_id'
+                      approver_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/approver_ids'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/subscriber_ids'
+                      target_type_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/target_type_id'
+                      approval_policy_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/approval_policy_id'
+                      dynamic_approver_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_approver_ids'
+                      dynamic_subscriber_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_subscriber_ids'
+                      approval_requirement_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/approval_requirement_id'
+      description: Request body for creating or updating an approval workflow.
+  schemas:
+    resource_approval_workflow:
+      type: object
+      title: Approval workflow Resource
+      properties:
+        approver_ids:
+          title: Approver Ids
+          description: Array of IDs of people explicitly assigned as approvers in this workflow.
+          example:
+            - 123
+            - 456
+        target_type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Target Type
+          description: Numeric identifier for the approval target type (e.g. time entries, expenses, absences).
+          example:
+            - 123
+        subscriber_ids:
+          title: Subscriber Ids
+          description: Array of IDs of people subscribed to receive notifications about approval decisions.
+          example:
+            - 123
+            - 456
+        approval_policy_id:
+          type: integer
+          title: Approval Policy
+          description: The ID of the approval policy this workflow belongs to.
+          example:
+            - 123
+        event:
+          title: Event
+          description: The absence category (event) this workflow applies to, if the target type is absence.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the approval workflow.
+          example:
+            - 123
+        event_id:
+          type: integer
+          title: Event
+          description: The ID of the absence category (event) this workflow applies to, if applicable.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this approval workflow belongs to.
+          example:
+            eq: value
+        dynamic_approver_ids:
+          type: string
+          title: Dynamic Approver Ids
+          description: Array of IDs of roles or rule-based approvers dynamically resolved at approval time.
+          example:
+            - 123
+            - 456
+        subscribers:
+          title: Subscribers
+          description: The people subscribed to receive notifications about approval decisions.
+          example:
+            eq: value
+        approvers:
+          title: Approvers
+          description: The people assigned as approvers in this workflow.
+          example:
+            eq: value
+        approval_requirement_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Approval Requirement
+          description: Internal identifier for the approval requirement configuration.
+          example:
+            - 123
+        dynamic_subscriber_ids:
+          type: string
+          title: Dynamic Subscriber Ids
+          description: Array of IDs of roles or rule-based subscribers dynamically resolved at approval time.
+          example:
+            - 123
+            - 456
+        approval_policy:
+          title: Approval Policy
+          description: The approval policy this workflow belongs to.
+          example:
+            eq: value
+      description: An approval workflow defines the approvers and subscribers for a specific approval target type within an approval policy.
+      example:
+        id: '169549'
+        type: approval_workflows
+        attributes:
+          approval_requirement_id: 3
+          target_type_id: 1
+          dynamic_approver_ids: []
+          dynamic_subscriber_ids: []
+        relationships:
+          organization:
+            data:
+              type: organizations
+              id: '109'
+          event:
+            meta:
+              included: false
+          approval_policy:
+            meta:
+              included: false
+          approvers:
+            meta:
+              included: false
+          subscribers:
+            meta:
+              included: false
+    _meta:
+      type: object
+      title: Meta
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+      description: Pagination and response metadata returned with every collection endpoint.
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          description: Included variant — the related resource identifier is present in `data`.
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      properties:
+        meta:
+          type: object
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          description: Metadata indicating the sideload status of this relationship.
+          example:
+            included: false
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
+    _collection_relationship:
+      anyOf:
+        - type: object
+          title: Collection data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          description: Included variant — related resource identifiers are present in `data`.
+          example:
+            data:
+              - type: tasks
+                id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+  responses:
+    single_approval_workflow:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      target_type_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/target_type_id'
+                      dynamic_approver_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_approver_ids'
+                      dynamic_subscriber_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_subscriber_ids'
+                      approval_requirement_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/approval_requirement_id'
+                  relationships:
+                    type: object
+                    properties:
+                      event:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approvers:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      subscribers:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approval_policy:
+                        $ref: '#/components/schemas/_single_relationship'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Single approval workflow
