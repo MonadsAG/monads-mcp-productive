@@ -8,10 +8,8 @@ export interface ProductiveCompany {
     default_currency?: string;
     company_code?: string;
     domain?: string;
-    description?: string;
     tag_list?: string[];
     created_at: string;
-    updated_at: string;
     [key: string]: any;
   };
   relationships?: {
@@ -24,10 +22,8 @@ export interface ProductiveProject {
   type: 'projects';
   attributes: {
     name: string;
-    description?: string;
     status: 'active' | 'archived';
     created_at: string;
-    updated_at: string;
     [key: string]: any;
   };
   relationships?: {
@@ -103,13 +99,10 @@ export interface ProductiveBoard {
   type: 'folders';
   attributes: {
     name: string;
-    description?: string;
     position?: number;
     placement?: number;
     archived_at?: string | null;
     hidden?: boolean;
-    created_at: string;
-    updated_at: string;
     [key: string]: any;
   };
   relationships?: {
@@ -167,10 +160,7 @@ export interface ProductiveTaskList {
   type: 'task_lists';
   attributes: {
     name: string;
-    description?: string;
     position?: number;
-    created_at: string;
-    updated_at: string;
     [key: string]: any;
   };
   relationships?: {
@@ -251,11 +241,10 @@ export interface ProductivePerson {
     first_name: string;
     last_name: string;
     title?: string;
-    role?: string;
-    is_active?: boolean;
     avatar_url?: string;
     created_at: string;
-    updated_at: string;
+    /** null while the person is active. There is no `is_active` attribute. */
+    deactivated_at?: string | null;
     [key: string]: any;
   };
   relationships?: {
@@ -276,8 +265,9 @@ export interface ProductiveActivity {
     event: string; // 'create', 'update', 'delete', etc.
     item_type: string; // 'Task', 'Project', 'Workspace', etc.
     item_id: string;
-    changes?: Record<string, any>;
     created_at: string;
+    /** Changed fields as `[before, after]` pairs -- see formatChangeset(). */
+    changeset?: Array<Record<string, unknown>>;
     [key: string]: any;
   };
   relationships?: {
@@ -358,8 +348,6 @@ export interface ProductiveWorkflowStatus {
     color_id: number;
     position: number;
     category_id: number; // 1=not started, 2=started, 3=closed
-    created_at: string;
-    updated_at: string;
     [key: string]: any;
   };
   relationships?: {
@@ -383,8 +371,6 @@ export interface ProductiveService {
   attributes: {
     name: string;
     description?: string;
-    is_active?: boolean;
-    created_at: string;
     updated_at: string;
     [key: string]: any;
   };
@@ -452,10 +438,12 @@ export interface ProductiveDeal {
   type: 'deals';
   attributes: {
     name: string;
-    budget_type?: number; // 1: deal, 2: budget
-    value?: number;
     created_at?: string;
-    updated_at?: string;
+    /** true = production budget, false = sales deal. Replaces `budget_type`. */
+    budget?: boolean;
+    /** Total value in cents. `deal_value` is unreliable (usually "0.0"). */
+    deal_value_total?: number;
+    currency?: string;
     [key: string]: any;
   };
   relationships?: {
@@ -795,28 +783,33 @@ export interface ProductivePage {
   };
 }
 
+/**
+ * Pages are created through `pages/create_with_markdown`: the body is written as
+ * `markdown` (never as `body`, which is a Productive Document Format document,
+ * not text), and `project_id` is an attribute rather than a relationship. It may
+ * only be set on root pages -- combining it with parent_page_id/root_page_id is
+ * rejected with `page_project_root_page_only`.
+ */
 export interface ProductivePageCreate {
   data: {
     type: 'pages';
     attributes: {
       title: string;
-      body?: string;
+      markdown?: string;
+      project_id?: number;
       parent_page_id?: number;
       root_page_id?: number;
-    };
-    relationships: {
-      project: { data: { id: string; type: 'projects' } };
     };
   };
 }
 
+/** Only the title goes through the plain PATCH; the body has its own routes. */
 export interface ProductivePageUpdate {
   data: {
     type: 'pages';
     id: string;
     attributes?: {
       title?: string;
-      body?: string;
     };
   };
 }
@@ -957,8 +950,6 @@ export interface ProductiveDocumentType {
   attributes: {
     name: string;
     status?: string;
-    created_at: string;
-    updated_at: string;
     [key: string]: any;
   };
 }

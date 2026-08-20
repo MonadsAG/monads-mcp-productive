@@ -704,13 +704,13 @@ export async function listProjectDealsTool(
 
     const dealsText = response.data
       .map((deal) => {
-        const budgetType =
-          deal.attributes.budget_type === 1
-            ? 'Deal'
-            : deal.attributes.budget_type === 2
-              ? 'Budget'
-              : 'Unknown';
-        const value = deal.attributes.value ? ` (Value: ${deal.attributes.value})` : '';
+        // `budget` is the real flag (true = production budget, false = sales deal).
+        // The old `budget_type`/`value` attributes do not exist, which made every
+        // row read "Unknown" with no amount. Totals arrive in cents.
+        const budgetType = deal.attributes.budget ? 'Budget' : 'Deal';
+        const total = deal.attributes.deal_value_total;
+        const currency = deal.attributes.currency ? ` ${deal.attributes.currency}` : '';
+        const value = total ? ` (Value: ${(total / 100).toFixed(2)}${currency})` : '';
 
         return `• ${budgetType} (ID: ${deal.id})
   Name: ${deal.attributes.name}${value}`;

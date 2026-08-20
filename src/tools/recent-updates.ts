@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveAPIClient } from '../api/client.js';
+import { formatChangeset } from './changeset.js';
 
 const RecentUpdatesRequestSchema = z.object({
   project_id: z.string().optional(),
@@ -36,7 +37,7 @@ export async function getRecentUpdates(
       date: string;
       type: string;
       id: string;
-      changes: Record<string, any>;
+      changes: string[];
       creator?: string;
     }> = [];
 
@@ -55,7 +56,7 @@ export async function getRecentUpdates(
         date: new Date(activity.attributes.created_at).toLocaleString(),
         type: itemType,
         id: itemId,
-        changes: activity.attributes.changes || {},
+        changes: formatChangeset(activity.attributes.changeset),
         creator: activity.relationships?.creator?.data?.id,
       });
     }
@@ -86,11 +87,10 @@ export async function getRecentUpdates(
           output += `  👤 Updated by: Person ID ${update.creator}\n`;
         }
 
-        if (Object.keys(update.changes).length > 0) {
+        if (update.changes.length > 0) {
           output += '  📝 Changes:\n';
-          for (const [field, value] of Object.entries(update.changes)) {
-            const changeText = typeof value === 'object' ? JSON.stringify(value) : String(value);
-            output += `    • ${field}: ${changeText}\n`;
+          for (const change of update.changes) {
+            output += `    • ${change}\n`;
           }
         }
 

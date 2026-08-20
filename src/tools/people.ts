@@ -50,13 +50,12 @@ export async function listPeopleTool(
       .filter((person) => person && person.attributes)
       .map((person) => {
         const attrs = person.attributes;
-        const name = `${attrs.first_name} ${attrs.last_name}`.trim();
+        const name = [attrs.first_name, attrs.last_name].filter(Boolean).join(' ');
         const lines = [`• ${name} (ID: ${person.id})`];
 
         if (attrs.email) lines.push(`  Email: ${attrs.email}`);
         if (attrs.title) lines.push(`  Title: ${attrs.title}`);
-        if (attrs.role) lines.push(`  Role: ${attrs.role}`);
-        if (attrs.is_active !== undefined) lines.push(`  Active: ${attrs.is_active}`);
+        lines.push(`  Active: ${attrs.deactivated_at ? 'no' : 'yes'}`);
 
         return lines.join('\n');
       })
@@ -109,13 +108,12 @@ export async function getPersonTool(
 
     const person = response.data;
     const attrs = person.attributes;
-    const name = `${attrs.first_name} ${attrs.last_name}`.trim();
+    const name = [attrs.first_name, attrs.last_name].filter(Boolean).join(' ');
 
     const lines = [`${name} (ID: ${person.id})`, `Email: ${attrs.email}`];
 
     if (attrs.title) lines.push(`Title: ${attrs.title}`);
-    if (attrs.role) lines.push(`Role: ${attrs.role}`);
-    if (attrs.is_active !== undefined) lines.push(`Active: ${attrs.is_active}`);
+    lines.push(`Active: ${attrs.deactivated_at ? 'no' : 'yes'}`);
     if (attrs.created_at) lines.push(`Created: ${attrs.created_at}`);
 
     return {

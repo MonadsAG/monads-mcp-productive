@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveAPIClient } from '../api/client.js';
+import { formatChangeset } from './changeset.js';
 
 const ListActivitiesRequestSchema = z.object({
   task_id: z.string().optional(),
@@ -68,11 +69,9 @@ export async function listActivities(
 
         output += `• ${createdAt} - ${event} ${itemType} (ID: ${itemId})`;
 
-        if (activity.attributes.changes && Object.keys(activity.attributes.changes).length > 0) {
-          const changes = Object.entries(activity.attributes.changes)
-            .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-            .join(', ');
-          output += `\n  Changes: ${changes}`;
+        const changes = formatChangeset(activity.attributes.changeset);
+        if (changes.length > 0) {
+          output += `\n  Changes: ${changes.join(', ')}`;
         }
 
         if (activity.relationships?.creator?.data?.id) {

@@ -718,7 +718,14 @@ export async function updateTaskTool(
       attributes.description = params.description;
     }
     if (params.custom_fields) {
-      attributes.custom_fields = params.custom_fields;
+      // Productive REPLACES the whole custom_fields hash on PATCH, so sending only
+      // the fields being changed silently wipes every other custom field on the
+      // task (verified against the live API). Merge onto what is already stored.
+      const current = await client.getTask(params.task_id);
+      attributes.custom_fields = {
+        ...(current.data.attributes.custom_fields ?? {}),
+        ...params.custom_fields,
+      };
     }
     if (Object.keys(attributes).length > 0) {
       taskUpdate.data.attributes = attributes;

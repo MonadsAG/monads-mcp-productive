@@ -45,9 +45,6 @@ export async function listTaskLists(
       .filter((taskList) => taskList && taskList.attributes)
       .map((taskList) => {
         let text = `Task List: ${taskList.attributes.name} (ID: ${taskList.id})`;
-        if (taskList.attributes.description) {
-          text += `\nDescription: ${taskList.attributes.description}`;
-        }
         if (taskList.attributes.position !== undefined) {
           text += `\nPosition: ${taskList.attributes.position}`;
         }
@@ -141,9 +138,6 @@ export async function createTaskList(
 
     let text = `Task list created successfully!\n`;
     text += `Name: ${response.data.attributes.name} (ID: ${response.data.id})`;
-    if (response.data.attributes.description) {
-      text += `\nDescription: ${response.data.attributes.description}`;
-    }
     text += `\nBoard ID: ${params.board_id}`;
     if (response.data.attributes.created_at) {
       text += `\nCreated at: ${response.data.attributes.created_at}`;

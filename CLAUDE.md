@@ -124,9 +124,12 @@ split per resource. It is no longer scraped from HTML -- Productive publishes th
 - `resources/reports/*.yaml` -- the `Reports` tag is too big for one file, split per endpoint
 - `productive-openapi.yaml` -- the official spec verbatim (codegen + diff baseline, don't read directly)
 - `CHANGELOG.md` -- semantic diff per sync: paths, methods, filter keys, attributes
+- `guides/*.md` -- Productive's own API guides, mirrored as Markdown. They carry rules the spec
+  does not: how custom-field hashes and page bodies behave, filter operators, rate limits
 - `impact-baseline.json` -- known, accepted deviations between `src/api` and the spec
 
-Regenerate: `npm run spec:sync` (sends the stored ETag; a `304` means nothing changed)
+Regenerate: `npm run spec:sync` (sends the stored ETag; a `304` means nothing changed, but the
+guides sync either way; `npm run spec:guides` does only the guides)
 Check our code against it: `npm run spec:impact`
 
 `.github/workflows/api-spec-sync.yml` runs this weekly and opens a PR on `chore/api-spec-sync`
@@ -143,10 +146,15 @@ when the spec moved, with the impact analysis in the PR body.
 - **McpServer vs Server**: The Worker uses the low-level `Server` class (not `McpServer`) because tool definitions use raw JSON Schema, which `McpServer.registerTool()` does not accept.
 - **Streamable HTTP transport**: The Worker uses `createMcpHandler` (stateless, no Durable Object). Each request creates a fresh `Server` instance. Do NOT use `McpAgent` — it requires persistent SSE connections that get killed by Worker timeouts.
 - **Two tsconfigs**: `tsconfig.worker.json` type-checks everything (with CF types); the stdio `tsconfig.json` **excludes** every Worker-only file. A new file that uses the edge runtime (`crypto.subtle`, `KVNamespace`, `btoa`/`atob` — most of `src/auth/`) **must be added to `tsconfig.json`'s `exclude`**, or the stdio `npm run build` fails.
+- **`custom_fields` is replaced, not merged**: a PATCH sends the whole hash, so writing one field with a partial hash silently deletes every other custom field on that object (reproduced live). `update_task` therefore reads the task and merges before writing -- do the same for any new tool that writes `custom_fields`. Documented in `docs/api-spec/guides/working-with-custom-fields.md`.
+- **Page bodies are documents, not text**: `pages.body` holds a Productive Document Format document (`{"type":"doc","content":[...]}`). Sending a plain string returns **HTTP 500**, not a validation error. Create via `pages/create_with_markdown` (with `project_id` as an _attribute_, and only on root pages) and write the body via `pages/{id}/replace_body_with_markdown` or `/append_markdown`, both of which take a **flat** `{"markdown": "..."}` payload without the JSON:API envelope. See `docs/api-spec/guides/document-format.md`.
 - **Custom field value shapes**: a `custom_fields` entry's value shape depends on the field's data type — an array of option ID strings for dropdown/multi-select fields, an ISO date string for date fields, or the raw value for text/number/checkbox fields. The official spec documents the `custom_fields`/`custom_field_options` attributes (the type attribute is `data_type_id`, **not** `field_type`), but not which enum value means which type, and `resource_*.custom_fields` is only `type: object` — so the value shape per field type is still only confirmed by a live API test.
 - **New tool, new toolset entry**: added a tool to `registry.ts` without adding its name to `src/tools/toolsets.ts`? It silently disappears for any deployment with a restrictive `PRODUCTIVE_TOOLSETS` set (still works when unset, since that means "no filtering"). `tests/unit/toolsets.test.ts` has a completeness check that catches this at test time, not just in production.
 - **`filter[...]` keys can differ from the matching response attribute name**: Productive 422s on unrecognized filter keys ("Filter 'x' is not supported on this endpoint"). Confirmed traps: person `is_active` attribute → filter is `filter[status]` (1: active/2: deactivated); deal `budget_type` attribute → filter is `filter[type]` (1: deal/2: budget); deal open/closed → `filter[budget_status]` (not `filter[status]`, which means something unrelated — `status_id`, a pipeline-stage relationship). Verify against the `x-filters` block in `docs/api-spec/resources/{resource}.yaml` before adding a new filter to `client.ts` — don't assume the attribute name is the filter name. `npm run spec:impact` checks every `filter[...]` key in `client.ts` against that list and fails on an unknown one.
+- **Unknown filters answer 422, not 400**: `docs/api-spec/guides/filtering.md` documents a 400 for an unsupported filter, but the live API returns **422** with `Filter 'x' is not supported on this endpoint`. Match on the message, not the status code.
 - **Tool-level tests don't catch wrong `filter[...]` keys**: tests like `tests/unit/people.test.ts` typically assert only on the params passed into a _mocked_ `client.ts` method, not the actual request URL — the bug above shipped invisibly for exactly this reason. When you touch filter-building code in `client.ts`, add/extend a `client-*.test.ts` test (pattern: `tests/unit/client-boards.test.ts`, `client-filters.test.ts`) that stubs `global.fetch` and asserts on the real query string.
+
+- **Some breaking changes are announced only by email**: the 422 error `code` switches from `invalid_attribute` to `invalid_attribute_value` on **2026-09-15** (opt in early with the `X-Feature-Flags: invalidAttributeValueCode` header). We are not affected -- `makeRequest` reads `detail || title` and never branches on `code` -- but note that this never appeared in the public changelog, so the weekly spec sync could not have caught it. Watch the Productive emails for this class of change.
 
 ## Environment Variables
 

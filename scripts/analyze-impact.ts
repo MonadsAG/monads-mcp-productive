@@ -239,12 +239,11 @@ function writeBaseline(findings: Finding[], baseline: Baseline): void {
   const next: Baseline = {
     $comment:
       'Known, accepted deviations between src/api and the official spec. Only findings NOT ' +
-      'listed here fail `npm run spec:impact`; this list should shrink over time. Most entries ' +
-      'are attributes our code declares that the official schemas never documented. Verified ' +
-      'against the live sandbox org on 2026-08-20: of 26 such attributes only 3 are actually ' +
-      'returned (custom_field.description, line_item.description, service.description) -- the ' +
-      'rest, including person.is_active and deal.budget_type, do not exist in API responses. ' +
-      'ignoreNewEndpoints: /api/v2/boards is documented but 404s on our tenant -- we use /api/v2/folders.',
+      'listed here fail `npm run spec:impact`. Each one was verified against a live org: ' +
+      'PATCH /api/v2/pages/{id} works for the title even though the spec lists only GET and ' +
+      'DELETE, and the three `description` attributes are returned by the API but missing from ' +
+      'the schemas. ignoreNewEndpoints: /api/v2/boards is documented but 404s on our tenant -- ' +
+      'we use /api/v2/folders.',
     accepted,
     ignoreNewEndpoints: baseline.ignoreNewEndpoints,
   };

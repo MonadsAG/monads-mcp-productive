@@ -26,6 +26,7 @@ import {
   resourceKeyByPath,
   tagToSlug,
 } from './lib/spec.ts';
+import { syncGuides } from './sync-guides.ts';
 
 const SPEC_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'api-spec');
 const SPEC_FILE = join(SPEC_DIR, 'productive-openapi.yaml');
@@ -337,11 +338,12 @@ function prependChangelog(entry: string): void {
 
 // --- main -------------------------------------------------------------------
 
-async function main(): Promise<void> {
+async function syncSpec(): Promise<void> {
   const result = await download();
+  const summaryOut = arg('--summary-out');
+
   if (result === 'unchanged') {
-    console.log('Spec unchanged (HTTP 304) -- nothing to do.');
-    const summaryOut = arg('--summary-out');
+    console.log('Spec unchanged (HTTP 304).');
     if (summaryOut) writeFileSync(summaryOut, '');
     return;
   }
@@ -359,7 +361,6 @@ async function main(): Promise<void> {
 
   const entry = buildChangelogEntry(previous, next);
   prependChangelog(entry);
-  const summaryOut = arg('--summary-out');
   if (summaryOut) writeFileSync(summaryOut, entry);
 
   const operations = Object.values(index).reduce((sum, e) => sum + e.operations.length, 0);
@@ -367,6 +368,12 @@ async function main(): Promise<void> {
     `Synced OpenAPI ${next.openapi}: ${Object.keys(next.paths).length} paths, ` +
       `${operations} operations, ${files} resource files.`,
   );
+}
+
+async function main(): Promise<void> {
+  await syncSpec();
+  // Guides move independently of the spec, so they sync even on a 304.
+  console.log(`Synced ${await syncGuides()} guides.`);
 }
 
 main().catch((error: unknown) => {

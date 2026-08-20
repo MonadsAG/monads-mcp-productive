@@ -39,7 +39,6 @@ export async function listCompaniesTool(
 
         return `• ${company.attributes.name} (ID: ${company.id})
   ${company.attributes.domain ? `Domain: ${company.attributes.domain}` : 'No domain'}
-  ${company.attributes.description ? `Description: ${company.attributes.description}` : ''}
   ${tags}`;
       })
       .join('\n\n');
