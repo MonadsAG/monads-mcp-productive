@@ -79,7 +79,8 @@ describe('tool annotations', () => {
   });
 
   // Every call to a create tool makes another object; every other write settles
-  // on the same end state when repeated.
+  // on the same end state when repeated. `update_page` is the exception: with
+  // `append: true` it writes the markdown again rather than settling.
   it('marks creates non-idempotent and other writes idempotent', () => {
     const nonIdempotent = definitions
       .filter((d) => !isRead(d.name) && d.annotations.idempotentHint === false)
@@ -106,6 +107,7 @@ describe('tool annotations', () => {
       'create_todo',
       'generate_line_items',
       'start_timer',
+      'update_page',
     ]);
   });
 });

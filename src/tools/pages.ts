@@ -453,11 +453,14 @@ export const updatePageDefinition = {
     },
     required: ['page_id'],
   },
+  // Not idempotent, unlike the other update_* tools: with `append: true` the
+  // same call twice writes the markdown twice, so a client that retries an
+  // idempotent call after a timeout would duplicate the content.
   annotations: {
     title: 'Update page',
     readOnlyHint: false,
     destructiveHint: false,
-    idempotentHint: true,
+    idempotentHint: false,
     openWorldHint: true,
   },
 };

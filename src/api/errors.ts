@@ -30,10 +30,15 @@ export class ProductiveApiError extends Error {
 /**
  * Render JSON:API error objects into one human-readable line.
  *
- * This is the message format `makeRequest` has always produced, kept verbatim so
- * that introducing the class above changes no text anybody reads: `detail`
+ * This is the message format `makeRequest` has always produced: `detail`
  * preferred over `title`, the failing field appended in parentheses when the API
  * names one, several errors joined with `; `.
+ *
+ * The one deliberate departure: an error object carrying neither `detail` nor
+ * `title` contributes nothing instead of the literal "Unknown error". That way
+ * `{"errors":[{"status":"500"}]}` falls through to the caller's
+ * `API request failed with status 500`, which at least names the status, rather
+ * than replacing it with a string that says less.
  *
  * @param errors - The `errors` array from the response body, possibly empty.
  * @returns The joined message, or an empty string when there is nothing to say.
@@ -41,8 +46,11 @@ export class ProductiveApiError extends Error {
 export function formatProductiveErrors(errors: ProductiveErrorDetail[]): string {
   return errors
     .map((e) => {
+      const text = e.detail || e.title;
+      if (!text) return '';
       const field = e.source?.pointer ? ` (${e.source.pointer})` : '';
-      return `${e.detail || e.title || 'Unknown error'}${field}`;
+      return `${text}${field}`;
     })
+    .filter(Boolean)
     .join('; ');
 }

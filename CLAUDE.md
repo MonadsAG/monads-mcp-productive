@@ -128,7 +128,7 @@ it makes a client actively confident instead of cautious. The policy, enforced b
 | `title`           | Human-readable name, always set                                                                                                                                                          |
 | `readOnlyHint`    | `true` when the call changes nothing in Productive (the 38 `list_*`/`get_*`, `whoami`, `my_tasks`)                                                                                       |
 | `destructiveHint` | `true` only for what is not easily undone: the six `delete_*`, the two `archive_*`, plus `finalize_invoice` and `mark_invoice_paid`. An `update_*` that replaces one field stays `false` |
-| `idempotentHint`  | `false` for creates (each call makes another object), `true` for every other write                                                                                                       |
+| `idempotentHint`  | `false` for creates (each call makes another object) and for `update_page` (its `append: true` mode writes again), `true` for every other write                                          |
 | `openWorldHint`   | `true` throughout -- Productive is shared, so two identical calls can differ because of what someone else did                                                                            |
 
 The destructive and non-idempotent sets are pinned as literal lists in that test: reclassifying a
@@ -170,7 +170,7 @@ stale — replace it rather than ignoring the red.
 
 **Check `.dev.vars` before trusting a green test run.** A missing file fails nothing: the suites skip
 and `npm test` reports `Test Files 5 skipped (5)` / `Tests 12 skipped (12)` in green, having verified
-nothing that talks to Productive. `tests/setup.ts` warns on stderr in that case (suppressed under
+nothing that talks to Productive. `tests/global-setup.ts` warns on stderr in that case (suppressed under
 `CI`, where the token is absent by design), but the skip line is what to read. Pre-flight:
 
 ```bash
