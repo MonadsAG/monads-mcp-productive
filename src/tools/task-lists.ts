@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 /** Coerce "true"/"false" strings to booleans (some MCP clients send strings). */
 const coerceBoolean = z.preprocess(
@@ -64,18 +64,7 @@ export async function listTaskLists(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching task lists');
+    throw toMcpError(error);
   }
 }
 
@@ -149,18 +138,7 @@ export async function createTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while creating task list');
+    throw toMcpError(error);
   }
 }
 
@@ -225,18 +203,7 @@ export async function getTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching task list');
+    throw toMcpError(error);
   }
 }
 
@@ -300,18 +267,7 @@ export async function updateTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while updating task list');
+    throw toMcpError(error);
   }
 }
 
@@ -361,18 +317,7 @@ export async function archiveTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while archiving task list');
+    throw toMcpError(error);
   }
 }
 
@@ -418,18 +363,7 @@ export async function restoreTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while restoring task list');
+    throw toMcpError(error);
   }
 }
 
@@ -503,18 +437,7 @@ export async function copyTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while copying task list');
+    throw toMcpError(error);
   }
 }
 
@@ -584,18 +507,7 @@ export async function moveTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while moving task list');
+    throw toMcpError(error);
   }
 }
 
@@ -648,21 +560,7 @@ export async function repositionTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      'Unknown error occurred while repositioning task list',
-    );
+    throw toMcpError(error);
   }
 }
 

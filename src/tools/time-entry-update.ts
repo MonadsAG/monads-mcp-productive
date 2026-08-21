@@ -3,6 +3,7 @@ import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTimeEntryUpdate } from '../api/types.js';
 import { parseTimeToMinutes, parseDate, formatMinutesDisplay } from './time-entries.js';
+import { toMcpError } from '../utils/errors.js';
 
 const updateTimeEntrySchema = z.object({
   time_entry_id: z.string().min(1, 'Time entry ID is required'),
@@ -112,21 +113,7 @@ export async function updateTimeEntryTool(
       content: [{ type: 'text', text }],
     };
   } catch (error) {
-    if (error instanceof McpError) {
-      throw error;
-    }
-
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 

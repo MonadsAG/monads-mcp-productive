@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTimer, ProductiveTimerCreate, ProductiveTimeEntryUpdate } from '../api/types.js';
 import { formatMinutesDisplay } from './time-entries.js';
+import { toMcpError } from '../utils/errors.js';
 
 const getTimerSchema = z.object({
   timer_id: z.string().min(1, 'Timer ID is required'),
@@ -59,21 +59,7 @@ export async function getTimerTool(
     const response = await client.getTimer(params.timer_id);
     return formatTimerResponse('found', response.data);
   } catch (error) {
-    if (error instanceof McpError) {
-      throw error;
-    }
-
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -157,21 +143,7 @@ export async function startTimerTool(
     }
     return result;
   } catch (error) {
-    if (error instanceof McpError) {
-      throw error;
-    }
-
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -184,21 +156,7 @@ export async function stopTimerTool(
     const response = await client.stopTimer(params.timer_id);
     return formatTimerResponse('stopped', response.data);
   } catch (error) {
-    if (error instanceof McpError) {
-      throw error;
-    }
-
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 

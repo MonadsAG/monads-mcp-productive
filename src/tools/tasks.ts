@@ -8,6 +8,7 @@ import {
 } from '../api/types.js';
 import { buildIncludeMap, resolveName } from './include-resolver.js';
 import { buildCustomFieldValueMap, resolveCustomFieldsText } from './custom-field-resolver.js';
+import { toMcpError } from '../utils/errors.js';
 
 function resolveWorkflowStatus(
   task: { relationships?: Record<string, any> },
@@ -108,17 +109,7 @@ export async function listTasksTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -191,17 +182,7 @@ export async function getProjectTasksTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -313,17 +294,7 @@ export async function getTaskTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -569,17 +540,7 @@ export async function createTaskTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -793,17 +754,7 @@ export async function updateTaskTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -887,17 +838,7 @@ export async function deleteTaskTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 

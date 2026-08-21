@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 // Productive's UI calls this resource a "folder"; the API resource concept is
 // a "board" (task and task-list relationships reference it as `board`/
@@ -74,18 +74,7 @@ export async function listFolders(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching folders');
+    throw toMcpError(error);
   }
 }
 
@@ -152,18 +141,7 @@ export async function getFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching folder');
+    throw toMcpError(error);
   }
 }
 
@@ -236,18 +214,7 @@ export async function createFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while creating folder');
+    throw toMcpError(error);
   }
 }
 
@@ -313,18 +280,7 @@ export async function updateFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while updating folder');
+    throw toMcpError(error);
   }
 }
 
@@ -372,18 +328,7 @@ export async function archiveFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while archiving folder');
+    throw toMcpError(error);
   }
 }
 
@@ -427,18 +372,7 @@ export async function restoreFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while restoring folder');
+    throw toMcpError(error);
   }
 }
 
@@ -494,18 +428,7 @@ export async function copyFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while copying folder');
+    throw toMcpError(error);
   }
 }
 
@@ -560,18 +483,7 @@ export async function moveFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while moving folder');
+    throw toMcpError(error);
   }
 }
 
@@ -622,21 +534,7 @@ export async function repositionFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      'Unknown error occurred while repositioning folder',
-    );
+    throw toMcpError(error);
   }
 }
 

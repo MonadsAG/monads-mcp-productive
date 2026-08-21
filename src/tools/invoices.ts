@@ -9,6 +9,7 @@ import {
 } from '../api/types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { resolveInvoiceDefaults } from './invoice-defaults.js';
+import { toMcpError } from '../utils/errors.js';
 
 // ---------------------------------------------------------------------------
 // Helper functions
@@ -114,17 +115,7 @@ export async function listInvoicesTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -226,17 +217,7 @@ export async function listCompanyBudgetsTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -339,17 +320,7 @@ export async function getInvoiceTool(
 
     return { content: [{ type: 'text', text }] };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -480,17 +451,7 @@ export async function createInvoiceTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -602,17 +563,7 @@ export async function updateInvoiceTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -730,17 +681,7 @@ export async function generateLineItemsTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 

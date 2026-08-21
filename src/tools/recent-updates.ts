@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveAPIClient } from '../api/client.js';
 import { formatChangeset } from './changeset.js';
+import { toMcpError } from '../utils/errors.js';
 
 const RecentUpdatesRequestSchema = z.object({
   project_id: z.string().optional(),
@@ -107,17 +107,7 @@ export async function getRecentUpdates(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to get recent updates: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    );
+    throw toMcpError(error);
   }
 }
 

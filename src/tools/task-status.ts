@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTaskUpdate } from '../api/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 const updateTaskStatusSchema = z.object({
   task_id: z.string().min(1, 'Task ID is required'),
@@ -176,19 +177,7 @@ export async function updateTaskStatusTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    if (error instanceof McpError) throw error;
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 

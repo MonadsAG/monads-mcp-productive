@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ProductiveAPIClient } from '../api/client.js';
 import type { TaskReposition } from '../api/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 /** Coerce "true"/"false" strings to booleans (some MCP clients send strings). */
 const coerceBoolean = z.preprocess(
@@ -219,15 +220,9 @@ Position updated according to the requested parameters.`,
       };
     }
   } catch (error) {
-    // Handle errors more gracefully
-    console.error('Error in taskRepositionTool:', error);
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Error repositioning task: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
-        },
-      ],
-    };
+    // This used to return the failure as a *successful* tool result -- error
+    // text in a content block, no isError flag -- so a client and the model both
+    // read a failed reposition as a completed one. Throw like every other tool.
+    throw toMcpError(error);
   }
 };

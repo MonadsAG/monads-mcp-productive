@@ -6,6 +6,7 @@ import {
   ProductiveDealFromOrigin,
 } from '../api/types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 // ---------------------------------------------------------------------------
 // Tool: create_budget
@@ -87,17 +88,7 @@ export async function createBudgetTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -192,17 +183,7 @@ export async function updateBudgetTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -292,17 +273,7 @@ export async function createBudgetFromDealTool(
 
     return { content: [{ type: 'text', text }] };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 

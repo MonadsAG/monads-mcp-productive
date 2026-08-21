@@ -3,6 +3,7 @@ import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveIncludedResource } from '../api/types.js';
 import { resolveMentions, MentionResolutionResult } from '../utils/mentions.js';
+import { toMcpError } from '../utils/errors.js';
 
 type ToolResult = { content: Array<{ type: string; text: string }> };
 
@@ -113,17 +114,7 @@ export async function addTaskCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -196,17 +187,7 @@ export async function listCommentsTool(
       content: [{ type: 'text', text: `Comments (${response.data.length}):\n\n${commentsText}` }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -273,17 +254,7 @@ export async function getCommentTool(
       content: [{ type: 'text', text }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -348,17 +319,7 @@ export async function updateCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -407,17 +368,7 @@ export async function deleteCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -461,17 +412,7 @@ export async function pinCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -515,17 +456,7 @@ export async function unpinCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -570,17 +501,7 @@ export async function addCommentReactionTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 

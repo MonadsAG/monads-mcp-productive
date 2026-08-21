@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 const listCustomFieldsSchema = z.object({
   name: z.string().optional(),
@@ -60,21 +60,7 @@ export async function listCustomFieldsTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    if (error instanceof McpError) {
-      throw error;
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -163,21 +149,7 @@ export async function listCustomFieldOptionsTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    if (error instanceof McpError) {
-      throw error;
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 

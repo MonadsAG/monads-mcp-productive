@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { ProductiveServiceCreate, ProductiveServiceUpdate } from '../api/types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 // ---------------------------------------------------------------------------
 // Tool: create_budget_service
@@ -58,17 +59,7 @@ export async function createBudgetServiceTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -157,17 +148,7 @@ export async function updateBudgetServiceTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
