@@ -15,7 +15,13 @@ import { fileURLToPath } from 'node:url';
 
 const GUIDES_BASE = 'https://developer.productive.io/guides';
 const SIDEBAR_URL = `${GUIDES_BASE}/sidebar`;
-const GUIDES_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'api-spec', 'guides');
+const GUIDES_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'docs',
+  'api-spec',
+  'guides',
+);
 
 /** Read the slugs off the sidebar so new guides show up on their own. */
 async function fetchSlugs(): Promise<string[]> {
@@ -38,8 +44,9 @@ export async function syncGuides(): Promise<number> {
 
   // Download everything before touching the directory, so a failure midway
   // cannot leave a half-emptied docs/api-spec/guides behind.
-  const guides = new Map<string, string>();
-  for (const slug of slugs) guides.set(slug, await fetchGuide(slug));
+  const guides = new Map(
+    await Promise.all(slugs.map(async (slug) => [slug, await fetchGuide(slug)] as const)),
+  );
 
   rmSync(GUIDES_DIR, { recursive: true, force: true });
   mkdirSync(GUIDES_DIR, { recursive: true });

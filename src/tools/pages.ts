@@ -215,7 +215,12 @@ export async function createPageTool(
     let text = `Page created successfully!\n`;
     text += `Title: ${page.attributes.title}\n`;
     text += `Page ID: ${page.id}\n`;
-    text += `Project ID: ${params.project_id}\n`;
+    // A nested page inherits its project from the parent and params.project_id
+    // was never sent, so reporting it would be a lie. The create response only
+    // returns a relationship stub ({meta: {included: false}}), so in practice
+    // the line is simply omitted for nested pages.
+    const createdProjectId = nested ? page.relationships?.project?.data?.id : params.project_id;
+    if (createdProjectId != null) text += `Project ID: ${createdProjectId}\n`;
     if (params.parent_page_id != null) text += `Parent page ID: ${params.parent_page_id}\n`;
     text += `Created at: ${page.attributes.created_at}`;
 

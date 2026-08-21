@@ -441,8 +441,8 @@ export interface ProductiveDeal {
     created_at?: string;
     /** true = production budget, false = sales deal. Replaces `budget_type`. */
     budget?: boolean;
-    /** Total value in cents. `deal_value` is unreliable (usually "0.0"). */
-    deal_value_total?: number;
+    /** Total value in cents -- a number here, though other resources send amounts as strings. `deal_value` is unreliable (usually "0.0"). */
+    deal_value_total?: number | string;
     currency?: string;
     [key: string]: any;
   };
@@ -764,6 +764,7 @@ export interface ProductivePage {
   type: 'pages';
   attributes: {
     title: string;
+    /** JSON string holding a Productive Document Format document (`{"type":"doc","content":[...]}`). */
     body?: string;
     public_access?: boolean;
     version_number?: number;

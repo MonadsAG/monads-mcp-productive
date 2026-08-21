@@ -298,9 +298,9 @@ export class ProductiveAPIClient {
     }
 
     if (params?.is_active !== undefined) {
-      // Productive's /people endpoint has no `is_active` filter -- `is_active`
-      // is only a response attribute. The documented filter is
-      // `filter[status]` (1: active, 2: deactivated).
+      // Productive's /people endpoint has no `is_active` filter -- there is no
+      // such attribute at all (a person carries `deactivated_at`). The
+      // documented filter is `filter[status]` (1: active, 2: deactivated).
       queryParams.append('filter[status]', params.is_active ? '1' : '2');
     }
 

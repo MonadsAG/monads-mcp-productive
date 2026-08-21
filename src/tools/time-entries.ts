@@ -708,9 +708,15 @@ export async function listProjectDealsTool(
         // The old `budget_type`/`value` attributes do not exist, which made every
         // row read "Unknown" with no amount. Totals arrive in cents.
         const budgetType = deal.attributes.budget ? 'Budget' : 'Deal';
-        const total = deal.attributes.deal_value_total;
+        // Deals send this as a number while other resources send amounts as
+        // strings, so coerce before comparing -- a bare truthiness test would
+        // print "Value: 0.00" for a zero amount that arrived as a string.
+        const total = Number(deal.attributes.deal_value_total ?? 0);
         const currency = deal.attributes.currency ? ` ${deal.attributes.currency}` : '';
-        const value = total ? ` (Value: ${(total / 100).toFixed(2)}${currency})` : '';
+        const value =
+          Number.isFinite(total) && total !== 0
+            ? ` (Value: ${(total / 100).toFixed(2)}${currency})`
+            : '';
 
         return `• ${budgetType} (ID: ${deal.id})
   Name: ${deal.attributes.name}${value}`;
