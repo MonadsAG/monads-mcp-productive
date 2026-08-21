@@ -185,6 +185,10 @@ credentials and fails the file instead of skipping it.
 
 - **Some breaking changes are announced only by email**: the 422 error `code` switches from `invalid_attribute` to `invalid_attribute_value` on **2026-09-15** (opt in early with the `X-Feature-Flags: invalidAttributeValueCode` header). We are not affected -- `makeRequest` reads `detail || title` and never branches on `code` -- but note that this never appeared in the public changelog, so the weekly spec sync could not have caught it. Watch the Productive emails for this class of change.
 
+- **Never branch on the error `code`, branch on the HTTP status**: `src/utils/errors.ts` maps Productive failures onto MCP error codes using `ProductiveApiError.httpStatus` only. The JSON:API `code` field appears in neither the OpenAPI spec nor any guide, and its 422 values change on 2026-09-15 (see above) -- reading the status keeps us out of that. Caller-fault statuses are `400/404/409/422`; `409` is in the set because `pin_comment`, `unpin_comment`, `reject_time_entry` and `unreject_time_entry` hit endpoints where the spec documents it, and "already pinned" is a caller problem, not a server one.
+
+- **`spec:impact` fails silently if you reshape `makeRequest`**: `scripts/lib/client-usage.ts` walks the AST looking for `this.makeRequest(path, options)` -- exact method name, `this` receiver, path as argument 0, HTTP method from a string literal in argument 1. Rename it, or move to an options object, and the analyzer finds **zero** calls and `npm run spec:impact` exits **0 having checked nothing**. `tests/unit/client-usage.test.ts` pins a floor (`usages.length >= 75`) so that shows up as a red test instead. Note the standing blind spot: the ~20 `this.makeVoidRequest` calls and the raw `fetch` in `repositionTask` are not analysed at all.
+
 ## Environment Variables
 
 All secrets are set via `wrangler secret put` (production) or `.dev.vars` (local dev). See [README.md](README.md#deploy-your-own) for the full deployment guide.

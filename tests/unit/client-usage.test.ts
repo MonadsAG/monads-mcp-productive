@@ -8,6 +8,15 @@ describe('extractEndpointUsage', () => {
   const usages = extractEndpointUsage('src/api/client.ts');
   const byMember = (name: string) => usages.find((usage) => usage.member === name);
 
+  // The extractor is pinned to `this.makeRequest(path, options)` by method name,
+  // `this` receiver and argument position. Rename the helper or move it to an
+  // options object and it matches nothing -- at which point `npm run spec:impact`
+  // exits 0 having checked no endpoint, no filter key and no attribute at all.
+  // A green check that verified nothing is worse than a red one, so pin a floor.
+  it('still finds the whole client, not an empty list', () => {
+    expect(usages.length).toBeGreaterThanOrEqual(75);
+  });
+
   it('resolves a path built from a nested template literal', () => {
     expect(byMember('listPeople')?.path).toBe('/api/v2/people');
   });
