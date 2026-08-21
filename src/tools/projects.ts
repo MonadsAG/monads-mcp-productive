@@ -42,8 +42,7 @@ export async function listProjectsTool(
         const companyName = resolveName(nameMap, 'companies', companyId);
         return `• ${project.attributes.name} (ID: ${project.id})
   Status: ${project.attributes.status}
-  ${companyName ? `Company: ${companyName}` : companyId ? `Company ID: ${companyId}` : ''}
-  ${project.attributes.description ? `Description: ${project.attributes.description}` : 'No description'}`;
+  ${companyName ? `Company: ${companyName}` : companyId ? `Company ID: ${companyId}` : ''}`;
       })
       .join('\n\n');
 

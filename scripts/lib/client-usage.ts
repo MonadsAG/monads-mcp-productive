@@ -89,14 +89,19 @@ function isMakeRequest(node: ts.CallExpression): boolean {
   );
 }
 
-/** `queryParams.append('filter[status]', …)` -> `status`. */
+/**
+ * `queryParams.append('filter[status]', …)` -> `status`.
+ *
+ * An operator suffix is part of the value, not the key -- `filter[invoiced_on][gt_eq]`
+ * still has to be checked as `invoiced_on`, or operator filters skip validation.
+ */
 function filterKeyOf(node: ts.CallExpression): string | null {
   if (!ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== 'append') {
     return null;
   }
   const [first] = node.arguments;
   if (!first || !ts.isStringLiteral(first)) return null;
-  return /^filter\[([^\]]+)\]$/.exec(first.text)?.[1] ?? null;
+  return /^filter\[([^\]]+)\](\[[^\]]+\])?$/.exec(first.text)?.[1] ?? null;
 }
 
 function collect(node: ts.Node, visit: (node: ts.Node) => void): void {

@@ -17,7 +17,7 @@ const getPageSchema = z.object({
 const createPageSchema = z.object({
   project_id: z.string().min(1, 'Project ID is required'),
   title: z.string().min(1, 'Title is required'),
-  body: z.string().optional(),
+  markdown: z.string().optional(),
   parent_page_id: z.coerce
     .number()
     .optional()
@@ -31,7 +31,8 @@ const createPageSchema = z.object({
 const updatePageSchema = z.object({
   page_id: z.string().min(1, 'Page ID is required'),
   title: z.string().optional(),
-  body: z.string().optional(),
+  markdown: z.string().optional(),
+  append: z.boolean().optional().default(false),
 });
 
 const deletePageSchema = z.object({
@@ -192,19 +193,19 @@ export async function createPageTool(
   try {
     const params = createPageSchema.parse(args);
 
+    // project_id may only be set on root pages -- sending it together with
+    // parent_page_id/root_page_id is rejected as `page_project_root_page_only`.
+    const nested = params.parent_page_id != null || params.root_page_id != null;
+
     const response = await client.createPage({
       data: {
         type: 'pages',
         attributes: {
           title: params.title,
-          body: params.body,
+          markdown: params.markdown,
+          project_id: nested ? undefined : Number(params.project_id),
           parent_page_id: params.parent_page_id,
           root_page_id: params.root_page_id,
-        },
-        relationships: {
-          project: {
-            data: { id: params.project_id, type: 'projects' },
-          },
         },
       },
     });
@@ -214,7 +215,12 @@ export async function createPageTool(
     let text = `Page created successfully!\n`;
     text += `Title: ${page.attributes.title}\n`;
     text += `Page ID: ${page.id}\n`;
-    text += `Project ID: ${params.project_id}\n`;
+    // A nested page inherits its project from the parent and params.project_id
+    // was never sent, so reporting it would be a lie. The create response only
+    // returns a relationship stub ({meta: {included: false}}), so in practice
+    // the line is simply omitted for nested pages.
+    const createdProjectId = nested ? page.relationships?.project?.data?.id : params.project_id;
+    if (createdProjectId != null) text += `Project ID: ${createdProjectId}\n`;
     if (params.parent_page_id != null) text += `Parent page ID: ${params.parent_page_id}\n`;
     text += `Created at: ${page.attributes.created_at}`;
 
@@ -248,24 +254,36 @@ export async function updatePageTool(
   try {
     const params = updatePageSchema.parse(args);
 
-    const attributes: { title?: string; body?: string } = {};
-    if (params.title !== undefined) attributes.title = params.title;
-    if (params.body !== undefined) attributes.body = params.body;
+    if (params.title === undefined && params.markdown === undefined) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Provide title, markdown, or both -- there is nothing to update otherwise',
+      );
+    }
 
-    const response = await client.updatePage(params.page_id, {
-      data: {
-        type: 'pages',
-        id: params.page_id,
-        attributes,
-      },
-    });
-
-    const page = response.data;
+    // Title and body live on different routes: the title goes through the plain
+    // PATCH, the body through a markdown proxy that takes a flat payload.
+    let page = null;
+    if (params.title !== undefined) {
+      const response = await client.updatePage(params.page_id, {
+        data: { type: 'pages', id: params.page_id, attributes: { title: params.title } },
+      });
+      page = response.data;
+    }
+    if (params.markdown !== undefined) {
+      const response = params.append
+        ? await client.appendPageBody(params.page_id, params.markdown)
+        : await client.replacePageBody(params.page_id, params.markdown);
+      page = response.data;
+    }
 
     let text = `Page updated successfully!\n`;
-    text += `Title: ${page.attributes.title}\n`;
-    text += `Page ID: ${page.id}\n`;
-    text += `Updated at: ${page.attributes.updated_at}`;
+    text += `Title: ${page?.attributes.title}\n`;
+    text += `Page ID: ${page?.id ?? params.page_id}\n`;
+    if (params.markdown !== undefined) {
+      text += `Body ${params.append ? 'appended to' : 'replaced'}\n`;
+    }
+    text += `Updated at: ${page?.attributes.updated_at}`;
 
     return {
       content: [
@@ -419,7 +437,7 @@ export const listPagesDefinition = {
 export const getPageDefinition = {
   name: 'get_page',
   description:
-    'Fetch one document page by ID including its full body (HTML), creator, project, hierarchy (parent and root page IDs), version, and timestamps. Use this after list_pages, which returns page metadata but omits the body.',
+    'Fetch one document page by ID including its full body, creator, project, hierarchy (parent and root page IDs), version, and timestamps. The body is returned as a Productive Document Format document -- a JSON structure ({"type":"doc","content":[...]}), not HTML or plain text. Use this after list_pages, which returns page metadata but omits the body.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -435,7 +453,7 @@ export const getPageDefinition = {
 export const createPageDefinition = {
   name: 'create_page',
   description:
-    'Create a new document page inside a project; the body accepts HTML. Optionally nest it under an existing page by supplying parent_page_id together with root_page_id. After creating, use move_page to re-parent it or copy_page to duplicate it elsewhere.',
+    'Create a new document page inside a project. Content is written as Markdown. Optionally nest it under an existing page by supplying parent_page_id together with root_page_id -- for a nested page the project is inherited from the parent, so project_id is ignored. After creating, use move_page to re-parent it or copy_page to duplicate it elsewhere.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -447,9 +465,10 @@ export const createPageDefinition = {
         type: 'string',
         description: 'Title of the page (required)',
       },
-      body: {
+      markdown: {
         type: 'string',
-        description: 'Body content of the page (optional). Supports HTML formatting.',
+        description:
+          'Body content of the page as Markdown (optional). Headings, lists, tables, checklists, code blocks and links are supported.',
       },
       parent_page_id: {
         type: 'number',
@@ -469,7 +488,7 @@ export const createPageDefinition = {
 export const updatePageDefinition = {
   name: 'update_page',
   description:
-    "Update a document page's title and/or body. The body accepts HTML and fully overwrites the previous content — there is no append, so include everything you want to keep. Omit a field to leave it unchanged. To relocate the page in the hierarchy instead of editing content, use move_page.",
+    "Update a document page's title and/or body. Body content is written as Markdown and replaces the previous content by default; set append: true to add to the end instead of rewriting the page. Omit a field to leave it unchanged. To relocate the page in the hierarchy instead of editing content, use move_page.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -481,10 +500,15 @@ export const updatePageDefinition = {
         type: 'string',
         description: 'New title for the page (omit to leave the title unchanged)',
       },
-      body: {
+      markdown: {
         type: 'string',
         description:
-          'New body content for the page, fully replacing the current body. Supports HTML formatting. Omit to leave the body unchanged.',
+          'New body content as Markdown. Replaces the current body unless append is true. Omit to leave the body unchanged.',
+      },
+      append: {
+        type: 'boolean',
+        description:
+          'Append the markdown to the end of the page instead of replacing the body. Defaults to false.',
       },
     },
     required: ['page_id'],

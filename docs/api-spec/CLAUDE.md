@@ -7,8 +7,9 @@ Nicht mehr gescraped — Productive veröffentlicht die Spec selbst.
 ## Spec aktualisieren
 
 ```bash
-npm run spec:sync      # Spec laden, splitten, CHANGELOG.md fortschreiben
+npm run spec:sync      # Spec laden, splitten, CHANGELOG.md fortschreiben, Guides mitziehen
 npm run spec:impact    # prüfen, ob src/api noch zur Spec passt
+npm run spec:guides    # nur die Guides neu holen
 ```
 
 Montags läuft das automatisch (`.github/workflows/api-spec-sync.yml`) und öffnet
@@ -98,4 +99,8 @@ Beim manuellen Curlen dieser Endpoints `-g`/`--globoff` übergeben — curl inte
    (`resource_*` = Response-Attribute)
 3. **Reports:** `docs/api-spec/resources/reports/{report}.yaml` — der `Reports`-Tag ist zu gross
    für eine Datei und liegt pro Endpoint getrennt
-4. **Vollständige Spec:** `docs/api-spec/productive-openapi.yaml` — nur für Codegen, NICHT direkt lesen
+4. **Guides:** `docs/api-spec/guides/{thema}.md` — Productives eigene Anleitungen. Hier stehen
+   Regeln, die die Spec nicht kennt: `working-with-custom-fields` (der Hash wird **ersetzt**, nicht
+   gemergt), `document-format` (Seiten-Bodies sind Dokumente, kein HTML), `filtering`, `pagination`,
+   `rate-limits`, `error-handling`
+5. **Vollständige Spec:** `docs/api-spec/productive-openapi.yaml` — nur für Codegen, NICHT direkt lesen

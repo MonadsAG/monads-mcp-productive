@@ -139,12 +139,6 @@ export async function getFolder(
     if (folder.attributes.hidden !== undefined) {
       text += `\nHidden: ${folder.attributes.hidden}`;
     }
-    if (folder.attributes.created_at) {
-      text += `\nCreated at: ${folder.attributes.created_at}`;
-    }
-    if (folder.attributes.updated_at) {
-      text += `\nUpdated at: ${folder.attributes.updated_at}`;
-    }
     if (folder.relationships?.project?.data?.id) {
       text += `\nProject ID: ${folder.relationships.project.data.id}`;
     }

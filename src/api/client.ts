@@ -246,7 +246,10 @@ export class ProductiveAPIClient {
     const queryParams = new URLSearchParams();
 
     if (params?.board_id) {
-      queryParams.append('filter[board_id]', params.board_id);
+      // The board/folder filter on task lists is `folder_id` -- `filter[board_id]`
+      // is rejected with 422 (verified live), same folders-vs-boards split as the
+      // `/api/v2/folders` route itself.
+      queryParams.append('filter[folder_id]', params.board_id);
     }
 
     if (params?.project_id) {
@@ -295,9 +298,9 @@ export class ProductiveAPIClient {
     }
 
     if (params?.is_active !== undefined) {
-      // Productive's /people endpoint has no `is_active` filter -- `is_active`
-      // is only a response attribute. The documented filter is
-      // `filter[status]` (1: active, 2: deactivated).
+      // Productive's /people endpoint has no `is_active` filter -- there is no
+      // such attribute at all (a person carries `deactivated_at`). The
+      // documented filter is `filter[status]` (1: active, 2: deactivated).
       queryParams.append('filter[status]', params.is_active ? '1' : '2');
     }
 
@@ -935,8 +938,11 @@ export class ProductiveAPIClient {
       queryParams.append('filter[invoice_status]', params.invoice_status.toString());
     if (params?.payment_status)
       queryParams.append('filter[payment_status]', params.payment_status.toString());
-    if (params?.after) queryParams.append('filter[after]', params.after);
-    if (params?.before) queryParams.append('filter[before]', params.before);
+    // Invoices have no `after`/`before` filter (both 422 live). The invoice date
+    // is `invoiced_on` -- the same field this endpoint already sorts by. Bounds are
+    // inclusive so a range covers its edge days.
+    if (params?.after) queryParams.append('filter[invoiced_on][gt_eq]', params.after);
+    if (params?.before) queryParams.append('filter[invoiced_on][lt_eq]', params.before);
     if (params?.full_query) queryParams.append('filter[full_query]', params.full_query);
     if (params?.limit) queryParams.append('page[size]', params.limit.toString());
     if (params?.page) queryParams.append('page[number]', params.page.toString());
@@ -1501,11 +1507,41 @@ export class ProductiveAPIClient {
     );
   }
 
+  /**
+   * `POST /pages` returns a 500 when given a `body` string -- pages store a
+   * Productive Document Format document, so content has to go through the
+   * markdown proxy route.
+   */
   async createPage(data: ProductivePageCreate): Promise<ProductiveSingleResponse<ProductivePage>> {
-    return this.makeRequest<ProductiveSingleResponse<ProductivePage>>('pages', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    return this.makeRequest<ProductiveSingleResponse<ProductivePage>>(
+      'pages/create_with_markdown',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    );
+  }
+
+  /** Replaces a page's whole body. Flat payload -- no JSON:API envelope. */
+  async replacePageBody(
+    pageId: string,
+    markdown: string,
+  ): Promise<ProductiveSingleResponse<ProductivePage>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductivePage>>(
+      `pages/${pageId}/replace_body_with_markdown`,
+      { method: 'PATCH', body: JSON.stringify({ markdown }) },
+    );
+  }
+
+  /** Appends to a page's body. Flat payload -- no JSON:API envelope. */
+  async appendPageBody(
+    pageId: string,
+    markdown: string,
+  ): Promise<ProductiveSingleResponse<ProductivePage>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductivePage>>(
+      `pages/${pageId}/append_markdown`,
+      { method: 'PATCH', body: JSON.stringify({ markdown }) },
+    );
   }
 
   async updatePage(

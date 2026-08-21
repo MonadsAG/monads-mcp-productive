@@ -76,4 +76,30 @@ describe('ProductiveAPIClient filter keys', () => {
     expect(url).toContain('filter%5Btype%5D=2');
     expect(url).not.toContain('budget_type');
   });
+
+  // All three of these were live-verified as 422 before the fix: the API has no
+  // board_id filter on task lists and no after/before filter on invoices.
+  it('listTaskLists sends filter[folder_id] (not filter[board_id])', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listTaskLists({ board_id: '123' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Bfolder_id%5D=123');
+    expect(url).not.toContain('board_id');
+  });
+
+  it('listInvoices maps after/before onto filter[invoiced_on] bounds', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listInvoices({ after: '2024-01-01', before: '2024-12-31' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Binvoiced_on%5D%5Bgt_eq%5D=2024-01-01');
+    expect(url).toContain('filter%5Binvoiced_on%5D%5Blt_eq%5D=2024-12-31');
+    expect(url).not.toContain('filter%5Bafter%5D');
+    expect(url).not.toContain('filter%5Bbefore%5D');
+  });
 });

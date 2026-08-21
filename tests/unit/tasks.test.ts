@@ -11,6 +11,11 @@ function mockClient(overrides: Partial<ProductiveAPIClient> = {}) {
         attributes: { title: 'Ship the feature', updated_at: '2026-07-05T10:00:00Z' },
       },
     }),
+    // updateTaskTool reads the task before writing custom fields, so that a
+    // partial hash does not wipe the values it does not mention.
+    getTask: vi.fn().mockResolvedValue({
+      data: { id: '42', type: 'tasks', attributes: { title: 'Ship the feature' } },
+    }),
     listCustomFields: vi.fn().mockResolvedValue({ data: [] }),
     listCustomFieldOptions: vi.fn().mockResolvedValue({ data: [] }),
     ...overrides,
@@ -141,5 +146,38 @@ describe('updateTaskTool', () => {
       /Invalid parameters/,
     );
     expect(client.updateTask).not.toHaveBeenCalled();
+  });
+
+  // Productive replaces the whole custom_fields hash on PATCH, so a partial hash
+  // silently wipes the other fields. Verified against the live API before the fix.
+  it('merges custom_fields onto the values already stored on the task', async () => {
+    const getTask = vi.fn().mockResolvedValue({
+      data: {
+        id: '42',
+        type: 'tasks',
+        attributes: { title: 'Ship the feature', custom_fields: { '100': 'keep', '200': 'old' } },
+      },
+    });
+    const client = mockClient({ getTask } as never);
+
+    await updateTaskTool(client, { task_id: '42', custom_fields: { '200': 'new' } });
+
+    expect(getTask).toHaveBeenCalledWith('42');
+    expect(client.updateTask).toHaveBeenCalledWith('42', {
+      data: {
+        type: 'tasks',
+        id: '42',
+        attributes: { custom_fields: { '100': 'keep', '200': 'new' } },
+      },
+    });
+  });
+
+  it('does not read the task when no custom fields are being written', async () => {
+    const getTask = vi.fn();
+    const client = mockClient({ getTask } as never);
+
+    await updateTaskTool(client, { task_id: '42', title: 'New title' });
+
+    expect(getTask).not.toHaveBeenCalled();
   });
 });
