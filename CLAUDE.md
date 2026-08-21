@@ -132,6 +132,20 @@ Check our code against it: `npm run spec:impact`
 `.github/workflows/api-spec-sync.yml` runs this weekly and opens a PR on `chore/api-spec-sync`
 when the spec moved, with the impact analysis in the PR body.
 
+## CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and on every PR: both typechecks, the stdio
+build, `prettier --check`, `npm test` and `npm run spec:impact`. Run the same set locally before
+pushing — nothing else gates a merge.
+
+The integration suites under `tests/integration/` skip themselves when `PRODUCTIVE_API_TOKEN` is
+unset, so CI runs the unit tests only. Locally they use the credentials in `.dev.vars`; if they fail
+with `You are not authenticated`, that token is stale — replace it rather than ignoring the red.
+
+Because `skipIf` still executes a describe body during collection, an integration suite must build
+its client inside `beforeAll`, never at describe level: a top-level `getConfig()` throws without
+credentials and fails the file instead of skipping it.
+
 ## Gotchas
 
 - **Amounts in cents**: API returns amounts as integer strings (e.g. "2506569" = 25065.69). Divide by 100 for display, send cents to API.
@@ -180,5 +194,5 @@ KV namespaces (`wrangler.jsonc`): `OAUTH_KV`, `USER_MAPPING_KV` (oid → person 
 - **Origin**: `MonadsAG/monads-mcp-productive` — all PRs go here
 - **Upstream**: `berwickgeek/productive-mcp` — fork source, **NEVER create PRs here**
 - **CRITICAL**: Always use `--repo MonadsAG/monads-mcp-productive` when running `gh pr create`. The `gh` CLI defaults to the upstream fork (`berwickgeek/productive-mcp`) which is wrong.
-- **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production (the only `.github/workflows` entry is the weekly API-spec sync; it does not deploy). `npm run worker:deploy` is only for deliberate out-of-band/test deploys.
+- **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production. Neither `.github/workflows` entry deploys: `ci.yml` checks, `api-spec-sync.yml` syncs the spec. `npm run worker:deploy` is only for deliberate out-of-band/test deploys.
 - **PRs are squash-merged** (`gh pr merge --squash --delete-branch`) — confirmed by `main`'s single-commit-per-PR history. Afterward, local feature branches need `git branch -D` (not `-d`) to clean up, since git doesn't recognize a squash commit as merged via ancestry.

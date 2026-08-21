@@ -1,0 +1,48 @@
+name: CI
+
+# Nothing ran these checks automatically before -- the only workflow was the
+# weekly API-spec sync, so `npm test` only happened when someone remembered.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Two tsconfigs on purpose: the worker one type-checks everything, the
+      # stdio build excludes every edge-runtime file (see CLAUDE.md).
+      - name: Typecheck (worker)
+        run: npx tsc -p tsconfig.worker.json
+
+      - name: Typecheck (scripts)
+        run: npx tsc -p tsconfig.scripts.json
+
+      - name: Build (stdio)
+        run: npm run build
+
+      - name: Format
+        run: npx prettier --check src scripts tests
+
+      # The integration suites skip themselves without PRODUCTIVE_API_TOKEN,
+      # which is never set here -- CI runs the unit tests only.
+      - name: Tests
+        run: npm test
+
+      # Fails when src/api uses an endpoint, filter key or attribute the
+      # committed spec does not have. Same check the weekly sync PR runs.
+      - name: API spec drift
+        run: npm run spec:impact
