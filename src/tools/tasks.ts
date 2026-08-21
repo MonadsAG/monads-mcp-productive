@@ -8,6 +8,7 @@ import {
 } from '../api/types.js';
 import { buildIncludeMap, resolveName } from './include-resolver.js';
 import { buildCustomFieldValueMap, resolveCustomFieldsText } from './custom-field-resolver.js';
+import { toMcpError } from '../utils/errors.js';
 
 function resolveWorkflowStatus(
   task: { relationships?: Record<string, any> },
@@ -108,17 +109,7 @@ export async function listTasksTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -191,17 +182,7 @@ export async function getProjectTasksTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -313,17 +294,7 @@ export async function getTaskTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -375,7 +346,7 @@ export const listTasksDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List tasks', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getProjectTasksDefinition = {
@@ -400,7 +371,7 @@ export const getProjectTasksDefinition = {
     },
     required: ['project_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get project tasks', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getTaskDefinition = {
@@ -420,7 +391,7 @@ export const getTaskDefinition = {
     },
     required: ['task_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get task', readOnlyHint: true, openWorldHint: true },
 };
 
 const createTaskSchema = z.object({
@@ -569,17 +540,7 @@ export async function createTaskTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -643,7 +604,13 @@ export const createTaskDefinition = {
     },
     required: ['title'],
   },
-  annotations: { title: 'Create task', readOnlyHint: false, destructiveHint: false },
+  annotations: {
+    title: 'Create task',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 const updateTaskSchema = z.object({
@@ -793,17 +760,7 @@ export async function updateTaskTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -862,7 +819,13 @@ export const updateTaskDefinition = {
       },
     ],
   },
-  annotations: { title: 'Update task', readOnlyHint: false, destructiveHint: false },
+  annotations: {
+    title: 'Update task',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 const deleteTaskSchema = z.object({
@@ -887,17 +850,7 @@ export async function deleteTaskTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -914,5 +867,11 @@ export const deleteTaskDefinition = {
     },
     required: ['task_id'],
   },
-  annotations: { title: 'Delete task', readOnlyHint: false, destructiveHint: true },
+  annotations: {
+    title: 'Delete task',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };

@@ -3,6 +3,7 @@ import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTimeEntryCreate } from '../api/types.js';
 import { buildIncludeMap, resolveName } from './include-resolver.js';
+import { toMcpError } from '../utils/errors.js';
 
 /** Coerce "true"/"false" strings to booleans (some MCP clients send strings). */
 const coerceBoolean = z.preprocess(
@@ -209,17 +210,7 @@ export async function listTimeEntresTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -389,17 +380,7 @@ ID: ${response.data.id}`;
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -447,17 +428,7 @@ export async function listServicesTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -518,17 +489,7 @@ export async function getProjectServicesTool(
       content: [{ type: 'text', text: summary }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -578,7 +539,7 @@ export const listTimeEntriesDefinition = {
     },
     required: [],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List time entries', readOnlyHint: true, openWorldHint: true },
 };
 
 export const createTimeEntryDefinition = {
@@ -632,6 +593,13 @@ export const createTimeEntryDefinition = {
     },
     required: ['date', 'time', 'person_id', 'service_id', 'note'],
   },
+  annotations: {
+    title: 'Create time entry',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const listServicesDefinition = {
@@ -661,7 +629,7 @@ export const listServicesDefinition = {
     },
     required: [],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List services', readOnlyHint: true, openWorldHint: true },
 };
 
 // Zod schema for list project deals/budgets
@@ -741,17 +709,7 @@ export async function listProjectDealsTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -804,17 +762,7 @@ export async function listDealServicesTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -845,7 +793,7 @@ export const listProjectDealsDefinition = {
     },
     required: ['project_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List project deals', readOnlyHint: true, openWorldHint: true },
 };
 
 export const listDealServicesDefinition = {
@@ -869,7 +817,7 @@ export const listDealServicesDefinition = {
     },
     required: ['deal_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List deal services', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getProjectServicesDefinition = {
@@ -893,5 +841,9 @@ export const getProjectServicesDefinition = {
     },
     required: ['project_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: {
+    title: 'Get project services (deprecated)',
+    readOnlyHint: true,
+    openWorldHint: true,
+  },
 };

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { buildIncludeMap, resolveName } from './include-resolver.js';
+import { toMcpError } from '../utils/errors.js';
 
 /** Coerce "true"/"false" strings to booleans (some MCP clients send strings). */
 const coerceBoolean = z.preprocess(
@@ -92,16 +92,7 @@ export async function listTodosTool(
       content: [{ type: 'text', text: text.trimEnd() }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -147,16 +138,7 @@ export async function getTodoTool(
       content: [{ type: 'text', text: text.trimEnd() }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -201,16 +183,7 @@ export async function createTodoTool(
       content: [{ type: 'text', text }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -247,16 +220,7 @@ export async function updateTodoTool(
       content: [{ type: 'text', text }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -272,16 +236,7 @@ export async function deleteTodoTool(
       content: [{ type: 'text', text: `Todo ${params.todo_id} deleted successfully.` }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -310,6 +265,7 @@ export const listTodosDefinition = {
     },
     required: [],
   },
+  annotations: { title: 'List todos', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getTodoDefinition = {
@@ -326,6 +282,7 @@ export const getTodoDefinition = {
     },
     required: ['todo_id'],
   },
+  annotations: { title: 'Get todo', readOnlyHint: true, openWorldHint: true },
 };
 
 export const createTodoDefinition = {
@@ -358,6 +315,13 @@ export const createTodoDefinition = {
     },
     required: ['description'],
   },
+  annotations: {
+    title: 'Create todo',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const updateTodoDefinition = {
@@ -386,6 +350,13 @@ export const updateTodoDefinition = {
     },
     required: ['todo_id'],
   },
+  annotations: {
+    title: 'Update todo',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 export const deleteTodoDefinition = {
@@ -401,5 +372,12 @@ export const deleteTodoDefinition = {
       },
     },
     required: ['todo_id'],
+  },
+  annotations: {
+    title: 'Delete todo',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

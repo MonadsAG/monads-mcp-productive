@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveAPIClient } from '../api/client.js';
 import { formatChangeset } from './changeset.js';
+import { toMcpError } from '../utils/errors.js';
 
 const ListActivitiesRequestSchema = z.object({
   task_id: z.string().optional(),
@@ -95,17 +95,7 @@ export async function listActivities(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Failed to list activities: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -165,5 +155,5 @@ export const listActivitiesTool = {
     },
     additionalProperties: false,
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List activities', readOnlyHint: true, openWorldHint: true },
 };

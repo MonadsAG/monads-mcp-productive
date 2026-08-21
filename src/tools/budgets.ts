@@ -6,6 +6,7 @@ import {
   ProductiveDealFromOrigin,
 } from '../api/types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 // ---------------------------------------------------------------------------
 // Tool: create_budget
@@ -87,17 +88,7 @@ export async function createBudgetTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -136,6 +127,13 @@ export const createBudgetDefinition = {
         description: 'Budget consumption percentage that triggers a warning',
       },
     },
+  },
+  annotations: {
+    title: 'Create budget',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };
 
@@ -192,17 +190,7 @@ export async function updateBudgetTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -226,6 +214,13 @@ export const updateBudgetDefinition = {
         description: 'Budget consumption percentage that triggers a warning',
       },
     },
+  },
+  annotations: {
+    title: 'Update budget',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -292,17 +287,7 @@ export async function createBudgetFromDealTool(
 
     return { content: [{ type: 'text', text }] };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -327,5 +312,12 @@ export const createBudgetFromDealDefinition = {
       date: { type: 'string', description: 'Override start date YYYY-MM-DD (default: today)' },
       end_date: { type: 'string', description: 'Override end date YYYY-MM-DD' },
     },
+  },
+  annotations: {
+    title: 'Create budget from deal',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };

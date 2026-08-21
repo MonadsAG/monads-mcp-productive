@@ -3,6 +3,7 @@ import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveIncludedResource } from '../api/types.js';
 import { resolveMentions, MentionResolutionResult } from '../utils/mentions.js';
+import { toMcpError } from '../utils/errors.js';
 
 type ToolResult = { content: Array<{ type: string; text: string }> };
 
@@ -113,17 +114,7 @@ export async function addTaskCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -150,6 +141,13 @@ export const addTaskCommentDefinition = {
       },
     },
     required: ['task_id', 'comment'],
+  },
+  annotations: {
+    title: 'Add task comment',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };
 
@@ -196,17 +194,7 @@ export async function listCommentsTool(
       content: [{ type: 'text', text: `Comments (${response.data.length}):\n\n${commentsText}` }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -231,6 +219,7 @@ export const listCommentsDefinition = {
       },
     },
   },
+  annotations: { title: 'List comments', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---- Get Comment ----
@@ -273,17 +262,7 @@ export async function getCommentTool(
       content: [{ type: 'text', text }],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -301,6 +280,7 @@ export const getCommentDefinition = {
     },
     required: ['comment_id'],
   },
+  annotations: { title: 'Get comment', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---- Update Comment ----
@@ -348,17 +328,7 @@ export async function updateCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -380,6 +350,13 @@ export const updateCommentDefinition = {
       },
     },
     required: ['comment_id', 'body'],
+  },
+  annotations: {
+    title: 'Update comment',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -407,17 +384,7 @@ export async function deleteCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -434,6 +401,13 @@ export const deleteCommentDefinition = {
       },
     },
     required: ['comment_id'],
+  },
+  annotations: {
+    title: 'Delete comment',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -461,17 +435,7 @@ export async function pinCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -488,6 +452,13 @@ export const pinCommentDefinition = {
       },
     },
     required: ['comment_id'],
+  },
+  annotations: {
+    title: 'Pin comment',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -515,17 +486,7 @@ export async function unpinCommentTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -542,6 +503,13 @@ export const unpinCommentDefinition = {
       },
     },
     required: ['comment_id'],
+  },
+  annotations: {
+    title: 'Unpin comment',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -570,17 +538,7 @@ export async function addCommentReactionTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -601,5 +559,12 @@ export const addCommentReactionDefinition = {
       },
     },
     required: ['comment_id', 'reaction'],
+  },
+  annotations: {
+    title: 'Add comment reaction',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };

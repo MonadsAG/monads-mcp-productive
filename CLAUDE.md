@@ -109,9 +109,31 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
    filter keys, `components.schemas.resource_*` the response attributes
 3. Create tool file in `src/tools/{resource}.ts`
 4. Export tool definition + handler, add to `src/tools/registry.ts`
-5. Follow existing patterns (Zod input schema, apiClient calls, JSON API format)
+5. Follow existing patterns (Zod input schema, apiClient calls, JSON API format). Errors: let them
+   out and end the handler with `catch (error) { throw toMcpError(error); }` -- do not hand-roll a
+   `new McpError(...)` mapping
 6. Add the new tool's name to the matching toolset in `src/tools/toolsets.ts` (or a new toolset) -- `tests/unit/toolsets.test.ts` asserts every registered tool is covered, and it will fail otherwise
-7. Ship: merge to `main` (auto-deploys — see Git Workflow), or `npm run worker:deploy` for a manual deploy
+7. Give the definition `annotations` (see below) -- the `satisfies` clause in `getToolDefinitions()` makes this a compile error if you forget
+8. Ship: merge to `main` (auto-deploys — see Git Workflow), or `npm run worker:deploy` for a manual deploy
+
+### Tool annotations
+
+Every definition carries MCP `annotations`, in the tool file next to `inputSchema`. They are the only
+way a client can tell `delete_task` from `list_tasks`, so a wrong hint is worse than a missing one --
+it makes a client actively confident instead of cautious. The policy, enforced by
+`tests/unit/annotations.test.ts`:
+
+| Hint              | Rule                                                                                                                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`           | Human-readable name, always set                                                                                                                                                          |
+| `readOnlyHint`    | `true` when the call changes nothing in Productive (the 38 `list_*`/`get_*`, `whoami`, `my_tasks`)                                                                                       |
+| `destructiveHint` | `true` only for what is not easily undone: the six `delete_*`, the two `archive_*`, plus `finalize_invoice` and `mark_invoice_paid`. An `update_*` that replaces one field stays `false` |
+| `idempotentHint`  | `false` for creates (each call makes another object) and for `update_page` (its `append: true` mode writes again), `true` for every other write                                          |
+| `openWorldHint`   | `true` throughout -- Productive is shared, so two identical calls can differ because of what someone else did                                                                            |
+
+The destructive and non-idempotent sets are pinned as literal lists in that test: reclassifying a
+tool, or adding a `delete_*` and forgetting the hint, fails there rather than silently changing what
+a client decides to confirm.
 
 ## API Spec
 
@@ -142,8 +164,23 @@ build, `prettier --check`, `npm test` and `npm run spec:impact`. Run the same se
 pushing — nothing else gates a merge.
 
 The integration suites under `tests/integration/` skip themselves when `PRODUCTIVE_API_TOKEN` is
-unset, so CI runs the unit tests only. Locally they use the credentials in `.dev.vars`; if they fail
-with `You are not authenticated`, that token is stale — replace it rather than ignoring the red.
+unset, so CI runs the unit tests only. Locally they use the credentials in `.dev.vars` — copy
+`.dev.vars.example` and fill it in. If they fail with `You are not authenticated`, that token is
+stale — replace it rather than ignoring the red.
+
+**Check `.dev.vars` before trusting a green test run.** A missing file fails nothing: the suites skip
+and `npm test` reports `Test Files 5 skipped (5)` / `Tests 12 skipped (12)` in green, having verified
+nothing that talks to Productive. `tests/global-setup.ts` warns on stderr in that case (suppressed under
+`CI`, where the token is absent by design), but the skip line is what to read. Pre-flight:
+
+```bash
+test -f .dev.vars && grep -q '^PRODUCTIVE_API_TOKEN=.' .dev.vars \
+  && echo "integration suites will run" || echo "integration suites will SKIP"
+```
+
+The other direction matters just as much: **with valid credentials `npm test` writes to the live
+org** — the suites create deals, budgets and folders and remove them again in `afterAll`. Point
+`.dev.vars` at a sandbox org, never at production.
 
 Because `skipIf` still executes a describe body during collection, an integration suite must build
 its client inside `beforeAll`, never at describe level: a top-level `getConfig()` throws without
@@ -169,6 +206,10 @@ credentials and fails the file instead of skipping it.
 - **Tool-level tests don't catch wrong `filter[...]` keys**: tests like `tests/unit/people.test.ts` typically assert only on the params passed into a _mocked_ `client.ts` method, not the actual request URL — the bug above shipped invisibly for exactly this reason. When you touch filter-building code in `client.ts`, add/extend a `client-*.test.ts` test (pattern: `tests/unit/client-boards.test.ts`, `client-filters.test.ts`) that stubs `global.fetch` and asserts on the real query string.
 
 - **Some breaking changes are announced only by email**: the 422 error `code` switches from `invalid_attribute` to `invalid_attribute_value` on **2026-09-15** (opt in early with the `X-Feature-Flags: invalidAttributeValueCode` header). We are not affected -- `makeRequest` reads `detail || title` and never branches on `code` -- but note that this never appeared in the public changelog, so the weekly spec sync could not have caught it. Watch the Productive emails for this class of change.
+
+- **Never branch on the error `code`, branch on the HTTP status**: `src/utils/errors.ts` maps Productive failures onto MCP error codes using `ProductiveApiError.httpStatus` only. The JSON:API `code` field appears in neither the OpenAPI spec nor any guide, and its 422 values change on 2026-09-15 (see above) -- reading the status keeps us out of that. Caller-fault statuses are `400/404/409/422`; `409` is in the set because `pin_comment`, `unpin_comment`, `reject_time_entry` and `unreject_time_entry` hit endpoints where the spec documents it, and "already pinned" is a caller problem, not a server one.
+
+- **`spec:impact` fails silently if you reshape `makeRequest`**: `scripts/lib/client-usage.ts` walks the AST looking for `this.makeRequest(path, options)` -- exact method name, `this` receiver, path as argument 0, HTTP method from a string literal in argument 1. Rename it, or move to an options object, and the analyzer finds **zero** calls and `npm run spec:impact` exits **0 having checked nothing**. `tests/unit/client-usage.test.ts` pins a floor (`usages.length >= 75`) so that shows up as a red test instead. Note the standing blind spot: the ~20 `this.makeVoidRequest` calls and the raw `fetch` in `repositionTask` are not analysed at all.
 
 ## Environment Variables
 
@@ -200,7 +241,9 @@ KV namespaces (`wrangler.jsonc`): `OAUTH_KV`, `USER_MAPPING_KV` (oid → person 
 ## Git Workflow
 
 - **Origin**: `MonadsAG/monads-mcp-productive` — all PRs go here
-- **Upstream**: `berwickgeek/productive-mcp` — fork source, **NEVER create PRs here**
-- **CRITICAL**: Always use `--repo MonadsAG/monads-mcp-productive` when running `gh pr create`. The `gh` CLI defaults to the upstream fork (`berwickgeek/productive-mcp`) which is wrong.
+- **Upstream**: `berwickgeek/productive-mcp` — the fork source, kept as a **harvest source, not a merge source**. `git merge upstream/main` is not viable: the Worker/BYOT/toolsets rewrite diverged so far that (as of 2026-08-21) not one of our 53 `src/` files is byte-identical with upstream. Port individual features by hand instead, the way PR #19 did, and note in the commit what you deliberately did _not_ adopt. Never open PRs there.
+- **Surveying upstream**: `git fetch upstream && git log --no-merges $(git merge-base main upstream/main)..upstream/main`. Upstream is still actively developed, so this is worth a look before building something it may already have. Anything filesystem-based (e.g. its attachment tools) is out — it does not run on the Workers runtime.
+- **The GitHub fork relationship stays** for as long as we harvest from upstream. Detaching it is the option once we stop, not a cleanup task.
+- **`gh` default repo**: `remote.origin.gh-resolved=base` is set (via `gh repo set-default MonadsAG/monads-mcp-productive`), so `gh` targets origin, not the parent. If `gh` ever prompts for a repo or aims at `berwickgeek/...`, that config was lost — re-run `gh repo set-default` instead of pasting `--repo` into every command.
 - **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production. Neither `.github/workflows` entry deploys: `ci.yml` checks, `api-spec-sync.yml` syncs the spec. `npm run worker:deploy` is only for deliberate out-of-band/test deploys.
 - **PRs are squash-merged** (`gh pr merge --squash --delete-branch`) — confirmed by `main`'s single-commit-per-PR history. Afterward, local feature branches need `git branch -D` (not `-d`) to clean up, since git doesn't recognize a squash commit as merged via ancestry.

@@ -9,6 +9,7 @@ import {
 } from '../api/types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { resolveInvoiceDefaults } from './invoice-defaults.js';
+import { toMcpError } from '../utils/errors.js';
 
 // ---------------------------------------------------------------------------
 // Helper functions
@@ -114,17 +115,7 @@ export async function listInvoicesTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -167,7 +158,7 @@ export const listInvoicesDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List invoices', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -226,17 +217,7 @@ export async function listCompanyBudgetsTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -264,7 +245,7 @@ export const listCompanyBudgetsDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List company budgets', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -339,17 +320,7 @@ export async function getInvoiceTool(
 
     return { content: [{ type: 'text', text }] };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -367,7 +338,7 @@ export const getInvoiceDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get invoice', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -480,17 +451,7 @@ export async function createInvoiceTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -543,6 +504,13 @@ export const createInvoiceDefinition = {
         description: 'Subsidiary ID if applicable',
       },
     },
+  },
+  annotations: {
+    title: 'Create invoice',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };
 
@@ -602,17 +570,7 @@ export async function updateInvoiceTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -636,6 +594,13 @@ export const updateInvoiceDefinition = {
       purchase_order_number: { type: 'string', description: 'PO number' },
     },
     required: ['invoice_id'],
+  },
+  annotations: {
+    title: 'Update invoice',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -730,17 +695,7 @@ export async function generateLineItemsTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -783,5 +738,12 @@ export const generateLineItemsDefinition = {
         description: 'Group line items by "service" or "budget" (default: "service")',
       },
     },
+  },
+  annotations: {
+    title: 'Generate invoice line items',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };

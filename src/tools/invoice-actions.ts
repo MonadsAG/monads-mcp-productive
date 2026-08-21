@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { Config } from '../config/index.js';
 import { ProductivePaymentCreate } from '../api/types.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 /** Coerce "true"/"false" strings to booleans (some MCP clients send strings). */
 const coerceBoolean = z.preprocess(
@@ -63,17 +63,7 @@ export async function finalizeInvoiceTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -94,6 +84,13 @@ export const finalizeInvoiceDefinition = {
       },
     },
     required: ['invoice_id'],
+  },
+  annotations: {
+    title: 'Finalize invoice',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -140,17 +137,7 @@ export async function getInvoicePdfUrlTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -168,7 +155,7 @@ export const getInvoicePdfUrlDefinition = {
     },
     required: ['invoice_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get invoice PDF URL', readOnlyHint: true, openWorldHint: true },
 };
 
 // ─── delete_invoice ──────────────────────────────────────────────────────────
@@ -238,17 +225,7 @@ export async function deleteInvoiceTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -270,7 +247,13 @@ export const deleteInvoiceDefinition = {
     },
     required: ['invoice_id'],
   },
-  annotations: { destructiveHint: true },
+  annotations: {
+    title: 'Delete invoice',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 // ─── get_timesheet_report_url ────────────────────────────────────────────────
@@ -395,17 +378,7 @@ export async function getTimesheetReportUrlTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -436,7 +409,7 @@ export const getTimesheetReportUrlDefinition = {
       page_size: { type: 'string', description: 'Page size (default: "A4")' },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get timesheet report URL', readOnlyHint: true, openWorldHint: true },
 };
 
 // ─── mark_invoice_paid ───────────────────────────────────────────────────────
@@ -541,17 +514,7 @@ export async function markInvoicePaidTool(
       ],
     };
   } catch (error) {
-    if (error instanceof McpError) throw error;
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -580,5 +543,12 @@ export const markInvoicePaidDefinition = {
       },
     },
     required: ['invoice_id'],
+  },
+  annotations: {
+    title: 'Mark invoice paid',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

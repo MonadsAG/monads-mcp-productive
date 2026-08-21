@@ -2,7 +2,13 @@ import { z } from 'zod';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import type { ProductiveAPIClient } from '../api/client.js';
 import type { Config } from '../config/index.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ErrorCode,
+  ListToolsRequestSchema,
+  McpError,
+  type ToolAnnotations,
+} from '@modelcontextprotocol/sdk/types.js';
 import { findToolsetForName } from './toolsets.js';
 
 // Tool imports
@@ -309,7 +315,12 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     getTaskDependencyDefinition,
     createTaskDependencyDefinition,
     deleteTaskDependencyDefinition,
-  ];
+    // `satisfies` rather than a type annotation: it enforces the constraint
+    // without widening what getToolDefinitions returns. A definition that ships
+    // without annotations is a compile error here -- the client would otherwise
+    // have no way to tell delete_task from list_tasks. Behaviour beyond that
+    // (which hints are set to what) is checked in tests/unit/annotations.test.ts.
+  ] satisfies ReadonlyArray<{ name: string; annotations: ToolAnnotations }>;
 
   if (!enabledToolNames) return all;
   return all.filter((def) => enabledToolNames.has(def.name));
@@ -325,7 +336,8 @@ export async function handleToolCall(
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   if (enabledToolNames && !enabledToolNames.has(name)) {
     const toolset = findToolsetForName(name);
-    throw new Error(
+    throw new McpError(
+      ErrorCode.InvalidParams,
       toolset
         ? `Tool "${name}" is not enabled in this deployment (belongs to the "${toolset}" toolset). Ask your administrator to add "${toolset}" to PRODUCTIVE_TOOLSETS.`
         : `Tool "${name}" is not enabled in this deployment.`,
@@ -419,7 +431,7 @@ export async function handleToolCall(
       return await addToBacklog(apiClient, args);
     case 'reposition_task':
       if (!args?.taskId) {
-        throw new Error('taskId is required for task repositioning');
+        throw new McpError(ErrorCode.InvalidParams, 'taskId is required for task repositioning');
       }
       return await taskRepositionTool(apiClient, args as z.infer<typeof taskRepositionSchema>);
     case 'list_invoices':
@@ -521,7 +533,7 @@ export async function handleToolCall(
     case 'delete_task_dependency':
       return await deleteTaskDependencyTool(apiClient, args);
     default:
-      throw new Error(`Unknown tool: ${name}`);
+      throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
   }
 }
 

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { buildIncludeMap, resolveName } from './include-resolver.js';
+import { toMcpError } from '../utils/errors.js';
 
 const listProjectsSchema = z.object({
   status: z.enum(['active', 'archived']).optional(),
@@ -57,17 +57,7 @@ export async function listProjectsTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -96,5 +86,5 @@ export const listProjectsDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List projects', readOnlyHint: true, openWorldHint: true },
 };

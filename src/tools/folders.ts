@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 // Productive's UI calls this resource a "folder"; the API resource concept is
 // a "board" (task and task-list relationships reference it as `board`/
@@ -74,18 +74,7 @@ export async function listFolders(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching folders');
+    throw toMcpError(error);
   }
 }
 
@@ -111,6 +100,7 @@ export const listFoldersTool = {
       },
     },
   },
+  annotations: { title: 'List folders', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---- Get Folder ----
@@ -152,18 +142,7 @@ export async function getFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching folder');
+    throw toMcpError(error);
   }
 }
 
@@ -181,6 +160,7 @@ export const getFolderTool = {
     },
     required: ['folder_id'],
   },
+  annotations: { title: 'Get folder', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---- Create Folder ----
@@ -236,18 +216,7 @@ export async function createFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while creating folder');
+    throw toMcpError(error);
   }
 }
 
@@ -269,6 +238,13 @@ export const createFolderTool = {
       },
     },
     required: ['project_id', 'name'],
+  },
+  annotations: {
+    title: 'Create folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };
 
@@ -313,18 +289,7 @@ export async function updateFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while updating folder');
+    throw toMcpError(error);
   }
 }
 
@@ -345,6 +310,13 @@ export const updateFolderTool = {
       },
     },
     required: ['folder_id'],
+  },
+  annotations: {
+    title: 'Update folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -372,18 +344,7 @@ export async function archiveFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while archiving folder');
+    throw toMcpError(error);
   }
 }
 
@@ -400,6 +361,13 @@ export const archiveFolderTool = {
       },
     },
     required: ['folder_id'],
+  },
+  annotations: {
+    title: 'Archive folder',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -427,18 +395,7 @@ export async function restoreFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while restoring folder');
+    throw toMcpError(error);
   }
 }
 
@@ -455,6 +412,13 @@ export const restoreFolderTool = {
       },
     },
     required: ['folder_id'],
+  },
+  annotations: {
+    title: 'Restore folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -494,18 +458,7 @@ export async function copyFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while copying folder');
+    throw toMcpError(error);
   }
 }
 
@@ -530,6 +483,13 @@ export const copyFolderTool = {
       },
     },
     required: ['name', 'template_id', 'project_id'],
+  },
+  annotations: {
+    title: 'Copy folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };
 
@@ -560,18 +520,7 @@ export async function moveFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while moving folder');
+    throw toMcpError(error);
   }
 }
 
@@ -592,6 +541,13 @@ export const moveFolderTool = {
       },
     },
     required: ['folder_id', 'project_id'],
+  },
+  annotations: {
+    title: 'Move folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -622,21 +578,7 @@ export async function repositionFolder(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      'Unknown error occurred while repositioning folder',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -657,5 +599,12 @@ export const repositionFolderTool = {
       },
     },
     required: ['folder_id', 'move_before_id'],
+  },
+  annotations: {
+    title: 'Reposition folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

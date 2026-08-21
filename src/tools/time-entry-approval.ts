@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveTimeEntry } from '../api/types.js';
 import { formatMinutesDisplay } from './time-entries.js';
+import { toMcpError } from '../utils/errors.js';
 
 const setTimeEntryApprovalSchema = z
   .object({
@@ -72,17 +72,7 @@ export async function setTimeEntryApprovalTool(
       }
     }
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -119,5 +109,12 @@ export const setTimeEntryApprovalDefinition = {
         rejected_reason: 'Logged against the wrong project',
       },
     ],
+  },
+  annotations: {
+    title: 'Set time entry approval',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveIncludedResource } from '../api/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 function resolveTaskTitle(
   taskId: string | undefined,
@@ -107,16 +107,7 @@ export async function listTaskDependenciesTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -143,16 +134,7 @@ export async function getTaskDependencyTool(
 
     return { content: [{ type: 'text', text }] };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -184,16 +166,7 @@ export async function createTaskDependencyTool(
 
     return { content: [{ type: 'text', text }] };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -214,16 +187,7 @@ export async function deleteTaskDependencyTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -250,6 +214,7 @@ export const listTaskDependenciesDefinition = {
       },
     },
   },
+  annotations: { title: 'List task dependencies', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getTaskDependencyDefinition = {
@@ -265,6 +230,7 @@ export const getTaskDependencyDefinition = {
     },
     required: ['dependency_id'],
   },
+  annotations: { title: 'Get task dependency', readOnlyHint: true, openWorldHint: true },
 };
 
 export const createTaskDependencyDefinition = {
@@ -291,6 +257,13 @@ export const createTaskDependencyDefinition = {
     },
     required: ['task_id', 'dependent_task_id'],
   },
+  annotations: {
+    title: 'Create task dependency',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const deleteTaskDependencyDefinition = {
@@ -305,5 +278,12 @@ export const deleteTaskDependencyDefinition = {
       },
     },
     required: ['dependency_id'],
+  },
+  annotations: {
+    title: 'Delete task dependency',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

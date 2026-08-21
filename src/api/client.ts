@@ -52,6 +52,11 @@ import {
   ProductiveCustomField,
   ProductiveCustomFieldOption,
 } from './types.js';
+import {
+  ProductiveApiError,
+  formatProductiveErrors,
+  type ProductiveErrorDetail,
+} from './errors.js';
 
 export class ProductiveAPIClient {
   private config: Config;
@@ -68,36 +73,46 @@ export class ProductiveAPIClient {
     };
   }
 
+  /**
+   * Turn a failed response into a ProductiveApiError carrying its HTTP status.
+   *
+   * The JSON parse is guarded deliberately: a 502 from a proxy answers with an
+   * HTML page and a throttled request can answer with nothing at all, and an
+   * unguarded `response.json()` surfaces a SyntaxError instead of the failure
+   * that actually happened.
+   */
+  private async errorFrom(response: Response): Promise<ProductiveApiError> {
+    let errors: ProductiveErrorDetail[] = [];
+
+    try {
+      const body = (await response.json()) as ProductiveError;
+      errors = body.errors ?? [];
+    } catch {
+      /* non-JSON error body -- the status still says what went wrong */
+    }
+
+    const message =
+      formatProductiveErrors(errors) || `API request failed with status ${response.status}`;
+
+    return new ProductiveApiError(message, response.status, errors);
+  }
+
   private async makeRequest<T>(path: string, options?: RequestInit): Promise<T> {
     const url = `${this.config.PRODUCTIVE_API_BASE_URL}${path}`;
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          ...this.getHeaders(),
-          ...options?.headers,
-        },
-      });
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...this.getHeaders(),
+        ...options?.headers,
+      },
+    });
 
-      if (!response.ok) {
-        const errorData = (await response.json()) as ProductiveError;
-        const errorMessages = (errorData.errors ?? [])
-          .map((e) => {
-            const field = e.source?.pointer ? ` (${e.source.pointer})` : '';
-            return `${e.detail || e.title || 'Unknown error'}${field}`;
-          })
-          .join('; ');
-        throw new Error(errorMessages || `API request failed with status ${response.status}`);
-      }
-
-      return (await response.json()) as T;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Unknown error occurred while making API request');
+    if (!response.ok) {
+      throw await this.errorFrom(response);
     }
+
+    return (await response.json()) as T;
   }
 
   private async makeVoidRequest(path: string, options?: RequestInit): Promise<void> {
@@ -112,14 +127,7 @@ export class ProductiveAPIClient {
     });
 
     if (!response.ok) {
-      let errorMessage = `API request failed with status ${response.status}`;
-      try {
-        const errorData = (await response.json()) as ProductiveError;
-        errorMessage = errorData.errors?.[0]?.detail || errorMessage;
-      } catch {
-        /* no JSON body */
-      }
-      throw new Error(errorMessage);
+      throw await this.errorFrom(response);
     }
   }
 
@@ -1091,26 +1099,8 @@ export class ProductiveAPIClient {
   }
 
   async deleteInvoice(id: string): Promise<void> {
-    const url = `${this.config.PRODUCTIVE_API_BASE_URL}invoices/${id}`;
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    });
-    if (!response.ok) {
-      let errorMessages = '';
-      try {
-        const errorData = (await response.json()) as ProductiveError;
-        errorMessages = (errorData.errors ?? [])
-          .map((e) => {
-            const field = e.source?.pointer ? ` (${e.source.pointer})` : '';
-            return `${e.detail || e.title || 'Unknown error'}${field}`;
-          })
-          .join('; ');
-      } catch {
-        // non-JSON error body — fall through to status message
-      }
-      throw new Error(errorMessages || `Delete failed with status ${response.status}`);
-    }
+    // Was a hand-rolled fetch carrying its own copy of the error parsing.
+    return this.makeVoidRequest(`invoices/${id}`, { method: 'DELETE' });
   }
 
   async createPayment(data: ProductivePaymentCreate): Promise<ProductiveSingleResponse<unknown>> {
@@ -1155,19 +1145,28 @@ export class ProductiveAPIClient {
     try {
       const response = await fetch(url, {
         method: 'PATCH',
-        headers: {
-          'X-Auth-Token': this.config.PRODUCTIVE_API_TOKEN,
-          'X-Organization-Id': this.config.PRODUCTIVE_ORG_ID,
-          'Content-Type': 'application/vnd.api+json',
-        },
+        // getHeaders() rather than a hand-written copy: this method used to
+        // rebuild the three headers itself and would silently miss any change
+        // made there.
+        headers: this.getHeaders(),
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
+        const apiError = await this.errorFrom(response);
+
+        // Productive's 404 here means either "no such task" or "this task cannot
+        // be repositioned", and its own message says neither. Keep the clearer
+        // wording, but as a ProductiveApiError so the status still maps.
         if (response.status === 404) {
-          throw new Error(`Task ${taskId} not found or cannot be repositioned.`);
+          throw new ProductiveApiError(
+            `Task ${taskId} not found or cannot be repositioned.`,
+            404,
+            apiError.errors,
+          );
         }
-        throw new Error(`Reposition failed with status ${response.status}: ${response.statusText}`);
+
+        throw apiError;
       }
 
       // If 204 No Content (success), return a minimal success response

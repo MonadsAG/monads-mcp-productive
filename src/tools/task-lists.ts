@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 /** Coerce "true"/"false" strings to booleans (some MCP clients send strings). */
 const coerceBoolean = z.preprocess(
@@ -64,18 +64,7 @@ export async function listTaskLists(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching task lists');
+    throw toMcpError(error);
   }
 }
 
@@ -97,7 +86,7 @@ export const listTaskListsTool = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List task lists', readOnlyHint: true, openWorldHint: true },
 };
 
 const CreateTaskListSchema = z.object({
@@ -149,18 +138,7 @@ export async function createTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while creating task list');
+    throw toMcpError(error);
   }
 }
 
@@ -189,6 +167,13 @@ export const createTaskListTool = {
       },
     },
     required: ['board_id', 'project_id', 'name'],
+  },
+  annotations: {
+    title: 'Create task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };
 
@@ -225,18 +210,7 @@ export async function getTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while fetching task list');
+    throw toMcpError(error);
   }
 }
 
@@ -254,6 +228,7 @@ export const getTaskListTool = {
     },
     required: ['task_list_id'],
   },
+  annotations: { title: 'Get task list', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getTaskListDefinition = getTaskListTool;
@@ -300,18 +275,7 @@ export async function updateTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while updating task list');
+    throw toMcpError(error);
   }
 }
 
@@ -332,6 +296,13 @@ export const updateTaskListTool = {
       },
     },
     required: ['task_list_id'],
+  },
+  annotations: {
+    title: 'Update task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -361,18 +332,7 @@ export async function archiveTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while archiving task list');
+    throw toMcpError(error);
   }
 }
 
@@ -389,6 +349,13 @@ export const archiveTaskListTool = {
       },
     },
     required: ['task_list_id'],
+  },
+  annotations: {
+    title: 'Archive task list',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -418,18 +385,7 @@ export async function restoreTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while restoring task list');
+    throw toMcpError(error);
   }
 }
 
@@ -446,6 +402,13 @@ export const restoreTaskListTool = {
       },
     },
     required: ['task_list_id'],
+  },
+  annotations: {
+    title: 'Restore task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -503,18 +466,7 @@ export async function copyTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while copying task list');
+    throw toMcpError(error);
   }
 }
 
@@ -553,6 +505,13 @@ export const copyTaskListTool = {
     },
     required: ['name', 'template_id', 'project_id', 'board_id'],
   },
+  annotations: {
+    title: 'Copy task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const copyTaskListDefinition = copyTaskListTool;
@@ -584,18 +543,7 @@ export async function moveTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(ErrorCode.InternalError, 'Unknown error occurred while moving task list');
+    throw toMcpError(error);
   }
 }
 
@@ -616,6 +564,13 @@ export const moveTaskListTool = {
       },
     },
     required: ['task_list_id', 'board_id'],
+  },
+  annotations: {
+    title: 'Move task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -648,21 +603,7 @@ export async function repositionTaskList(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-      );
-    }
-
-    if (error instanceof Error) {
-      throw new McpError(ErrorCode.InternalError, `API error: ${error.message}`);
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      'Unknown error occurred while repositioning task list',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -683,6 +624,13 @@ export const repositionTaskListTool = {
       },
     },
     required: ['task_list_id', 'move_before_id'],
+  },
+  annotations: {
+    title: 'Reposition task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 

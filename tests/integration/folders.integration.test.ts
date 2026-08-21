@@ -69,7 +69,13 @@ describe.skipIf(!process.env.PRODUCTIVE_API_TOKEN)(
       const folderId = createMatch![1];
       createdFolderIds.push(folderId);
 
-      const listResult = await listFolders(client, { project_id: projectId });
+      // status: 1 (active) is load-bearing, not decoration. Folders have no
+      // DELETE endpoint, so afterAll can only archive what a run creates and
+      // list_folders returns archived folders too -- this project already holds
+      // 80 of them against a single active one. Without the filter the default
+      // page of 30 is all leftovers and the folder just created never appears,
+      // which is exactly how this test started failing.
+      const listResult = await listFolders(client, { project_id: projectId, status: 1 });
       expect(listResult.content[0].text).toContain(folderId);
 
       const getResult = await getFolder(client, { folder_id: folderId });
@@ -156,7 +162,7 @@ describe.skipIf(!process.env.PRODUCTIVE_API_TOKEN)(
       const getResult = await getFolder(client, { folder_id: folderId });
       expect(getResult.content[0].text).toContain(`Project ID: ${destProject.id}`);
 
-      const afterMove = await listFolders(client, { project_id: destProject.id });
+      const afterMove = await listFolders(client, { project_id: destProject.id, status: 1 });
       expect(afterMove.content[0].text).toContain(folderId);
     });
   },

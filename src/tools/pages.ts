@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { toMcpError } from '../utils/errors.js';
 
 // ---- Schemas ----
 
@@ -100,17 +101,7 @@ export async function listPagesTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -172,17 +163,7 @@ export async function getPageTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -233,17 +214,7 @@ export async function createPageTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -294,17 +265,7 @@ export async function updatePageTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -325,17 +286,7 @@ export async function deletePageTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -356,17 +307,7 @@ export async function movePageTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -393,17 +334,7 @@ export async function copyPageTool(
       ],
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        `Invalid parameters: ${error.errors.map((e) => e.message).join(', ')}`,
-      );
-    }
-
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error occurred',
-    );
+    throw toMcpError(error);
   }
 }
 
@@ -432,6 +363,7 @@ export const listPagesDefinition = {
     },
     required: [],
   },
+  annotations: { title: 'List pages', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getPageDefinition = {
@@ -448,6 +380,7 @@ export const getPageDefinition = {
     },
     required: ['page_id'],
   },
+  annotations: { title: 'Get page', readOnlyHint: true, openWorldHint: true },
 };
 
 export const createPageDefinition = {
@@ -483,6 +416,13 @@ export const createPageDefinition = {
     },
     required: ['project_id', 'title'],
   },
+  annotations: {
+    title: 'Create page',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const updatePageDefinition = {
@@ -513,6 +453,16 @@ export const updatePageDefinition = {
     },
     required: ['page_id'],
   },
+  // Not idempotent, unlike the other update_* tools: with `append: true` the
+  // same call twice writes the markdown twice, so a client that retries an
+  // idempotent call after a timeout would duplicate the content.
+  annotations: {
+    title: 'Update page',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const deletePageDefinition = {
@@ -528,6 +478,13 @@ export const deletePageDefinition = {
       },
     },
     required: ['page_id'],
+  },
+  annotations: {
+    title: 'Delete page',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -549,6 +506,13 @@ export const movePageDefinition = {
     },
     required: ['page_id', 'target_doc_id'],
   },
+  annotations: {
+    title: 'Move page',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 export const copyPageDefinition = {
@@ -569,5 +533,12 @@ export const copyPageDefinition = {
       },
     },
     required: ['template_id'],
+  },
+  annotations: {
+    title: 'Copy page',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };
