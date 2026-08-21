@@ -214,6 +214,7 @@ export const listTaskDependenciesDefinition = {
       },
     },
   },
+  annotations: { title: 'List task dependencies', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getTaskDependencyDefinition = {
@@ -229,6 +230,7 @@ export const getTaskDependencyDefinition = {
     },
     required: ['dependency_id'],
   },
+  annotations: { title: 'Get task dependency', readOnlyHint: true, openWorldHint: true },
 };
 
 export const createTaskDependencyDefinition = {
@@ -255,6 +257,13 @@ export const createTaskDependencyDefinition = {
     },
     required: ['task_id', 'dependent_task_id'],
   },
+  annotations: {
+    title: 'Create task dependency',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const deleteTaskDependencyDefinition = {
@@ -269,5 +278,12 @@ export const deleteTaskDependencyDefinition = {
       },
     },
     required: ['dependency_id'],
+  },
+  annotations: {
+    title: 'Delete task dependency',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

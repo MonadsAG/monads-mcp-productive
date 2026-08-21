@@ -79,5 +79,5 @@ export const listCompaniesDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List companies', readOnlyHint: true, openWorldHint: true },
 };

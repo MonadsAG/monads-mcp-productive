@@ -539,7 +539,7 @@ export const listTimeEntriesDefinition = {
     },
     required: [],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List time entries', readOnlyHint: true, openWorldHint: true },
 };
 
 export const createTimeEntryDefinition = {
@@ -593,6 +593,13 @@ export const createTimeEntryDefinition = {
     },
     required: ['date', 'time', 'person_id', 'service_id', 'note'],
   },
+  annotations: {
+    title: 'Create time entry',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const listServicesDefinition = {
@@ -622,7 +629,7 @@ export const listServicesDefinition = {
     },
     required: [],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List services', readOnlyHint: true, openWorldHint: true },
 };
 
 // Zod schema for list project deals/budgets
@@ -786,7 +793,7 @@ export const listProjectDealsDefinition = {
     },
     required: ['project_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List project deals', readOnlyHint: true, openWorldHint: true },
 };
 
 export const listDealServicesDefinition = {
@@ -810,7 +817,7 @@ export const listDealServicesDefinition = {
     },
     required: ['deal_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List deal services', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getProjectServicesDefinition = {
@@ -834,5 +841,9 @@ export const getProjectServicesDefinition = {
     },
     required: ['project_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: {
+    title: 'Get project services (deprecated)',
+    readOnlyHint: true,
+    openWorldHint: true,
+  },
 };

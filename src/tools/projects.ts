@@ -86,5 +86,5 @@ export const listProjectsDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List projects', readOnlyHint: true, openWorldHint: true },
 };

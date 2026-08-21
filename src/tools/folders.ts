@@ -100,6 +100,7 @@ export const listFoldersTool = {
       },
     },
   },
+  annotations: { title: 'List folders', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---- Get Folder ----
@@ -159,6 +160,7 @@ export const getFolderTool = {
     },
     required: ['folder_id'],
   },
+  annotations: { title: 'Get folder', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---- Create Folder ----
@@ -237,6 +239,13 @@ export const createFolderTool = {
     },
     required: ['project_id', 'name'],
   },
+  annotations: {
+    title: 'Create folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 // ---- Update Folder ----
@@ -302,6 +311,13 @@ export const updateFolderTool = {
     },
     required: ['folder_id'],
   },
+  annotations: {
+    title: 'Update folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 // ---- Archive Folder ----
@@ -346,6 +362,13 @@ export const archiveFolderTool = {
     },
     required: ['folder_id'],
   },
+  annotations: {
+    title: 'Archive folder',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 // ---- Restore Folder ----
@@ -389,6 +412,13 @@ export const restoreFolderTool = {
       },
     },
     required: ['folder_id'],
+  },
+  annotations: {
+    title: 'Restore folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -454,6 +484,13 @@ export const copyFolderTool = {
     },
     required: ['name', 'template_id', 'project_id'],
   },
+  annotations: {
+    title: 'Copy folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 // ---- Move Folder ----
@@ -505,6 +542,13 @@ export const moveFolderTool = {
     },
     required: ['folder_id', 'project_id'],
   },
+  annotations: {
+    title: 'Move folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 // ---- Reposition Folder ----
@@ -555,5 +599,12 @@ export const repositionFolderTool = {
       },
     },
     required: ['folder_id', 'move_before_id'],
+  },
+  annotations: {
+    title: 'Reposition folder',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

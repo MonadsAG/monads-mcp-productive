@@ -118,4 +118,11 @@ export const addToBacklogTool = {
     },
     required: ['task_id', 'project_id'],
   },
+  annotations: {
+    title: 'Add to backlog',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };

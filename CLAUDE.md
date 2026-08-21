@@ -109,9 +109,31 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
    filter keys, `components.schemas.resource_*` the response attributes
 3. Create tool file in `src/tools/{resource}.ts`
 4. Export tool definition + handler, add to `src/tools/registry.ts`
-5. Follow existing patterns (Zod input schema, apiClient calls, JSON API format)
+5. Follow existing patterns (Zod input schema, apiClient calls, JSON API format). Errors: let them
+   out and end the handler with `catch (error) { throw toMcpError(error); }` -- do not hand-roll a
+   `new McpError(...)` mapping
 6. Add the new tool's name to the matching toolset in `src/tools/toolsets.ts` (or a new toolset) -- `tests/unit/toolsets.test.ts` asserts every registered tool is covered, and it will fail otherwise
-7. Ship: merge to `main` (auto-deploys — see Git Workflow), or `npm run worker:deploy` for a manual deploy
+7. Give the definition `annotations` (see below) -- the `satisfies` clause in `getToolDefinitions()` makes this a compile error if you forget
+8. Ship: merge to `main` (auto-deploys — see Git Workflow), or `npm run worker:deploy` for a manual deploy
+
+### Tool annotations
+
+Every definition carries MCP `annotations`, in the tool file next to `inputSchema`. They are the only
+way a client can tell `delete_task` from `list_tasks`, so a wrong hint is worse than a missing one --
+it makes a client actively confident instead of cautious. The policy, enforced by
+`tests/unit/annotations.test.ts`:
+
+| Hint              | Rule                                                                                                                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`           | Human-readable name, always set                                                                                                                                                          |
+| `readOnlyHint`    | `true` when the call changes nothing in Productive (the 38 `list_*`/`get_*`, `whoami`, `my_tasks`)                                                                                       |
+| `destructiveHint` | `true` only for what is not easily undone: the six `delete_*`, the two `archive_*`, plus `finalize_invoice` and `mark_invoice_paid`. An `update_*` that replaces one field stays `false` |
+| `idempotentHint`  | `false` for creates (each call makes another object), `true` for every other write                                                                                                       |
+| `openWorldHint`   | `true` throughout -- Productive is shared, so two identical calls can differ because of what someone else did                                                                            |
+
+The destructive and non-idempotent sets are pinned as literal lists in that test: reclassifying a
+tool, or adding a `delete_*` and forgetting the hint, fails there rather than silently changing what
+a client decides to confirm.
 
 ## API Spec
 

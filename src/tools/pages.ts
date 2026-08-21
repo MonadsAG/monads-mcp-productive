@@ -363,6 +363,7 @@ export const listPagesDefinition = {
     },
     required: [],
   },
+  annotations: { title: 'List pages', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getPageDefinition = {
@@ -379,6 +380,7 @@ export const getPageDefinition = {
     },
     required: ['page_id'],
   },
+  annotations: { title: 'Get page', readOnlyHint: true, openWorldHint: true },
 };
 
 export const createPageDefinition = {
@@ -414,6 +416,13 @@ export const createPageDefinition = {
     },
     required: ['project_id', 'title'],
   },
+  annotations: {
+    title: 'Create page',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const updatePageDefinition = {
@@ -444,6 +453,13 @@ export const updatePageDefinition = {
     },
     required: ['page_id'],
   },
+  annotations: {
+    title: 'Update page',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 export const deletePageDefinition = {
@@ -459,6 +475,13 @@ export const deletePageDefinition = {
       },
     },
     required: ['page_id'],
+  },
+  annotations: {
+    title: 'Delete page',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -480,6 +503,13 @@ export const movePageDefinition = {
     },
     required: ['page_id', 'target_doc_id'],
   },
+  annotations: {
+    title: 'Move page',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 export const copyPageDefinition = {
@@ -500,5 +530,12 @@ export const copyPageDefinition = {
       },
     },
     required: ['template_id'],
+  },
+  annotations: {
+    title: 'Copy page',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };

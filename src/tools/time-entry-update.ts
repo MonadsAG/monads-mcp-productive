@@ -153,4 +153,11 @@ export const updateTimeEntryDefinition = {
     },
     required: ['time_entry_id'],
   },
+  annotations: {
+    title: 'Update time entry',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };

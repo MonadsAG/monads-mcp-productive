@@ -7,6 +7,7 @@ import {
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
+  type ToolAnnotations,
 } from '@modelcontextprotocol/sdk/types.js';
 import { findToolsetForName } from './toolsets.js';
 
@@ -314,7 +315,12 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     getTaskDependencyDefinition,
     createTaskDependencyDefinition,
     deleteTaskDependencyDefinition,
-  ];
+    // `satisfies` rather than a type annotation: it enforces the constraint
+    // without widening what getToolDefinitions returns. A definition that ships
+    // without annotations is a compile error here -- the client would otherwise
+    // have no way to tell delete_task from list_tasks. Behaviour beyond that
+    // (which hints are set to what) is checked in tests/unit/annotations.test.ts.
+  ] satisfies ReadonlyArray<{ name: string; annotations: ToolAnnotations }>;
 
   if (!enabledToolNames) return all;
   return all.filter((def) => enabledToolNames.has(def.name));

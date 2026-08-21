@@ -346,7 +346,7 @@ export const listTasksDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List tasks', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getProjectTasksDefinition = {
@@ -371,7 +371,7 @@ export const getProjectTasksDefinition = {
     },
     required: ['project_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get project tasks', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getTaskDefinition = {
@@ -391,7 +391,7 @@ export const getTaskDefinition = {
     },
     required: ['task_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get task', readOnlyHint: true, openWorldHint: true },
 };
 
 const createTaskSchema = z.object({
@@ -604,7 +604,13 @@ export const createTaskDefinition = {
     },
     required: ['title'],
   },
-  annotations: { title: 'Create task', readOnlyHint: false, destructiveHint: false },
+  annotations: {
+    title: 'Create task',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 const updateTaskSchema = z.object({
@@ -813,7 +819,13 @@ export const updateTaskDefinition = {
       },
     ],
   },
-  annotations: { title: 'Update task', readOnlyHint: false, destructiveHint: false },
+  annotations: {
+    title: 'Update task',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 const deleteTaskSchema = z.object({
@@ -855,5 +867,11 @@ export const deleteTaskDefinition = {
     },
     required: ['task_id'],
   },
-  annotations: { title: 'Delete task', readOnlyHint: false, destructiveHint: true },
+  annotations: {
+    title: 'Delete task',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };

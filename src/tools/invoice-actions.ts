@@ -85,6 +85,13 @@ export const finalizeInvoiceDefinition = {
     },
     required: ['invoice_id'],
   },
+  annotations: {
+    title: 'Finalize invoice',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 // ─── get_invoice_pdf_url ─────────────────────────────────────────────────────
@@ -148,7 +155,7 @@ export const getInvoicePdfUrlDefinition = {
     },
     required: ['invoice_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get invoice PDF URL', readOnlyHint: true, openWorldHint: true },
 };
 
 // ─── delete_invoice ──────────────────────────────────────────────────────────
@@ -240,7 +247,13 @@ export const deleteInvoiceDefinition = {
     },
     required: ['invoice_id'],
   },
-  annotations: { destructiveHint: true },
+  annotations: {
+    title: 'Delete invoice',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 // ─── get_timesheet_report_url ────────────────────────────────────────────────
@@ -396,7 +409,7 @@ export const getTimesheetReportUrlDefinition = {
       page_size: { type: 'string', description: 'Page size (default: "A4")' },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get timesheet report URL', readOnlyHint: true, openWorldHint: true },
 };
 
 // ─── mark_invoice_paid ───────────────────────────────────────────────────────
@@ -530,5 +543,12 @@ export const markInvoicePaidDefinition = {
       },
     },
     required: ['invoice_id'],
+  },
+  annotations: {
+    title: 'Mark invoice paid',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

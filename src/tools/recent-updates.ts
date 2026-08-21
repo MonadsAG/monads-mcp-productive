@@ -138,5 +138,5 @@ export const getRecentUpdatesTool = {
     },
     additionalProperties: false,
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get recent updates', readOnlyHint: true, openWorldHint: true },
 };

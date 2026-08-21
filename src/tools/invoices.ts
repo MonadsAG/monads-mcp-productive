@@ -158,7 +158,7 @@ export const listInvoicesDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List invoices', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -245,7 +245,7 @@ export const listCompanyBudgetsDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List company budgets', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -338,7 +338,7 @@ export const getInvoiceDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get invoice', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -505,6 +505,13 @@ export const createInvoiceDefinition = {
       },
     },
   },
+  annotations: {
+    title: 'Create invoice',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -587,6 +594,13 @@ export const updateInvoiceDefinition = {
       purchase_order_number: { type: 'string', description: 'PO number' },
     },
     required: ['invoice_id'],
+  },
+  annotations: {
+    title: 'Update invoice',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -724,5 +738,12 @@ export const generateLineItemsDefinition = {
         description: 'Group line items by "service" or "budget" (default: "service")',
       },
     },
+  },
+  annotations: {
+    title: 'Generate invoice line items',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };

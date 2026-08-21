@@ -205,4 +205,11 @@ export const updateTaskStatusDefinition = {
     },
     required: ['task_id'],
   },
+  annotations: {
+    title: 'Update task status',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };

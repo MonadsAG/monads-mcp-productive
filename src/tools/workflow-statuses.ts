@@ -91,5 +91,5 @@ export const listWorkflowStatusesDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List workflow statuses', readOnlyHint: true, openWorldHint: true },
 };

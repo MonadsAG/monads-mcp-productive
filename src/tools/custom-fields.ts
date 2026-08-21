@@ -101,7 +101,7 @@ export const listCustomFieldsDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List custom fields', readOnlyHint: true, openWorldHint: true },
 };
 
 const listCustomFieldOptionsSchema = z.object({
@@ -173,5 +173,5 @@ export const listCustomFieldOptionsDefinition = {
     },
     required: ['custom_field_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List custom field options', readOnlyHint: true, openWorldHint: true },
 };

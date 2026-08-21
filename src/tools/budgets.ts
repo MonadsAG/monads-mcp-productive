@@ -128,6 +128,13 @@ export const createBudgetDefinition = {
       },
     },
   },
+  annotations: {
+    title: 'Create budget',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -207,6 +214,13 @@ export const updateBudgetDefinition = {
         description: 'Budget consumption percentage that triggers a warning',
       },
     },
+  },
+  annotations: {
+    title: 'Update budget',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -298,5 +312,12 @@ export const createBudgetFromDealDefinition = {
       date: { type: 'string', description: 'Override start date YYYY-MM-DD (default: today)' },
       end_date: { type: 'string', description: 'Override end date YYYY-MM-DD' },
     },
+  },
+  annotations: {
+    title: 'Create budget from deal',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };

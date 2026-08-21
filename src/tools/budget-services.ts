@@ -93,6 +93,13 @@ export const createBudgetServiceDefinition = {
       budgeted_time: { type: 'number', description: 'Allocated hours for this service' },
     },
   },
+  annotations: {
+    title: 'Create budget service',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -176,5 +183,12 @@ export const updateBudgetServiceDefinition = {
       },
       budgeted_time: { type: 'number', description: 'Allocated hours for this service' },
     },
+  },
+  annotations: {
+    title: 'Update budget service',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

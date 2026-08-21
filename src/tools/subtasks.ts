@@ -131,6 +131,7 @@ export const listSubtasksDefinition = {
     },
     required: ['parent_task_id'],
   },
+  annotations: { title: 'List subtasks', readOnlyHint: true, openWorldHint: true },
 };
 
 const createSubtaskSchema = z.object({
@@ -266,5 +267,12 @@ export const createSubtaskDefinition = {
       },
     },
     required: ['parent_task_id', 'title'],
+  },
+  annotations: {
+    title: 'Create subtask',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };

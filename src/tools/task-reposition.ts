@@ -165,6 +165,13 @@ export const taskRepositionDefinition = {
       { taskId: '123', moveToTop: true },
     ],
   },
+  annotations: {
+    title: 'Reposition task',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 export const taskRepositionTool = async (

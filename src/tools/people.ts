@@ -152,7 +152,7 @@ export const listPeopleDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List people', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getPersonDefinition = {
@@ -168,5 +168,5 @@ export const getPersonDefinition = {
     },
     required: ['person_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get person', readOnlyHint: true, openWorldHint: true },
 };

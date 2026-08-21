@@ -110,4 +110,11 @@ export const setTimeEntryApprovalDefinition = {
       },
     ],
   },
+  annotations: {
+    title: 'Set time entry approval',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };

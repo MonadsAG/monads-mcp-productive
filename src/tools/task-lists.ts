@@ -86,7 +86,7 @@ export const listTaskListsTool = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List task lists', readOnlyHint: true, openWorldHint: true },
 };
 
 const CreateTaskListSchema = z.object({
@@ -168,6 +168,13 @@ export const createTaskListTool = {
     },
     required: ['board_id', 'project_id', 'name'],
   },
+  annotations: {
+    title: 'Create task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 // --- Get Task List ---
@@ -221,6 +228,7 @@ export const getTaskListTool = {
     },
     required: ['task_list_id'],
   },
+  annotations: { title: 'Get task list', readOnlyHint: true, openWorldHint: true },
 };
 
 export const getTaskListDefinition = getTaskListTool;
@@ -289,6 +297,13 @@ export const updateTaskListTool = {
     },
     required: ['task_list_id'],
   },
+  annotations: {
+    title: 'Update task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 export const updateTaskListDefinition = updateTaskListTool;
@@ -335,6 +350,13 @@ export const archiveTaskListTool = {
     },
     required: ['task_list_id'],
   },
+  annotations: {
+    title: 'Archive task list',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 export const archiveTaskListDefinition = archiveTaskListTool;
@@ -380,6 +402,13 @@ export const restoreTaskListTool = {
       },
     },
     required: ['task_list_id'],
+  },
+  annotations: {
+    title: 'Restore task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -476,6 +505,13 @@ export const copyTaskListTool = {
     },
     required: ['name', 'template_id', 'project_id', 'board_id'],
   },
+  annotations: {
+    title: 'Copy task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const copyTaskListDefinition = copyTaskListTool;
@@ -529,6 +565,13 @@ export const moveTaskListTool = {
     },
     required: ['task_list_id', 'board_id'],
   },
+  annotations: {
+    title: 'Move task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 export const moveTaskListDefinition = moveTaskListTool;
@@ -581,6 +624,13 @@ export const repositionTaskListTool = {
       },
     },
     required: ['task_list_id', 'move_before_id'],
+  },
+  annotations: {
+    title: 'Reposition task list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 

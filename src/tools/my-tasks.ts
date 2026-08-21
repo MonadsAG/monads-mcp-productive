@@ -117,5 +117,5 @@ export const myTasksDefinition = {
       },
     },
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'My tasks', readOnlyHint: true, openWorldHint: true },
 };

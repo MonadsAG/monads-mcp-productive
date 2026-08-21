@@ -142,6 +142,13 @@ export const addTaskCommentDefinition = {
     },
     required: ['task_id', 'comment'],
   },
+  annotations: {
+    title: 'Add task comment',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 // ---- List Comments ----
@@ -212,6 +219,7 @@ export const listCommentsDefinition = {
       },
     },
   },
+  annotations: { title: 'List comments', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---- Get Comment ----
@@ -272,6 +280,7 @@ export const getCommentDefinition = {
     },
     required: ['comment_id'],
   },
+  annotations: { title: 'Get comment', readOnlyHint: true, openWorldHint: true },
 };
 
 // ---- Update Comment ----
@@ -342,6 +351,13 @@ export const updateCommentDefinition = {
     },
     required: ['comment_id', 'body'],
   },
+  annotations: {
+    title: 'Update comment',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 // ---- Delete Comment ----
@@ -385,6 +401,13 @@ export const deleteCommentDefinition = {
       },
     },
     required: ['comment_id'],
+  },
+  annotations: {
+    title: 'Delete comment',
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -430,6 +453,13 @@ export const pinCommentDefinition = {
     },
     required: ['comment_id'],
   },
+  annotations: {
+    title: 'Pin comment',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 // ---- Unpin Comment ----
@@ -473,6 +503,13 @@ export const unpinCommentDefinition = {
       },
     },
     required: ['comment_id'],
+  },
+  annotations: {
+    title: 'Unpin comment',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };
 
@@ -522,5 +559,12 @@ export const addCommentReactionDefinition = {
       },
     },
     required: ['comment_id', 'reaction'],
+  },
+  annotations: {
+    title: 'Add comment reaction',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
   },
 };

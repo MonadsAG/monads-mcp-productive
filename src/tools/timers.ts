@@ -174,7 +174,7 @@ export const getTimerDefinition = {
     },
     required: ['timer_id'],
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Get timer', readOnlyHint: true, openWorldHint: true },
 };
 
 export const startTimerDefinition = {
@@ -201,6 +201,13 @@ export const startTimerDefinition = {
     },
     required: ['note'],
   },
+  annotations: {
+    title: 'Start timer',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  },
 };
 
 export const stopTimerDefinition = {
@@ -215,5 +222,12 @@ export const stopTimerDefinition = {
       },
     },
     required: ['timer_id'],
+  },
+  annotations: {
+    title: 'Stop timer',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
   },
 };

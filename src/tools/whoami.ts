@@ -73,5 +73,5 @@ export const whoAmITool = {
     type: 'object',
     properties: {},
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'Who am I', readOnlyHint: true, openWorldHint: true },
 };

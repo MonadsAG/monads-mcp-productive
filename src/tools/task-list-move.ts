@@ -65,4 +65,11 @@ export const moveTaskToListTool = {
     },
     required: ['task_id', 'task_list_id'],
   },
+  annotations: {
+    title: 'Move task to list',
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };

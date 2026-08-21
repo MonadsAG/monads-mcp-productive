@@ -155,5 +155,5 @@ export const listActivitiesTool = {
     },
     additionalProperties: false,
   },
-  annotations: { readOnlyHint: true },
+  annotations: { title: 'List activities', readOnlyHint: true, openWorldHint: true },
 };
