@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { getConfig } from '../../src/config/index.js';
 import { ProductiveAPIClient } from '../../src/api/client.js';
 import { createTaskTool, getTaskTool, deleteTaskTool } from '../../src/tools/tasks.js';
@@ -12,8 +12,14 @@ describe.skipIf(!process.env.PRODUCTIVE_API_TOKEN)(
   () => {
     // Mirrors the stdio wiring in src/index.ts / src/server.ts: getConfig()
     // validates process.env, then the client is constructed directly from it.
-    const config = getConfig();
-    const client = new ProductiveAPIClient(config);
+    // Vitest still executes a describe body during collection even when
+    // skipIf skips it, so getConfig() must not run at this level -- without
+    // credentials it throws and the whole file fails instead of skipping.
+    let client: ProductiveAPIClient;
+
+    beforeAll(() => {
+      client = new ProductiveAPIClient(getConfig());
+    });
 
     let discoveredFields: ProductiveCustomField[] = [];
     let createdTaskId: string | null = null;

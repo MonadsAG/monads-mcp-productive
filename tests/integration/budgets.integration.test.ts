@@ -1,4 +1,5 @@
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
+import type { Config } from '../../src/config/index.js';
 import { getConfig } from '../../src/config/index.js';
 import { ProductiveAPIClient } from '../../src/api/client.js';
 import {
@@ -13,8 +14,16 @@ import {
 describe.skipIf(!process.env.PRODUCTIVE_API_TOKEN)(
   'budgets integration (live Productive.io org)',
   () => {
-    const config = getConfig();
-    const client = new ProductiveAPIClient(config);
+    // Vitest still executes a describe body during collection even when
+    // skipIf skips it, so getConfig() must not run at this level -- without
+    // credentials it throws and the whole file fails instead of skipping.
+    let config: Config;
+    let client: ProductiveAPIClient;
+
+    beforeAll(() => {
+      config = getConfig();
+      client = new ProductiveAPIClient(config);
+    });
 
     const createdDealIds: string[] = [];
 
