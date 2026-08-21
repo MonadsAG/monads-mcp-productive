@@ -142,8 +142,23 @@ build, `prettier --check`, `npm test` and `npm run spec:impact`. Run the same se
 pushing — nothing else gates a merge.
 
 The integration suites under `tests/integration/` skip themselves when `PRODUCTIVE_API_TOKEN` is
-unset, so CI runs the unit tests only. Locally they use the credentials in `.dev.vars`; if they fail
-with `You are not authenticated`, that token is stale — replace it rather than ignoring the red.
+unset, so CI runs the unit tests only. Locally they use the credentials in `.dev.vars` — copy
+`.dev.vars.example` and fill it in. If they fail with `You are not authenticated`, that token is
+stale — replace it rather than ignoring the red.
+
+**Check `.dev.vars` before trusting a green test run.** A missing file fails nothing: the suites skip
+and `npm test` reports `Test Files 5 skipped (5)` / `Tests 12 skipped (12)` in green, having verified
+nothing that talks to Productive. `tests/setup.ts` warns on stderr in that case (suppressed under
+`CI`, where the token is absent by design), but the skip line is what to read. Pre-flight:
+
+```bash
+test -f .dev.vars && grep -q '^PRODUCTIVE_API_TOKEN=.' .dev.vars \
+  && echo "integration suites will run" || echo "integration suites will SKIP"
+```
+
+The other direction matters just as much: **with valid credentials `npm test` writes to the live
+org** — the suites create deals, budgets and folders and remove them again in `afterAll`. Point
+`.dev.vars` at a sandbox org, never at production.
 
 Because `skipIf` still executes a describe body during collection, an integration suite must build
 its client inside `beforeAll`, never at describe level: a top-level `getConfig()` throws without
@@ -200,7 +215,9 @@ KV namespaces (`wrangler.jsonc`): `OAUTH_KV`, `USER_MAPPING_KV` (oid → person 
 ## Git Workflow
 
 - **Origin**: `MonadsAG/monads-mcp-productive` — all PRs go here
-- **Upstream**: `berwickgeek/productive-mcp` — fork source, **NEVER create PRs here**
-- **CRITICAL**: Always use `--repo MonadsAG/monads-mcp-productive` when running `gh pr create`. The `gh` CLI defaults to the upstream fork (`berwickgeek/productive-mcp`) which is wrong.
+- **Upstream**: `berwickgeek/productive-mcp` — the fork source, kept as a **harvest source, not a merge source**. `git merge upstream/main` is not viable: the Worker/BYOT/toolsets rewrite diverged so far that (as of 2026-08-21) not one of our 53 `src/` files is byte-identical with upstream. Port individual features by hand instead, the way PR #19 did, and note in the commit what you deliberately did _not_ adopt. Never open PRs there.
+- **Surveying upstream**: `git fetch upstream && git log --no-merges $(git merge-base main upstream/main)..upstream/main`. Upstream is still actively developed, so this is worth a look before building something it may already have. Anything filesystem-based (e.g. its attachment tools) is out — it does not run on the Workers runtime.
+- **The GitHub fork relationship stays** for as long as we harvest from upstream. Detaching it is the option once we stop, not a cleanup task.
+- **`gh` default repo**: `remote.origin.gh-resolved=base` is set (via `gh repo set-default MonadsAG/monads-mcp-productive`), so `gh` targets origin, not the parent. If `gh` ever prompts for a repo or aims at `berwickgeek/...`, that config was lost — re-run `gh repo set-default` instead of pasting `--repo` into every command.
 - **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production. Neither `.github/workflows` entry deploys: `ci.yml` checks, `api-spec-sync.yml` syncs the spec. `npm run worker:deploy` is only for deliberate out-of-band/test deploys.
 - **PRs are squash-merged** (`gh pr merge --squash --delete-branch`) — confirmed by `main`'s single-commit-per-PR history. Afterward, local feature branches need `git branch -D` (not `-d`) to clean up, since git doesn't recognize a squash commit as merged via ancestry.
