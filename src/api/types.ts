@@ -399,6 +399,12 @@ export interface ProductiveTimeEntry {
     note?: string; // Description of work performed
     created_at: string;
     updated_at: string;
+    approved?: boolean;
+    approved_at?: string | null;
+    rejected?: boolean;
+    rejected_reason?: string | null;
+    rejected_at?: string | null;
+    submitted?: boolean;
     [key: string]: any;
   };
   relationships?: {
@@ -419,6 +425,10 @@ export interface ProductiveTimeEntry {
         id: string;
         type: 'tasks';
       };
+    };
+    /** Nullable, unlike person/task -- API returns `{ data: null }` until someone approves. */
+    approver?: {
+      data: { id: string; type: 'people' } | null;
     };
     project?: {
       data: {

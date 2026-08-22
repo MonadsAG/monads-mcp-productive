@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { ProductiveAPIClient } from '../../src/api/client.js';
 import { setTimeEntryApprovalTool } from '../../src/tools/time-entry-approval.js';
 
-function mockEntry() {
+function mockEntry(attributeOverrides: Record<string, unknown> = {}) {
   return {
     id: '55',
     type: 'time_entries',
@@ -11,22 +11,23 @@ function mockEntry() {
       time: 120,
       note: 'Worked on feature',
       updated_at: '2026-07-05T10:00:00Z',
+      ...attributeOverrides,
     },
   };
 }
 
-function mockClient() {
+function mockClient(attributeOverrides: Record<string, unknown> = {}) {
   return {
-    approveTimeEntry: vi.fn().mockResolvedValue({ data: mockEntry() }),
-    unapproveTimeEntry: vi.fn().mockResolvedValue({ data: mockEntry() }),
-    rejectTimeEntry: vi.fn().mockResolvedValue({ data: mockEntry() }),
-    unrejectTimeEntry: vi.fn().mockResolvedValue({ data: mockEntry() }),
+    approveTimeEntry: vi.fn().mockResolvedValue({ data: mockEntry(attributeOverrides) }),
+    unapproveTimeEntry: vi.fn().mockResolvedValue({ data: mockEntry(attributeOverrides) }),
+    rejectTimeEntry: vi.fn().mockResolvedValue({ data: mockEntry(attributeOverrides) }),
+    unrejectTimeEntry: vi.fn().mockResolvedValue({ data: mockEntry(attributeOverrides) }),
   } as unknown as ProductiveAPIClient;
 }
 
 describe('setTimeEntryApprovalTool', () => {
   it('approves a time entry', async () => {
-    const client = mockClient();
+    const client = mockClient({ approved: true, approved_at: '2026-07-05T10:00:00Z' });
 
     const result = await setTimeEntryApprovalTool(client, {
       time_entry_id: '55',
@@ -35,6 +36,7 @@ describe('setTimeEntryApprovalTool', () => {
 
     expect(client.approveTimeEntry).toHaveBeenCalledWith('55');
     expect(result.content[0].text).toContain('approved');
+    expect(result.content[0].text).toContain('Approval: Approved');
   });
 
   it('unapproves a time entry', async () => {
@@ -50,7 +52,7 @@ describe('setTimeEntryApprovalTool', () => {
   });
 
   it('rejects a time entry with a reason', async () => {
-    const client = mockClient();
+    const client = mockClient({ rejected: true, rejected_reason: 'Wrong project' });
 
     const result = await setTimeEntryApprovalTool(client, {
       time_entry_id: '55',
@@ -61,6 +63,7 @@ describe('setTimeEntryApprovalTool', () => {
     expect(client.rejectTimeEntry).toHaveBeenCalledWith('55', 'Wrong project');
     expect(result.content[0].text).toContain('rejected');
     expect(result.content[0].text).toContain('Wrong project');
+    expect(result.content[0].text).toContain('Approval: Rejected (Wrong project)');
   });
 
   it('rejects a time entry without a reason', async () => {

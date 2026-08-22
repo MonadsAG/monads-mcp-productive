@@ -461,6 +461,8 @@ export class ProductiveAPIClient {
    * @param params.project_id - Filter by project ID
    * @param params.task_id - Filter by task ID
    * @param params.service_id - Filter by service ID
+   * @param params.approved - Filter by approval state (true/false)
+   * @param params.approver_id - Filter by the ID of the person who approved the entry
    * @param params.limit - Number of results per page
    * @param params.page - Page number for pagination
    * @returns Promise resolving to paginated time entries response
@@ -481,13 +483,15 @@ export class ProductiveAPIClient {
     project_id?: string;
     task_id?: string;
     service_id?: string;
+    approved?: boolean;
+    approver_id?: string;
     limit?: number;
     page?: number;
   }): Promise<ProductiveResponse<ProductiveTimeEntry>> {
     const queryParams = new URLSearchParams();
 
     // Include relationships by default
-    queryParams.append('include', 'person,service,task');
+    queryParams.append('include', 'person,service,task,approver');
 
     if (params?.date) {
       queryParams.append('filter[date]', params.date);
@@ -515,6 +519,22 @@ export class ProductiveAPIClient {
 
     if (params?.service_id) {
       queryParams.append('filter[service_id]', params.service_id);
+    }
+
+    if (params?.approved !== undefined) {
+      // approved/rejected/submitted are response attributes, not filter keys --
+      // filter[approved]=true 422s live. The real filter is filter[status]
+      // (undocumented enum, live-confirmed: 1=approved). not_eq robustly covers
+      // every other code for approved:false, not just the confirmed value 2.
+      if (params.approved) {
+        queryParams.append('filter[status]', '1');
+      } else {
+        queryParams.append('filter[status][not_eq]', '1');
+      }
+    }
+
+    if (params?.approver_id) {
+      queryParams.append('filter[approver_id]', params.approver_id);
     }
 
     if (params?.limit) {

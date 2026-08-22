@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
-import { ProductiveTimeEntryCreate } from '../api/types.js';
+import { ProductiveTimeEntry, ProductiveTimeEntryCreate } from '../api/types.js';
 import { buildIncludeMap, resolveName } from './include-resolver.js';
 import { toMcpError } from '../utils/errors.js';
 
@@ -81,6 +81,21 @@ export function parseDate(dateInput: string): string {
   );
 }
 
+// Helper function to summarize a time entry's approval state for display
+export function formatApprovalLine(entry: ProductiveTimeEntry, approverName?: string): string {
+  const approverId = entry.relationships?.approver?.data?.id;
+  if (entry.attributes.approved) {
+    return `Approval: Approved${approverName ? ` by ${approverName}` : approverId ? ` by ID ${approverId}` : ''}${entry.attributes.approved_at ? ` on ${entry.attributes.approved_at}` : ''}`;
+  }
+  if (entry.attributes.rejected) {
+    return `Approval: Rejected${entry.attributes.rejected_reason ? ` (${entry.attributes.rejected_reason})` : ''}${entry.attributes.rejected_at ? ` on ${entry.attributes.rejected_at}` : ''}`;
+  }
+  if (entry.attributes.submitted) {
+    return 'Approval: Submitted, awaiting decision';
+  }
+  return 'Approval: Not submitted';
+}
+
 const listTimeEntriesSchema = z.object({
   date: z.string().optional(),
   after: z.string().optional(),
@@ -89,6 +104,8 @@ const listTimeEntriesSchema = z.object({
   project_id: z.string().optional(),
   task_id: z.string().optional(),
   service_id: z.string().optional(),
+  approved: coerceBoolean.optional(),
+  approver_id: z.string().optional(),
   limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
@@ -150,6 +167,8 @@ export async function listTimeEntresTool(
       project_id: params.project_id,
       task_id: params.task_id,
       service_id: params.service_id,
+      approved: params.approved,
+      approver_id: params.approver_id,
       limit: params.limit,
     });
 
@@ -173,8 +192,11 @@ export async function listTimeEntresTool(
         const taskId = entry.relationships?.task?.data?.id;
         const projectId = entry.relationships?.project?.data?.id;
 
+        const approverId = entry.relationships?.approver?.data?.id;
+
         const personName = resolveName(nameMap, 'people', personId) ?? 'Unknown';
         const taskName = resolveName(nameMap, 'tasks', taskId);
+        const approverName = resolveName(nameMap, 'people', approverId);
         const timeDisplay = formatMinutesDisplay(entry.attributes.time);
 
         let billableDisplay = '';
@@ -189,6 +211,7 @@ export async function listTimeEntresTool(
   Date: ${entry.attributes.date}
   Time: ${timeDisplay}${billableDisplay}
   Note: ${entry.attributes.note || 'No note'}
+  ${formatApprovalLine(entry, approverName)}
   Person: ${personName}${personId ? ` (ID: ${personId})` : ''}
   Service ID: ${serviceId || 'Unknown'}
   ${taskName ? `Task: ${taskName}` : taskId ? `Task ID: ${taskId}` : 'Task: None'}
@@ -528,6 +551,15 @@ export const listTimeEntriesDefinition = {
       service_id: {
         type: 'string',
         description: 'Filter by service ID',
+      },
+      approved: {
+        type: 'boolean',
+        description:
+          "Filter by approval state: true = approved, false = not approved (no decision yet, or rejected/pending). Maps to Productive's undocumented filter[status] internally.",
+      },
+      approver_id: {
+        type: 'string',
+        description: 'Filter by the ID of the person who approved the time entry.',
       },
       limit: {
         type: 'number',
