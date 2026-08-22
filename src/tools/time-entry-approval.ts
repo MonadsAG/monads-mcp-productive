@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
 import { ProductiveTimeEntry } from '../api/types.js';
-import { formatMinutesDisplay } from './time-entries.js';
+import { formatApprovalLine, formatMinutesDisplay } from './time-entries.js';
 import { toMcpError } from '../utils/errors.js';
 
 const setTimeEntryApprovalSchema = z
@@ -29,6 +29,7 @@ function formatTimeEntryResponse(
   text += `ID: ${entry.id}\n`;
   text += `Date: ${entry.attributes.date}\n`;
   text += `Time: ${formatMinutesDisplay(entry.attributes.time)}`;
+  text += `\n${formatApprovalLine(entry)}`;
 
   if (extra) {
     text += `\n${extra}`;

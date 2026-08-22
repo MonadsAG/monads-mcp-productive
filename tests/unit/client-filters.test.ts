@@ -102,4 +102,39 @@ describe('ProductiveAPIClient filter keys', () => {
     expect(url).not.toContain('filter%5Bafter%5D');
     expect(url).not.toContain('filter%5Bbefore%5D');
   });
+
+  // Live-verified against the sandbox: filter[approved]=true 422s ("not
+  // supported on this endpoint"). The real filter is filter[status], an
+  // undocumented enum where 1=approved (confirmed live).
+  it('listTimeEntries sends filter[status]=1 (not filter[approved]) for approved:true', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listTimeEntries({ approved: true });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Bstatus%5D=1');
+    expect(url).not.toContain('filter%5Bapproved%5D');
+  });
+
+  it('listTimeEntries sends filter[status][not_eq]=1 for approved:false', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listTimeEntries({ approved: false });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Bstatus%5D%5Bnot_eq%5D=1');
+    expect(url).not.toContain('filter%5Bapproved%5D');
+  });
+
+  it('listTimeEntries sends filter[approver_id]', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listTimeEntries({ approver_id: '42' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Bapprover_id%5D=42');
+  });
 });
