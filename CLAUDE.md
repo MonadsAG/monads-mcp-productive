@@ -40,7 +40,7 @@ src/
 ├── tools/
 │   ├── registry.ts       # Shared tool registry (used by both entry points)
 │   ├── tasks.ts          # CRUD + assignment + details
-│   └── ...               # 29 tool files total
+│   └── ...               # 39 tool files total
 ├── prompts/
 │   └── timesheet.ts      # Guided timesheet workflow
 scripts/                  # spec sync + impact analysis (tsx, see API Spec)
@@ -101,6 +101,36 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 | `invoicing`     | invoices, company budgets, line items, PDF/timesheet URLs                          |
 | `docs`          | folders (boards) + pages                                                           |
 | `todos`         | todos                                                                              |
+| `resource_management` | absences (types, create, list), project capacity bookings, capacity overview |
+
+## Resource Management (Absences & Capacity)
+
+Bookings are *planned* assignments, not logged time (that's `time_entries`). One
+resource, two flavours, told apart by which relationship is set:
+
+- **Absence** -> `event_id` set. Tools: `list_absence_types`, `create_absence`, `list_absences`
+- **Project capacity** -> `service_id` set. Tools: `create_booking`, `update_booking`, `list_bookings`
+- **Utilisation**: `get_capacity_overview`
+
+Three things that bite if you don't know them:
+
+- **`POST /bookings` breaks the JSON:API convention used everywhere else here.**
+  `person_id`, `event_id` and `service_id` go in `data.attributes` as flat
+  values; sending them under `relationships` fails with `422 Invalid Attribute`.
+- **Never hardcode absence categories.** Names and IDs are org-specific and are
+  read at runtime via `GET /events` (`client.listEvents()`). Same reasoning as
+  the `update_task_sprint` removal above.
+- **Contracted hours come from `availabilities` on the person, not from
+  entitlements** (those are absence quotas). It is a JSON *string* holding
+  time-sliced two-week patterns -- see `src/api/capacity.ts`.
+
+Shared, API-free logic lives in `src/api/bookings-client.ts` (query/payload
+building, classification, type resolution) and `src/api/capacity.ts` (the
+arithmetic), so all three tool files build on one implementation and the maths
+is unit-testable without mocks.
+
+Full specification: `docs/resource-management-spec.md`; evidence and rejected
+assumptions: `docs/resource-management-journal.md`.
 
 ## Adding New Tools
 

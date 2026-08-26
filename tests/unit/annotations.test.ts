@@ -93,6 +93,8 @@ describe('tool annotations', () => {
       'copy_folder',
       'copy_page',
       'copy_task_list',
+      'create_absence',
+      'create_booking',
       'create_budget',
       'create_budget_from_deal',
       'create_budget_service',

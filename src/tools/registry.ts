@@ -219,6 +219,23 @@ import {
   getPersonTool,
   getPersonDefinition,
 } from './people.js';
+import {
+  listAbsenceTypesTool,
+  listAbsenceTypesDefinition,
+  createAbsenceTool,
+  createAbsenceDefinition,
+  listAbsencesTool,
+  listAbsencesDefinition,
+} from './absences.js';
+import {
+  createBookingTool,
+  createBookingDefinition,
+  updateBookingTool,
+  updateBookingDefinition,
+  listBookingsTool,
+  listBookingsDefinition,
+} from './bookings.js';
+import { getCapacityOverviewTool, getCapacityOverviewDefinition } from './capacity.js';
 
 /** All tool definitions for ListTools, optionally filtered to an enabled toolset. */
 export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
@@ -320,6 +337,13 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     // without annotations is a compile error here -- the client would otherwise
     // have no way to tell delete_task from list_tasks. Behaviour beyond that
     // (which hints are set to what) is checked in tests/unit/annotations.test.ts.
+    listAbsenceTypesDefinition,
+    createAbsenceDefinition,
+    listAbsencesDefinition,
+    createBookingDefinition,
+    updateBookingDefinition,
+    listBookingsDefinition,
+    getCapacityOverviewDefinition,
   ] satisfies ReadonlyArray<{ name: string; annotations: ToolAnnotations }>;
 
   if (!enabledToolNames) return all;
@@ -532,6 +556,20 @@ export async function handleToolCall(
       return await createTaskDependencyTool(apiClient, args);
     case 'delete_task_dependency':
       return await deleteTaskDependencyTool(apiClient, args);
+    case 'list_absence_types':
+      return await listAbsenceTypesTool(apiClient, args);
+    case 'create_absence':
+      return await createAbsenceTool(apiClient, args, config);
+    case 'list_absences':
+      return await listAbsencesTool(apiClient, args, config);
+    case 'create_booking':
+      return await createBookingTool(apiClient, args, config);
+    case 'update_booking':
+      return await updateBookingTool(apiClient, args);
+    case 'list_bookings':
+      return await listBookingsTool(apiClient, args, config);
+    case 'get_capacity_overview':
+      return await getCapacityOverviewTool(apiClient, args, config);
     default:
       throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
   }

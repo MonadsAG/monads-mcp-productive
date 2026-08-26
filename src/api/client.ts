@@ -51,7 +51,12 @@ import {
   ProductiveLineItem,
   ProductiveCustomField,
   ProductiveCustomFieldOption,
+  ProductiveBooking,
+  ProductiveBookingCreate,
+  ProductiveBookingUpdate,
+  ProductiveEvent,
 } from './types.js';
+import { buildBookingQuery, type BookingFilterParams } from './bookings-client.js';
 import {
   ProductiveApiError,
   formatProductiveErrors,
@@ -1694,5 +1699,73 @@ export class ProductiveAPIClient {
     return this.makeRequest<ProductiveResponse<ProductiveCustomFieldOption>>(
       `custom_field_options?${q.toString()}`,
     );
+  }
+
+  // --- Resource Management: bookings, events, availabilities ------------------
+  // Bookings cover both absences (event_id) and project capacity (service_id).
+  // See docs/resource-management-spec.md for the field mapping.
+
+  /**
+   * List the org's configured absence types.
+   *
+   * Tools must read these at runtime rather than shipping a hardcoded list of
+   * categories -- names and IDs differ per organisation and change over time.
+   */
+  async listEvents(params?: { limit?: number }): Promise<ProductiveResponse<ProductiveEvent>> {
+    const q = new URLSearchParams();
+    q.append('page[size]', String(params?.limit ?? 200));
+    return this.makeRequest<ProductiveResponse<ProductiveEvent>>(`events?${q.toString()}`);
+  }
+
+  /**
+   * List bookings (absences and project capacity alike).
+   *
+   * What comes back depends on the calling token: a regular user token returns
+   * only that user's own bookings, so an empty result never proves that none
+   * exist org-wide.
+   */
+  async listBookings(params?: BookingFilterParams): Promise<ProductiveResponse<ProductiveBooking>> {
+    const queryString = buildBookingQuery(params);
+    return this.makeRequest<ProductiveResponse<ProductiveBooking>>(
+      `bookings${queryString ? `?${queryString}` : ''}`,
+    );
+  }
+
+  /** Fetch a single booking, including the relationships needed to classify it. */
+  async getBooking(bookingId: string): Promise<ProductiveSingleResponse<ProductiveBooking>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveBooking>>(
+      `bookings/${bookingId}?include=person,event,service,approval_statuses`,
+    );
+  }
+
+  /**
+   * Create a booking.
+   *
+   * The payload puts person_id/event_id/service_id in `attributes`, not in
+   * `relationships` -- the JSON:API form used elsewhere in this client is
+   * rejected here with 422. Whether the result needs approval depends on the
+   * booked person's approval policy, so always read `approved` from the result.
+   */
+  async createBooking(
+    bookingData: ProductiveBookingCreate,
+  ): Promise<ProductiveSingleResponse<ProductiveBooking>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveBooking>>(
+      'bookings?include=approval_statuses',
+      {
+        method: 'POST',
+        body: JSON.stringify(bookingData),
+      },
+    );
+  }
+
+  /** Update an existing booking (dates, amounts, note). */
+  async updateBooking(
+    bookingId: string,
+    bookingData: ProductiveBookingUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveBooking>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveBooking>>(`bookings/${bookingId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(bookingData),
+    });
   }
 }

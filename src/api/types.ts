@@ -237,6 +237,8 @@ export interface ProductivePerson {
   id: string;
   type: 'people';
   attributes: {
+    /** Contracted working pattern as a JSON string; see api/capacity.ts. */
+    availabilities?: string;
     email: string;
     first_name: string;
     last_name: string;
@@ -1094,5 +1096,115 @@ export interface ProductivePaymentCreate {
     relationships: {
       invoice: { data: { id: string; type: 'invoices' } };
     };
+  };
+}
+/**
+ * Absence type definition ("event" in the API's vocabulary).
+ *
+ * These are org-configured categories (vacation, sick leave, ...). Their names
+ * and IDs are deliberately never hardcoded in tools -- read them at runtime via
+ * listEvents() instead. See docs/resource-management-spec.md.
+ */
+export interface ProductiveEvent {
+  id: string;
+  type: 'events';
+  attributes: {
+    name: string;
+    absence_type?: string;
+    /** 1 = Paid, 2 = Unpaid */
+    event_type_id?: number;
+    /** 2 = Limited by days, 3 = Limited by hours, 4 = Unlimited by hours */
+    limitation_type_id?: number;
+    half_day_bookings?: boolean;
+    description?: string;
+    archived_at?: string | null;
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Booking entity -- a *planned* assignment in the resource schedule.
+ *
+ * Two mutually exclusive flavours, distinguished by which relationship is set:
+ *   - absence  -> `event` is set, `service` is null
+ *   - capacity -> `service` is set, `event` is null
+ *
+ * A booking is planning, not logged time; see ProductiveTimeEntry for the latter.
+ */
+export interface ProductiveBooking {
+  id: string;
+  type: 'bookings';
+  attributes: {
+    started_on: string;
+    ended_on: string;
+    /** Hours per day (booking_method_id 1) */
+    hours?: number | null;
+    /** Minutes per day (booking_method_id 1) */
+    time?: number | null;
+    /** Allocation percentage (booking_method_id 2) */
+    percentage?: number | null;
+    /** Total minutes over the whole period (booking_method_id 3) */
+    total_time?: number | null;
+    /** 1 = Hours per day, 2 = Percentage, 3 = Total hours */
+    booking_method_id?: number;
+    total_working_days?: number;
+    note?: string | null;
+    approved?: boolean;
+    approved_at?: string | null;
+    rejected?: boolean;
+    rejected_at?: string | null;
+    rejected_reason?: string | null;
+    canceled?: boolean;
+    canceled_at?: string | null;
+    draft?: boolean;
+    /** 1 = Deal, 2 = Budget -- only meaningful on capacity bookings */
+    stage_type?: number | null;
+    created_at?: string;
+    updated_at?: string;
+    [key: string]: unknown;
+  };
+  relationships?: {
+    person?: { data: { id: string; type: 'people' } | null };
+    event?: { data: { id: string; type: 'events' } | null };
+    service?: { data: { id: string; type: 'services' } | null };
+    approver?: { data: { id: string; type: 'people' } | null };
+    creator?: { data: { id: string; type: 'people' } | null };
+    approval_statuses?: { data?: Array<{ id: string; type: 'approval_statuses' }> };
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Create payload for POST /bookings.
+ *
+ * Note the deviation from JSON:API used elsewhere in this repo: person_id,
+ * event_id and service_id go in `attributes` as flat values, NOT under
+ * `relationships`. Sending them as relationships fails with 422.
+ */
+export interface ProductiveBookingCreate {
+  data: {
+    type: 'bookings';
+    attributes: {
+      person_id: number;
+      event_id?: number;
+      service_id?: number;
+      started_on: string;
+      ended_on: string;
+      booking_method_id: number;
+      hours?: number;
+      time?: number;
+      percentage?: number;
+      total_time?: number;
+      note?: string;
+    };
+  };
+}
+
+/** Update payload for PATCH /bookings/{id} -- every attribute optional. */
+export interface ProductiveBookingUpdate {
+  data: {
+    type: 'bookings';
+    id: string;
+    attributes: Partial<ProductiveBookingCreate['data']['attributes']>;
   };
 }
