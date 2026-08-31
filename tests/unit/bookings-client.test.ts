@@ -9,6 +9,8 @@ import {
   describeApprovalState,
   formatMinutes,
   isAbsenceBooking,
+  overfetchLimit,
+  MAX_PAGE_SIZE,
   isCapacityBooking,
   resolveAbsenceType,
 } from '../../src/api/bookings-client.js';
@@ -161,10 +163,19 @@ describe('describeApprovalState', () => {
     expect(describeApprovalState(booking({ approved: true }))).toBe('Approved');
   });
 
-  it('includes the reason when a booking was rejected', () => {
-    expect(describeApprovalState(booking({ rejected: true, rejected_reason: 'too busy' }))).toBe(
-      'Rejected (too busy)',
-    );
+  it('withholds the rejection reason unless it was asked for', () => {
+    // Free text about one person's absence -- same sensitivity as `note`.
+    expect(
+      describeApprovalState(booking({ rejected: true, rejected_reason: 'still off sick' })),
+    ).toBe('Rejected');
+  });
+
+  it('includes the reason when the caller opted in', () => {
+    expect(
+      describeApprovalState(booking({ rejected: true, rejected_reason: 'too busy' }), {
+        includeReason: true,
+      }),
+    ).toBe('Rejected (too busy)');
   });
 
   it('reports cancellation ahead of any other state', () => {
@@ -177,6 +188,17 @@ describe('describeApprovalState', () => {
       { approval_statuses: { data: [{ id: '1', type: 'approval_statuses' }] } },
     );
     expect(describeApprovalState(b)).toBe('Pending approval (1 approver(s))');
+  });
+});
+
+describe('overfetchLimit', () => {
+  it('asks for more rows than requested, since absences are filtered out here', () => {
+    expect(overfetchLimit(50)).toBe(150);
+  });
+
+  it('never exceeds the largest page the endpoint takes', () => {
+    expect(overfetchLimit(100)).toBe(MAX_PAGE_SIZE);
+    expect(overfetchLimit(200)).toBe(MAX_PAGE_SIZE);
   });
 });
 

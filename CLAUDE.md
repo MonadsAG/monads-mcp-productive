@@ -112,7 +112,12 @@ resource, two flavours, told apart by which relationship is set:
 - **Project capacity** -> `service_id` set. Tools: `create_booking`, `update_booking`, `list_bookings`
 - **Utilisation**: `get_capacity_overview`
 
-Three things that bite if you don't know them:
+`list_absences` and `list_bookings` split the two kinds apart *after* the
+request, because the API cannot filter on it. Both therefore over-fetch
+(`overfetchLimit`) and trim afterwards -- asking for exactly `limit` rows lets
+one kind crowd the other out and report "none found" for something that exists.
+
+Four things that bite if you don't know them:
 
 - **`POST /bookings` breaks the JSON:API convention used everywhere else here.**
   `person_id`, `event_id` and `service_id` go in `data.attributes` as flat
@@ -123,6 +128,13 @@ Three things that bite if you don't know them:
 - **Contracted hours come from `availabilities` on the person, not from
   entitlements** (those are absence quotas). It is a JSON *string* holding
   time-sliced two-week patterns -- see `src/api/capacity.ts`.
+- **Hours and days must come from the same source.** Anything that multiplies
+  hours by days (booking method 3) has to count days with
+  `personWorkingDays`/`workingDaysInRange`, not `countWorkingDays`. Mixing the
+  person's pattern with the calendar charges a Mon-Thu contract for the Friday:
+  a plain week of leave is written as 40h against 32h contracted and then read
+  back out of `get_capacity_overview` as OVERBOOKED. `countWorkingDays` is only
+  the fallback for someone with no pattern on file.
 
 Shared, API-free logic lives in `src/api/bookings-client.ts` (query/payload
 building, classification, type resolution) and `src/api/capacity.ts` (the

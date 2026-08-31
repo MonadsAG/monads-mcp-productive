@@ -34,6 +34,21 @@ export const PERSON_TYPE = {
   AGENT: 4,
 } as const;
 
+/** Largest page the bookings endpoint is asked for. */
+export const MAX_PAGE_SIZE = 200;
+
+/**
+ * Page size to request when only some of the rows survive a client-side filter.
+ *
+ * Absences and project bookings share one endpoint and are told apart only after
+ * the fact, so asking for exactly `limit` rows lets a page of one kind crowd the
+ * other kind out entirely -- the tool then reports "none found" for something
+ * that exists. Fetch wider, filter, then trim to what was asked for.
+ */
+export function overfetchLimit(limit: number): number {
+  return Math.min(MAX_PAGE_SIZE, limit * 3);
+}
+
 export interface BookingFilterParams {
   after?: string;
   before?: string;
@@ -130,7 +145,12 @@ export function buildQuantity(
   }
 
   if (method === BOOKING_METHOD.HOURS_PER_DAY) {
-    return { hours: opts.hoursPerDay, time: Math.round(opts.hoursPerDay * 60) };
+    // `hours` can arrive as an average over an uneven week; `time` (minutes) is
+    // the field the API actually settles on, so only the display value rounds.
+    return {
+      hours: Math.round(opts.hoursPerDay * 100) / 100,
+      time: Math.round(opts.hoursPerDay * 60),
+    };
   }
 
   const days = opts.workingDays ?? 1;
@@ -156,11 +176,22 @@ export function countWorkingDays(startIso: string, endIso: string): number {
   return days;
 }
 
-/** Human-readable approval state derived from the response fields. */
-export function describeApprovalState(booking: ProductiveBooking): string {
+/**
+ * Human-readable approval state derived from the response fields.
+ *
+ * `rejected_reason` is free text written about a specific person's absence and
+ * can carry the same health detail as `note` -- "still signed off sick" -- so it
+ * stays behind the same opt-in rather than riding along in every listing.
+ */
+export function describeApprovalState(
+  booking: ProductiveBooking,
+  opts: { includeReason?: boolean } = {},
+): string {
   const a = booking.attributes;
   if (a.canceled) return 'Canceled';
-  if (a.rejected) return a.rejected_reason ? `Rejected (${a.rejected_reason})` : 'Rejected';
+  if (a.rejected) {
+    return opts.includeReason && a.rejected_reason ? `Rejected (${a.rejected_reason})` : 'Rejected';
+  }
   if (a.approved) return 'Approved';
 
   const pending = booking.relationships?.approval_statuses?.data?.length ?? 0;

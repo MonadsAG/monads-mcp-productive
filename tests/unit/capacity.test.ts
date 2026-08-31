@@ -9,6 +9,7 @@ import {
   bookedMinutes,
   overlapRange,
   summariseCapacity,
+  workingDaysInRange,
 } from '../../src/api/capacity.js';
 
 /** Two-week rotation: `hours` on weekdays, 0 at weekends. */
@@ -279,6 +280,69 @@ describe('summariseCapacity', () => {
     expect(summary.freeMinutes).toBeNull();
     expect(summary.utilisationPercent).toBeNull();
     expect(summary.plannedPercent).toBeNull();
+    expect(summary.overbooked).toBe(false);
+  });
+});
+
+describe('workingDaysInRange', () => {
+  /** Mon-Thu 8h, Friday off: a 32h contract, Monday first, two-week rotation. */
+  const fourDayWeek = parseAvailabilities(
+    JSON.stringify([['2020-01-01', null, [8, 8, 8, 8, 0, 0, 0, 8, 8, 8, 8, 0, 0, 0], 1]]),
+  );
+
+  it("counts the person's own working days, not the calendar's", () => {
+    // 2026-03-02..06 is Mon-Fri. Counting five would charge a Mon-Thu contract
+    // for a day it does not work -- a plain week of leave booked as 40h against
+    // 32h contracted, then reported back as overbooked.
+    expect(workingDaysInRange(fourDayWeek, '2026-03-02', '2026-03-06')).toBe(4);
+  });
+
+  it('falls back to calendar weekdays when no pattern is on file', () => {
+    expect(workingDaysInRange([], '2026-03-02', '2026-03-06')).toBe(5);
+  });
+
+  it('falls back rather than returning zero for a day the person never works', () => {
+    // Friday alone: no contracted day, but the range is still a working day for
+    // sizing purposes -- returning 0 would make the booking unwritable.
+    expect(workingDaysInRange(fourDayWeek, '2026-03-06', '2026-03-06')).toBe(1);
+  });
+
+  it('returns zero for a weekend-only range', () => {
+    expect(workingDaysInRange(fourDayWeek, '2026-03-07', '2026-03-08')).toBe(0);
+  });
+
+  it('sizes a part-time absence so it does not read as overbooked', () => {
+    const from = '2026-03-02';
+    const to = '2026-03-06';
+    const days = workingDaysInRange(fourDayWeek, from, to);
+    const contracted = contractedMinutes(fourDayWeek, from, to);
+    const hoursPerDay = contracted! / days / 60;
+
+    // What create_absence writes for a full week of leave.
+    const totalTime = Math.round(hoursPerDay * 60 * days);
+    expect(totalTime).toBe(1920); // 32h, not 40h
+
+    const summary = summariseCapacity(
+      [
+        {
+          id: 'a',
+          type: 'bookings',
+          relationships: { event: { data: { id: '1', type: 'events' } } },
+          attributes: {
+            started_on: from,
+            ended_on: to,
+            booking_method_id: 3,
+            total_time: totalTime,
+            total_working_days: days,
+          },
+        } as ProductiveBooking,
+      ],
+      fourDayWeek,
+      from,
+      to,
+    );
+
+    expect(summary.plannedPercent).toBe(100);
     expect(summary.overbooked).toBe(false);
   });
 });

@@ -5,6 +5,12 @@
 import { z } from 'zod';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { ProductiveAPIClient } from '../api/client.js';
+import { countWorkingDays } from '../api/bookings-client.js';
+import {
+  parseAvailabilities,
+  workingDaysInRange,
+  type AvailabilitySlice,
+} from '../api/capacity.js';
 
 export type ToolResult = { content: Array<{ type: string; text: string }> };
 
@@ -45,6 +51,44 @@ export async function describePerson(
   } catch {
     return `ID ${personId}`;
   }
+}
+
+/**
+ * The person's contracted working pattern, or an empty pattern when unknown.
+ *
+ * Never fails the call: a booking is still writable for somebody whose pattern
+ * cannot be read, it just falls back to a calendar week.
+ */
+export async function personPattern(
+  client: ProductiveAPIClient,
+  personId: string,
+): Promise<AvailabilitySlice[]> {
+  try {
+    const person = await client.getPerson(personId);
+    return parseAvailabilities(person.data.attributes.availabilities);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Working days in a range as the *person* works them.
+ *
+ * Only relevant where hours are multiplied by days (booking_method_id 3): using
+ * calendar Mon-Fri there charges a Mon-Thu contract for the Friday too, so a
+ * plain week of leave is written as 40h against 32h contracted and comes back
+ * out of get_capacity_overview flagged OVERBOOKED. Falls back to the calendar
+ * for a person with no pattern on file.
+ */
+export async function personWorkingDays(
+  client: ProductiveAPIClient,
+  personId: string | undefined,
+  from: string,
+  to: string,
+): Promise<number> {
+  if (!personId) return countWorkingDays(from, to);
+  const slices = await personPattern(client, personId);
+  return slices.length > 0 ? workingDaysInRange(slices, from, to) : countWorkingDays(from, to);
 }
 
 /** Translate the API failures worth explaining; rethrow everything else as-is. */

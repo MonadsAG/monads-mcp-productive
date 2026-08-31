@@ -15,6 +15,7 @@ import {
   describeApprovalState,
   formatMinutes,
   isCapacityBooking,
+  overfetchLimit,
   type BookingMethodId,
 } from '../api/bookings-client.js';
 import { projectUtilisation } from './capacity.js';
@@ -23,6 +24,7 @@ import { buildIncludeMap, resolveName } from './include-resolver.js';
 import {
   coerceBoolean,
   describePerson,
+  personWorkingDays,
   resolvePersonId,
   rethrowToolError,
   type ToolResult,
@@ -61,18 +63,21 @@ export async function createBookingTool(
       throw new McpError(ErrorCode.InvalidParams, `date_to (${to}) is before date_from (${from}).`);
     }
 
-    const workingDays = countWorkingDays(from, to);
+    const method = (params.booking_method_id ??
+      (params.percentage !== undefined
+        ? BOOKING_METHOD.PERCENTAGE
+        : BOOKING_METHOD.HOURS_PER_DAY)) as BookingMethodId;
+
+    const workingDays =
+      method === BOOKING_METHOD.TOTAL_HOURS
+        ? await personWorkingDays(client, personId, from, to)
+        : countWorkingDays(from, to);
     if (workingDays === 0) {
       throw new McpError(
         ErrorCode.InvalidParams,
         `${from} to ${to} contains no working days (weekends only).`,
       );
     }
-
-    const method = (params.booking_method_id ??
-      (params.percentage !== undefined
-        ? BOOKING_METHOD.PERCENTAGE
-        : BOOKING_METHOD.HOURS_PER_DAY)) as BookingMethodId;
 
     let quantity;
     try {
@@ -208,7 +213,15 @@ export async function updateBookingTool(
         attributes,
         buildQuantity(effective, {
           hoursPerDay: params.hours_per_day,
-          workingDays: countWorkingDays(from, to),
+          workingDays:
+            effective === BOOKING_METHOD.TOTAL_HOURS
+              ? await personWorkingDays(
+                  client,
+                  current.data.relationships?.person?.data?.id,
+                  from,
+                  to,
+                )
+              : countWorkingDays(from, to),
         }),
       );
     }
@@ -286,22 +299,32 @@ export async function listBookingsTool(
     const params = listBookingsSchema.parse(args);
     const personId = params.person_id ? resolvePersonId(params.person_id, config) : undefined;
 
+    // Absences are dropped here, not by the API, so `limit` has to be applied
+    // after the split -- otherwise a page full of absences reports no bookings.
+    const fetchLimit = params.include_absences ? params.limit : overfetchLimit(params.limit);
     const response = await client.listBookings({
       person_id: personId,
       after: params.date_from ? parseDate(params.date_from) : undefined,
       before: params.date_to ? parseDate(params.date_to) : undefined,
-      limit: params.limit,
+      limit: fetchLimit,
     });
 
     const all = response.data ?? [];
-    const bookings = params.include_absences ? all : all.filter(isCapacityBooking);
+    const pageWasFull = all.length >= fetchLimit;
+    const matching = params.include_absences ? all : all.filter(isCapacityBooking);
+
+    const moreAvailable = pageWasFull || matching.length > params.limit;
+    const bookings = matching.slice(0, params.limit);
 
     if (bookings.length === 0) {
+      const crowdedOut = pageWasFull
+        ? ' The page came back full of absences, so raising limit or narrowing the date range may still turn some up.'
+        : '';
       return {
         content: [
           {
             type: 'text',
-            text: 'No project bookings found for these filters.\n\nNote: a regular API token only sees its own resource planning, so an empty result does not prove none exist for other people.',
+            text: `No project bookings found for these filters.${crowdedOut}\n\nNote: a regular API token only sees its own resource planning, so an empty result does not prove none exist for other people.`,
           },
         ],
       };
@@ -334,7 +357,7 @@ export async function listBookingsTool(
       content: [
         {
           type: 'text',
-          text: `${bookings.length} booking${bookings.length !== 1 ? 's' : ''} found:\n\n${lines.join('\n\n')}`,
+          text: `${bookings.length} booking${bookings.length !== 1 ? 's' : ''} found:\n\n${lines.join('\n\n')}${moreAvailable ? '\n\nThere may be more -- raise limit or narrow the date range.' : ''}`,
         },
       ],
     };

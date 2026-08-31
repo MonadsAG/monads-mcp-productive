@@ -181,6 +181,23 @@ function weekdaysInRange(startIso: string, endIso: string): number {
 }
 
 /**
+ * Days in a range that count as working days *for this person*.
+ *
+ * The person's own pattern decides; calendar Mon-Fri is only the fallback for
+ * someone with no pattern on file. Sizing a booking by calendar weekdays would
+ * charge a four-day contract for the fifth day -- a normal week of leave for an
+ * 80% contract would be written as 40h and then reported back as overbooked.
+ */
+export function workingDaysInRange(
+  slices: AvailabilitySlice[],
+  startIso: string,
+  endIso: string,
+): number {
+  const contracted = contractedDays(slices, startIso, endIso);
+  return contracted > 0 ? contracted : weekdaysInRange(startIso, endIso);
+}
+
+/**
  * Minutes a booking contributes *within the queried range*.
  *
  * The API's date filters match on overlap, so a six-month booking comes back in
@@ -197,10 +214,7 @@ export function bookedMinutes(
   if (!overlap) return 0;
 
   const a = booking.attributes;
-  const workingDays = (from: string, to: string): number => {
-    const contracted = contractedDays(slices, from, to);
-    return contracted > 0 ? contracted : weekdaysInRange(from, to);
-  };
+  const workingDays = (from: string, to: string): number => workingDaysInRange(slices, from, to);
 
   const overlapDays = workingDays(overlap.from, overlap.to);
   if (overlapDays === 0) return 0;

@@ -16,41 +16,44 @@ import {
   describeApprovalState,
   formatMinutes,
   isAbsenceBooking,
+  overfetchLimit,
   resolveAbsenceType,
   type BookingMethodId,
 } from '../api/bookings-client.js';
-import { hoursOnDate, parseAvailabilities, sliceForDate } from '../api/capacity.js';
+import { contractedMinutes, workingDaysInRange, type AvailabilitySlice } from '../api/capacity.js';
 import { parseDate } from './time-entries.js';
 import { buildIncludeMap, resolveName } from './include-resolver.js';
 import {
   coerceBoolean,
   describePerson,
+  personPattern,
   resolvePersonId,
   rethrowToolError,
   type ToolResult,
 } from './tool-helpers.js';
 
 /**
- * Contracted hours on the first working day of the range.
+ * How the absence is sized: working days in the range and hours on each of them.
  *
- * Booking a full-time day for a part-timer would overstate their absence, so
- * the person's own pattern decides. Falls back to 8h when nothing is known.
+ * Both halves have to come from the same source. Taking the hours from the
+ * person's pattern but the days from the calendar charges a Mon-Thu contract for
+ * the Friday too -- a plain week of leave becomes 40h against 32h contracted and
+ * comes back out of get_capacity_overview flagged OVERBOOKED.
  */
-async function defaultHoursPerDay(
-  client: ProductiveAPIClient,
-  personId: string,
+function sizeAbsence(
+  slices: AvailabilitySlice[],
   fromIso: string,
-): Promise<number> {
-  try {
-    const person = await client.getPerson(personId);
-    const slices = parseAvailabilities(person.data.attributes.availabilities);
-    const slice = sliceForDate(slices, fromIso);
-    if (!slice) return 8;
-    const hours = hoursOnDate(slice, fromIso);
-    return hours > 0 ? hours : 8;
-  } catch {
-    return 8;
-  }
+  toIso: string,
+): { workingDays: number; hoursPerDay: number | null } {
+  const workingDays = workingDaysInRange(slices, fromIso, toIso);
+  const contracted = contractedMinutes(slices, fromIso, toIso);
+
+  // Dividing back out keeps hoursPerDay * workingDays exactly equal to the
+  // contracted minutes, even across a week with uneven days.
+  const hoursPerDay =
+    contracted !== null && contracted > 0 && workingDays > 0 ? contracted / workingDays / 60 : null;
+
+  return { workingDays, hoursPerDay };
 }
 
 /** Load the absence types and match the caller's input against them. */
@@ -187,15 +190,27 @@ export async function createAbsenceTool(
     });
 
     const method = (params.booking_method_id ?? defaultBookingMethod(event)) as BookingMethodId;
-    const workingDays = countWorkingDays(from, to);
+
+    // The person's own pattern sizes the absence; countWorkingDays is only the
+    // fallback for somebody with no pattern on file.
+    const slices = await personPattern(client, personId);
+    const sized = sizeAbsence(slices, from, to);
+    const workingDays = slices.length > 0 ? sized.workingDays : countWorkingDays(from, to);
+
     if (workingDays === 0) {
       throw new McpError(
         ErrorCode.InvalidParams,
         `${from} to ${to} contains no working days (weekends only).`,
       );
     }
+    if (slices.length > 0 && sized.hoursPerDay === null && params.hours_per_day === undefined) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `This person is not contracted to work on any day between ${from} and ${to}, so there is nothing to book off. Pass hours_per_day explicitly to override.`,
+      );
+    }
 
-    const hoursPerDay = params.hours_per_day ?? (await defaultHoursPerDay(client, personId, from));
+    const hoursPerDay = params.hours_per_day ?? sized.hoursPerDay ?? 8;
     let quantity;
     try {
       quantity = buildQuantity(method, { hoursPerDay, workingDays });
@@ -218,7 +233,7 @@ Person: ${who}${params.person_id === 'me' ? ' (me)' : ''}
 Type: ${event.attributes.name} (event ID ${event.id})
 Period: ${from} to ${to}
 Working days: ${workingDays}
-Hours per day: ${hoursPerDay}
+Hours per day: ${Math.round(hoursPerDay * 100) / 100}
 Booking method: ${method}
 ${params.note ? `Note: ${params.note}` : 'No note'}
 
@@ -289,28 +304,42 @@ export async function listAbsencesTool(
     const params = listAbsencesSchema.parse(args);
     const personId = params.person_id ? resolvePersonId(params.person_id, config) : undefined;
 
+    // The API cannot filter absences out of the bookings list, so the split
+    // happens here -- which means asking for exactly `limit` rows would let a
+    // page of project bookings crowd every absence out and report "none found".
+    // Over-fetch, filter, then trim to what was actually asked for.
+    const fetchLimit = overfetchLimit(params.limit);
     const response = await client.listBookings({
       after: params.date_from ? parseDate(params.date_from) : undefined,
       before: params.date_to ? parseDate(params.date_to) : undefined,
       person_id: personId,
       approval_status: params.approval_status,
-      limit: params.limit,
+      limit: fetchLimit,
     });
 
+    const fetched = response.data ?? [];
+    const pageWasFull = fetched.length >= fetchLimit;
+
     // Bookings carry both absences and project capacity; keep only absences.
-    let absences = (response.data ?? []).filter(isAbsenceBooking);
+    let absences = fetched.filter(isAbsenceBooking);
 
     if (params.absence_type) {
       const event = await findEvent(client, { absence_type: params.absence_type });
       absences = absences.filter((b) => b.relationships?.event?.data?.id === event.id);
     }
 
+    const moreAvailable = pageWasFull || absences.length > params.limit;
+    absences = absences.slice(0, params.limit);
+
     if (absences.length === 0) {
+      const crowdedOut = pageWasFull
+        ? ' The page came back full of other bookings, so raising limit or narrowing the date range may still turn some up.'
+        : '';
       return {
         content: [
           {
             type: 'text',
-            text: 'No absences found for these filters.\n\nNote: a regular API token only sees its own resource planning, so an empty result does not prove none exist for other people.',
+            text: `No absences found for these filters.${crowdedOut}\n\nNote: a regular API token only sees its own resource planning, so an empty result does not prove none exist for other people.`,
           },
         ],
       };
@@ -327,14 +356,14 @@ export async function listAbsencesTool(
 
       return `• ${person} — ${type} (ID: ${booking.id})
   ${a.started_on} to ${a.ended_on} · ${a.total_working_days ?? '?'} working day(s)${total}
-  Status: ${describeApprovalState(booking)}${params.include_notes && a.note ? `\n  Note: ${a.note}` : ''}`;
+  Status: ${describeApprovalState(booking, { includeReason: params.include_notes })}${params.include_notes && a.note ? `\n  Note: ${a.note}` : ''}`;
     });
 
     return {
       content: [
         {
           type: 'text',
-          text: `${absences.length} absence${absences.length !== 1 ? 's' : ''} found:\n\n${lines.join('\n\n')}\n\nOnly bookings visible to the calling token are listed.`,
+          text: `${absences.length} absence${absences.length !== 1 ? 's' : ''} found:\n\n${lines.join('\n\n')}\n\nOnly bookings visible to the calling token are listed.${moreAvailable ? ' There may be more -- raise limit or narrow the date range.' : ''}`,
         },
       ],
     };
