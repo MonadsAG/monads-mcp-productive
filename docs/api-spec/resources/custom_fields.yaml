@@ -49,13 +49,6 @@ description: |-
   - 2 (percentage)
 x-filters:
   custom_field:
-    survey_id:
-      description: Filter by the associated survey.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     customizable_type:
       description: Filter by the resource type the custom field is attached to.
       operators:
@@ -63,22 +56,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    archived:
-      description: Filter by whether the custom field is archived.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    show_in_add_edit_views:
-      description: Filter by whether the custom field is shown in add/edit views.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    name:
-      description: Filter by custom field name (text search).
+    global:
+      description: Filter by whether the custom field is global (applies to all records of its type).
       operators:
         - contains
         - eq
@@ -91,8 +70,29 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    global:
-      description: Filter by whether the custom field is global (applies to all records of its type).
+    archived:
+      description: Filter by whether the custom field is archived.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by custom field name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    show_in_add_edit_views:
+      description: Filter by whether the custom field is shown in add/edit views.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    survey_id:
+      description: Filter by the associated survey.
       operators:
         - contains
         - eq
@@ -108,13 +108,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_custom_field'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: custom_fields-archive-archive
       description: Archive a custom field.
   /api/v2/custom_fields:
@@ -127,8 +127,8 @@ paths:
           $ref: '#/components/responses/collection_custom_field'
       parameters:
         - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_custom_field'
         - $ref: '#/components/parameters/sort_custom_field'
+        - $ref: '#/components/parameters/filter_custom_field'
       operationId: custom_fields-index
       description: List custom fields with optional filters and pagination.
     post:
@@ -178,13 +178,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_custom_field'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: custom_fields-update
       requestBody:
         $ref: '#/components/requestBodies/custom_field'
@@ -225,6 +225,10 @@ components:
                         $ref: '#/components/schemas/resource_custom_field/properties/section_id'
                       data_type_id:
                         $ref: '#/components/schemas/resource_custom_field/properties/data_type_id'
+                      maximum_value:
+                        $ref: '#/components/schemas/resource_custom_field/properties/maximum_value'
+                      minimum_value:
+                        $ref: '#/components/schemas/resource_custom_field/properties/minimum_value'
                       customizable_type:
                         $ref: '#/components/schemas/resource_custom_field/properties/customizable_type'
                       quick_add_enabled:
@@ -241,92 +245,9 @@ components:
       type: object
       title: Custom field Resource
       properties:
-        name:
-          type: string
-          title: Name
-          description: The display name of this custom field.
-          example:
-            eq: value
-        section:
-          title: Section
-          description: The custom field section this field belongs to for grouping in the UI.
-          example:
-            eq: value
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this custom field was last updated.
-          example:
-            gt: '2026-01-01'
-        sensitive:
-          type: boolean
-          title: Sensitive
-          description: Whether this custom field is sensitive and its values are restricted to authorized users.
-          example:
-            eq: value
-        survey_id:
-          type: integer
-          title: Survey
-          description: ID of the survey this custom field is associated with.
-          example:
-            - 123
-        customizable_type:
-          type: string
-          title: Customizable Type
-          description: The type of resource this custom field is attached to (e.g. tasks, projects, people).
-          example:
-            eq: active
-        options:
-          title: Options
-          description: The selectable options available for this custom field, applicable for dropdown and multi-select types.
-          example:
-            eq: value
-        required:
-          type: boolean
-          title: Required
-          description: Whether a value for this custom field is required when creating or editing the associated resource.
-          example:
-            eq: value
-        position:
-          type: integer
-          title: Position
-          description: The display order position of this custom field within its section.
-          example:
-            eq: value
-        archived:
-          type: boolean
-          title: Archived
-          description: Whether this custom field has been archived.
-          example: true
-        custom_field_people:
-          title: Custom Field People
-          description: People associated with this custom field via person-type values.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this custom field belongs to.
-          example:
-            eq: value
-        formatting_type_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Formatting Type
-          description: ID of the formatting type that controls how this custom field's value is displayed.
-          example:
-            - 123
         project:
           title: Project
           description: The project this custom field is scoped to, or null if it is a global field.
-          example:
-            eq: value
-        show_in_add_edit_views:
-          type: boolean
-          title: Show In Add Edit Views
-          description: The show in add edit views.
           example:
             eq: value
         quick_add_enabled:
@@ -335,17 +256,51 @@ components:
           description: Whether this custom field appears in quick-add forms for faster data entry.
           example:
             eq: value
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this custom field was created.
-          example:
-            gt: '2026-01-01'
+        archived:
+          type: boolean
+          title: Archived
+          description: Whether this custom field has been archived.
+          example: true
         section_id:
           type: integer
           title: Section
           description: ID of the custom field section this field belongs to.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this custom field belongs to.
+          example:
+            eq: value
+        required:
+          type: boolean
+          title: Required
+          description: Whether a value for this custom field is required when creating or editing the associated resource.
+          example:
+            eq: value
+        show_in_add_edit_views:
+          type: boolean
+          title: Show In Add Edit Views
+          description: The show in add edit views.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The display name of this custom field.
+          example:
+            eq: value
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when this custom field was archived, or null if not archived.
+          example:
+            gt: '2026-01-01'
+        survey_id:
+          type: integer
+          title: Survey
+          description: ID of the survey this custom field is associated with.
           example:
             - 123
         aggregation_type_id:
@@ -357,28 +312,34 @@ components:
           description: ID of the aggregation type defining how values of this custom field are aggregated in reports.
           example:
             - 123
-        global:
+        sensitive:
           type: boolean
-          title: Global
-          description: Whether this custom field is available globally across all projects, rather than scoped to a specific project.
+          title: Sensitive
+          description: Whether this custom field is sensitive and its values are restricted to authorized users.
           example:
             eq: value
-        project_id:
-          type: integer
-          title: Project
-          description: ID of the project this custom field is scoped to, or null if it is a global field.
-          example:
-            - 123
-        archived_at:
+        customizable_type:
           type: string
-          title: Archived At
+          title: Customizable Type
+          description: The type of resource this custom field is attached to (e.g. tasks, projects, people).
+          example:
+            eq: active
+        created_at:
+          type: string
+          title: Created At
           format: date-time
-          description: Timestamp when this custom field was archived, or null if not archived.
+          description: Timestamp when this custom field was created.
           example:
             gt: '2026-01-01'
-        survey:
-          title: Survey
-          description: The survey this custom field is associated with, if it was created from a survey response field.
+        options:
+          title: Options
+          description: The selectable options available for this custom field, applicable for dropdown and multi-select types.
+          example:
+            eq: value
+        position:
+          type: integer
+          title: Position
+          description: The display order position of this custom field within its section.
           example:
             eq: value
         data_type_id:
@@ -390,11 +351,55 @@ components:
             - 5
             - 6
             - 7
+            - 8
           type: integer
           title: Data Type
           description: ID of the data type that determines what kind of value this custom field stores (e.g. text, number, date).
           example:
             - 123
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this custom field was last updated.
+          example:
+            gt: '2026-01-01'
+        formatting_type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Formatting Type
+          description: ID of the formatting type that controls how this custom field's value is displayed.
+          example:
+            - 123
+        survey:
+          title: Survey
+          description: The survey this custom field is associated with, if it was created from a survey response field.
+          example:
+            eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this custom field is scoped to, or null if it is a global field.
+          example:
+            - 123
+        section:
+          title: Section
+          description: The custom field section this field belongs to for grouping in the UI.
+          example:
+            eq: value
+        custom_field_people:
+          title: Custom Field People
+          description: People associated with this custom field via person-type values.
+          example:
+            eq: value
+        global:
+          type: boolean
+          title: Global
+          description: Whether this custom field is available globally across all projects, rather than scoped to a specific project.
+          example:
+            eq: value
       description: User-defined field on tasks, deals, people, pages, or other resources. Supports text, number, date, dropdown, multi-select, person, and file data types. Can be marked required, sensitive, global, or scoped to a project or section. Dropdown fields have selectable options via custom_field_options.
       example:
         id: '53455'
@@ -415,14 +420,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -430,10 +443,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -442,10 +451,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -455,6 +460,7 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -471,12 +477,27 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -497,22 +518,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _single_relationship:
       anyOf:
         - type: object
@@ -539,6 +544,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_custom_field:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.custom_field at the top of this file.
+      required: false
+      description: Filters
     sort_custom_field:
       in: query
       name: sort
@@ -551,15 +565,6 @@ components:
       explode: false
       required: false
       description: Sort custom field
-    filter_custom_field:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.custom_field at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_custom_field:
       content:

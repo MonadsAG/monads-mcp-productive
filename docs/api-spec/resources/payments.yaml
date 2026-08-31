@@ -30,29 +30,8 @@ description: |-
   ```
 x-filters:
   payment:
-    paid_before:
-      description: Filter payments made on or before this date (`paid_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    paid_on:
-      description: Filter by payment date range (`paid_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    amount:
-      description: Filter by payment amount range.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    budget_id:
-      description: Filter by the associated budget or deal.
+    invoice_id:
+      description: Filter by the associated invoice.
       operators:
         - contains
         - eq
@@ -65,15 +44,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    subsidiary_id:
-      description: Filter by the associated subsidiary (via the invoice).
+    company_id:
+      description: Filter by client company (via the associated invoice).
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    company_id:
-      description: Filter by client company (via the associated invoice).
+    paid_after:
+      description: Filter payments made on or after this date (`paid_on`).
       operators:
         - contains
         - eq
@@ -86,22 +65,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    number:
-      description: Filter by the invoice number associated with the payment.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     written_off_on:
       description: Filter by write-off date range (`written_off_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    paid_after:
-      description: Filter payments made on or after this date (`paid_on`).
       operators:
         - contains
         - eq
@@ -121,8 +86,43 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    invoice_id:
-      description: Filter by the associated invoice.
+    amount:
+      description: Filter by payment amount range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subsidiary_id:
+      description: Filter by the associated subsidiary (via the invoice).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    number:
+      description: Filter by the invoice number associated with the payment.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    budget_id:
+      description: Filter by the associated budget or deal.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    paid_on:
+      description: Filter by payment date range (`paid_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    paid_before:
+      description: Filter payments made on or before this date (`paid_on`).
       operators:
         - contains
         - eq
@@ -138,9 +138,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_payment'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_payment'
         - $ref: '#/components/parameters/sort_payment'
-        - $ref: '#/components/parameters/header_organization'
       operationId: payments-index
       description: List all payments.
     post:
@@ -198,13 +198,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: payments-update
       requestBody:
         $ref: '#/components/requestBodies/payment'
@@ -320,84 +320,78 @@ components:
       type: object
       title: Payment Resource
       properties:
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency for this payment.
-          example: EUR
-        amount_default:
-          title: Amount Default
-          description: The payment amount converted to the organization's default currency.
-          example: 232000
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized (reporting) currency for this payment.
-          example: GBP
-        invoice_number:
-          title: Invoice Number
-          description: The invoice number of the associated invoice at the time this payment was recorded.
-          example: INV-2026-042
-        written_off_on:
-          type: string
-          title: Written Off On
-          format: date
-          description: Date when this payment was written off as uncollectable, or null if the payment is not written off.
-          example: null
-        amount:
-          type: integer
-          title: Amount
-          description: The payment amount in the invoice's currency.
-          example: 200000
-        note:
-          type: string
-          title: Note
-          description: An optional note or memo about this payment.
-          example: 'Wire transfer ref: WT-9281'
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier of this payment.
-          example: 345678
-        query:
-          type: string
-          title: Query
-          description: A full-text search query to filter payments by invoice number or note.
-          example: INV-2026
         subsidiary_id:
           type: integer
           title: Subsidiary
           description: ID of the subsidiary associated with the invoice this payment was applied to.
           example: 234
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier of this payment.
+          example: 345678
+        paid_before:
+          type: string
+          title: Paid Before
+          format: date
+          description: Filter for payments made before this date (used as a filter parameter).
+          example: '2026-03-31'
+        currency:
+          title: Currency
+          description: The currency of this payment, inherited from the associated invoice.
+          example: GBP
         project_id:
           type: integer
           title: Project
           description: ID of the project associated with the invoice this payment was applied to.
           example: 567890
-        amount_normalized:
-          title: Amount Normalized
-          description: The payment amount converted to the normalized (reporting) currency.
-          example: 200000
-        budget_id:
-          type: integer
-          title: Budget
-          description: ID of the budget (deal) associated with the invoice this payment was applied to.
-          example: 456789
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized (reporting) currency for this payment.
+          example: GBP
+        organization:
+          title: Organization
+          description: The organization this payment belongs to.
+          example:
+            data:
+              type: organizations
+              id: '109'
+        invoice_number:
+          title: Invoice Number
+          description: The invoice number of the associated invoice at the time this payment was recorded.
+          example: INV-2026-042
+        external_id:
+          type: string
+          title: External
+          description: An external identifier for this payment, used when syncing with third-party accounting systems.
+          example: xero-pay-456
         paid_on:
           type: string
           title: Paid On
           format: date
           description: Date when the payment was received (paid).
           example: '2026-03-15'
-        currency:
-          title: Currency
-          description: The currency of this payment, inherited from the associated invoice.
-          example: GBP
-        invoice:
+        written_off_on:
+          type: string
+          title: Written Off On
+          format: date
+          description: Date when this payment was written off as uncollectable, or null if the payment is not written off.
+          example: null
+        budget_id:
+          type: integer
+          title: Budget
+          description: ID of the budget (deal) associated with the invoice this payment was applied to.
+          example: 456789
+        invoice_id:
+          type: integer
           title: Invoice
-          description: The invoice this payment was applied to.
-          example:
-            data:
-              type: invoices
-              id: '789012'
+          description: ID of the invoice this payment was applied to.
+          example: 789012
+        amount:
+          type: integer
+          title: Amount
+          description: The payment amount in the invoice's currency.
+          example: 200000
         company_id:
           type: integer
           title: Company
@@ -409,38 +403,44 @@ components:
           format: date
           description: Filter for payments made after this date (used as a filter parameter).
           example: '2026-03-01'
-        paid_before:
+        amount_normalized:
+          title: Amount Normalized
+          description: The payment amount converted to the normalized (reporting) currency.
+          example: 200000
+        invoice:
+          title: Invoice
+          description: The invoice this payment was applied to.
+          example:
+            data:
+              type: invoices
+              id: '789012'
+        query:
           type: string
-          title: Paid Before
-          format: date
-          description: Filter for payments made before this date (used as a filter parameter).
-          example: '2026-03-31'
-        date:
-          title: Date
-          description: Date when the payment was recorded.
-          example: '2026-03-15'
+          title: Query
+          description: A full-text search query to filter payments by invoice number or note.
+          example: INV-2026
         number:
           type: string
           title: Number
           description: The auto-generated sequence number for this payment.
           example: PAY-2026-015
-        external_id:
+        date:
+          title: Date
+          description: Date when the payment was recorded.
+          example: '2026-03-15'
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency for this payment.
+          example: EUR
+        note:
           type: string
-          title: External
-          description: An external identifier for this payment, used when syncing with third-party accounting systems.
-          example: xero-pay-456
-        organization:
-          title: Organization
-          description: The organization this payment belongs to.
-          example:
-            data:
-              type: organizations
-              id: '109'
-        invoice_id:
-          type: integer
-          title: Invoice
-          description: ID of the invoice this payment was applied to.
-          example: 789012
+          title: Note
+          description: An optional note or memo about this payment.
+          example: 'Wire transfer ref: WT-9281'
+        amount_default:
+          title: Amount Default
+          description: The payment amount converted to the organization's default currency.
+          example: 232000
       description: A payment record representing an amount received against an invoice, internally referred to as an InvoicePayment.
       example:
         id: '67'
@@ -460,14 +460,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -475,10 +483,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -487,10 +491,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -540,14 +540,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

@@ -35,8 +35,15 @@ description: |-
   ```
 x-filters:
   task_list:
-    query:
-      description: Filter by task list name (text search).
+    folder_id:
+      description: Filter by folder ID (alias for board_id).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status:
+      description: Filter by task list status (active or archived).
       operators:
         - contains
         - eq
@@ -49,8 +56,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    status:
-      description: Filter by task list status (active or archived).
+    query:
+      description: Filter by task list name (text search).
       operators:
         - contains
         - eq
@@ -65,13 +72,6 @@ x-filters:
         - not_eq
     id:
       description: Filter by task list ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    folder_id:
-      description: Filter by folder ID (alias for board_id).
       operators:
         - contains
         - eq
@@ -133,7 +133,7 @@ paths:
         | `copy_task_open_todos`, `copy_task_closed_todos` | `copy_open_tasks` or `copy_closed_tasks` | — |
         | `copy_task_open_subtasks`, `copy_task_closed_subtasks` | `copy_open_tasks` or `copy_closed_tasks` | — |
         | `copy_task_dependencies` | `copy_open_tasks` or `copy_closed_tasks` | — |
-        | `copy_assignees`, `copy_tags`, `copy_due_date`, `copy_start_date`, `copy_repeat`, `copy_estimate` | `copy_open_tasks` or `copy_closed_tasks` | — |
+        | `copy_assignees`, `copy_tags`, `copy_date`, `copy_repeat`, `copy_estimate` | `copy_open_tasks` or `copy_closed_tasks` | — |
         | `copy_custom_fields` | `copy_open_tasks` or `copy_closed_tasks` | Task custom field values |
 
         Enabling any dependent flag without a tasks gate returns `422` (`tasks_required`).
@@ -173,8 +173,7 @@ paths:
               "copy_task_dependencies": true,
               "copy_assignees": true,
               "copy_tags": true,
-              "copy_due_date": true,
-              "copy_start_date": true,
+              "copy_date": true,
               "copy_repeat": true,
               "copy_estimate": true,
               "copy_custom_fields": true
@@ -191,9 +190,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_task_list'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_task_list'
         - $ref: '#/components/parameters/sort_task_list'
+        - $ref: '#/components/parameters/filter_task_list'
+        - $ref: '#/components/parameters/header_organization'
       operationId: task_lists-index
       description: Returns a paginated list of task lists — the task groupings inside a project's folders. By default, task lists that belong to project templates are excluded; filtering by a specific project returns its task lists even when that project is a template. Supports filtering by project, folder, status, and free-text query, and sorting by board, folder, project, or company name.
     post:
@@ -285,13 +284,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_task_list'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: task_lists-reposition-reposition
       requestBody:
         $ref: '#/components/requestBodies/task_list_reposition'
@@ -315,13 +314,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_task_list'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: task_lists-restore-restore
       description: Restores an archived task list back to active status.
   /api/v2/task_lists/{id}:
@@ -490,44 +489,10 @@ components:
       type: object
       title: Task list Resource
       properties:
-        project_name:
-          type: string
-          title: Project Name
-          description: The name of the project this task list belongs to.
-          example:
-            eq: value
-        placement:
+        position:
           type: integer
-          title: Placement
-          description: The display placement position of this task list within its folder.
-          example:
-            eq: value
-        project_id:
-          type: integer
-          title: Project
-          description: ID of the project this task list belongs to.
-          example:
-            - 123
-        project:
-          title: Project
-          description: The project this task list belongs to.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The name of this task list.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: A search query string used to filter task lists by name.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this task list belongs to.
+          title: Position
+          description: The sort position of this task list within its project.
           example:
             eq: value
         status:
@@ -539,10 +504,56 @@ components:
           description: 'The archival status of this task list: active or archived.'
           example:
             eq: active
+        folder:
+          title: Folder
+          description: The folder this task list belongs to.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: A search query string used to filter task lists by name.
+          example:
+            eq: value
+        company_name:
+          type: string
+          title: Company Name
+          description: The name of the client company associated with the project this task list belongs to.
+          example:
+            eq: value
+        placement:
+          type: integer
+          title: Placement
+          description: The display placement position of this task list within its folder.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The name of this task list.
+          example:
+            eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this task list belongs to.
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this task list.
+          example:
+            - 123
         restorable:
           type: string
           title: Restorable
           description: Whether this task list is restorable (archived while its parent folder is still active).
+          example:
+            eq: value
+        project:
+          title: Project
+          description: The project this task list belongs to.
           example:
             eq: value
         folder_name:
@@ -551,10 +562,21 @@ components:
           description: The name of the folder this task list belongs to.
           example:
             eq: value
-        id:
+        email_key:
+          type: string
+          title: Email Key
+          description: A unique key used to create tasks in this task list via email.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this task list belongs to.
+          example:
+            eq: value
+        folder_id:
           type: integer
-          title: Id
-          description: The unique identifier of this task list.
+          title: Folder
+          description: ID of the folder this task list belongs to.
           example:
             - 123
         archived_at:
@@ -564,35 +586,12 @@ components:
           description: Timestamp when this task list was archived, or null if active.
           example:
             gt: '2026-01-01'
-        email_key:
+        project_name:
           type: string
-          title: Email Key
-          description: A unique key used to create tasks in this task list via email.
+          title: Project Name
+          description: The name of the project this task list belongs to.
           example:
             eq: value
-        position:
-          type: integer
-          title: Position
-          description: The sort position of this task list within its project.
-          example:
-            eq: value
-        folder:
-          title: Folder
-          description: The folder this task list belongs to.
-          example:
-            eq: value
-        company_name:
-          type: string
-          title: Company Name
-          description: The name of the client company associated with the project this task list belongs to.
-          example:
-            eq: value
-        folder_id:
-          type: integer
-          title: Folder
-          description: ID of the folder this task list belongs to.
-          example:
-            - 123
       description: Task grouping within a project folder. Supports name, position ordering, placement, archiving, and an email_key for creating tasks via email. Task lists belong to a project and optionally to a board (folder).
       example:
         id: '14308'
@@ -618,14 +617,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -633,10 +640,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -645,10 +648,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -698,14 +697,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -718,6 +717,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_task_list:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.task_list at the top of this file.
+      required: false
+      description: Filters
     sort_task_list:
       in: query
       name: sort
@@ -739,15 +747,6 @@ components:
       explode: false
       required: false
       description: Sort task list
-    filter_task_list:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.task_list at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_task_list:
       content:

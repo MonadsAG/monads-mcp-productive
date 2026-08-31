@@ -8,6 +8,13 @@ description: |-
   Create and manage the tag definitions available in your organization, then attach them to records to enable tag-based search and reporting.
 x-filters:
   tag:
+    company_id:
+      description: Filter to tags applied to the given company.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     name:
       description: Filter by tag name (text search).
       operators:
@@ -15,8 +22,22 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    company_id:
-      description: Filter to tags applied to the given company.
+    project_id:
+      description: Filter to tags applied to tasks within the given project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_id:
+      description: Filter to tags applied to the given person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    invoice_id:
+      description: Filter to tags applied to the given invoice.
       operators:
         - contains
         - eq
@@ -36,29 +57,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    project_id:
-      description: Filter to tags applied to tasks within the given project.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    invoice_id:
-      description: Filter to tags applied to the given invoice.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     taggable_type:
       description: Filter by the type of resource the tag is applied to (e.g. deal, task, person).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    person_id:
-      description: Filter to tags applied to the given person.
       operators:
         - contains
         - eq
@@ -75,8 +75,8 @@ paths:
           $ref: '#/components/responses/collection_tag'
       parameters:
         - $ref: '#/components/parameters/filter_tag'
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_tag'
+        - $ref: '#/components/parameters/header_organization'
       operationId: tags-index
       description: List all tags.
   /api/v2/tags/{id}:
@@ -185,14 +185,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -200,10 +208,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -212,10 +216,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -233,42 +233,24 @@ components:
           description: ID of the project this tag is applied to, if tagged to a project.
           example:
             - 123
-        taggable_type:
-          type: string
-          title: Taggable Type
-          description: The type of resource this tag is applied to (e.g. Company, Deal, Invoice, Person, Project, Task).
-          example:
-            eq: active
         name:
           type: string
           title: Name
           description: The name of this tag.
           example:
             eq: value
-        task_id:
-          type: integer
-          title: Task
-          description: ID of the task this tag is applied to, if tagged to a task.
-          example:
-            - 123
         color_id:
           type: integer
           title: Color
           description: ID of the color used to visually distinguish this tag.
           example:
             - 123
-        person_id:
-          type: integer
-          title: Person
-          description: ID of the person this tag is applied to, if tagged to a person.
+        taggable_type:
+          type: string
+          title: Taggable Type
+          description: The type of resource this tag is applied to (e.g. Company, Deal, Invoice, Person, Project, Task).
           example:
-            - 123
-        invoice_id:
-          type: integer
-          title: Invoice
-          description: ID of the invoice this tag is applied to, if tagged to an invoice.
-          example:
-            - 123
+            eq: active
         company_id:
           type: integer
           title: Company
@@ -279,6 +261,24 @@ components:
           type: integer
           title: Deal
           description: ID of the deal this tag is applied to, if tagged to a deal.
+          example:
+            - 123
+        task_id:
+          type: integer
+          title: Task
+          description: ID of the task this tag is applied to, if tagged to a task.
+          example:
+            - 123
+        invoice_id:
+          type: integer
+          title: Invoice
+          description: ID of the invoice this tag is applied to, if tagged to an invoice.
+          example:
+            - 123
+        person_id:
+          type: integer
+          title: Person
+          description: ID of the person this tag is applied to, if tagged to a person.
           example:
             - 123
       description: A label that can be applied to companies, deals, invoices, people, projects, or tasks for categorization and filtering.

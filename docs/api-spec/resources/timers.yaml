@@ -42,13 +42,6 @@ description: |-
   You can find out more about Timers in our [Help documentation] (https://help.productive.io/en/articles/3903111-timer)
 x-filters:
   timer:
-    person_id:
-      description: Filter by the associated person.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     started_at:
       description: Filter by the date the timer was started.
       operators:
@@ -58,6 +51,13 @@ x-filters:
         - not_eq
     stopped_at:
       description: Filter by the date the timer was stopped.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_id:
+      description: Filter by the associated person.
       operators:
         - contains
         - eq
@@ -115,13 +115,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_timer'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: timers-show
       description: Retrieve a single timer by ID.
   /api/v2/timers/{id}/stop:
@@ -251,14 +251,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -266,10 +274,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -278,10 +282,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -331,14 +331,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -358,12 +358,11 @@ components:
           description: The organization this timer belongs to.
           example:
             eq: value
-        time_entry_id:
-          type: integer
+        time_entry:
           title: Time Entry
-          description: The ID of the time entry created when this timer was stopped.
+          description: The time entry created when this timer was stopped.
           example:
-            - 123
+            gt: 0
         stopped_at:
           type: string
           title: Stopped At
@@ -371,6 +370,24 @@ components:
           description: Timestamp when the timer was stopped, or null if still running.
           example:
             gt: '2026-01-01'
+        total_time:
+          type: integer
+          title: Total Time
+          description: The total elapsed time of the timer in minutes.
+          example:
+            gt: 0
+        time_entry_id:
+          type: integer
+          title: Time Entry
+          description: The ID of the time entry created when this timer was stopped.
+          example:
+            - 123
+        person_id:
+          type: integer
+          title: Person
+          description: The ID of the person who owns this timer.
+          example:
+            - 123
         started_at:
           type: string
           title: Started At
@@ -378,23 +395,6 @@ components:
           description: Timestamp when the timer was started.
           example:
             gt: '2026-01-01'
-        time_entry:
-          title: Time Entry
-          description: The time entry created when this timer was stopped.
-          example:
-            gt: 0
-        total_time:
-          type: integer
-          title: Total Time
-          description: The total elapsed time of the timer in minutes.
-          example:
-            gt: 0
-        person_id:
-          type: integer
-          title: Person
-          description: The ID of the person who owns this timer.
-          example:
-            - 123
       description: An active stopwatch session linked to a time entry. The timer duration is saved to the time entry when stopped.
       example:
         id: '123'

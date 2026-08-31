@@ -15,6 +15,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    restored_from_version_id:
+      description: Filter by the version this version was restored from.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     page_id:
       description: Filter by the associated page.
       operators:
@@ -24,13 +31,6 @@ x-filters:
         - not_eq
     id:
       description: Filter by ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    restored_from_version_id:
-      description: Filter by the version this version was restored from.
       operators:
         - contains
         - eq
@@ -47,10 +47,10 @@ paths:
           $ref: '#/components/responses/collection_page_version'
       parameters:
         - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_page_version'
         - $ref: '#/components/parameters/filter_page_version'
+        - $ref: '#/components/parameters/sort_page_version'
       operationId: page_versions-index
-      description: List page versions.
+      description: Returns the version history of pages. Filter by `page_id` to list one page's versions; sort with `-created_at` for newest first.
     post:
       tags:
         - PageVersions
@@ -71,7 +71,13 @@ paths:
       operationId: page_versions-create
       requestBody:
         $ref: '#/components/requestBodies/page_version'
-      description: Create a new page version.
+      description: |-
+        Creates a page version. Pass exactly one of:
+
+        - `page_id` — snapshots the page's current title and body as a new version, optionally labelled via `name`.
+        - `restored_from_version_id` — creates a new version whose snapshot is copied from an earlier version, marking a restore point. The page's live body is **not** changed by this call.
+
+        Editing a page records versions automatically (edits within two minutes merge into one); use this endpoint for named snapshots and restore points.
   /api/v2/page_versions/{id}:
     get:
       tags:
@@ -81,13 +87,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_page_version'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: page_versions-show
       description: Retrieve a single page version.
     patch:
@@ -106,19 +112,36 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: page_versions-update
       requestBody:
-        $ref: '#/components/requestBodies/page_version'
-      description: Restore a page to a specific version.
+        $ref: '#/components/requestBodies/page_version_update'
+      description: Renames a page version — `name` is the only writable attribute.
 components:
   requestBodies:
+    page_version_update:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    required:
+                      - name
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_page_version/properties/name'
+      description: Request body for renaming a page version.
     page_version:
       content:
         application/vnd.api+json:
@@ -137,58 +160,16 @@ components:
                         $ref: '#/components/schemas/resource_page_version/properties/page_id'
                       restored_from_version_id:
                         $ref: '#/components/schemas/resource_page_version/properties/restored_from_version_id'
-      description: Request body for creating or updating a page version. Provide the page content (rich text body), title, and optional parent page relationship. Page versions track edit history and support collaborative review via discussions.
+      description: Request body for creating a page version. Pass exactly one of `page_id` (snapshot the page's current state) or `restored_from_version_id` (restore point copied from an earlier version), plus an optional `name`.
   schemas:
     resource_page_version:
       type: object
       title: Page version Resource
       properties:
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this page version was last updated.
-          example:
-            gt: '2026-01-01'
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this page version was created.
-          example:
-            gt: '2026-01-01'
-        page_id:
-          type: integer
-          title: Page
-          description: ID of the page this version belongs to.
-          example:
-            - 123
-        person:
-          title: Person
-          description: The person who saved this version.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: An optional user-defined name for this version (e.g. a milestone label).
-          example:
-            eq: value
         person_id:
           type: integer
           title: Person
           description: ID of the person who saved this version.
-          example:
-            - 123
-        body_snapshot:
-          title: Body Snapshot
-          description: A snapshot of the page body in ProseMirror JSON format at the time this version was saved.
-          example:
-            eq: value
-        restored_from_version_id:
-          type: integer
-          title: Restored From Version
-          description: The restored from version id.
           example:
             - 123
         prosemirror_steps:
@@ -208,10 +189,52 @@ components:
           description: The organization this page version belongs to.
           example:
             eq: value
+        body_snapshot:
+          title: Body Snapshot
+          description: A snapshot of the page body in ProseMirror JSON format at the time this version was saved.
+          example:
+            eq: value
         title_snapshot:
           type: string
           title: Title Snapshot
           description: A snapshot of the page title at the time this version was saved.
+          example:
+            eq: value
+        restored_from_version_id:
+          type: integer
+          title: Restored From Version
+          description: ID of the version this one was restored from, when the version marks a restore point.
+          example:
+            - 123
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this page version was created.
+          example:
+            gt: '2026-01-01'
+        person:
+          title: Person
+          description: The person who saved this version.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this page version was last updated.
+          example:
+            gt: '2026-01-01'
+        page_id:
+          type: integer
+          title: Page
+          description: ID of the page this version belongs to.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: An optional user-defined name for this version (e.g. a milestone label).
           example:
             eq: value
         page:
@@ -239,14 +262,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -254,10 +285,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -266,10 +293,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -319,14 +342,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -339,15 +362,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_page_version:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.page_version at the top of this file.
-      required: false
-      description: Filters
     sort_page_version:
       in: query
       name: sort
@@ -367,6 +381,15 @@ components:
       explode: false
       required: false
       description: Sort page version
+    filter_page_version:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.page_version at the top of this file.
+      required: false
+      description: Filters
   responses:
     single_page_version:
       content:

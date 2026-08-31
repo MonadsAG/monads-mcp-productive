@@ -5,8 +5,8 @@ info:
 description: Price lists for services. Rate cards define company-wide or client-specific pricing templates. Each rate card contains prices for service types with billing configuration. Client-specific rate cards override defaults for that company.
 x-filters:
   rate_card:
-    company_id:
-      description: Filter by client company.
+    created_at:
+      description: Filter by creation date range.
       operators:
         - contains
         - eq
@@ -19,15 +19,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    created_at:
-      description: Filter by creation date range.
+    status:
+      description: Filter by status (active or archived).
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    status:
-      description: Filter by status (active or archived).
+    company_id:
+      description: Filter by client company.
       operators:
         - contains
         - eq
@@ -97,9 +97,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_rate_card'
       parameters:
+        - $ref: '#/components/parameters/sort_rate_card'
         - $ref: '#/components/parameters/filter_rate_card'
         - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_rate_card'
       operationId: rate_cards-index
       description: List all rate cards.
     post:
@@ -157,13 +157,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: rate_cards-update
       requestBody:
         $ref: '#/components/requestBodies/rate_card'
@@ -194,13 +194,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_rate_card'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: rate_cards-restore-restore
       description: Restore an archived rate card.
 components:
@@ -212,6 +212,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_rate_card:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.rate_card at the top of this file.
+      required: false
+      description: Filters
     sort_rate_card:
       in: query
       name: sort
@@ -229,15 +238,6 @@ components:
       explode: false
       required: false
       description: Sort rate card
-    filter_rate_card:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.rate_card at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_rate_card:
       content:
@@ -320,14 +320,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -335,10 +343,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -347,10 +351,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -400,14 +400,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -416,45 +416,30 @@ components:
       type: object
       title: Rate card Resource
       properties:
-        organization:
-          title: Organization
-          description: The organization this rate card belongs to.
-          example:
-            eq: value
-        creator:
-          title: Creator
-          description: The person who created this rate card.
-          example:
-            eq: value
-        company_id:
-          type: integer
-          title: Company
-          description: ID of the company this rate card is associated with.
-          example:
-            - 123
-        updated_at:
+        archived_at:
           type: string
-          title: Updated At
+          title: Archived At
           format: date-time
-          description: Timestamp when this rate card was last updated.
+          description: Timestamp when this rate card was archived, or null if it is still active.
           example:
             gt: '2026-01-01'
-        company:
-          title: Company
-          description: The company this rate card is associated with.
-          example:
-            eq: value
         prices_count:
           title: Prices Count
           description: The number of prices defined on this rate card.
           example:
             gt: 0
-        name:
-          type: string
-          title: Name
-          description: The name of this rate card.
+        creator:
+          title: Creator
+          description: The person who created this rate card.
           example:
             eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this rate card was created.
+          example:
+            gt: '2026-01-01'
         status:
           enum:
             - 1
@@ -464,18 +449,33 @@ components:
           description: The current status of this rate card (active or archived).
           example:
             eq: active
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when this rate card was archived, or null if it is still active.
+        company_id:
+          type: integer
+          title: Company
+          description: ID of the company this rate card is associated with.
           example:
-            gt: '2026-01-01'
-        created_at:
+            - 123
+        name:
           type: string
-          title: Created At
+          title: Name
+          description: The name of this rate card.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this rate card belongs to.
+          example:
+            eq: value
+        company:
+          title: Company
+          description: The company this rate card is associated with.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
           format: date-time
-          description: Timestamp when this rate card was created.
+          description: Timestamp when this rate card was last updated.
           example:
             gt: '2026-01-01'
       description: Price list for services. Contains a name, optional client company link (for client-specific rates), creation metadata, and a count of contained prices. Prices are managed separately via the prices endpoint.

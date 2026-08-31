@@ -12,13 +12,6 @@ description: |-
   Please note that we rate limit PATCH and POST api requests for editing salaries to 30 requests per two minutes.
 x-filters:
   salary:
-    person_id:
-      description: Filter by the associated person.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     before:
       description: Filter by before.
       operators:
@@ -28,6 +21,13 @@ x-filters:
         - not_eq
     after:
       description: Filter by after.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_id:
+      description: Filter by the associated person.
       operators:
         - contains
         - eq
@@ -43,9 +43,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_salary'
       parameters:
-        - $ref: '#/components/parameters/filter_salary'
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_salary'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_salary'
       operationId: salaries-index
       description: List all salaries.
     post:
@@ -78,13 +78,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_salary'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: salaries-show
       description: Retrieve a single salary by ID.
     patch:
@@ -122,13 +122,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: salaries-destroy
       description: Delete a salary by ID.
 components:
@@ -140,6 +140,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_salary:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.salary at the top of this file.
+      required: false
+      description: Filters
     sort_salary:
       in: query
       name: sort
@@ -152,15 +161,6 @@ components:
       explode: false
       required: false
       description: Sort salary
-    filter_salary:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.salary at the top of this file.
-      required: false
-      description: Filters
   requestBodies:
     salary:
       content:
@@ -208,46 +208,10 @@ components:
       type: object
       title: Salary Resource
       properties:
-        after:
-          type: string
-          title: After
-          format: date
-          description: The date after which this salary record starts being effective (exclusive lower bound for date-range filtering).
-          example:
-            eq: value
-        exchange_date:
-          type: string
-          title: Exchange Date
-          format: date
-          description: The date used to calculate the exchange rate for currency conversion.
-          example:
-            gt: '2026-01-01'
-        cost_normalized:
-          title: Cost Normalized
-          description: The person's cost normalized for comparison across currencies (amount in cents).
-          example:
-            eq: value
-        holiday_calendar:
-          title: Holiday Calendar
-          description: The associated holiday calendar that determines the person's non-working days.
-          example:
-            eq: value
-        currency:
-          type: string
-          title: Currency
-          description: The currency code of this salary record (e.g. USD, EUR).
-          example:
-            eq: value
-        hourly_rate:
-          title: Hourly Rate
-          description: The person's hourly rate in the salary's native currency (amount in cents).
-          example:
-            gt: 0
-        ended_on:
-          type: string
-          title: Ended On
-          format: date
-          description: The date when this salary record ends. Null if the record is currently active.
+        alternating_hours:
+          type: boolean
+          title: Alternating Hours
+          description: Alternating working hours schedule, if the organization has the alternating work hours feature enabled.
           example:
             eq: value
         hourly_rate_default:
@@ -255,58 +219,27 @@ components:
           description: The hourly rate converted to the organization's default currency, in whole currency units.
           example:
             gt: 0
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency code.
-          example:
-            eq: value
-        cost:
-          type: integer
-          title: Cost
-          description: The person's cost in the salary's native currency (amount in cents).
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this salary record belongs to.
-          example:
-            eq: value
-        holiday_calendar_id:
-          title: Holiday Calendar
-          description: The ID of the holiday calendar used for this person's availability calculations.
-          example:
-            - 123
-        working_hours:
-          type: object
-          title: Working Hours
-          description: The weekly working hours schedule for this salary record.
-          example:
-            eq: value
-        cost_default:
-          title: Cost Default
-          description: The person's cost converted to the organization's default currency (amount in cents).
-          example:
-            eq: value
-        person_id:
-          type: integer
-          title: Person
-          description: ID of the person this salary record applies to.
-          example:
-            - 123
-        exchange_rate:
-          type: number
-          title: Exchange Rate
-          description: The exchange rate applied to convert the salary cost to the default currency.
-          example:
-            gt: 0
-        note:
-          title: Note
-          description: An optional note or description for this salary record.
+        after:
+          type: string
+          title: After
+          format: date
+          description: The date after which this salary record starts being effective (exclusive lower bound for date-range filtering).
           example:
             eq: value
         person:
           title: Person
           description: The person this salary record applies to.
+          example:
+            eq: value
+        hourly_rate:
+          title: Hourly Rate
+          description: The person's hourly rate in the salary's native currency (amount in cents).
+          example:
+            gt: 0
+        working_hours:
+          type: object
+          title: Working Hours
+          description: The weekly working hours schedule for this salary record.
           example:
             eq: value
         overhead:
@@ -315,11 +248,49 @@ components:
           description: When true, this salary entry is counted as overhead cost rather than direct project cost.
           example:
             eq: value
-        before:
+        exchange_rate:
+          type: number
+          title: Exchange Rate
+          description: The exchange rate applied to convert the salary cost to the default currency.
+          example:
+            gt: 0
+        cost:
+          type: integer
+          title: Cost
+          description: The person's cost in the salary's native currency (amount in cents).
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized currency code used for cross-currency comparisons.
+          example:
+            eq: value
+        ended_on:
           type: string
-          title: Before
+          title: Ended On
           format: date
-          description: The date before which this salary record is effective (exclusive upper bound for date-range filtering).
+          description: The date when this salary record ends. Null if the record is currently active.
+          example:
+            eq: value
+        currency:
+          type: string
+          title: Currency
+          description: The currency code of this salary record (e.g. USD, EUR).
+          example:
+            eq: value
+        cost_default:
+          title: Cost Default
+          description: The person's cost converted to the organization's default currency (amount in cents).
+          example:
+            eq: value
+        cost_normalized:
+          title: Cost Normalized
+          description: The person's cost normalized for comparison across currencies (amount in cents).
+          example:
+            eq: value
+        note:
+          title: Note
+          description: An optional note or description for this salary record.
           example:
             eq: value
         hourly_rate_normalized:
@@ -327,16 +298,22 @@ components:
           description: The hourly rate converted to the organization's normalized currency, in whole currency units.
           example:
             gt: 0
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized currency code used for cross-currency comparisons.
+        person_id:
+          type: integer
+          title: Person
+          description: ID of the person this salary record applies to.
+          example:
+            - 123
+        holiday_calendar:
+          title: Holiday Calendar
+          description: The associated holiday calendar that determines the person's non-working days.
           example:
             eq: value
-        started_on:
+        before:
           type: string
-          title: Started On
+          title: Before
           format: date
-          description: Date when this salary record becomes effective.
+          description: The date before which this salary record is effective (exclusive upper bound for date-range filtering).
           example:
             eq: value
         salary_type_id:
@@ -350,12 +327,35 @@ components:
           description: Whether this is the default (active) salary record for the person.
           example:
             eq: value
-        alternating_hours:
-          type: boolean
-          title: Alternating Hours
-          description: Alternating working hours schedule, if the organization has the alternating work hours feature enabled.
+        started_on:
+          type: string
+          title: Started On
+          format: date
+          description: Date when this salary record becomes effective.
           example:
             eq: value
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency code.
+          example:
+            eq: value
+        exchange_date:
+          type: string
+          title: Exchange Date
+          format: date
+          description: The date used to calculate the exchange rate for currency conversion.
+          example:
+            gt: '2026-01-01'
+        organization:
+          title: Organization
+          description: The organization this salary record belongs to.
+          example:
+            eq: value
+        holiday_calendar_id:
+          title: Holiday Calendar
+          description: The ID of the holiday calendar used for this person's availability calculations.
+          example:
+            - 123
       description: A person's cost rate and working capacity configuration defining hourly cost, daily availability, and overhead rates.
       example:
         id: '123'
@@ -374,14 +374,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -389,10 +397,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -401,10 +405,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -454,14 +454,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

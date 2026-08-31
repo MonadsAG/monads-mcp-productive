@@ -35,8 +35,8 @@ description: |-
   ```
 x-filters:
   folder:
-    project_id:
-      description: Filter by the ID of the project the folder belongs to.
+    status:
+      description: Filter by folder archive status.
       operators:
         - contains
         - eq
@@ -49,15 +49,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    query:
-      description: Filter by folder name using a text search query.
+    project_id:
+      description: Filter by the ID of the project the folder belongs to.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    status:
-      description: Filter by folder archive status.
+    query:
+      description: Filter by folder name using a text search query.
       operators:
         - contains
         - eq
@@ -120,7 +120,7 @@ paths:
         | `copy_task_open_todos`, `copy_task_closed_todos` | `copy_open_tasks` or `copy_closed_tasks` | — |
         | `copy_task_open_subtasks`, `copy_task_closed_subtasks` | `copy_open_tasks` or `copy_closed_tasks` | — |
         | `copy_task_dependencies` | `copy_open_tasks` or `copy_closed_tasks` | — |
-        | `copy_assignees`, `copy_tags`, `copy_due_date`, `copy_start_date`, `copy_repeat`, `copy_estimate` | `copy_open_tasks` or `copy_closed_tasks` | — |
+        | `copy_assignees`, `copy_tags`, `copy_date`, `copy_repeat`, `copy_estimate` | `copy_open_tasks` or `copy_closed_tasks` | — |
         | `copy_custom_fields` | `copy_open_tasks` or `copy_closed_tasks` | Task custom field values |
 
         Enabling tasks without `copy_task_lists` returns `422` (`task_lists_required`); enabling any per-task flag without a tasks gate returns `422` (`tasks_required`).
@@ -159,8 +159,7 @@ paths:
               "copy_task_dependencies": true,
               "copy_assignees": true,
               "copy_tags": true,
-              "copy_due_date": true,
-              "copy_start_date": true,
+              "copy_date": true,
               "copy_repeat": true,
               "copy_estimate": true,
               "copy_custom_fields": true
@@ -177,9 +176,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_folder'
       parameters:
-        - $ref: '#/components/parameters/filter_folder'
         - $ref: '#/components/parameters/sort_folder'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_folder'
       operationId: folders-index
       description: Returns a paginated list of folders — the top-level groupings inside a project that hold its task lists. Supports filtering by project, status, and free-text query.
     post:
@@ -270,13 +269,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_folder'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the folder.
-        - $ref: '#/components/parameters/header_organization'
       operationId: folders-reposition-reposition
       requestBody:
         $ref: '#/components/requestBodies/folder_reposition'
@@ -300,13 +299,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_folder'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the folder.
+        - $ref: '#/components/parameters/header_organization'
       operationId: folders-restore-restore
       description: Restores an archived folder — and its task lists — back to active status.
   /api/v2/folders/{id}:
@@ -352,11 +351,11 @@ paths:
         - $ref: '#/components/parameters/header_organization'
       operationId: folders-update
       requestBody:
-        $ref: '#/components/requestBodies/folder_update'
+        $ref: '#/components/requestBodies/folder'
       description: Updates a folder. Only the provided attributes are modified — rename it or toggle its visibility via `hidden`. To move a folder to a **different project** (which reassigns its task lists and tasks and remaps workflow statuses), use [`PATCH /folders/{id}/move`](#tag/Folders/operation/folders-move-move) instead.
 components:
   requestBodies:
-    folder_update:
+    folder:
       content:
         application/vnd.api+json:
           schema:
@@ -367,6 +366,9 @@ components:
                 properties:
                   attributes:
                     type: object
+                    required:
+                      - name
+                      - project_id
                     properties:
                       name:
                         $ref: '#/components/schemas/resource_folder/properties/name'
@@ -418,30 +420,6 @@ components:
                       project_id:
                         $ref: '#/components/schemas/resource_folder/properties/project_id'
       description: Request body for moving a folder to a different project. The target `project_id` is required; provide `map` when the target project uses a different workflow than the source.
-    folder:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    required:
-                      - name
-                      - project_id
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_folder/properties/name'
-                      hidden:
-                        $ref: '#/components/schemas/resource_folder/properties/hidden'
-                      position:
-                        $ref: '#/components/schemas/resource_folder/properties/position'
-                      project_id:
-                        $ref: '#/components/schemas/resource_folder/properties/project_id'
-      description: The request body for creating or updating a folder.
     folder_copy:
       content:
         application/vnd.api+json:
@@ -471,44 +449,12 @@ components:
       type: object
       title: Folder Resource
       properties:
-        position:
-          type: integer
-          title: Position
-          description: The integer sort position of this folder within its project.
-          example:
-            eq: value
-        project:
-          title: Project
-          description: The project this folder belongs to.
-          example:
-            eq: value
-        hidden:
-          type: boolean
-          title: Hidden
-          description: Whether the folder is hidden from client users. Clients cannot see a hidden folder or its contents; internal project members are unaffected.
-          example:
-            eq: value
-        status:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Status
-          description: The archive status of this folder. Returns 1 for active folders and 2 for archived folders.
-          example:
-            eq: active
         id:
           type: integer
           title: Id
           description: The unique identifier of this folder.
           example:
             - 123
-        placement:
-          type: integer
-          title: Placement
-          description: The fractional index used for ordering folders within a project, managed by the reposition endpoint.
-          example:
-            eq: value
         archived_at:
           type: string
           title: Archived At
@@ -522,10 +468,27 @@ components:
           description: The ID of the project this folder belongs to.
           example:
             - 123
+        organization:
+          title: Organization
+          description: The organization this folder belongs to.
+          example:
+            eq: value
         query:
           type: string
           title: Query
           description: The name of this folder, used as a search query field in filter operations.
+          example:
+            eq: value
+        position:
+          type: integer
+          title: Position
+          description: The integer sort position of this folder within its project.
+          example:
+            eq: value
+        hidden:
+          type: boolean
+          title: Hidden
+          description: Whether the folder is hidden from client users. Clients cannot see a hidden folder or its contents; internal project members are unaffected.
           example:
             eq: value
         name:
@@ -534,9 +497,24 @@ components:
           description: The display name of this folder.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this folder belongs to.
+        placement:
+          type: integer
+          title: Placement
+          description: The fractional index used for ordering folders within a project, managed by the reposition endpoint.
+          example:
+            eq: value
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: The archive status of this folder. Returns 1 for active folders and 2 for archived folders.
+          example:
+            eq: active
+        project:
+          title: Project
+          description: The project this folder belongs to.
           example:
             eq: value
       description: The folder resource schema representing a collection of task lists within a project.
@@ -558,14 +536,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -573,10 +559,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -585,10 +567,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -638,14 +616,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -658,6 +636,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_folder:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.folder at the top of this file.
+      required: false
+      description: Filter folders by specific criteria. Accepts a filter object with field-value pairs.
     sort_folder:
       in: query
       name: sort
@@ -670,15 +657,6 @@ components:
       explode: false
       required: false
       description: Sort folders by one or more fields. Prefix a field name with a minus sign for descending order.
-    filter_folder:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.folder at the top of this file.
-      required: false
-      description: Filter folders by specific criteria. Accepts a filter object with field-value pairs.
   responses:
     single_folder:
       content:

@@ -12,8 +12,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_resource_request_report'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/group_resource_request_report'
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_resource_request_report'
         - $ref: '#/components/parameters/filter_resource_request_report'
       operationId: reports-resource_request_reports-index
@@ -55,6 +55,10 @@ components:
             - -resource_request
             - resource_request_created_at
             - -resource_request_created_at
+            - resource_request_ended_on
+            - -resource_request_ended_on
+            - resource_request_started_on
+            - -resource_request_started_on
             - service
             - -service
             - service_type
@@ -70,6 +74,13 @@ components:
       explode: false
       required: false
       description: Sort resource request report
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
     group_resource_request_report:
       in: query
       name: group
@@ -95,30 +106,176 @@ components:
       explode: false
       required: false
       description: Group resource request report
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
   schemas:
     resource_resource_request:
       type: object
       title: Resource request Resource
       properties:
-        creator_id:
+        service_id:
           type: integer
-          title: Creator
-          description: The ID of the person who created this resource request.
+          title: Service
+          description: The ID of the service this resource request is associated with.
           example:
             - 123
+        ended_on:
+          type: string
+          title: Ended On
+          format: date
+          description: The end date of the requested resource allocation period.
+          example:
+            eq: value
+        max_cost_per_hour_normalized:
+          title: Max Cost Per Hour Normalized
+          description: The maximum cost per hour converted to the normalized quote currency.
+          example:
+            eq: value
+        deleted_at:
+          type: string
+          title: Deleted At
+          format: date
+          description: Timestamp when this resource request was soft-deleted, or null if active.
+          example:
+            gt: '2026-01-01'
+        workplace_id:
+          type: integer
+          title: Workplace
+          description: The workplace ID associated with the requested resource, as stored in the fields.
+          example:
+            - 123
+        max_cost_per_hour_default:
+          title: Max Cost Per Hour Default
+          description: The maximum cost per hour converted to the default account currency.
+          example:
+            eq: value
+        max_cost_per_hour:
+          title: Max Cost Per Hour
+          description: The maximum cost per hour for the requested resource in the request currency.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The JSON:API relationship object for the organization this resource request belongs to.
+          example:
+            eq: value
+        booking_method_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Booking Method
+          description: The booking method ID specifying how the requested time is tracked.
+          example:
+            - 123
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: A JSON object containing custom field values for this resource request.
+          example:
+            eq: value
+        service:
+          title: Service
+          description: The JSON:API relationship object for the service this resource request belongs to.
+          example:
+            eq: value
+        total_time:
+          type: integer
+          title: Total Time
+          description: The total requested time in minutes when using total-hours booking.
+          example:
+            gt: 0
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: The JSON:API relationship objects for file attachments linked via custom fields.
+          example:
+            gt: '2026-01-01'
+        percentage:
+          type: integer
+          title: Percentage
+          description: The requested allocation percentage from 0 to 100 when using percentage-based booking.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized quote-level currency code used for cost calculations.
+          example:
+            eq: value
+        exchange_date:
+          type: string
+          title: Exchange Date
+          format: date
+          description: The date used for the exchange rate lookup on this resource request.
+          example:
+            gt: '2026-01-01'
         job_title:
           type: string
           title: Job Title
           description: The requested job title for the resource, as stored in the resource request fields.
           example:
             eq: value
+        resolver:
+          title: Resolver
+          description: The JSON:API relationship object for the person who resolved this resource request.
+          example:
+            eq: value
+        currency:
+          type: string
+          title: Currency
+          description: The currency code used for cost calculations on this resource request.
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: The default account-level currency code used for cost calculations.
+          example:
+            eq: value
+        subsidiary_id:
+          type: integer
+          title: Subsidiary
+          description: The subsidiary ID associated with the requested resource, as stored in the fields.
+          example:
+            - 123
+        time_to_close:
+          type: integer
+          title: Time To Close
+          description: The number of minutes elapsed between creation and resolution of this resource request.
+          example:
+            gt: 0
+        note:
+          type: string
+          title: Note
+          description: An optional HTML note providing additional context for this resource request.
+          example:
+            eq: value
+        custom_field_people:
+          title: Custom Field People
+          description: The JSON:API relationship objects for people linked via custom fields.
+          example:
+            eq: value
+        canceled_at:
+          type: string
+          title: Canceled At
+          format: date-time
+          description: Timestamp when this resource request was canceled, or null if not canceled.
+          example:
+            gt: '2026-01-01'
+        exchange_rate_normalized:
+          type: number
+          title: Exchange Rate Normalized
+          description: The exchange rate from the resource request currency to the normalized quote currency.
+          example:
+            gt: 0
+        status:
+          enum:
+            - pending
+            - resolved
+            - rejected
+            - canceled
+          type: string
+          title: Status
+          description: 'The current status of the resource request: pending, resolved, rejected, or canceled.'
+          example:
+            eq: active
         time:
           type: integer
           title: Time
@@ -131,72 +288,6 @@ components:
           description: The title describing the resource being requested.
           example:
             eq: value
-        canceled_at:
-          type: string
-          title: Canceled At
-          format: date-time
-          description: Timestamp when this resource request was canceled, or null if not canceled.
-          example:
-            gt: '2026-01-01'
-        note:
-          type: string
-          title: Note
-          description: An optional HTML note providing additional context for this resource request.
-          example:
-            eq: value
-        resolver_id:
-          type: integer
-          title: Resolver
-          description: The ID of the person who resolved this resource request.
-          example:
-            - 123
-        exchange_date:
-          type: string
-          title: Exchange Date
-          format: date
-          description: The date used for the exchange rate lookup on this resource request.
-          example:
-            gt: '2026-01-01'
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this resource request.
-          example:
-            - 123
-        max_cost_per_hour:
-          title: Max Cost Per Hour
-          description: The maximum cost per hour for the requested resource in the request currency.
-          example:
-            eq: value
-        creator:
-          title: Creator
-          description: The JSON:API relationship object for the person who created this resource request.
-          example:
-            eq: value
-        exchange_rate_normalized:
-          type: number
-          title: Exchange Rate Normalized
-          description: The exchange rate from the resource request currency to the normalized quote currency.
-          example:
-            gt: 0
-        team_id:
-          type: integer
-          title: Team
-          description: The team IDs associated with the requested resource, as stored in the fields.
-          example:
-            - 123
-        rejected_reason:
-          type: string
-          title: Rejected Reason
-          description: The reason provided when the resource request was rejected.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: A full-text search string used for matching resource requests by title.
-          example:
-            eq: value
         created_at:
           type: string
           title: Created At
@@ -204,64 +295,16 @@ components:
           description: Timestamp when this resource request was created.
           example:
             gt: '2026-01-01'
-        total_time:
-          type: integer
-          title: Total Time
-          description: The total requested time in minutes when using total-hours booking.
-          example:
-            gt: 0
-        started_on:
-          type: string
-          title: Started On
-          format: date
-          description: The start date of the requested resource allocation period.
+        fields:
+          type: object
+          title: Fields
+          description: A JSON object containing additional structured fields such as job_title, subsidiary_id, team_ids, service_type_ids, and tags.
           example:
             eq: value
-        resolved_at:
-          type: string
-          title: Resolved At
-          format: date-time
-          description: Timestamp when this resource request was resolved, or null if still open.
-          example:
-            gt: '2026-01-01'
-        percentage:
-          type: integer
-          title: Percentage
-          description: The requested allocation percentage from 0 to 100 when using percentage-based booking.
-          example:
-            eq: value
-        custom_field_attachments:
-          title: Custom Field Attachments
-          description: The JSON:API relationship objects for file attachments linked via custom fields.
-          example:
-            gt: '2026-01-01'
-        max_cost_per_hour_default:
-          title: Max Cost Per Hour Default
-          description: The maximum cost per hour converted to the default account currency.
-          example:
-            eq: value
-        subsidiary_id:
-          type: integer
-          title: Subsidiary
-          description: The subsidiary ID associated with the requested resource, as stored in the fields.
-          example:
-            - 123
         exchange_rate:
           type: number
           title: Exchange Rate
           description: The exchange rate from the resource request currency to the default account currency.
-          example:
-            gt: 0
-        service_id:
-          type: integer
-          title: Service
-          description: The ID of the service this resource request is associated with.
-          example:
-            - 123
-        time_to_close:
-          type: integer
-          title: Time To Close
-          description: The number of minutes elapsed between creation and resolution of this resource request.
           example:
             gt: 0
         tags:
@@ -270,32 +313,41 @@ components:
           description: The list of tag labels associated with this resource request.
           example:
             eq: value
-        custom_fields:
-          type: object
-          title: Custom Fields
-          description: A JSON object containing custom field values for this resource request.
-          example:
-            eq: value
-        service:
-          title: Service
-          description: The JSON:API relationship object for the service this resource request belongs to.
-          example:
-            eq: value
-        fields:
-          type: object
-          title: Fields
-          description: A JSON object containing additional structured fields such as job_title, subsidiary_id, team_ids, service_type_ids, and tags.
-          example:
-            eq: value
-        currency:
+        query:
           type: string
-          title: Currency
-          description: The currency code used for cost calculations on this resource request.
+          title: Query
+          description: A full-text search string used for matching resource requests by title.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The JSON:API relationship object for the organization this resource request belongs to.
+        team_id:
+          type: integer
+          title: Team
+          description: The team IDs associated with the requested resource, as stored in the fields.
+          example:
+            - 123
+        creator_id:
+          type: integer
+          title: Creator
+          description: The ID of the person who created this resource request.
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this resource request.
+          example:
+            - 123
+        resolved_at:
+          type: string
+          title: Resolved At
+          format: date-time
+          description: Timestamp when this resource request was resolved, or null if still open.
+          example:
+            gt: '2026-01-01'
+        rejected_reason:
+          type: string
+          title: Rejected Reason
+          description: The reason provided when the resource request was rejected.
           example:
             eq: value
         service_type_id:
@@ -304,72 +356,24 @@ components:
           description: The service type IDs associated with the requested resource, as stored in the fields.
           example:
             - 123
-        deleted_at:
+        creator:
+          title: Creator
+          description: The JSON:API relationship object for the person who created this resource request.
+          example:
+            eq: value
+        started_on:
           type: string
-          title: Deleted At
+          title: Started On
           format: date
-          description: Timestamp when this resource request was soft-deleted, or null if active.
+          description: The start date of the requested resource allocation period.
           example:
-            gt: '2026-01-01'
-        booking_method_id:
-          enum:
-            - 1
-            - 2
-            - 3
+            eq: value
+        resolver_id:
           type: integer
-          title: Booking Method
-          description: The booking method ID specifying how the requested time is tracked.
-          example:
-            - 123
-        resolver:
           title: Resolver
-          description: The JSON:API relationship object for the person who resolved this resource request.
-          example:
-            eq: value
-        custom_field_people:
-          title: Custom Field People
-          description: The JSON:API relationship objects for people linked via custom fields.
-          example:
-            eq: value
-        workplace_id:
-          type: integer
-          title: Workplace
-          description: The workplace ID associated with the requested resource, as stored in the fields.
+          description: The ID of the person who resolved this resource request.
           example:
             - 123
-        status:
-          enum:
-            - pending
-            - resolved
-            - rejected
-            - canceled
-          type: string
-          title: Status
-          description: 'The current status of the resource request: pending, resolved, rejected, or canceled.'
-          example:
-            eq: active
-        max_cost_per_hour_normalized:
-          title: Max Cost Per Hour Normalized
-          description: The maximum cost per hour converted to the normalized quote currency.
-          example:
-            eq: value
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized quote-level currency code used for cost calculations.
-          example:
-            eq: value
-        ended_on:
-          type: string
-          title: Ended On
-          format: date
-          description: The end date of the requested resource allocation period.
-          example:
-            eq: value
-        currency_default:
-          title: Currency Default
-          description: The default account-level currency code used for cost calculations.
-          example:
-            eq: value
       description: Schema for a resource request resource object.
       example:
         id: '123'
@@ -384,14 +388,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -399,10 +411,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -411,10 +419,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -464,14 +468,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -480,17 +484,9 @@ components:
       type: object
       title: Resource request report Resource
       properties:
-        resource_request:
-          title: Resource Request
-        service_report:
-          title: Service Report
-        total_max_cost_per_hour_normalized:
-          title: Total Max Cost Per Hour Normalized
-          description: Sum of the maximum cost per hour of the requests in this row, converted to the report's normalized currency
-        creator:
-          title: Creator
-        subsidiary:
-          title: Subsidiary
+        ended_on_period:
+          title: Ended On Period
+          description: Bucketed end date, populated when grouping by ended_on over a period
         status:
           enum:
             - pending
@@ -500,8 +496,53 @@ components:
           type: string
           title: Status
           description: 'The current status of the resource request: pending, resolved, rejected, or canceled.'
+        creator:
+          title: Creator
+        creator_report:
+          title: Creator Report
+        created_at_period:
+          title: Created At Period
+          description: Bucketed creation date, populated when grouping by created_at over a period
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized quote-level currency code used for cost calculations.
+        subsidiary:
+          title: Subsidiary
+        total_max_cost_per_hour_default:
+          title: Total Max Cost Per Hour Default
+          description: Sum of the maximum cost per hour of the requests in this row, converted to the account's default currency
+        started_on_period:
+          title: Started On Period
+          description: Bucketed start date, populated when grouping by started_on over a period
+        count:
+          type: integer
+          title: Count
+          description: Number of resource requests aggregated into this row
+        service_report:
+          title: Service Report
+        total_max_cost_per_hour_normalized:
+          title: Total Max Cost Per Hour Normalized
+          description: Sum of the maximum cost per hour of the requests in this row, converted to the report's normalized currency
+        group:
+          type: string
+          title: Group
+          description: The dimension value each aggregated row represents; mirrors the group query parameter
+        service:
+          title: Service
+        service_type:
+          title: Service Type
         resolver:
           title: Resolver
+        deal_or_budget_report:
+          title: Deal or Budget Report
+        total_max_cost_per_hour:
+          title: Total Max Cost Per Hour
+          description: Sum of the maximum cost per hour of the requests in this row, in the record currency
+        resolver_report:
+          title: Resolver Report
+        currency_default:
+          title: Currency Default
+          description: The default account-level currency code used for cost calculations.
         booking_method:
           enum:
             - 1
@@ -510,49 +551,12 @@ components:
           type: integer
           title: Booking Method
           description: The booking method ID specifying how the requested time is tracked.
-        group:
-          type: string
-          title: Group
-          description: The dimension value each aggregated row represents; mirrors the group query parameter
-        created_at_period:
-          title: Created At Period
-          description: Bucketed creation date, populated when grouping by created_at over a period
-        service:
-          title: Service
-        service_type:
-          title: Service Type
-        count:
-          type: integer
-          title: Count
-          description: Number of resource requests aggregated into this row
-        deal_or_budget_report:
-          title: Deal or Budget Report
-        total_max_cost_per_hour:
-          title: Total Max Cost Per Hour
-          description: Sum of the maximum cost per hour of the requests in this row, in the record currency
-        ended_on_period:
-          title: Ended On Period
-          description: Bucketed end date, populated when grouping by ended_on over a period
+        resource_request:
+          title: Resource Request
         currency:
           type: string
           title: Currency
           description: The currency code used for cost calculations on this resource request.
-        currency_default:
-          title: Currency Default
-          description: The default account-level currency code used for cost calculations.
-        total_max_cost_per_hour_default:
-          title: Total Max Cost Per Hour Default
-          description: Sum of the maximum cost per hour of the requests in this row, converted to the account's default currency
-        started_on_period:
-          title: Started On Period
-          description: Bucketed start date, populated when grouping by started_on over a period
-        creator_report:
-          title: Creator Report
-        resolver_report:
-          title: Resolver Report
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized quote-level currency code used for cost calculations.
   responses:
     collection_resource_request_report:
       content:

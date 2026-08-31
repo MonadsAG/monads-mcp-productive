@@ -24,13 +24,13 @@ paths:
                 type: string
           description: Service Unavailable
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organization_subscriptions-cancel-cancel
       description: Cancel an organization subscription.
   /api/v2/organization_subscriptions/{id}/reactivate:
@@ -76,13 +76,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_organization_subscription'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organization_subscriptions-retry_last_payment-retry_last_payment
       description: Retry the last failed payment for an organization subscription.
   /api/v2/organization_subscriptions/{id}:
@@ -127,13 +127,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: organization_subscriptions-update
       requestBody:
         $ref: '#/components/requestBodies/organization_subscription'
@@ -164,8 +164,6 @@ components:
                         $ref: '#/components/schemas/resource_organization_subscription/properties/billing_email'
                       product_types:
                         $ref: '#/components/schemas/resource_organization_subscription/properties/product_types'
-                      active_products:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/active_products'
                       billing_address:
                         $ref: '#/components/schemas/resource_organization_subscription/properties/billing_address'
                       trial_plan_type:
@@ -180,48 +178,138 @@ components:
       type: object
       title: Organization subscription Resource
       properties:
-        active_products:
+        billing_group_seats:
+          type: integer
+          title: Billing Group Seats
+          description: Total number of seats across all organizations in this billing group.
+          example:
+            eq: value
+        trial_plan_active:
+          title: Trial Plan Active
+          description: Whether a trial plan upgrade is currently active for this organization.
+          example:
+            eq: value
+        card_month:
+          type: string
+          title: Card Month
+          description: The expiry month of the card on file.
+          example:
+            eq: value
+        trial_product_ids:
           type: object
-          title: Active Products
-          description: The list of currently active product modules enabled on this subscription.
+          title: Trial Product Ids
+          description: List of product IDs included in the trial subscription for this organization.
+          example:
+            - 123
+            - 456
+        grace_period_ends_at:
+          type: string
+          title: Grace Period Ends At
+          format: date-time
+          description: The grace period ends at.
+          example:
+            gt: '2026-01-01'
+        trial_plan_ends_at:
+          type: string
+          title: Trial Plan Ends At
+          format: date-time
+          description: The trial plan ends at.
+          example:
+            gt: '2026-01-01'
+        plan_price:
+          title: Plan Price
+          description: The price per seat per billing cycle for the current plan, after discount.
+          example:
+            gt: 0
+        product_types:
+          type: array
+          items:
+            description: A product type entry within the subscription's product_types list.
+            example:
+              eq: active
+          title: Product Types
+          description: The list of product module types included in the subscription.
+          example:
+            eq: active
+        billing_email:
+          type: object
+          title: Billing Email
+          description: The email address used for billing communications and invoices.
           example:
             eq: value
-        billing_group_owner:
-          title: Billing Group Owner
-          description: The billing group owner organization, if this organization is a billing group member.
+        stripe_customer_id:
+          type: integer
+          title: Stripe Customer
+          description: The Stripe customer ID associated with this organization's billing account.
+          example:
+            - 123
+        card_year:
+          type: string
+          title: Card Year
+          description: The expiry year of the card on file.
           example:
             eq: value
-        billing_group_admin:
-          type: boolean
-          title: Billing Group Admin
-          description: Whether this organization is the admin of a billing group (manages billing for member organizations).
+        next_billing_cycle_at:
+          type: string
+          title: Next Billing Cycle At
+          format: date-time
+          description: The next billing cycle at.
           example:
-            eq: value
+            gt: '2026-01-01'
         seats_used:
           type: integer
           title: Seats Used
           description: The number of seats currently occupied by active members.
           example:
             eq: value
-        discount:
+        payment_method_id:
+          enum:
+            - 1
+            - 2
           type: integer
-          title: Discount
-          description: The discount percentage applied to the subscription price.
+          title: Payment Method
+          description: ID of the payment method on file for this subscription.
           example:
-            gt: 0
-        contract_date:
-          type: string
-          title: Contract Date
-          format: date
-          description: The date the contract with this organization started.
-          example:
-            gt: '2026-01-01'
-        billing_address:
-          type: object
-          title: Billing Address
-          description: The billing address on file for this organization's subscription.
+            - 123
+        seats:
+          type: integer
+          title: Seats
+          description: The total number of seats purchased for this subscription.
           example:
             eq: value
+        trial_plan_type:
+          title: Trial Plan Type
+          description: The type of plan being trialed, if a trial plan upgrade is active.
+          example:
+            eq: active
+        card_last4:
+          type: string
+          title: Card Last4
+          description: The last four digits of the credit or debit card on file.
+          example:
+            eq: value
+        seats_pending:
+          title: Seats Pending
+          description: The number of seats with a pending change (e.g. scheduled to be added or removed).
+          example:
+            eq: value
+        plan_cycle:
+          title: Plan Cycle
+          description: The billing cycle of the plan (monthly or annual).
+          example:
+            eq: value
+        stripe_token:
+          title: Stripe Token
+          description: The Stripe payment token used to update the payment method on file.
+          example:
+            eq: value
+        subscription_ended_at:
+          type: string
+          title: Subscription Ended At
+          format: date-time
+          description: Timestamp when the subscription ended, or null if still active.
+          example:
+            gt: '2026-01-01'
         plan_type:
           title: Plan Type
           description: The type identifier of the current plan (e.g. essential, professional, ultimate).
@@ -233,124 +321,13 @@ components:
           description: The number of seats specified in the organization's current contract.
           example:
             eq: value
-        seats_pending:
-          title: Seats Pending
-          description: The number of seats with a pending change (e.g. scheduled to be added or removed).
-          example:
-            eq: value
-        seats:
-          type: integer
-          title: Seats
-          description: The total number of seats purchased for this subscription.
-          example:
-            eq: value
-        billing_group_member:
-          title: Billing Group Member
-          description: Whether this organization is a member of a billing group managed by another organization.
-          example:
-            eq: value
-        trial_plan_ends_at:
+        contract_date:
           type: string
-          title: Trial Plan Ends At
-          format: date-time
-          description: The trial plan ends at.
-          example:
-            gt: '2026-01-01'
-        card_brand:
-          type: string
-          title: Card Brand
-          description: The brand of the credit or debit card on file (e.g. Visa, Mastercard).
-          example:
-            eq: value
-        billing_group_seats:
-          type: integer
-          title: Billing Group Seats
-          description: Total number of seats across all organizations in this billing group.
-          example:
-            eq: value
-        plan_cycle:
-          title: Plan Cycle
-          description: The billing cycle of the plan (monthly or annual).
-          example:
-            eq: value
-        billing_group_members:
-          title: Billing Group Members
-          description: Organizations in the billing group managed by this organization, if it is a billing group admin.
-          example:
-            eq: value
-        discount_expires_on:
-          type: string
-          title: Discount Expires On
+          title: Contract Date
           format: date
-          description: Date when the current discount expires, or null if it does not expire.
-          example:
-            gt: 0
-        subscription_started_at:
-          type: string
-          title: Subscription Started At
-          format: date-time
-          description: Timestamp when the subscription started.
+          description: The date the contract with this organization started.
           example:
             gt: '2026-01-01'
-        subscription_ended_at:
-          type: string
-          title: Subscription Ended At
-          format: date-time
-          description: Timestamp when the subscription ended, or null if still active.
-          example:
-            gt: '2026-01-01'
-        payment_method_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Payment Method
-          description: ID of the payment method on file for this subscription.
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: The organization this subscription belongs to.
-          example:
-            eq: value
-        billing_email:
-          type: object
-          title: Billing Email
-          description: The email address used for billing communications and invoices.
-          example:
-            eq: value
-        current_products:
-          title: Current Products
-          description: The list of product modules currently active on the subscription.
-          example:
-            eq: value
-        trial_ends_at:
-          type: string
-          title: Trial Ends At
-          format: date-time
-          description: Timestamp when the free trial ends, or null if not on a trial.
-          example:
-            gt: '2026-01-01'
-        collection_method_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Collection Method
-          description: ID of the collection method used to charge this subscription (e.g., charge automatically or send invoice).
-          example:
-            - 123
-        stripe_customer_id:
-          type: integer
-          title: Stripe Customer
-          description: The Stripe customer ID associated with this organization's billing account.
-          example:
-            - 123
-        trial_plan_active:
-          title: Trial Plan Active
-          description: Whether a trial plan upgrade is currently active for this organization.
-          example:
-            eq: value
         subscription_state_id:
           enum:
             - 1
@@ -366,84 +343,99 @@ components:
           description: ID of the current subscription state (e.g. active, trialing, past_due, canceled).
           example:
             - 123
-        card_last4:
-          type: string
-          title: Card Last4
-          description: The last four digits of the credit or debit card on file.
-          example:
-            eq: value
-        trial_plan_type:
-          title: Trial Plan Type
-          description: The type of plan being trialed, if a trial plan upgrade is active.
-          example:
-            eq: active
-        next_billing_cycle_at:
-          type: string
-          title: Next Billing Cycle At
-          format: date-time
-          description: The next billing cycle at.
-          example:
-            gt: '2026-01-01'
-        balance:
-          title: Balance
-          description: The account's current Stripe balance in cents (negative means credit).
-          example:
-            eq: value
-        stripe_token:
-          title: Stripe Token
-          description: The Stripe payment token used to update the payment method on file.
-          example:
-            eq: value
-        card_year:
-          type: string
-          title: Card Year
-          description: The expiry year of the card on file.
-          example:
-            eq: value
-        grace_period_ends_at:
-          type: string
-          title: Grace Period Ends At
-          format: date-time
-          description: The grace period ends at.
-          example:
-            gt: '2026-01-01'
         contract_min_seats:
           type: integer
           title: Contract Min Seats
           description: The minimum number of seats specified in the organization's contract.
           example:
             eq: value
-        trial_product_ids:
-          type: object
-          title: Trial Product Ids
-          description: List of product IDs included in the trial subscription for this organization.
-          example:
-            - 123
-            - 456
-        product_types:
-          type: array
-          items:
-            description: A product type entry within the subscription's product_types list.
-            example:
-              eq: active
-          title: Product Types
-          description: The list of product module types included in the subscription.
-          example:
-            eq: active
-        plan_price:
-          title: Plan Price
-          description: The price per seat per billing cycle for the current plan, after discount.
+        discount_expires_on:
+          type: string
+          title: Discount Expires On
+          format: date
+          description: Date when the current discount expires, or null if it does not expire.
           example:
             gt: 0
-        card_month:
-          type: string
-          title: Card Month
-          description: The expiry month of the card on file.
+        organization:
+          title: Organization
+          description: The organization this subscription belongs to.
           example:
             eq: value
+        subscription_started_at:
+          type: string
+          title: Subscription Started At
+          format: date-time
+          description: Timestamp when the subscription started.
+          example:
+            gt: '2026-01-01'
+        billing_group_member:
+          title: Billing Group Member
+          description: Whether this organization is a member of a billing group managed by another organization.
+          example:
+            eq: value
+        trial_ends_at:
+          type: string
+          title: Trial Ends At
+          format: date-time
+          description: Timestamp when the free trial ends, or null if not on a trial.
+          example:
+            gt: '2026-01-01'
+        billing_address:
+          type: object
+          title: Billing Address
+          description: The billing address on file for this organization's subscription.
+          example:
+            eq: value
+        current_products:
+          title: Current Products
+          description: The list of product modules currently active on the subscription.
+          example:
+            eq: value
+        billing_group_members:
+          title: Billing Group Members
+          description: Organizations in the billing group managed by this organization, if it is a billing group admin.
+          example:
+            eq: value
+        billing_group_admin:
+          type: boolean
+          title: Billing Group Admin
+          description: Whether this organization is the admin of a billing group (manages billing for member organizations).
+          example:
+            eq: value
+        card_brand:
+          type: string
+          title: Card Brand
+          description: The brand of the credit or debit card on file (e.g. Visa, Mastercard).
+          example:
+            eq: value
+        collection_method_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Collection Method
+          description: ID of the collection method used to charge this subscription (e.g., charge automatically or send invoice).
+          example:
+            - 123
+        discount:
+          type: integer
+          title: Discount
+          description: The discount percentage applied to the subscription price.
+          example:
+            gt: 0
         current_plan:
           title: Current Plan
           description: The organization's current billing plan details.
+          example:
+            eq: value
+        balance:
+          title: Balance
+          description: The account's current Stripe balance in cents (negative means credit).
+          example:
+            eq: value
+        billing_group_owner:
+          title: Billing Group Owner
+          description: The billing group owner organization, if this organization is a billing group member.
           example:
             eq: value
       description: The subscription details for an organization's Productive plan, including billing, seats, and plan information.
@@ -460,14 +452,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -475,10 +475,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -487,10 +483,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -500,6 +492,7 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -516,12 +509,27 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -542,22 +550,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _single_relationship:
       anyOf:
         - type: object
@@ -633,8 +625,6 @@ components:
                         $ref: '#/components/schemas/resource_organization_subscription/properties/trial_ends_at'
                       contract_seats:
                         $ref: '#/components/schemas/resource_organization_subscription/properties/contract_seats'
-                      active_products:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/active_products'
                       billing_address:
                         $ref: '#/components/schemas/resource_organization_subscription/properties/billing_address'
                       trial_plan_type:

@@ -25,8 +25,8 @@ paths:
           description: Unauthorized
       parameters:
         - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_user'
         - $ref: '#/components/parameters/sort_user'
+        - $ref: '#/components/parameters/filter_user'
       operationId: users-index
       description: List all users.
   /api/v2/users/{id}:
@@ -46,13 +46,13 @@ paths:
                 type: string
           description: Not Found
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: users-show
       description: Retrieve a single user by ID.
     patch:
@@ -91,13 +91,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_user'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: users-update_password-update_password
       description: Update the password for a user.
 components:
@@ -109,6 +109,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_user:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.user at the top of this file.
+      required: false
+      description: Filters
     sort_user:
       in: query
       name: sort
@@ -121,15 +130,6 @@ components:
       explode: false
       required: false
       description: Sort user
-    filter_user:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.user at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_user:
       content:
@@ -260,14 +260,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -275,10 +283,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -287,10 +291,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -302,52 +302,39 @@ components:
       type: object
       title: User Resource
       properties:
-        avatar_url:
+        account_access_expires_at:
           type: string
-          title: Avatar Url
-          description: URL of the user's profile avatar image.
+          title: Account Access Expires At
+          format: date-time
+          description: The account access expires at.
           example:
-            eq: value
-        default_organization_slug:
-          title: Default Organization Slug
-          description: URL slug of the user's default organization.
-          example:
-            eq: value
-        sysadmin_permissions:
-          type: object
-          title: Sysadmin Permissions
-          description: The specific system administrator permissions granted to this user.
-          example:
-            eq: value
+            gt: '2026-01-01'
         flags:
           type: object
           title: Flags
           description: Feature flag overrides applied to this user's account.
           example:
             eq: value
-        last_name:
+        avatar_url:
           type: string
-          title: Last Name
-          description: The last name of the user.
+          title: Avatar Url
+          description: URL of the user's profile avatar image.
           example:
             eq: value
-        updated_at:
+        preferences:
           type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this user was last updated.
-          example:
-            gt: '2026-01-01'
-        two_factor_auth:
-          type: boolean
-          title: Two Factor Auth
-          description: When true, two-factor authentication is enabled for this user.
+          title: Preferences
+          description: User interface preferences and settings stored as key-value pairs.
           example:
             eq: value
-        email:
-          type: string
-          title: Email
-          description: The email address used to log in to Productive.
+        newsletter_consent:
+          title: Newsletter Consent
+          description: When true, the user has consented to receive marketing newsletters.
+          example:
+            eq: value
+        intercom_hash:
+          title: Intercom Hash
+          description: HMAC hash used to verify this user's identity with Intercom.
           example:
             eq: value
         locale:
@@ -362,22 +349,16 @@ components:
           description: The preferred language locale for this user's interface.
           example:
             eq: value
+        first_name:
+          type: string
+          title: First Name
+          description: The first name of the user.
+          example:
+            eq: value
         sysadmin:
           type: boolean
           title: Sysadmin
           description: When true, this user has system administrator privileges.
-          example:
-            eq: value
-        preferences:
-          type: string
-          title: Preferences
-          description: User interface preferences and settings stored as key-value pairs.
-          example:
-            eq: value
-        sso_provision:
-          type: boolean
-          title: Sso Provision
-          description: When true, this user account was provisioned via single sign-on.
           example:
             eq: value
         newsletter_consent_at:
@@ -387,16 +368,33 @@ components:
           description: Timestamp when the user gave newsletter consent, or null if not consented.
           example:
             gt: '2026-01-01'
-        default_organization_id:
-          type: integer
-          title: Default Organization
-          description: ID of the organization this user logs into by default.
+        two_factor_auth:
+          type: boolean
+          title: Two Factor Auth
+          description: When true, two-factor authentication is enabled for this user.
           example:
-            - 123
-        first_name:
+            eq: value
+        default_organization_slug:
+          title: Default Organization Slug
+          description: URL slug of the user's default organization.
+          example:
+            eq: value
+        email:
           type: string
-          title: First Name
-          description: The first name of the user.
+          title: Email
+          description: The email address used to log in to Productive.
+          example:
+            eq: value
+        last_name:
+          type: string
+          title: Last Name
+          description: The last name of the user.
+          example:
+            eq: value
+        sysadmin_permissions:
+          type: object
+          title: Sysadmin Permissions
+          description: The specific system administrator permissions granted to this user.
           example:
             eq: value
         ical_token:
@@ -405,29 +403,31 @@ components:
           description: Authentication token used to access this user's iCal calendar feed.
           example:
             eq: value
-        account_access_expires_at:
-          type: string
-          title: Account Access Expires At
-          format: date-time
-          description: The account access expires at.
-          example:
-            gt: '2026-01-01'
-        newsletter_consent:
-          title: Newsletter Consent
-          description: When true, the user has consented to receive marketing newsletters.
-          example:
-            eq: value
         time_zone:
           type: string
           title: Time Zone
           description: The IANA time zone identifier for this user's preferred time zone.
           example:
             gt: 0
-        intercom_hash:
-          title: Intercom Hash
-          description: HMAC hash used to verify this user's identity with Intercom.
+        sso_provision:
+          type: boolean
+          title: Sso Provision
+          description: When true, this user account was provisioned via single sign-on.
           example:
             eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this user was last updated.
+          example:
+            gt: '2026-01-01'
+        default_organization_id:
+          type: integer
+          title: Default Organization
+          description: ID of the organization this user logs into by default.
+          example:
+            - 123
       description: A user represents a login account in Productive, holding authentication credentials and preferences. It is distinct from a person, which represents the employee profile linked to an organization.
       example:
         id: '28'

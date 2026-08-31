@@ -5,8 +5,8 @@ info:
 description: Person-team links. Each membership adds a person to a team. Teams are used for access control on projects and other resources, and for reporting groupings.
 x-filters:
   team_membership:
-    active:
-      description: Filter to include only memberships with an active person (not deactivated).
+    id:
+      description: Filter by ID.
       operators:
         - contains
         - eq
@@ -19,8 +19,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by ID.
+    active:
+      description: Filter to include only memberships with an active person (not deactivated).
       operators:
         - contains
         - eq
@@ -43,8 +43,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_team_membership'
       parameters:
-        - $ref: '#/components/parameters/filter_team_membership'
         - $ref: '#/components/parameters/sort_team_membership'
+        - $ref: '#/components/parameters/filter_team_membership'
         - $ref: '#/components/parameters/header_organization'
       operationId: team_memberships-index
       description: List all team memberships.
@@ -78,13 +78,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_team_membership'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: team_memberships-show
       description: Retrieve a single team membership by ID.
     delete:
@@ -95,13 +95,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: team_memberships-destroy
       description: Delete a team membership by ID.
 components:
@@ -113,6 +113,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_team_membership:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.team_membership at the top of this file.
+      required: false
+      description: Filters
     sort_team_membership:
       in: query
       name: sort
@@ -128,15 +137,6 @@ components:
       explode: false
       required: false
       description: Sort team membership
-    filter_team_membership:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.team_membership at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_team_membership:
       content:
@@ -199,14 +199,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -214,10 +222,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -226,10 +230,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -279,14 +279,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -295,9 +295,15 @@ components:
       type: object
       title: Team membership Resource
       properties:
-        person_name:
-          title: Person Name
-          description: The full name of the person who is a member of the team.
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this team membership.
+          example:
+            - 123
+        team:
+          title: Team
+          description: The team this membership belongs to.
           example:
             eq: value
         team_id:
@@ -306,9 +312,14 @@ components:
           description: ID of the team this membership belongs to.
           example:
             - 123
-        team:
-          title: Team
-          description: The team this membership belongs to.
+        active:
+          type: boolean
+          title: Active
+          description: Whether this team membership is currently active.
+          example: true
+        organization:
+          title: Organization
+          description: The organization this team membership belongs to.
           example:
             eq: value
         person:
@@ -316,26 +327,15 @@ components:
           description: The person who is a member of the team.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this team membership belongs to.
+        person_name:
+          title: Person Name
+          description: The full name of the person who is a member of the team.
           example:
             eq: value
         person_id:
           type: integer
           title: Person
           description: ID of the person who is a member of the team.
-          example:
-            - 123
-        active:
-          type: boolean
-          title: Active
-          description: Whether this team membership is currently active.
-          example: true
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this team membership.
           example:
             - 123
       description: Person-team link record. Associates a person with a team for access control and reporting purposes.

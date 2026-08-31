@@ -8,6 +8,13 @@ description: |-
   The Webhook object enables real-time notifications for events occurring in Productive.
 x-filters:
   webhook:
+    id:
+      description: Filter by webhook ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     event_id:
       description: Filter by the subscribed event type (e.g. new task, updated invoice).
       operators:
@@ -17,13 +24,6 @@ x-filters:
         - not_eq
     type_id:
       description: Filter by webhook type (webhook or Zapier).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by webhook ID.
       operators:
         - contains
         - eq
@@ -46,8 +46,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_webhook'
       parameters:
-        - $ref: '#/components/parameters/filter_webhook'
         - $ref: '#/components/parameters/sort_webhook'
+        - $ref: '#/components/parameters/filter_webhook'
         - $ref: '#/components/parameters/header_organization'
       operationId: webhooks-index
       description: List all webhooks.
@@ -116,6 +116,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_webhook:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.webhook at the top of this file.
+      required: false
+      description: Filters
     sort_webhook:
       in: query
       name: sort
@@ -128,15 +137,6 @@ components:
       explode: false
       required: false
       description: Sort webhook
-    filter_webhook:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.webhook at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_webhook:
       content:
@@ -235,14 +235,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -250,10 +258,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -262,10 +266,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -315,14 +315,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -331,6 +331,23 @@ components:
       type: object
       title: Webhook Resource
       properties:
+        creator:
+          title: Creator
+          description: The person who created this webhook.
+          example:
+            eq: value
+        retry_attempts:
+          type: integer
+          title: Retry Attempts
+          description: The number of retry attempts made after a failed delivery.
+          example:
+            gt: '2026-01-01'
+        target_url:
+          type: string
+          title: Target Url
+          description: The URL where webhook event payloads are delivered.
+          example:
+            eq: value
         state_id:
           enum:
             - 1
@@ -341,33 +358,12 @@ components:
           description: 'The current delivery state of this webhook: 1=Working, 2=Issues, 3=Waiting.'
           example:
             - 123
-        retry_attempts:
-          type: integer
-          title: Retry Attempts
-          description: The number of retry attempts made after a failed delivery.
-          example:
-            gt: '2026-01-01'
-        name:
-          type: string
-          title: Name
-          description: The display name of this webhook.
+        custom_headers:
+          type: object
+          title: Custom Headers
+          description: Custom HTTP headers to include in each webhook delivery request.
           example:
             eq: value
-        type_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Type
-          description: 'The integration type of this webhook: 1=Webhook, 2=Zapier.'
-          example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this webhook.
-          example:
-            - 123
         deactivated_at:
           type: string
           title: Deactivated At
@@ -375,6 +371,12 @@ components:
           description: Timestamp when this webhook was deactivated, or null if still active.
           example:
             gt: '2026-01-01'
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this webhook.
+          example:
+            - 123
         event_id:
           enum:
             - 1
@@ -417,38 +419,36 @@ components:
           description: The event type that triggers this webhook.
           example:
             - 123
-        signature_token:
-          type: string
-          title: Signature Token
-          description: Secret token used to sign webhook payloads for verification by the recipient.
+        test:
+          type: boolean
+          title: Test
+          description: When true, this webhook is in test mode and will not fire on real events.
           example:
             eq: value
+        type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Type
+          description: 'The integration type of this webhook: 1=Webhook, 2=Zapier.'
+          example:
+            - 123
         organization:
           title: Organization
           description: The organization this webhook belongs to.
           example:
             eq: value
-        creator:
-          title: Creator
-          description: The person who created this webhook.
-          example:
-            eq: value
-        target_url:
+        name:
           type: string
-          title: Target Url
-          description: The URL where webhook event payloads are delivered.
+          title: Name
+          description: The display name of this webhook.
           example:
             eq: value
-        custom_headers:
-          type: object
-          title: Custom Headers
-          description: Custom HTTP headers to include in each webhook delivery request.
-          example:
-            eq: value
-        test:
-          type: boolean
-          title: Test
-          description: When true, this webhook is in test mode and will not fire on real events.
+        signature_token:
+          type: string
+          title: Signature Token
+          description: Secret token used to sign webhook payloads for verification by the recipient.
           example:
             eq: value
       description: A webhook is an HTTP callback configured to fire when specific events occur in Productive, delivering real-time event notifications to an external target URL.

@@ -48,9 +48,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_payment_reminder_sequence'
       parameters:
-        - $ref: '#/components/parameters/filter_payment_reminder_sequence'
-        - $ref: '#/components/parameters/sort_payment_reminder_sequence'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_payment_reminder_sequence'
+        - $ref: '#/components/parameters/filter_payment_reminder_sequence'
       operationId: payment_reminder_sequences-index
       description: List all payment reminder sequences.
     post:
@@ -91,13 +91,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_payment_reminder_sequence'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: payment_reminder_sequences-show
       description: Retrieve a single payment reminder sequence by ID.
     patch:
@@ -124,13 +124,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: payment_reminder_sequences-update
       requestBody:
         $ref: '#/components/requestBodies/payment_reminder_sequence'
@@ -169,6 +169,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_payment_reminder_sequence:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.payment_reminder_sequence at the top of this file.
+      required: false
+      description: Filters
     sort_payment_reminder_sequence:
       in: query
       name: sort
@@ -184,15 +193,6 @@ components:
       explode: false
       required: false
       description: Sort payment reminder sequence
-    filter_payment_reminder_sequence:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.payment_reminder_sequence at the top of this file.
-      required: false
-      description: Filters
   requestBodies:
     payment_reminder_sequence:
       content:
@@ -216,10 +216,9 @@ components:
       type: object
       title: Payment reminder sequence Resource
       properties:
-        default_sequence:
-          type: boolean
-          title: Default Sequence
-          description: When true, this sequence is used as the default reminder sequence for new invoices.
+        payment_reminders:
+          title: Payment Reminders
+          description: Array of individual payment reminder steps in this sequence, each defining timing and message content.
           example:
             eq: value
         updater:
@@ -227,9 +226,9 @@ components:
           description: The person who last updated this payment reminder sequence.
           example:
             eq: value
-        payment_reminders:
-          title: Payment Reminders
-          description: Array of individual payment reminder steps in this sequence, each defining timing and message content.
+        organization:
+          title: Organization
+          description: The organization this payment reminder sequence belongs to.
           example:
             eq: value
         creator:
@@ -237,15 +236,10 @@ components:
           description: The person who created this payment reminder sequence.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this payment reminder sequence belongs to.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The name of this payment reminder sequence.
+        default_sequence:
+          type: boolean
+          title: Default Sequence
+          description: When true, this sequence is used as the default reminder sequence for new invoices.
           example:
             eq: value
         created_at:
@@ -255,6 +249,12 @@ components:
           description: Timestamp when this payment reminder sequence was created.
           example:
             gt: '2026-01-01'
+        name:
+          type: string
+          title: Name
+          description: The name of this payment reminder sequence.
+          example:
+            eq: value
         updated_at:
           type: string
           title: Updated At
@@ -274,14 +274,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -289,10 +297,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -301,10 +305,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -314,6 +314,7 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -330,12 +331,27 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -356,22 +372,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _single_relationship:
       anyOf:
         - type: object

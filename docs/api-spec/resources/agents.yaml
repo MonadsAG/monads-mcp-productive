@@ -5,12 +5,6 @@ info:
 description: Endpoints for managing AI agents — automated organization members with configurable behavior, permissions, and Slack integration.
 x-filters:
   agent:
-    query:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     custom_role_id:
       description: Filter agents by their assigned custom role ID.
       operators:
@@ -24,26 +18,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    title:
-      description: Filter agents by their job title or functional role description.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    status:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     name:
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    created_at:
+    status:
       operators:
         - contains
         - eq
@@ -58,6 +39,25 @@ x-filters:
         - not_eq
     manager_id:
       description: Filter agents by their assigned manager's ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    title:
+      description: Filter agents by their job title or functional role description.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
       operators:
         - contains
         - eq
@@ -126,13 +126,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_agent'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The unique identifier of the agent to deactivate.
-        - $ref: '#/components/parameters/header_organization'
       operationId: agents-deactivate-deactivate
       description: Deactivates the specified agent, preventing it from being used. Sets `deactivated_at` to the current time.
   /api/v2/agents/{id}:
@@ -144,13 +144,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_agent'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The unique identifier of the agent to retrieve.
-        - $ref: '#/components/parameters/header_organization'
       operationId: agents-show
       description: Returns a single agent by ID, including its attributes and related resources.
     patch:
@@ -213,36 +213,14 @@ components:
       type: object
       title: Agent Resource
       properties:
-        query:
+        avatar_url:
           type: string
-          title: Query
-          description: Free-text search filter for agents — matches against the agent's name.
-        created_at:
+          title: Avatar URL
+          description: URL of the agent's avatar image.
+        title:
           type: string
-          title: Created At
-          format: date-time
-          description: The timestamp when this agent was created.
-        manager_id:
-          type: integer
-          title: Manager
-          description: The ID of the person responsible for managing this agent.
-        person:
-          title: Person
-          description: The underlying `Person` record backing this agent.
-        status_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Status
-          description: The numeric identifier for the agent's status — integer alternative to the string `status` field, used for filtering.
-        agent_config:
-          title: Agent Config
-          description: The agent's configuration, containing its AI instructions.
-        custom_role_id:
-          type: integer
-          title: Custom Role
-          description: The ID of the custom role assigned to this agent, which defines its permissions.
+          title: Title
+          description: The agent's job title or functional role label.
         status:
           enum:
             - active
@@ -250,24 +228,6 @@ components:
           type: string
           title: Status
           description: The agent's current status — `active` when available, `deactivated` when disabled.
-        name:
-          type: string
-          title: Name
-          description: The agent's display name, derived from its first name.
-        manager:
-          title: Manager
-          description: The human team member responsible for managing this agent — cannot be another agent.
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of the agent.
-        custom_role:
-          title: Custom Role
-          description: The custom role assigned to this agent, defining its permissions within the organization.
-        avatar_url:
-          type: string
-          title: Avatar URL
-          description: URL of the agent's avatar image.
         deactivated_at:
           type: string
           title: Deactivated At
@@ -278,23 +238,71 @@ components:
           title: Updated At
           format: date-time
           description: The timestamp when this agent was last updated.
-        title:
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of the agent.
+        agent_config:
+          title: Agent Config
+          description: The agent's configuration, containing its AI instructions.
+        custom_role:
+          title: Custom Role
+          description: The custom role assigned to this agent, defining its permissions within the organization.
+        manager_id:
+          type: integer
+          title: Manager
+          description: The ID of the person responsible for managing this agent.
+        query:
           type: string
-          title: Title
-          description: The agent's job title or functional role label.
+          title: Query
+          description: Free-text search filter for agents — matches against the agent's name.
+        status_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: The numeric identifier for the agent's status — integer alternative to the string `status` field, used for filtering.
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: The timestamp when this agent was created.
+        person:
+          title: Person
+          description: The underlying `Person` record backing this agent.
+        manager:
+          title: Manager
+          description: The human team member responsible for managing this agent — cannot be another agent.
+        name:
+          type: string
+          title: Name
+          description: The agent's display name, derived from its first name.
+        custom_role_id:
+          type: integer
+          title: Custom Role
+          description: The ID of the custom role assigned to this agent, which defines its permissions.
       description: Represents an AI agent — an automated member of the organization backed by a `Person` record, with its own name, role, manager, and optional configuration.
     _meta:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -302,10 +310,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -314,10 +318,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -367,14 +367,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
