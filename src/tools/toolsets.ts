@@ -105,6 +105,16 @@ export const TOOLSETS: Record<string, string[]> = {
     'copy_page',
   ],
   todos: ['list_todos', 'get_todo', 'create_todo', 'update_todo', 'delete_todo'],
+  resource_management: [
+    'list_absence_types',
+    'create_absence',
+    'list_absences',
+    'create_booking',
+    'update_booking',
+    'delete_booking',
+    'list_bookings',
+    'get_capacity_overview',
+  ],
 };
 
 /**
