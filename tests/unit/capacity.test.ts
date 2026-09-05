@@ -81,6 +81,16 @@ describe('parseAvailabilities', () => {
   it('rejects a bare pattern too short to cover a week', () => {
     expect(parseAvailabilities([[8, 0, 0, 0, 0]])).toEqual([]);
   });
+
+  // Same floor on the time-sliced shape. Without it the slice survives,
+  // hoursOnDate returns 0 for every weekday, and the person is reported with a
+  // contracted 0m and an OVERBOOKED flag instead of "pattern not readable".
+  it('rejects a time-sliced pattern too short to cover a week', () => {
+    const raw = JSON.stringify([['2024-01-01', null, [8, 8], 1]]);
+
+    expect(parseAvailabilities(raw)).toEqual([]);
+    expect(hasUnreadableAvailabilities(raw)).toBe(true);
+  });
 });
 
 describe('hasUnreadableAvailabilities', () => {

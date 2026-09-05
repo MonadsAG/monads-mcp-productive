@@ -291,11 +291,15 @@ export function formatMinutes(totalMinutes: number): string {
 export function resolveAbsenceType(
   events: ProductiveEvent[],
   needle: string,
+  opts: { includeArchived?: boolean } = {},
 ): ProductiveEvent | null {
   const wanted = needle.trim().toLowerCase();
   if (!wanted) return null;
 
-  const active = events.filter((e) => !e.attributes.archived_at);
+  // Archived types cannot be booked, but they still have history: a read that
+  // refuses to name last year's "Sabbatical" reports "unknown type" for
+  // bookings the same tool lists happily when unfiltered.
+  const active = opts.includeArchived ? events : events.filter((e) => !e.attributes.archived_at);
 
   const exact = active.filter((e) => e.attributes.name?.toLowerCase() === wanted);
   if (exact.length === 1) return exact[0];

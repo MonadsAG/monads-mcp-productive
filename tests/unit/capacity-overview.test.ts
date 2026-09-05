@@ -280,3 +280,36 @@ describe('getCapacityOverviewTool says why contracted hours are unknown', () => 
     expect(text).toContain('could not be read');
   });
 });
+
+// The single-person path used to take one 200-row page and report
+// `truncated: false` regardless, so a busy person over a long window came back
+// with a "Free" figure computed from a silently cut list.
+describe('the single-person path pages like the team sweep', () => {
+  it('follows the pages instead of stopping at the first one', async () => {
+    const client = mockClient({
+      listBookings: vi
+        .fn()
+        .mockResolvedValueOnce({ data: fullPage(), meta: { total_pages: 2 } })
+        .mockResolvedValueOnce({ data: [projectBooking('x', '7', 120)] }),
+    });
+
+    await overview(client, { person_id: '7' });
+
+    expect(client.listBookings).toHaveBeenCalledTimes(2);
+    expect(client.listBookings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ person_id: '7', page: 2, sort: 'started_on' }),
+    );
+  });
+
+  it('warns that the numbers are partial when the ceiling cuts it short', async () => {
+    const client = mockClient({
+      listBookings: vi.fn().mockResolvedValue({ data: fullPage(), meta: { total_pages: 99 } }),
+    });
+
+    const text = await overview(client, { person_id: '7' });
+
+    expect(client.listBookings).toHaveBeenCalledTimes(MAX_BOOKING_PAGES);
+    expect(text).toMatch(/Incomplete/i);
+    expect(text).toMatch(/upper bound/i);
+  });
+});

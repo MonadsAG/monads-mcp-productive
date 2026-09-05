@@ -65,6 +65,10 @@ export function parseAvailabilities(raw: unknown): AvailabilitySlice[] {
     const [from, to, pattern] = entry;
     if (typeof from !== 'string' || !Array.isArray(pattern)) continue;
     if (!pattern.every((n) => typeof n === 'number')) continue;
+    // Same floor as the bare-array branch. A shorter pattern reads as zero
+    // hours on every weekday, which would come out as a contracted 0m and an
+    // OVERBOOKED flag instead of "the pattern could not be read".
+    if (pattern.length < 7) continue;
     slices.push({ from, to: typeof to === 'string' ? to : null, pattern });
   }
   return slices;

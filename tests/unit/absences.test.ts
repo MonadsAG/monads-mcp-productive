@@ -500,3 +500,88 @@ describe('createAbsenceTool refuses to double-book a period', () => {
     expect(client.createBooking).toHaveBeenCalled();
   });
 });
+
+describe('remote work and archived types in the read and write paths', () => {
+  const homeOfficeType = {
+    id: '5',
+    type: 'events',
+    attributes: { name: 'Home Office', absence_type: 'remote_work', half_day_bookings: false },
+  };
+  const homeOfficeBooking = {
+    id: '910',
+    type: 'bookings',
+    relationships: {
+      person: { data: { id: '7', type: 'people' } },
+      event: { data: { id: '5', type: 'events' } },
+    },
+    attributes: { started_on: '2026-03-02', ended_on: '2026-03-06' },
+  } as ProductiveBooking;
+
+  // Working from home is not counted against capacity anywhere else, so it
+  // cannot be a reason to refuse sick leave on the same days -- the refusal
+  // would claim a double count that never happens.
+  it('does not treat a home-office booking as a clashing absence', async () => {
+    const client = mockClient({
+      listEvents: vi.fn().mockResolvedValue({ data: [VACATION, homeOfficeType] }),
+      listBookings: vi.fn().mockResolvedValue({ data: [homeOfficeBooking] }),
+    });
+
+    await createAbsenceTool(
+      client,
+      {
+        person_id: '7',
+        absence_type: 'Vacation',
+        date_from: '2026-03-02',
+        date_to: '2026-03-06',
+        confirm: true,
+      },
+      {},
+    );
+
+    expect(client.createBooking).toHaveBeenCalled();
+  });
+
+  // Archived types cannot be booked any more, but their bookings are history
+  // this tool is asked about.
+  it('list_absences still resolves an archived type by name', async () => {
+    const archived = {
+      id: '9',
+      type: 'events',
+      attributes: { name: 'Sabbatical', archived_at: '2026-01-01T00:00:00Z' },
+    };
+    const client = mockClient({
+      listEvents: vi.fn().mockResolvedValue({ data: [VACATION, archived] }),
+      listBookings: vi.fn().mockResolvedValue({ data: [] }),
+    });
+
+    await listAbsencesTool(client, { absence_type: 'Sabbatical' }, {});
+
+    expect(client.listBookings).toHaveBeenCalledWith(expect.objectContaining({ event_id: '9' }));
+  });
+
+  it('create_absence still refuses an archived type', async () => {
+    const archived = {
+      id: '9',
+      type: 'events',
+      attributes: { name: 'Sabbatical', archived_at: '2026-01-01T00:00:00Z' },
+    };
+    const client = mockClient({
+      listEvents: vi.fn().mockResolvedValue({ data: [VACATION, archived] }),
+    });
+
+    const error = await createAbsenceTool(
+      client,
+      {
+        person_id: '7',
+        absence_type: 'Sabbatical',
+        date_from: '2026-03-02',
+        date_to: '2026-03-06',
+        confirm: true,
+      },
+      {},
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(McpError);
+    expect(client.createBooking).not.toHaveBeenCalled();
+  });
+});

@@ -265,19 +265,17 @@ async function gatherOne(
   // No person_type filter here: the caller named this person, so filtering on
   // what kind of resource they are could only ever answer "nothing" for a
   // placeholder that was asked about explicitly.
-  const [person, bookings] = await Promise.all([
+  //
+  // Paged through collectBookings like the team sweep rather than taking a
+  // single page: one busy person over a year exceeds 200 bookings, and a flat
+  // `truncated: false` would report "Free: 800h" off a silently cut list --
+  // exactly what the truncation warning exists to prevent.
+  const [person, collected] = await Promise.all([
     client.getPerson(personId),
-    client.listBookings({ ...window, person_id: personId, limit: MAX_PAGE_SIZE }),
+    collectBookings(client, { ...window, person_id: personId }),
   ]);
 
-  return {
-    people: [person.data],
-    collected: {
-      bookings: bookings.data ?? [],
-      included: bookings.included ?? [],
-      truncated: false,
-    },
-  };
+  return { people: [person.data], collected };
 }
 
 /** Everyone the token can see, plus every booking in the window in one sweep. */

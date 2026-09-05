@@ -222,6 +222,10 @@ export async function updateBookingTool(
       const effective =
         method === BOOKING_METHOD.PERCENTAGE ? BOOKING_METHOD.HOURS_PER_DAY : method;
       attributes.booking_method_id = effective;
+      // The mirror of the branch above: a left-over percentage wins when the
+      // booking is read back (list_bookings prefers it over total_time), so a
+      // booking switched from 50% to 8h/day would keep reporting "50%".
+      attributes.percentage = 0;
       Object.assign(
         attributes,
         buildQuantity(effective, {
@@ -237,6 +241,25 @@ export async function updateBookingTool(
               : countWorkingDays(from, to),
         }),
       );
+    } else if (
+      (params.date_from !== undefined || params.date_to !== undefined) &&
+      a.booking_method_id === BOOKING_METHOD.TOTAL_HOURS &&
+      typeof a.total_time === 'number' &&
+      a.total_time > 0
+    ) {
+      // Moving the dates of a total-hours booking without resizing it silently
+      // changes the daily load: a 5-day, 40h holiday stretched over two weeks
+      // reads back as 4h of leave per day. Keep the hours per working day and
+      // rescale the total, which is what the caller asking for a longer period
+      // means -- and it shows up in the confirmation, so it is never silent.
+      const personId = current.data.relationships?.person?.data?.id;
+      const [oldDays, newDays] = await Promise.all([
+        personWorkingDays(client, personId, a.started_on, a.ended_on),
+        personWorkingDays(client, personId, from, to),
+      ]);
+      if (oldDays > 0 && newDays > 0 && newDays !== oldDays) {
+        attributes.total_time = Math.round((a.total_time * newDays) / oldDays);
+      }
     }
 
     if (!params.confirm) {

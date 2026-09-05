@@ -68,7 +68,7 @@ function sizeAbsence(
  */
 function matchEvent(
   events: ProductiveEvent[],
-  opts: { absence_type?: string; event_id?: string },
+  opts: { absence_type?: string; event_id?: string; includeArchived?: boolean },
 ): ProductiveEvent {
   if (opts.event_id) {
     const byId = events.find((e) => e.id === opts.event_id);
@@ -84,7 +84,7 @@ function matchEvent(
   const needle = opts.absence_type ?? '';
   let match: ProductiveEvent | null;
   try {
-    match = resolveAbsenceType(events, needle);
+    match = resolveAbsenceType(events, needle, { includeArchived: opts.includeArchived });
   } catch (error) {
     throw new McpError(
       ErrorCode.InvalidParams,
@@ -94,7 +94,7 @@ function matchEvent(
 
   if (!match) {
     const available = events
-      .filter((e) => !e.attributes.archived_at)
+      .filter((e) => opts.includeArchived || !e.attributes.archived_at)
       .map((e) => e.attributes.name)
       .join(', ');
     throw new McpError(
@@ -195,6 +195,7 @@ async function overlappingAbsences(
   personId: string,
   from: string,
   to: string,
+  remoteEventIds: ReadonlySet<string>,
 ): Promise<ProductiveBooking[]> {
   try {
     const response = await client.listBookings({
@@ -204,7 +205,14 @@ async function overlappingAbsences(
       limit: 50,
     });
     return (response.data ?? []).filter(
-      (b) => isAbsenceBooking(b) && !b.attributes.canceled && !b.attributes.rejected,
+      (b) =>
+        // Remote work is not absence anywhere else in this code, and it is not
+        // counted against capacity -- so a home-office day is no reason to
+        // refuse sick leave on top of it. Refusing would be a message about
+        // double-counting that is not true of these two.
+        classifyBooking(b, remoteEventIds) === 'time_off' &&
+        !b.attributes.canceled &&
+        !b.attributes.rejected,
     );
   } catch {
     // A conflict check must never be the reason a booking cannot be made.
@@ -278,7 +286,8 @@ export async function createAbsenceTool(
       );
     }
 
-    const conflicts = await overlappingAbsences(client, personId, from, to);
+    const remoteTypeIds = new Set(events.filter(isRemoteWorkEvent).map((e) => e.id));
+    const conflicts = await overlappingAbsences(client, personId, from, to, remoteTypeIds);
 
     if (!params.confirm) {
       const who = await describePerson(client, personId);
@@ -394,8 +403,11 @@ export async function listAbsencesTool(
     // the obvious choice and is documented, but the API accepts and then
     // ignores it -- every value answers the unfiltered set (verified live).
     const events = (await client.listEvents()).data ?? [];
+    // Archived types are matched here but not in create_absence: a type that
+    // was retired last year cannot be booked any more, but its bookings are
+    // still history this tool is expected to list.
     const requested = params.absence_type
-      ? matchEvent(events, { absence_type: params.absence_type })
+      ? matchEvent(events, { absence_type: params.absence_type, includeArchived: true })
       : null;
     const wanted = requested ? [requested] : events;
 

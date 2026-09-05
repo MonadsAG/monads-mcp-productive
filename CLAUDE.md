@@ -146,7 +146,8 @@ Five things that bite if you don't know them:
   strength of a duplicate. `create_absence` therefore looks for absences in the
   period first and refuses, unless `allow_overlap` says the clash is intended
   (half days, or two types on one day). Cancelled and rejected entries do not
-  count as a clash -- they freed the period up again.
+  count as a clash -- they freed the period up again -- and neither does a
+  remote-work booking, which is presence and is never counted against capacity.
 - **Never hardcode absence categories.** Names and IDs are org-specific and are
   read at runtime via `GET /events` (`client.listEvents()`). Same reasoning as
   the `update_task_sprint` removal above.
@@ -182,7 +183,9 @@ Five things that bite if you don't know them:
   `workingDaysInRange`. Taking the API's `total_working_days` as the denominator
   mixes two calendars, and a booking that lies entirely inside the window then
   stops adding up to its own `total_time` as soon as a public holiday falls in
-  its period.
+  its period. The same reason is why `update_booking` rescales a `total_time`
+  booking when only its dates move: leaving the total alone turns a stretched
+  week of leave into half days without saying so.
 
 Shared, API-free logic lives in `src/api/bookings-client.ts` (query/payload
 building, classification, type resolution) and `src/api/capacity.ts` (the

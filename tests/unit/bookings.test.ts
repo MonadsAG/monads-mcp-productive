@@ -379,3 +379,59 @@ describe('delete_booking', () => {
     expect(client.deleteBooking).not.toHaveBeenCalled();
   });
 });
+
+// Two ways an update can leave a booking describing itself wrongly. Both were
+// found in review, both are invisible until the booking is read back.
+describe('update_booking leaves no stale amounts behind', () => {
+  it('clears the percentage when switching to hours per day', async () => {
+    const client = mockClient({
+      getBooking: vi
+        .fn()
+        .mockResolvedValue(single(projectBooking('55', { booking_method_id: 2, percentage: 50 }))),
+    });
+
+    await updateBookingTool(client, { booking_id: '55', hours_per_day: 8, confirm: true });
+
+    const payload = (client.updateBooking as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(payload.data.attributes.percentage).toBe(0);
+    expect(payload.data.attributes.booking_method_id).toBe(1);
+    expect(payload.data.attributes.hours).toBe(8);
+  });
+
+  it('rescales a total-hours booking when only the dates move', async () => {
+    const client = mockClient({
+      getBooking: vi.fn().mockResolvedValue(
+        single(
+          projectBooking('55', {
+            booking_method_id: 3,
+            started_on: '2026-03-02',
+            ended_on: '2026-03-05', // Mon-Thu: 4 working days for this contract
+            total_time: 1920, // 32h, i.e. 8h per working day
+          }),
+        ),
+      ),
+    });
+
+    // Extending by a week has to keep the daily load, not spread the same 32h
+    // thinner: otherwise a full week of leave reads back as half days.
+    await updateBookingTool(client, { booking_id: '55', date_to: '2026-03-12', confirm: true });
+
+    const payload = (client.updateBooking as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(payload.data.attributes.ended_on).toBe('2026-03-12');
+    expect(payload.data.attributes.total_time).toBe(3840); // 8 working days x 8h
+  });
+
+  it('leaves a percentage booking alone when only the dates move', async () => {
+    const client = mockClient({
+      getBooking: vi
+        .fn()
+        .mockResolvedValue(single(projectBooking('55', { booking_method_id: 2, percentage: 50 }))),
+    });
+
+    await updateBookingTool(client, { booking_id: '55', date_to: '2026-03-12', confirm: true });
+
+    const payload = (client.updateBooking as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(payload.data.attributes.total_time).toBeUndefined();
+    expect(payload.data.attributes.percentage).toBeUndefined();
+  });
+});
