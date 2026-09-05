@@ -124,6 +124,10 @@ import {
   generateLineItemsDefinition,
 } from './invoices.js';
 import {
+  getInvoiceTimeEntriesTool,
+  getInvoiceTimeEntriesDefinition,
+} from './invoice-time-entries.js';
+import {
   finalizeInvoiceTool,
   finalizeInvoiceDefinition,
   getInvoicePdfUrlTool,
@@ -292,6 +296,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     updateBudgetDefinition,
     createBudgetFromDealDefinition,
     getInvoiceDefinition,
+    getInvoiceTimeEntriesDefinition,
     createInvoiceDefinition,
     updateInvoiceDefinition,
     generateLineItemsDefinition,
@@ -475,6 +480,8 @@ export async function handleToolCall(
       return await createBudgetFromDealTool(apiClient, args);
     case 'get_invoice':
       return await getInvoiceTool(apiClient, args);
+    case 'get_invoice_time_entries':
+      return await getInvoiceTimeEntriesTool(apiClient, args);
     case 'create_invoice':
       return await createInvoiceTool(apiClient, args);
     case 'update_invoice':

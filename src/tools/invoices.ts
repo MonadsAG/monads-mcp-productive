@@ -28,7 +28,8 @@ function derivePaymentStatus(attrs: ProductiveInvoice['attributes']): string {
   return 'Unpaid';
 }
 
-function formatAmount(cents: string | undefined): string {
+/** Amounts arrive as integer strings in cents: "2506569" is 25065.69. */
+export function formatAmount(cents: string | undefined): string {
   if (!cents) return '0.00';
   return (parseInt(cents, 10) / 100).toFixed(2);
 }
@@ -47,7 +48,7 @@ function getLastMonthRange(): { date_from: string; date_to: string } {
   };
 }
 
-function resolveCompanyName(
+export function resolveCompanyName(
   invoice: ProductiveInvoice,
   included?: ProductiveIncludedResource[],
 ): string {

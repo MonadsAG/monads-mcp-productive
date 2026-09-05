@@ -40,7 +40,7 @@ src/
 ├── tools/
 │   ├── registry.ts       # Shared tool registry (used by both entry points)
 │   ├── tasks.ts          # CRUD + assignment + details
-│   └── ...               # 40 tool files total
+│   └── ...               # 41 tool files total
 ├── prompts/
 │   └── timesheet.ts      # Guided timesheet workflow
 scripts/                  # spec sync + impact analysis (tsx, see API Spec)
@@ -73,6 +73,13 @@ Each `/mcp` request authenticates with the **calling user's own Productive PAT**
 
 Smart Defaults: `document_type_id`, `tax_rate_id`, `subsidiary_id` are auto-resolved if only one active option exists.
 
+`get_invoice_time_entries` audits the result: which time entries an invoice bills, as JSON, with
+**tracked and billable time reported separately** because they diverge (9 of 200 sampled entries
+billed more than was tracked -- rounding up -- and one billed nothing against 450 tracked minutes).
+It takes the invoice number or the internal ID, pages through the entries, groups them per person
+and per service, and reconciles the total against the line items. Note that `generate_line_items` is
+what writes the attribution: before it runs, an invoice has no entries to find.
+
 ## Custom Fields Workflow
 
 `list_custom_fields` -> `list_custom_field_options` -> `update_task` / `create_task` with a `custom_fields` object keyed by field ID.
@@ -98,7 +105,7 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 | `custom_fields`       | custom field discovery + generic get/set                                                                 |
 | `comments`            | task comments, pins, reactions                                                                           |
 | `time_tracking`       | time entries, timers, approvals, deals/services                                                          |
-| `invoicing`           | invoices, company budgets, line items, PDF/timesheet URLs                                                |
+| `invoicing`           | invoices, company budgets, line items, PDF/timesheet URLs, invoice time-entry audit                      |
 | `docs`                | folders (boards) + pages, incl. `list_page_children` (page hierarchy)                                    |
 | `todos`               | todos                                                                                                    |
 | `resource_management` | absences (types, create, list), project capacity bookings (create/update/delete/list), capacity overview |
@@ -265,6 +272,18 @@ unset, so CI runs the unit tests only. Locally they use the credentials in `.dev
 `.dev.vars.example` and fill it in. If they fail with `You are not authenticated`, that token is
 stale — replace it rather than ignoring the red.
 
+**Ask for a sandbox API key up front — before planning a feature, not after.** Every claim about
+what the API does has to be checked against the live sandbox (see the `filter[booking_type]` gotcha:
+a documented filter can answer 200 and filter nothing), and discovering mid-plan that the stored
+token is stale costs a whole round trip. Two of the three values never change, so the only thing to
+ask for is the key:
+
+|                 |                                                     |
+| --------------- | --------------------------------------------------- |
+| Base URL        | `https://api-sandbox.productive.io/api/v2` (always) |
+| Organization ID | `43059` (always)                                    |
+| API token       | the only variable — ask the user, they rotate       |
+
 **Check `.dev.vars` before trusting a green test run.** A missing file fails nothing: the suites skip
 and `npm test` reports `Test Files 5 skipped (5)` / `Tests 12 skipped (12)` in green, having verified
 nothing that talks to Productive. `tests/global-setup.ts` warns on stderr in that case (suppressed under
@@ -305,6 +324,9 @@ credentials and fails the file instead of skipping it.
 - **`filter[...]` keys can differ from the matching response attribute name**: Productive rejects unrecognized filter keys with "Filter 'x' is not supported on this endpoint" (on a 400 or a 422 — see the next bullet). Confirmed traps: person `is_active` attribute → filter is `filter[status]` (1: active/2: deactivated); deal `budget_type` attribute → filter is `filter[type]` (1: deal/2: budget); deal open/closed → `filter[budget_status]` (not `filter[status]`, which means something unrelated — `status_id`, a pipeline-stage relationship); time entry `approved`/`rejected`/`submitted` attributes → not filterable directly (422 live) — the real filter is `filter[status]` (undocumented enum `1`-`6`; live-confirmed against the sandbox: `1`=approved, `2`=no decision yet, `3`-`6` unconfirmed, no matching rows existed to verify — `list_time_entries`' `approved` boolean param maps `true`→`filter[status]=1` and `false`→`filter[status][not_eq]=1` to stay correct regardless of what the unconfirmed codes turn out to mean). Verify against the `x-filters` block in `docs/api-spec/resources/{resource}.yaml` before adding a new filter to `client.ts` — don't assume the attribute name is the filter name. `npm run spec:impact` checks every `filter[...]` key in `client.ts` against that list and fails on an unknown one.
 - **An unknown filter's status is not something to branch on**: `docs/api-spec/guides/filtering.md` documents 400, and both statuses have been seen live for the same class of failure — an earlier run got **422**, a later probe against the sandbox got **400** whose body then said `"code": "unsupported_filter"` with `"status": "unprocessable_content"` (the JSON:API status contradicting the HTTP line). What stayed constant across every observation is the message, `Filter 'x' is not supported on this endpoint` — match on that, not on the status code.
 - **A documented filter can be accepted and still do nothing**: `filter[booking_type]` is in `x-filters` for `/bookings`, answers HTTP 200, and ignores every value — plain or in `[eq]` form, each one returns the unfiltered set (verified live). A 200 therefore proves only that the key passed the whitelist, never that it filtered: check a new filter against a count you did yourself, not against the absence of an error. Two more findings from the same probe: `filter[person_id]` and `filter[event_id]` accept comma-separated lists (`a,b` returns exactly the union), and `filter[event_id][not_eq]` matches only inside the bookings that _have_ an event, so negating every event id answers 0 rows rather than "all the project bookings". The probe is `tests/integration/bookings-filters.integration.test.ts`.
+- **A time entry knows nothing about its invoice**: `filter[invoice_id]` on `/time_entries` genuinely filters (live: 2582 rows unfiltered, 70 for one invoice, 0 for an id that does not exist, and comma-separated lists work), but the response carries **no `invoice_id` attribute** — only `invoice_attribution_id` and `invoiced`. So the filter is the only way to establish the link and a returned row cannot be re-checked against the invoice that was asked for. `filter[invoice_id][not_eq]` is **not** "uninvoiced" either: like `event_id[not_eq]` on bookings it matches only inside rows that already carry an attribution, so negating one invoice answers 2081 rather than 2582 − 70. Use `filter[invoiced]` (which partitions exactly: 2086 + 496 = 2582) or `filter[invoicing_status]` (live: 1 = not invoiced, 3 = invoiced, 2 unused).
+- **`/time_entries` accepts only `date` as a sort key**: `id`, `created_at` and the compound `date,id` all answer 400. `date` is not unique, so there is no tiebreaker to make paging provably stable — `collectPages` in `src/api/invoice-time-entries.ts` therefore deduplicates by row id **and** compares the final count against `meta.total_count`, which is what turns a lost row into a visible warning instead of a quietly short total. Note that `npm run spec:impact` walks `filter[...]` keys only and would not catch a bad sort key at all.
+- **A line item's `quantity` is a decimal string, and only an hour unit makes it hours**: it arrives as `"191.25"`, not `191.25` — reading it as a number reported a perfectly reconcilable invoice as "not comparable" with every line item excluded, caught only by running against the live API. Unlike `amount`/`unit_price` it is **not** in cents. And `unit_id` decides what it counts: `1` is hours, `2` is pieces (live: invoice 1439185 mixes both), so summing quantities without checking the unit adds one piece to an hour total. An invoice can also bill hours that no time entry backs at all — the same invoice bills 31 h against zero entries, because line items can be written by hand.
 - **An event has to be archived before it can be deleted**: `DELETE /api/v2/events/{id}` answers `409 record_not_archived` while the absence type is still active. `PATCH /api/v2/events/{id}/archive` first, then the same DELETE returns 204. This bites integration tests hardest — a cleanup path that only deletes leaves its fixture behind in the org (it did), so archive-then-delete in `afterAll`.
 - **Tool-level tests don't catch wrong `filter[...]` keys**: tests like `tests/unit/people.test.ts` typically assert only on the params passed into a _mocked_ `client.ts` method, not the actual request URL — the bug above shipped invisibly for exactly this reason. When you touch filter-building code in `client.ts`, add/extend a `client-*.test.ts` test (pattern: `tests/unit/client-boards.test.ts`, `client-filters.test.ts`) that stubs `global.fetch` and asserts on the real query string.
 
