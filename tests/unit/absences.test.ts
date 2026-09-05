@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { ProductiveAPIClient } from '../../src/api/client.js';
 import type { ProductiveBooking } from '../../src/api/types.js';
-import { createAbsenceTool, listAbsencesTool } from '../../src/tools/absences.js';
+import {
+  createAbsenceTool,
+  listAbsenceTypesTool,
+  listAbsencesTool,
+} from '../../src/tools/absences.js';
 import { listBookingsTool } from '../../src/tools/bookings.js';
 
 /** Mon-Thu 8h, Friday off: a 32h contract, Monday first, two-week rotation. */
@@ -28,6 +32,13 @@ const VACATION = {
   id: '1',
   type: 'events',
   attributes: { name: 'Vacation', half_day_bookings: false, event_type_id: 1 },
+};
+
+/** Remote work: same resource as an absence, but the person is at their desk. */
+const HOME_OFFICE = {
+  id: '5',
+  type: 'events',
+  attributes: { name: 'Home Office', absence_type: 'remote_work', event_type_id: 2 },
 };
 
 function absence(id: string, attrs: Record<string, unknown> = {}): ProductiveBooking {
@@ -175,15 +186,39 @@ describe('createAbsenceTool sizes the absence from the person, not the calendar'
   });
 });
 
-describe('listAbsencesTool applies limit after the absences are separated out', () => {
-  it('over-fetches so project bookings cannot crowd absences out', async () => {
+describe('listAbsencesTool selects the absences server-side', () => {
+  it('filters by every event id, so the limit can be passed through as-is', async () => {
     const client = mockClient({
+      listEvents: vi.fn().mockResolvedValue({ data: [VACATION, HOME_OFFICE] }),
       listBookings: vi.fn().mockResolvedValue({ data: [absence('1')] }),
     });
 
     await listAbsencesTool(client, { limit: 10 }, {});
 
-    expect(client.listBookings).toHaveBeenCalledWith(expect.objectContaining({ limit: 30 }));
+    expect(client.listBookings).toHaveBeenCalledWith(
+      expect.objectContaining({ event_id: '1,5', limit: 10 }),
+    );
+  });
+
+  it('narrows the filter to the one event when absence_type is given', async () => {
+    const client = mockClient({
+      listEvents: vi.fn().mockResolvedValue({ data: [VACATION, HOME_OFFICE] }),
+      listBookings: vi.fn().mockResolvedValue({ data: [absence('1')] }),
+    });
+
+    await listAbsencesTool(client, { absence_type: 'Vacation' }, {});
+
+    expect(client.listBookings).toHaveBeenCalledWith(expect.objectContaining({ event_id: '1' }));
+  });
+
+  it('still drops a project booking that slips past the filter', async () => {
+    const client = mockClient({
+      listBookings: vi.fn().mockResolvedValue({ data: [absence('1'), projectBooking('2')] }),
+    });
+
+    const result = await listAbsencesTool(client, {}, {});
+
+    expect(result.content[0].text).toContain('1 absence found');
   });
 
   it('trims to the requested limit and says there may be more', async () => {
@@ -197,18 +232,135 @@ describe('listAbsencesTool applies limit after the absences are separated out', 
     expect(result.content[0].text).toContain('There may be more');
   });
 
-  it('explains an empty result when the page was full of other bookings', async () => {
-    const client = mockClient({
-      // limit 1 -> fetches 3, all of them project bookings.
-      listBookings: vi.fn().mockResolvedValue({
-        data: [projectBooking('1'), projectBooking('2'), projectBooking('3')],
-      }),
-    });
+  it('reports an empty result without blaming the page size', async () => {
+    const client = mockClient({ listBookings: vi.fn().mockResolvedValue({ data: [] }) });
 
     const result = await listAbsencesTool(client, { limit: 1 }, {});
 
     expect(result.content[0].text).toContain('No absences found');
-    expect(result.content[0].text).toContain('full of other bookings');
+    expect(result.content[0].text).toContain('only sees its own resource planning');
+  });
+});
+
+describe('listAbsencesTool treats remote work as presence, not absence', () => {
+  /** A booking against the Home Office event, sideloaded so it can be told apart. */
+  function homeOffice(id: string): ProductiveBooking {
+    const booking = absence(id);
+    booking.relationships = {
+      person: { data: { id: '7', type: 'people' } },
+      event: { data: { id: '5', type: 'events' } },
+    };
+    return booking;
+  }
+
+  const withRemote = {
+    data: [absence('1'), homeOffice('2')],
+    included: [HOME_OFFICE],
+  };
+
+  it('hides remote work bookings by default and says so', async () => {
+    const client = mockClient({ listBookings: vi.fn().mockResolvedValue(withRemote) });
+
+    const result = await listAbsencesTool(client, {}, {});
+
+    expect(result.content[0].text).toContain('1 absence found');
+    expect(result.content[0].text).toContain('1 remote work booking hidden');
+    expect(result.content[0].text).toContain('include_remote_work: true');
+  });
+
+  it('shows them once include_remote_work is set', async () => {
+    const client = mockClient({ listBookings: vi.fn().mockResolvedValue(withRemote) });
+
+    const result = await listAbsencesTool(client, { include_remote_work: true }, {});
+
+    expect(result.content[0].text).toContain('2 absences found');
+    expect(result.content[0].text).not.toContain('hidden');
+  });
+
+  it('keeps an event without absence_type as an absence', async () => {
+    // Conservative fallback: an unclassified event must never be dropped, or a
+    // sick leave would silently disappear from "who is off?".
+    const client = mockClient({
+      listBookings: vi.fn().mockResolvedValue({
+        data: [homeOffice('2')],
+        included: [{ id: '5', type: 'events', attributes: { name: 'Unlabelled' } }],
+      }),
+    });
+
+    const result = await listAbsencesTool(client, {}, {});
+
+    expect(result.content[0].text).toContain('1 absence found');
+  });
+
+  it('still answers an explicit request for a remote work type', async () => {
+    const client = mockClient({
+      listEvents: vi.fn().mockResolvedValue({ data: [VACATION, HOME_OFFICE] }),
+      // What the server returns for filter[event_id]=5.
+      listBookings: vi.fn().mockResolvedValue({ data: [homeOffice('2')], included: [HOME_OFFICE] }),
+    });
+
+    const result = await listAbsencesTool(client, { absence_type: 'Home Office' }, {});
+
+    expect(client.listBookings).toHaveBeenCalledWith(expect.objectContaining({ event_id: '5' }));
+    expect(result.content[0].text).toContain('1 absence found');
+    expect(result.content[0].text).toContain('This type is remote work');
+  });
+});
+
+describe('listAbsenceTypesTool labels the category', () => {
+  it('marks remote work as such and never calls it Unpaid', async () => {
+    const client = mockClient({
+      listEvents: vi.fn().mockResolvedValue({ data: [VACATION, HOME_OFFICE] }),
+    });
+
+    const result = await listAbsenceTypesTool(client, {});
+
+    expect(result.content[0].text).toContain('Remote work');
+    expect(result.content[0].text).toContain('Time off');
+    // event_type_id 2 is forced on every remote work event, so "Unpaid" here
+    // would be a statement about home office that the API never made.
+    expect(result.content[0].text).not.toContain('Unpaid');
+  });
+});
+
+describe('createAbsenceTool rejects IDs the API cannot take', () => {
+  it('refuses a non-numeric person_id instead of sending null', async () => {
+    const client = mockClient();
+
+    await expect(
+      createAbsenceTool(
+        client,
+        {
+          person_id: 'ada@example.com',
+          absence_type: 'Vacation',
+          date_from: '2026-03-02',
+          date_to: '2026-03-06',
+          confirm: true,
+        },
+        {},
+      ),
+    ).rejects.toThrow(/person_id must be a numeric Productive ID/);
+    expect(client.createBooking).not.toHaveBeenCalled();
+  });
+
+  it('names remote work in the confirmation preview', async () => {
+    const client = mockClient({
+      listEvents: vi.fn().mockResolvedValue({ data: [VACATION, HOME_OFFICE] }),
+    });
+
+    const result = await createAbsenceTool(
+      client,
+      {
+        person_id: '7',
+        absence_type: 'Home Office',
+        date_from: '2026-03-02',
+        date_to: '2026-03-06',
+      },
+      {},
+    );
+
+    expect(result.content[0].text).toContain('remote work');
+    expect(client.createBooking).not.toHaveBeenCalled();
   });
 });
 

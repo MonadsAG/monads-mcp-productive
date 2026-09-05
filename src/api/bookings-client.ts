@@ -5,7 +5,23 @@
  *
  * Background and evidence: docs/resource-management-spec.md
  */
-import type { ProductiveBooking, ProductiveEvent } from './types.js';
+import type { ProductiveBooking, ProductiveEvent, ProductiveIncludedResource } from './types.js';
+
+/**
+ * `absence_type` on an event: an absence category is either real time off or
+ * remote work (working from home). Documented in
+ * docs/api-spec/resources/events.yaml.
+ *
+ * Deliberately not a literal union on ProductiveEvent -- responses are not
+ * validated, so a third value the API adds later would become a type lie.
+ */
+export const ABSENCE_TYPE = {
+  TIME_OFF: 'time_off',
+  REMOTE_WORK: 'remote_work',
+} as const;
+
+/** Which bucket a booking falls into for the capacity arithmetic. */
+export type BookingKind = 'project' | 'time_off' | 'remote_work';
 
 /** booking_method_id values as documented by the API. */
 export const BOOKING_METHOD = {
@@ -38,27 +54,38 @@ export const PERSON_TYPE = {
 export const MAX_PAGE_SIZE = 200;
 
 /**
- * Page size to request when only some of the rows survive a client-side filter.
+ * Hard ceiling on bookings pages fetched for one capacity overview.
  *
- * Absences and project bookings share one endpoint and are told apart only after
- * the fact, so asking for exactly `limit` rows lets a page of one kind crowd the
- * other kind out entirely -- the tool then reports "none found" for something
- * that exists. Fetch wider, filter, then trim to what was asked for.
+ * 10 x 200 = 2000 bookings. Productive allows 100 requests per 10s
+ * (docs/api-spec/guides/rate-limits.md) and Workers caps subrequests per
+ * request, so an unbounded loop would eventually break both.
  */
-export function overfetchLimit(limit: number): number {
-  return Math.min(MAX_PAGE_SIZE, limit * 3);
-}
+export const MAX_BOOKING_PAGES = 10;
 
 export interface BookingFilterParams {
   after?: string;
   before?: string;
+  /** One id, or several comma-separated (verified live: 28 + 69 rows = 97). */
   person_id?: string;
+  /**
+   * Absence category, one id or a comma-separated list.
+   *
+   * Set it to every event id and the endpoint returns exactly the absences --
+   * the only server-side way to separate the two kinds of booking. Note the
+   * asymmetry: the filter matches within bookings that *have* an event, so
+   * `not_eq` cannot produce the project bookings (verified live: `not_eq` over
+   * all event ids answers 0 rows, not "everything else").
+   */
+  event_id?: string;
+  project_id?: string;
+  budget_id?: string;
   approval_status?: ApprovalStatusFilter;
   person_type?: number;
   with_draft?: boolean;
   canceled?: boolean;
   limit?: number;
   page?: number;
+  sort?: string;
 }
 
 /**
@@ -76,6 +103,9 @@ export function buildBookingQuery(params: BookingFilterParams = {}): string {
   if (params.after) q.append('filter[after]', params.after);
   if (params.before) q.append('filter[before]', params.before);
   if (params.person_id) q.append('filter[person_id]', params.person_id);
+  if (params.event_id) q.append('filter[event_id]', params.event_id);
+  if (params.project_id) q.append('filter[project_id]', params.project_id);
+  if (params.budget_id) q.append('filter[budget_id]', params.budget_id);
   if (params.approval_status) {
     q.append('filter[approval_status]', String(APPROVAL_STATUS_FILTER[params.approval_status]));
   }
@@ -86,6 +116,10 @@ export function buildBookingQuery(params: BookingFilterParams = {}): string {
   if (params.canceled) q.append('filter[canceled]', 'true');
   if (params.limit) q.append('page[size]', String(params.limit));
   if (params.page) q.append('page[number]', String(params.page));
+  // Without a fixed sort the order across pages is not guaranteed, which makes
+  // rows duplicate or go missing at the page boundaries. Documented sort keys
+  // for this endpoint: docs/api-spec/resources/bookings.yaml (sort_booking).
+  if (params.sort) q.append('sort', params.sort);
 
   return q.toString();
 }
@@ -98,6 +132,46 @@ export function isAbsenceBooking(booking: ProductiveBooking): boolean {
 /** True when the booking represents planned project capacity (service set). */
 export function isCapacityBooking(booking: ProductiveBooking): boolean {
   return Boolean(booking.relationships?.service?.data?.id);
+}
+
+/** True only for events the API explicitly marks as remote work. */
+export function isRemoteWorkEvent(event: Pick<ProductiveEvent, 'attributes'>): boolean {
+  return event.attributes.absence_type === ABSENCE_TYPE.REMOTE_WORK;
+}
+
+/**
+ * IDs of the sideloaded events that stand for remote work.
+ *
+ * Every bookings request sideloads `event` (see buildBookingQuery), so the
+ * `absence_type` needed to tell working from home apart from real time off is
+ * already in the response -- no extra call.
+ */
+export function remoteWorkEventIds(included?: ProductiveIncludedResource[]): Set<string> {
+  const ids = new Set<string>();
+  for (const resource of included ?? []) {
+    if (resource.type !== 'events') continue;
+    const absenceType: unknown = resource.attributes?.absence_type;
+    if (absenceType === ABSENCE_TYPE.REMOTE_WORK) ids.add(resource.id);
+  }
+  return ids;
+}
+
+/**
+ * Which bucket a booking belongs to.
+ *
+ * Only an event positively identified as remote work counts as such: without
+ * the set, or with the event not sideloaded, an absence stays an absence. The
+ * error therefore always points the same way -- capacity is reported too low
+ * rather than too high. Guessing the other way would turn somebody's sick leave
+ * into free capacity.
+ */
+export function classifyBooking(
+  booking: ProductiveBooking,
+  remoteEventIds?: ReadonlySet<string>,
+): BookingKind {
+  const eventId = booking.relationships?.event?.data?.id;
+  if (!eventId) return 'project';
+  return remoteEventIds?.has(eventId) ? 'remote_work' : 'time_off';
 }
 
 /**

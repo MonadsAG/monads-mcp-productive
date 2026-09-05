@@ -11,12 +11,14 @@ import type { ProductiveBookingCreate, ProductiveEvent } from '../api/types.js';
 import {
   BOOKING_METHOD,
   buildQuantity,
+  classifyBooking,
   countWorkingDays,
   defaultBookingMethod,
   describeApprovalState,
   formatMinutes,
   isAbsenceBooking,
-  overfetchLimit,
+  isRemoteWorkEvent,
+  remoteWorkEventIds,
   resolveAbsenceType,
   type BookingMethodId,
 } from '../api/bookings-client.js';
@@ -29,6 +31,7 @@ import {
   personPattern,
   resolvePersonId,
   rethrowToolError,
+  toNumericId,
   type ToolResult,
 } from './tool-helpers.js';
 
@@ -62,8 +65,14 @@ async function findEvent(
   opts: { absence_type?: string; event_id?: string },
 ): Promise<ProductiveEvent> {
   const response = await client.listEvents();
-  const events = response.data ?? [];
+  return matchEvent(response.data ?? [], opts);
+}
 
+/** The matching half of findEvent, for callers that already hold the events. */
+function matchEvent(
+  events: ProductiveEvent[],
+  opts: { absence_type?: string; event_id?: string },
+): ProductiveEvent {
   if (opts.event_id) {
     const byId = events.find((e) => e.id === opts.event_id);
     if (!byId) {
@@ -122,11 +131,16 @@ export async function listAbsenceTypesTool(
 
     const lines = events.map((event) => {
       const a = event.attributes;
+      const remote = isRemoteWorkEvent(event);
       const paid = a.event_type_id === 1 ? 'Paid' : a.event_type_id === 2 ? 'Unpaid' : 'Unknown';
+      // Remote work events are *always* event_type_id 2 API-side (see
+      // docs/api-spec/resources/events.yaml), so "Unpaid" would read as a claim
+      // about working from home instead of the data-model artefact it is.
+      const paidSegment = remote ? '' : `${paid} · `;
       const capped = a.limitation_type_id === 4 ? 'no allowance needed' : 'allowance required';
       const method = defaultBookingMethod(event);
       return `• ${a.name} (ID: ${event.id})
-  ${paid} · ${capped} · half days: ${a.half_day_bookings ? 'yes' : 'no'}
+  ${remote ? 'Remote work' : 'Time off'} · ${paidSegment}${capped} · half days: ${a.half_day_bookings ? 'yes' : 'no'}
   Default booking method: ${method === BOOKING_METHOD.HOURS_PER_DAY ? '1 (hours per day)' : '3 (total hours)'}${
     a.archived_at ? '\n  ARCHIVED' : ''
   }`;
@@ -223,6 +237,9 @@ export async function createAbsenceTool(
 
     if (!params.confirm) {
       const who = await describePerson(client, personId);
+      const remoteHint = isRemoteWorkEvent(event)
+        ? '\nThis type is remote work: it books working from home, not an absence — the person stays available.'
+        : '';
       return {
         content: [
           {
@@ -230,7 +247,7 @@ export async function createAbsenceTool(
             text: `Absence ready to book:
 
 Person: ${who}${params.person_id === 'me' ? ' (me)' : ''}
-Type: ${event.attributes.name} (event ID ${event.id})
+Type: ${event.attributes.name} (event ID ${event.id})${remoteHint}
 Period: ${from} to ${to}
 Working days: ${workingDays}
 Hours per day: ${Math.round(hoursPerDay * 100) / 100}
@@ -249,8 +266,10 @@ Call again with "confirm": true to book it.`,
       data: {
         type: 'bookings',
         attributes: {
-          person_id: Number(personId),
-          event_id: Number(event.id),
+          // Number('abc') is NaN and serialises to null, which reaches the API
+          // as a missing field and comes back as a misleading 422.
+          person_id: toNumericId(personId, 'person_id'),
+          event_id: toNumericId(event.id, 'event_id'),
           started_on: from,
           ended_on: to,
           booking_method_id: method,
@@ -262,19 +281,22 @@ Call again with "confirm": true to book it.`,
 
     const created = await client.createBooking(payload);
     const state = describeApprovalState(created.data);
+    const remote = isRemoteWorkEvent(event);
 
+    // Say what was actually booked. "Absence booked" over a home-office entry
+    // would be read back as time off by the next person -- and by the model.
     return {
       content: [
         {
           type: 'text',
-          text: `Absence booked (ID: ${created.data.id})
+          text: `${remote ? 'Remote work booked' : 'Absence booked'} (ID: ${created.data.id})
 
-Type: ${event.attributes.name}
+Type: ${event.attributes.name}${remote ? ' (remote work — the person is working, not away)' : ''}
 Period: ${created.data.attributes.started_on} to ${created.data.attributes.ended_on}
 Working days: ${created.data.attributes.total_working_days ?? workingDays}
 Status: ${state}
 
-${created.data.attributes.approved ? 'No approval was required for this person.' : 'This is waiting for approval — it is not confirmed time off yet.'}`,
+${created.data.attributes.approved ? 'No approval was required for this person.' : `This is waiting for approval — it is not confirmed ${remote ? 'remote work' : 'time off'} yet.`}`,
         },
       ],
     };
@@ -291,6 +313,7 @@ const listAbsencesSchema = z.object({
   date_to: z.string().optional(),
   absence_type: z.string().optional(),
   approval_status: z.enum(['approved', 'pending', 'rejected', 'canceled']).optional(),
+  include_remote_work: coerceBoolean.optional().default(false),
   include_notes: coerceBoolean.optional().default(false),
   limit: z.coerce.number().min(1).max(200).default(50),
 });
@@ -304,42 +327,69 @@ export async function listAbsencesTool(
     const params = listAbsencesSchema.parse(args);
     const personId = params.person_id ? resolvePersonId(params.person_id, config) : undefined;
 
-    // The API cannot filter absences out of the bookings list, so the split
-    // happens here -- which means asking for exactly `limit` rows would let a
-    // page of project bookings crowd every absence out and report "none found".
-    // Over-fetch, filter, then trim to what was actually asked for.
-    const fetchLimit = overfetchLimit(params.limit);
+    // The absence types are needed anyway (names for the output, remote work
+    // detection), and they double as the server-side filter: selecting every
+    // event id returns exactly the absences. `filter[booking_type]` would be
+    // the obvious choice and is documented, but the API accepts and then
+    // ignores it -- every value answers the unfiltered set (verified live).
+    const events = (await client.listEvents()).data ?? [];
+    const requested = params.absence_type
+      ? matchEvent(events, { absence_type: params.absence_type })
+      : null;
+    const wanted = requested ? [requested] : events;
+
+    // Asking for a remote work type by name has to override the default filter
+    // below, otherwise that question is guaranteed an empty answer -- which
+    // reads as "nobody works from home" rather than "you filtered it out".
+    const remoteWasAskedFor = requested !== null && isRemoteWorkEvent(requested);
+
     const response = await client.listBookings({
       after: params.date_from ? parseDate(params.date_from) : undefined,
       before: params.date_to ? parseDate(params.date_to) : undefined,
       person_id: personId,
+      event_id: wanted.map((e) => e.id).join(',') || undefined,
       approval_status: params.approval_status,
-      limit: fetchLimit,
+      limit: params.limit,
     });
 
     const fetched = response.data ?? [];
-    const pageWasFull = fetched.length >= fetchLimit;
 
-    // Bookings carry both absences and project capacity; keep only absences.
+    // Kept as a safety net: an org with no event types configured sends no
+    // filter at all, and project bookings would otherwise come through.
     let absences = fetched.filter(isAbsenceBooking);
 
-    if (params.absence_type) {
-      const event = await findEvent(client, { absence_type: params.absence_type });
-      absences = absences.filter((b) => b.relationships?.event?.data?.id === event.id);
-    }
+    // Both sources carry the same `absence_type`; taking the union means a
+    // booking still classifies if either the sideload or the type list misses it.
+    const remoteIds = remoteWorkEventIds(response.included);
+    for (const event of events) if (isRemoteWorkEvent(event)) remoteIds.add(event.id);
 
-    const moreAvailable = pageWasFull || absences.length > params.limit;
+    // Remote work shares the absence resource but means the person is working.
+    // Listing it under "who is off next week?" would report present people as
+    // away, so it is hidden unless it was explicitly asked for.
+    let hiddenRemote = 0;
+    if (!params.include_remote_work && !remoteWasAskedFor) {
+      const kept = absences.filter((b) => classifyBooking(b, remoteIds) !== 'remote_work');
+      hiddenRemote = absences.length - kept.length;
+      absences = kept;
+    }
+    const remoteNote = hiddenRemote
+      ? ` ${hiddenRemote} remote work booking${hiddenRemote !== 1 ? 's' : ''} hidden — pass include_remote_work: true to include working from home.`
+      : remoteWasAskedFor
+        ? ' This type is remote work, so working-from-home bookings are included.'
+        : '';
+
+    // The page holds absences only now, so a full one means the limit is what
+    // cut the list short. The slice just holds the tool to its own promise if
+    // the API ever hands back more rows than page[size] asked for.
+    const moreAvailable = fetched.length >= params.limit;
     absences = absences.slice(0, params.limit);
 
     if (absences.length === 0) {
-      const crowdedOut = pageWasFull
-        ? ' The page came back full of other bookings, so raising limit or narrowing the date range may still turn some up.'
-        : '';
       return {
         content: [
           {
             type: 'text',
-            text: `No absences found for these filters.${crowdedOut}\n\nNote: a regular API token only sees its own resource planning, so an empty result does not prove none exist for other people.`,
+            text: `No absences found for these filters.${remoteNote}\n\nNote: a regular API token only sees its own resource planning, so an empty result does not prove none exist for other people.`,
           },
         ],
       };
@@ -363,7 +413,7 @@ export async function listAbsencesTool(
       content: [
         {
           type: 'text',
-          text: `${absences.length} absence${absences.length !== 1 ? 's' : ''} found:\n\n${lines.join('\n\n')}\n\nOnly bookings visible to the calling token are listed.${moreAvailable ? ' There may be more -- raise limit or narrow the date range.' : ''}`,
+          text: `${absences.length} absence${absences.length !== 1 ? 's' : ''} found:\n\n${lines.join('\n\n')}\n\nOnly bookings visible to the calling token are listed.${moreAvailable ? ' There may be more -- raise limit or narrow the date range.' : ''}${remoteNote}`,
         },
       ],
     };
@@ -377,7 +427,7 @@ export async function listAbsencesTool(
 export const listAbsenceTypesDefinition = {
   name: 'list_absence_types',
   description:
-    'List the absence types configured in this Productive organisation (vacation, sick leave, and so on) with their IDs. Call this first when booking an absence: the types are organisation-specific and must be read at runtime rather than assumed. Feed the name or ID into create_absence.',
+    'List the absence types configured in this Productive organisation (vacation, sick leave, and so on) with their IDs. Call this first when booking an absence: the types are organisation-specific and must be read at runtime rather than assumed. Each type is marked as time off or as remote work (working from home, which means the person is present). Feed the name or ID into create_absence.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -453,7 +503,7 @@ export const createAbsenceDefinition = {
 export const listAbsencesDefinition = {
   name: 'list_absences',
   description:
-    'Read booked absences, filtered by person, date range, type or approval status — for questions like "who is off next week?" or "am I already booked?". Returns person, period, type and approval status. Note that a regular API token only sees its own resource planning, so an empty result does not prove nothing exists for other people.',
+    'Read booked absences, filtered by person, date range, type or approval status — for questions like "who is off next week?" or "am I already booked?". Returns person, period, type and approval status. Remote work (working from home) is booked as the same kind of record but means the person is present and working, so it is left out unless include_remote_work is set. Note that a regular API token only sees its own resource planning, so an empty result does not prove nothing exists for other people.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -471,6 +521,12 @@ export const listAbsencesDefinition = {
         type: 'string',
         description: 'Filter by approval status',
         enum: ['approved', 'pending', 'rejected', 'canceled'],
+      },
+      include_remote_work: {
+        type: 'boolean',
+        description:
+          'Include remote work (working from home) bookings. Off by default: those people are working, not away. Ignored when absence_type names a remote work type, which is then always included.',
+        default: false,
       },
       include_notes: {
         type: 'boolean',

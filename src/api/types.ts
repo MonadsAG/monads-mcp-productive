@@ -237,8 +237,14 @@ export interface ProductivePerson {
   id: string;
   type: 'people';
   attributes: {
-    /** Contracted working pattern as a JSON string; see api/capacity.ts. */
-    availabilities?: string;
+    /**
+     * Contracted working pattern.
+     *
+     * The live API sends a JSON *string*; the official spec's example shows a
+     * nested array instead. Left untyped on purpose -- `parseAvailabilities`
+     * (api/capacity.ts) takes `unknown` and handles both.
+     */
+    availabilities?: unknown;
     email: string;
     first_name: string;
     last_name: string;

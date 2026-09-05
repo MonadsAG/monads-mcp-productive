@@ -137,4 +137,43 @@ describe('ProductiveAPIClient filter keys', () => {
     const url = fetchMock.mock.calls[0][0] as string;
     expect(url).toContain('filter%5Bapprover_id%5D=42');
   });
+
+  // Verified against the live sandbox: filter[event_id] selects exactly the
+  // absences (a comma-separated list of every event id returned the same 63
+  // rows the client-side split produces), filter[project_id] narrows to one
+  // project, and comma lists work on filter[person_id] as well.
+  it('listBookings sends filter[event_id] and accepts a comma-separated list', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listBookings({ event_id: '133714,139787' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Bevent_id%5D=133714%2C139787');
+  });
+
+  it('listBookings sends filter[project_id] and filter[person_id]', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listBookings({ project_id: '633049', person_id: '7,8' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Bproject_id%5D=633049');
+    expect(url).toContain('filter%5Bperson_id%5D=7%2C8');
+  });
+
+  // Paging the bookings endpoint without a fixed order silently duplicates and
+  // drops rows at the page boundaries. `started_on` is a documented sort key --
+  // an undocumented one answers 400 (verified live).
+  it('listBookings sends the sort key it was given', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listBookings({ sort: 'started_on', page: 2, limit: 200 });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('sort=started_on');
+    expect(url).toContain('page%5Bnumber%5D=2');
+  });
 });

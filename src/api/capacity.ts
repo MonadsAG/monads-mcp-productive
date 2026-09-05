@@ -6,7 +6,7 @@
  * entitlements (those are absence quotas). See docs/resource-management-spec.md.
  */
 import type { ProductiveBooking } from './types.js';
-import { isAbsenceBooking } from './bookings-client.js';
+import { classifyBooking } from './bookings-client.js';
 
 /**
  * One slice of a person's contracted working pattern.
@@ -44,25 +44,56 @@ function patternIndex(date: Date): number {
  * whole overview.
  */
 export function parseAvailabilities(raw: unknown): AvailabilitySlice[] {
-  if (typeof raw !== 'string' || raw.trim() === '') return [];
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return [];
-  }
+  const parsed = decodeAvailabilities(raw);
   if (!Array.isArray(parsed)) return [];
 
   const slices: AvailabilitySlice[] = [];
   for (const entry of parsed) {
-    if (!Array.isArray(entry) || entry.length < 3) continue;
+    if (!Array.isArray(entry)) continue;
+
+    // Two shapes in the wild: the live API answers with time-sliced entries
+    // ([from, to, pattern, calendarId]), while the official spec's own example
+    // (docs/api-spec/resources/people.yaml) shows a bare pattern array. Accept
+    // both rather than silently reporting "no working pattern" for everyone if
+    // the response ever takes the documented form.
+    if (entry.every((value) => typeof value === 'number')) {
+      if (entry.length >= 7) slices.push({ from: '1970-01-01', to: null, pattern: entry });
+      continue;
+    }
+
+    if (entry.length < 3) continue;
     const [from, to, pattern] = entry;
     if (typeof from !== 'string' || !Array.isArray(pattern)) continue;
     if (!pattern.every((n) => typeof n === 'number')) continue;
     slices.push({ from, to: typeof to === 'string' ? to : null, pattern });
   }
   return slices;
+}
+
+/** The raw value as an array, whether it arrived as one or as a JSON string. */
+function decodeAvailabilities(raw: unknown): unknown {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== 'string' || raw.trim() === '') return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when the field carried something but no slice could be read out of it.
+ *
+ * Lets a caller distinguish "this person has no working pattern on file" from
+ * "the pattern is there but in a shape this code does not understand" -- the
+ * two need different answers, and reporting the second as the first hides a
+ * bug behind a plausible-looking result.
+ */
+export function hasUnreadableAvailabilities(raw: unknown): boolean {
+  const parsed = decodeAvailabilities(raw);
+  if (parsed === null || parsed === undefined) return typeof raw === 'string' && raw.trim() !== '';
+  if (Array.isArray(parsed) && parsed.length === 0) return false;
+  return parseAvailabilities(raw).length === 0;
 }
 
 /**
@@ -225,7 +256,12 @@ export function bookedMinutes(
   }
 
   if (typeof a.total_time === 'number' && a.total_time > 0) {
-    const bookingDays = a.total_working_days ?? workingDays(a.started_on, a.ended_on);
+    // Both sides of the ratio have to be counted the same way. Taking the
+    // numerator from the person's pattern and the denominator from the API's
+    // total_working_days mixes two calendars: whenever they disagree (a public
+    // holiday inside the booking, say) a booking that lies entirely inside the
+    // window stops adding up to its own total_time.
+    const bookingDays = workingDays(a.started_on, a.ended_on);
     if (bookingDays === 0) return 0;
     return Math.round(a.total_time * (overlapDays / bookingDays));
   }
@@ -245,7 +281,15 @@ export interface CapacitySummary {
   /** null when the person has no usable availabilities pattern. */
   contractedMinutes: number | null;
   projectMinutes: number;
+  /** Real time off only -- remote work is counted separately. */
   absenceMinutes: number;
+  /**
+   * Working from home.
+   *
+   * Informational: the person is at work, so this is neither part of
+   * `plannedMinutes` nor subtracted from `freeMinutes`.
+   */
+  remoteMinutes: number;
   /** Everything already claimed: project work plus absence. */
   plannedMinutes: number;
   /** Contracted minus project minus absence; null when contracted is unknown. */
@@ -274,21 +318,33 @@ export function summariseCapacity(
   availabilities: AvailabilitySlice[],
   startIso: string,
   endIso: string,
+  remoteEventIds?: ReadonlySet<string>,
 ): CapacitySummary {
   const contracted = contractedMinutes(availabilities, startIso, endIso);
 
   let projectMinutes = 0;
   let absenceMinutes = 0;
+  let remoteMinutes = 0;
 
   for (const booking of bookings) {
     // Cancelled and rejected bookings never consume capacity.
     if (booking.attributes.canceled || booking.attributes.rejected) continue;
 
     const minutes = bookedMinutes(booking, availabilities, startIso, endIso);
-    if (isAbsenceBooking(booking)) absenceMinutes += minutes;
-    else projectMinutes += minutes;
+    switch (classifyBooking(booking, remoteEventIds)) {
+      case 'project':
+        projectMinutes += minutes;
+        break;
+      case 'remote_work':
+        remoteMinutes += minutes;
+        break;
+      default:
+        absenceMinutes += minutes;
+    }
   }
 
+  // Remote work stays out: somebody working from home is available, and
+  // subtracting it would report a fully staffed week as booked solid.
   const plannedMinutes = projectMinutes + absenceMinutes;
   const freeMinutes = contracted === null ? null : contracted - plannedMinutes;
   const share = (part: number): number | null =>
@@ -298,6 +354,7 @@ export function summariseCapacity(
     contractedMinutes: contracted,
     projectMinutes,
     absenceMinutes,
+    remoteMinutes,
     plannedMinutes,
     freeMinutes,
     utilisationPercent: share(projectMinutes),

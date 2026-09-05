@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { ProductiveBooking } from '../../src/api/types.js';
 import {
   parseAvailabilities,
+  hasUnreadableAvailabilities,
   sliceForDate,
   weeklyHours,
   hoursOnDate,
@@ -59,6 +60,45 @@ describe('parseAvailabilities', () => {
       ['2024-02-01', null, pattern(8), 1],
     ]);
     expect(parseAvailabilities(raw)).toHaveLength(1);
+  });
+
+  // The live API sends a JSON string, but the official spec's own example
+  // (docs/api-spec/resources/people.yaml) shows a bare nested array. Reading
+  // only one of the two would report "no working pattern" for every person if
+  // the response ever took the documented shape.
+  it('accepts the bare array shape the spec documents', () => {
+    const slices = parseAvailabilities([pattern(8)]);
+
+    expect(slices).toHaveLength(1);
+    expect(slices[0].pattern).toHaveLength(14);
+    expect(slices[0].to).toBeNull();
+  });
+
+  it('accepts an already-decoded array of time-sliced entries', () => {
+    expect(parseAvailabilities([['2024-01-17', null, pattern(8), 1]])).toHaveLength(1);
+  });
+
+  it('rejects a bare pattern too short to cover a week', () => {
+    expect(parseAvailabilities([[8, 0, 0, 0, 0]])).toEqual([]);
+  });
+});
+
+describe('hasUnreadableAvailabilities', () => {
+  // "Nothing on file" and "something on file that this code cannot read" need
+  // different answers -- reporting the second as the first hides a bug behind a
+  // plausible-looking result.
+  it.each([undefined, null, '', '   ', '[]', []])('reports %j as simply not set', (raw) => {
+    expect(hasUnreadableAvailabilities(raw)).toBe(false);
+  });
+
+  it.each(['not json', '{"a":1}', '[[8,0,0,0,0]]'])('flags %j as unreadable', (raw) => {
+    expect(hasUnreadableAvailabilities(raw)).toBe(true);
+  });
+
+  it('says nothing is wrong with a pattern it can read', () => {
+    expect(hasUnreadableAvailabilities(JSON.stringify([['2024-01-01', null, pattern(8), 1]]))).toBe(
+      false,
+    );
   });
 });
 
@@ -193,6 +233,21 @@ describe('bookedMinutes', () => {
     const b = booking({ percentage: 50 });
     expect(bookedMinutes(b, [], from, to)).toBe(0);
   });
+
+  // Numerator and denominator have to be counted the same way. Taking the days
+  // inside the window from the person's pattern but the booking's own length
+  // from the API's total_working_days mixes two calendars: whenever they
+  // disagree -- a public holiday inside the booking, say -- a booking lying
+  // entirely inside the window stops adding up to its own total_time.
+  it('counts a booking that lies fully inside the window at its full length', () => {
+    const b = booking({
+      started_on: '2026-03-02',
+      ended_on: '2026-03-06',
+      total_time: 1920,
+      total_working_days: 4, // e.g. the API subtracted a public holiday
+    });
+    expect(bookedMinutes(b, full, from, to)).toBe(1920);
+  });
 });
 
 describe('summariseCapacity', () => {
@@ -219,6 +274,50 @@ describe('summariseCapacity', () => {
     expect(summary.utilisationPercent).toBe(40);
     expect(summary.plannedPercent).toBe(60);
     expect(summary.overbooked).toBe(false);
+  });
+
+  // Remote work is the same `bookings` resource as time off, told apart only by
+  // the event's absence_type. Subtracting it would report a fully staffed week
+  // -- everyone at their desk, just at home -- as booked solid.
+  it('counts remote work separately and does not subtract it', () => {
+    const summary = summariseCapacity(
+      [booking({ total_time: 960 }), booking({ total_time: 480 }, true)],
+      availabilities,
+      from,
+      to,
+      new Set(['99']), // the event id the absence fixture uses
+    );
+
+    expect(summary.remoteMinutes).toBe(480);
+    expect(summary.absenceMinutes).toBe(0);
+    expect(summary.plannedMinutes).toBe(960);
+    expect(summary.freeMinutes).toBe(2400 - 960);
+    expect(summary.overbooked).toBe(false);
+  });
+
+  it('treats an event that is not known to be remote as an absence', () => {
+    const summary = summariseCapacity(
+      [booking({ total_time: 480 }, true)],
+      availabilities,
+      from,
+      to,
+      new Set(['other']),
+    );
+
+    expect(summary.absenceMinutes).toBe(480);
+    expect(summary.remoteMinutes).toBe(0);
+  });
+
+  it('keeps the old behaviour when no remote event ids are passed at all', () => {
+    const summary = summariseCapacity(
+      [booking({ total_time: 480 }, true)],
+      availabilities,
+      from,
+      to,
+    );
+
+    expect(summary.absenceMinutes).toBe(480);
+    expect(summary.remoteMinutes).toBe(0);
   });
 
   it('flags overbooking once bookings exceed contracted time', () => {

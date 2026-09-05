@@ -9,9 +9,10 @@ import {
   describeApprovalState,
   formatMinutes,
   isAbsenceBooking,
-  overfetchLimit,
-  MAX_PAGE_SIZE,
   isCapacityBooking,
+  isRemoteWorkEvent,
+  remoteWorkEventIds,
+  classifyBooking,
   resolveAbsenceType,
 } from '../../src/api/bookings-client.js';
 
@@ -65,6 +66,13 @@ describe('buildBookingQuery', () => {
     expect(q).toContain('page%5Bnumber%5D=2');
   });
 
+  // Paging without a fixed order lets rows duplicate or go missing at the page
+  // boundaries, which is invisible in the result.
+  it('passes a sort key through for stable pagination', () => {
+    expect(buildBookingQuery({ sort: 'started_on' })).toContain('sort=started_on');
+    expect(buildBookingQuery({})).not.toContain('sort=');
+  });
+
   it('omits boolean filters unless explicitly enabled', () => {
     const q = buildBookingQuery({ with_draft: false, canceled: false });
     expect(q).not.toContain('with_draft');
@@ -89,6 +97,54 @@ describe('booking classification', () => {
     const b = booking({}, { event: { data: null }, service: { data: null } });
     expect(isAbsenceBooking(b)).toBe(false);
     expect(isCapacityBooking(b)).toBe(false);
+  });
+});
+
+describe('remote work', () => {
+  it('recognises an event the API marks as remote work', () => {
+    expect(isRemoteWorkEvent(event('1', 'Home Office', { absence_type: 'remote_work' }))).toBe(
+      true,
+    );
+    expect(isRemoteWorkEvent(event('2', 'Vacation', { absence_type: 'time_off' }))).toBe(false);
+    expect(isRemoteWorkEvent(event('3', 'Vacation'))).toBe(false);
+  });
+
+  it('collects the remote event ids out of a sideloaded included[]', () => {
+    const ids = remoteWorkEventIds([
+      { id: '5', type: 'events', attributes: { name: 'Home Office', absence_type: 'remote_work' } },
+      { id: '6', type: 'events', attributes: { name: 'Vacation', absence_type: 'time_off' } },
+      { id: '7', type: 'events', attributes: { name: 'Sick leave' } },
+      // Same id on a different resource type must not leak into the set.
+      { id: '5', type: 'people', attributes: { absence_type: 'remote_work' } },
+    ]);
+
+    expect([...ids]).toEqual(['5']);
+  });
+
+  it('returns an empty set when nothing was sideloaded', () => {
+    expect(remoteWorkEventIds()).toEqual(new Set());
+    expect(remoteWorkEventIds([])).toEqual(new Set());
+  });
+
+  it('sorts a booking into one of the three buckets', () => {
+    const remote = new Set(['5']);
+    const homeOffice = booking({}, { event: { data: { id: '5', type: 'events' } } });
+    const holiday = booking({}, { event: { data: { id: '6', type: 'events' } } });
+    const project = booking({}, { service: { data: { id: '9', type: 'services' } } });
+
+    expect(classifyBooking(homeOffice, remote)).toBe('remote_work');
+    expect(classifyBooking(holiday, remote)).toBe('time_off');
+    expect(classifyBooking(project, remote)).toBe('project');
+  });
+
+  // The error has to point the same way every time: an unrecognised event stays
+  // an absence, so capacity is reported too low rather than too high. Guessing
+  // the other way would turn somebody's sick leave into free capacity.
+  it('leaves an unidentified event as time off', () => {
+    const homeOffice = booking({}, { event: { data: { id: '5', type: 'events' } } });
+
+    expect(classifyBooking(homeOffice)).toBe('time_off');
+    expect(classifyBooking(homeOffice, new Set())).toBe('time_off');
   });
 });
 
@@ -188,17 +244,6 @@ describe('describeApprovalState', () => {
       { approval_statuses: { data: [{ id: '1', type: 'approval_statuses' }] } },
     );
     expect(describeApprovalState(b)).toBe('Pending approval (1 approver(s))');
-  });
-});
-
-describe('overfetchLimit', () => {
-  it('asks for more rows than requested, since absences are filtered out here', () => {
-    expect(overfetchLimit(50)).toBe(150);
-  });
-
-  it('never exceeds the largest page the endpoint takes', () => {
-    expect(overfetchLimit(100)).toBe(MAX_PAGE_SIZE);
-    expect(overfetchLimit(200)).toBe(MAX_PAGE_SIZE);
   });
 });
 

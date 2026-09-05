@@ -11,6 +11,7 @@ import {
   workingDaysInRange,
   type AvailabilitySlice,
 } from '../api/capacity.js';
+import { toMcpError } from '../utils/errors.js';
 
 export type ToolResult = { content: Array<{ type: string; text: string }> };
 
@@ -119,22 +120,38 @@ export function translateBookingError(message: string): McpError | null {
   return null;
 }
 
-/** Normalise anything thrown inside a tool into an McpError. */
+/**
+ * Normalise anything thrown inside a tool into an McpError.
+ *
+ * Only the booking-specific translation lives here; everything else is handed
+ * to `toMcpError`, which is what every other tool in this repo uses. Rolling
+ * the mapping by hand loses what that function knows: a 404/422 from the API is
+ * the caller's fault (InvalidParams), and a 429 needs the rate-limit numbers
+ * spelled out. Both came back as a bare InternalError before.
+ */
 export function rethrowToolError(error: unknown): never {
-  if (error instanceof McpError) throw error;
-
-  if (error instanceof z.ZodError) {
-    // Name the offending field: Zod's bare "Required" leaves the caller guessing
-    // which parameter it meant when several are missing.
-    const details = error.errors
-      .map((e) => (e.path.length > 0 ? `${e.path.join('.')}: ${e.message}` : e.message))
-      .join(', ');
-    throw new McpError(ErrorCode.InvalidParams, `Invalid parameters: ${details}`);
+  if (error instanceof Error && !(error instanceof McpError)) {
+    const translated = translateBookingError(error.message);
+    if (translated) throw translated;
   }
 
-  const message = error instanceof Error ? error.message : 'Unknown error occurred';
-  const translated = translateBookingError(message);
-  if (translated) throw translated;
+  throw toMcpError(error);
+}
 
-  throw new McpError(ErrorCode.InternalError, message);
+/**
+ * A Productive ID as the number `POST /bookings` expects in `attributes`.
+ *
+ * `Number('abc')` is NaN and JSON.stringify writes that as `null`, so a
+ * mistyped ID would reach the API as a missing field and come back as a
+ * confusing 422 about the person. Reject it here, where the field name is known.
+ */
+export function toNumericId(value: string, field: string): number {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      `${field} must be a numeric Productive ID, got "${value}".`,
+    );
+  }
+  return Number(trimmed);
 }

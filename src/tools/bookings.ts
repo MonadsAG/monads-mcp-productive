@@ -15,7 +15,7 @@ import {
   describeApprovalState,
   formatMinutes,
   isCapacityBooking,
-  overfetchLimit,
+  MAX_PAGE_SIZE,
   type BookingMethodId,
 } from '../api/bookings-client.js';
 import { projectUtilisation } from './capacity.js';
@@ -27,6 +27,7 @@ import {
   personWorkingDays,
   resolvePersonId,
   rethrowToolError,
+  toNumericId,
   type ToolResult,
 } from './tool-helpers.js';
 
@@ -122,8 +123,8 @@ Call again with "confirm": true to create it.`,
       data: {
         type: 'bookings',
         attributes: {
-          person_id: Number(personId),
-          service_id: Number(params.service_id),
+          person_id: toNumericId(personId, 'person_id'),
+          service_id: toNumericId(params.service_id, 'service_id'),
           started_on: from,
           ended_on: to,
           booking_method_id: method,
@@ -184,6 +185,18 @@ export async function updateBookingTool(
     const params = updateBookingSchema.parse(args);
     const current = await client.getBooking(params.booking_id);
     const a = current.data.attributes;
+
+    // create_absence caps absences at booking method 1 or 3 on purpose; without
+    // this check the percentage method reaches them through the back door and
+    // sizes somebody's time off against a share of their contract instead of
+    // real hours.
+    if (params.percentage !== undefined && current.data.relationships?.event?.data?.id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'booking_method_id must be 1 (hours per day) or 3 (total hours) for absences. ' +
+          'Use hours_per_day instead of percentage to change an absence.',
+      );
+    }
 
     const from = params.date_from ? parseDate(params.date_from) : a.started_on;
     const to = params.date_to ? parseDate(params.date_to) : a.ended_on;
@@ -284,6 +297,7 @@ Status: ${describeApprovalState(updated.data)}`,
 
 const listBookingsSchema = z.object({
   person_id: z.string().optional(),
+  project_id: z.string().optional(),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
   include_absences: coerceBoolean.optional().default(false),
@@ -301,9 +315,29 @@ export async function listBookingsTool(
 
     // Absences are dropped here, not by the API, so `limit` has to be applied
     // after the split -- otherwise a page full of absences reports no bookings.
-    const fetchLimit = params.include_absences ? params.limit : overfetchLimit(params.limit);
+    //
+    // Except with project_id: an absence has no project, so the filter already
+    // excludes them server-side, nothing is dropped, and the limit can go
+    // straight through.
+    //
+    // The inverse ("project bookings only") has no server-side filter at all,
+    // which is why the over-fetch has to stay. Both candidates were checked
+    // live: the documented filter[booking_type] is accepted and then ignored
+    // (every value, plain or [eq], returns the unfiltered set), and
+    // filter[event_id][not_eq] over every event id answers 0 rows, because it
+    // only ever matches inside the bookings that have an event.
+    //
+    // When it does have to split, it asks for a whole page rather than a
+    // multiple of `limit`: a date range can hold nothing but absences for far
+    // longer than three rows (verified live -- a full year in the test org holds
+    // 25 bookings, every one of them an absence), and a short over-fetch then
+    // reports "no project bookings" for a window that has plenty just below the
+    // cut. One request either way.
+    const splitClientSide = !params.include_absences && !params.project_id;
+    const fetchLimit = splitClientSide ? MAX_PAGE_SIZE : params.limit;
     const response = await client.listBookings({
       person_id: personId,
+      project_id: params.project_id,
       after: params.date_from ? parseDate(params.date_from) : undefined,
       before: params.date_to ? parseDate(params.date_to) : undefined,
       limit: fetchLimit,
@@ -430,7 +464,8 @@ export const updateBookingDefinition = {
       date_to: { type: 'string', description: 'New last day, inclusive' },
       percentage: {
         type: 'number',
-        description: 'New allocation percentage (1-100)',
+        description:
+          'New allocation percentage (1-100). Project bookings only — absences take hours_per_day instead.',
         minimum: 1,
         maximum: 100,
       },
@@ -456,13 +491,18 @@ export const updateBookingDefinition = {
 export const listBookingsDefinition = {
   name: 'list_bookings',
   description:
-    'Read project capacity bookings — who is planned onto which service, when, and at what load. Absences are excluded unless include_absences is set (use list_absences for those). Note that a regular API token only sees its own resource planning, so an empty result does not prove none exist for other people.',
+    'Read project capacity bookings — who is planned onto which service, when, and at what load. Pass project_id to answer "who is planned on project X?". Absences are excluded unless include_absences is set (use list_absences for those). Note that a regular API token only sees its own resource planning, so an empty result does not prove none exist for other people.',
   inputSchema: {
     type: 'object',
     properties: {
       person_id: {
         type: 'string',
         description: 'Filter by person. "me" uses PRODUCTIVE_USER_ID.',
+      },
+      project_id: {
+        type: 'string',
+        description:
+          'Filter by project, for "who is planned on this project?". Absences never carry a project, so this also excludes them.',
       },
       date_from: { type: 'string', description: 'Only bookings after this date (YYYY-MM-DD)' },
       date_to: { type: 'string', description: 'Only bookings before this date (YYYY-MM-DD)' },
