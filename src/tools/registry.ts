@@ -189,6 +189,7 @@ import {
   copyPageTool,
   copyPageDefinition,
 } from './pages.js';
+import { listPageChildrenTool, listPageChildrenDefinition } from './page-children.js';
 import {
   listTaskDependenciesTool,
   listTaskDependenciesDefinition,
@@ -324,6 +325,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     updateTodoDefinition,
     deleteTodoDefinition,
     listPagesDefinition,
+    listPageChildrenDefinition,
     getPageDefinition,
     createPageDefinition,
     updatePageDefinition,
@@ -539,6 +541,8 @@ export async function handleToolCall(
       return await deleteTodoTool(apiClient, args);
     case 'list_pages':
       return await listPagesTool(apiClient, args);
+    case 'list_page_children':
+      return await listPageChildrenTool(apiClient, args);
     case 'get_page':
       return await getPageTool(apiClient, args);
     case 'create_page':

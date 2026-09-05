@@ -788,6 +788,8 @@ export interface ProductivePage {
     version_number?: number;
     parent_page_id?: number;
     root_page_id?: number;
+    /** Display order among siblings. Not sortable server-side (`sort=position` is a 400). */
+    position?: number;
     created_at: string;
     updated_at: string;
     edited_at?: string;

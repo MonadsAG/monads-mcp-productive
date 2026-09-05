@@ -221,6 +221,7 @@ Productive's UI calls this resource a "folder"; the API models it as a "board" (
 | Tool                                                                      | Description     |
 | ------------------------------------------------------------------------- | --------------- |
 | `list_pages` / `get_page` / `create_page` / `update_page` / `delete_page` | Page CRUD       |
+| `list_page_children`                                                      | Page hierarchy  |
 | `move_page` / `copy_page`                                                 | Page operations |
 
 ### Time Tracking
