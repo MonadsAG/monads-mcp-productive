@@ -1768,4 +1768,14 @@ export class ProductiveAPIClient {
       body: JSON.stringify(bookingData),
     });
   }
+
+  /**
+   * Delete a booking outright.
+   *
+   * Unlike an event type, a booking needs no archiving first -- the endpoint
+   * answers 204 straight away.
+   */
+  async deleteBooking(bookingId: string): Promise<void> {
+    return this.makeVoidRequest(`bookings/${bookingId}`, { method: 'DELETE' });
+  }
 }

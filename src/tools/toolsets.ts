@@ -111,6 +111,7 @@ export const TOOLSETS: Record<string, string[]> = {
     'list_absences',
     'create_booking',
     'update_booking',
+    'delete_booking',
     'list_bookings',
     'get_capacity_overview',
   ],

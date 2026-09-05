@@ -232,6 +232,8 @@ import {
   createBookingDefinition,
   updateBookingTool,
   updateBookingDefinition,
+  deleteBookingTool,
+  deleteBookingDefinition,
   listBookingsTool,
   listBookingsDefinition,
 } from './bookings.js';
@@ -342,6 +344,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     listAbsencesDefinition,
     createBookingDefinition,
     updateBookingDefinition,
+    deleteBookingDefinition,
     listBookingsDefinition,
     getCapacityOverviewDefinition,
   ] satisfies ReadonlyArray<{ name: string; annotations: ToolAnnotations }>;
@@ -566,6 +569,8 @@ export async function handleToolCall(
       return await createBookingTool(apiClient, args, config);
     case 'update_booking':
       return await updateBookingTool(apiClient, args);
+    case 'delete_booking':
+      return await deleteBookingTool(apiClient, args);
     case 'list_bookings':
       return await listBookingsTool(apiClient, args, config);
     case 'get_capacity_overview':

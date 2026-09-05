@@ -293,6 +293,66 @@ Status: ${describeApprovalState(updated.data)}`,
   }
 }
 
+// --- delete_booking ----------------------------------------------------------
+
+const deleteBookingSchema = z.object({
+  booking_id: z.string().min(1, 'booking_id is required'),
+  confirm: coerceBoolean.optional().default(false),
+});
+
+export async function deleteBookingTool(
+  client: ProductiveAPIClient,
+  args: unknown,
+): Promise<ToolResult> {
+  try {
+    const params = deleteBookingSchema.parse(args);
+
+    // Read it first, so the preview can name whose entry is about to go and
+    // what kind it is. A booking id carries none of that on its face, and this
+    // is the one call in the set that cannot be undone.
+    const current = await client.getBooking(params.booking_id);
+    const a = current.data.attributes;
+    const personId = current.data.relationships?.person?.data?.id;
+    const who = personId ? await describePerson(client, personId) : 'unknown person';
+    const kind = current.data.relationships?.event?.data?.id
+      ? 'ABSENCE'
+      : 'project capacity booking';
+
+    if (!params.confirm) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Booking ${params.booking_id} — ${kind}
+Person: ${who}
+Period: ${a.started_on} to ${a.ended_on}${typeof a.total_time === 'number' ? ` · ${formatMinutes(a.total_time)}` : ''}
+Status: ${describeApprovalState(current.data)}
+
+Deleting removes it outright — there is no undo, and an approved absence
+disappears from the person's records with it. To take it back without losing
+the entry, cancel it in Productive instead.
+
+Call again with "confirm": true to delete it.`,
+          },
+        ],
+      };
+    }
+
+    await client.deleteBooking(params.booking_id);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Booking ${params.booking_id} (${kind}, ${who}, ${a.started_on} to ${a.ended_on}) has been deleted.`,
+        },
+      ],
+    };
+  } catch (error) {
+    rethrowToolError(error);
+  }
+}
+
 // --- list_bookings -----------------------------------------------------------
 
 const listBookingsSchema = z.object({
@@ -483,6 +543,31 @@ export const updateBookingDefinition = {
     title: 'Update booking',
     readOnlyHint: false,
     destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
+};
+
+export const deleteBookingDefinition = {
+  name: 'delete_booking',
+  description:
+    'Delete a booking outright — a project booking or an absence. Requires confirmation: the first call names the person, the kind of booking and the period, then repeat with "confirm": true. This cannot be undone; to withdraw an absence while keeping the record, cancel it in Productive instead of deleting it. Use update_booking to correct dates or amounts.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      booking_id: { type: 'string', description: 'ID of the booking to delete (required)' },
+      confirm: {
+        type: 'boolean',
+        description: 'Set true to actually delete. Call without it first to see what would go.',
+        default: false,
+      },
+    },
+    required: ['booking_id'],
+  },
+  annotations: {
+    title: 'Delete booking',
+    readOnlyHint: false,
+    destructiveHint: true,
     idempotentHint: true,
     openWorldHint: true,
   },

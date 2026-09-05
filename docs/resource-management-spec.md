@@ -440,6 +440,25 @@ Zeitscheiben enthält:
 | **Placeholder-Personen als Anwendungsfall** | Produktiv werden keine angelegt. Der Mechanismus muss trotzdem sauber verarbeitet werden, siehe unten |
 | **`resource_requests`** | Eigener Workflow, der Anfragen in Bookings auflöst — nicht Teil dieser Aufgabe |
 
+### Nachgetragen: Löschen und Überlappungsprüfung
+
+Beides stand zunächst nicht im Umfang und wurde am 2026-09-05 nach dem
+Akzeptanztest gegen die Sandbox ergänzt:
+
+- **`delete_booking`** (Task #17 nennt es als „ggf.") löscht Projekt-Booking
+  **und** Abwesenheit. `DELETE /api/v2/bookings/{id}` antwortet direkt mit 204 —
+  anders als ein Event-Typ, der erst archiviert werden muss. Das Tool liest die
+  Buchung vorher und nennt Person, Art und Zeitraum in der Bestätigung: eine
+  Booking-ID zeigt nichts davon, und der Aufruf ist nicht umkehrbar.
+- **Überlappungsprüfung in `create_absence`** (Akzeptanzkriterium von Task #15:
+  „Fehlerfälle … überlappende Abwesenheit … liefern klare Fehlermeldungen"). Die
+  API nimmt die doppelte Buchung wortlos an — im Akzeptanztest wurden daraus
+  80 h Abwesenheit in einer 40-Stunden-Woche und eine Person, die allein wegen
+  des Duplikats als überbucht galt. Das Tool sucht deshalb vorher nach
+  Abwesenheiten im Zeitraum und weist ab, mit `allow_overlap` als Ausweg für
+  gewollte Fälle (halbe Tage, zwei Typen an einem Tag). Stornierte und
+  abgelehnte Einträge zählen nicht als Konflikt.
+
 **Zu Placeholder-Personen:** Es gibt Personen mit `placeholder: true`
 (`filter[person_type]=3`) — Platzhalter-Ressourcen ohne Login, mit eigener
 `availabilities`-Soll-Verfügbarkeit, regulär buchbar. In der Produktiv-Org

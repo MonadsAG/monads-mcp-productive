@@ -101,7 +101,7 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 | `invoicing`     | invoices, company budgets, line items, PDF/timesheet URLs                          |
 | `docs`          | folders (boards) + pages                                                           |
 | `todos`         | todos                                                                              |
-| `resource_management` | absences (types, create, list), project capacity bookings, capacity overview |
+| `resource_management` | absences (types, create, list), project capacity bookings (create/update/delete/list), capacity overview |
 
 ## Resource Management (Absences & Capacity)
 
@@ -110,6 +110,7 @@ resource, two flavours, told apart by which relationship is set:
 
 - **Absence** -> `event_id` set. Tools: `list_absence_types`, `create_absence`, `list_absences`
 - **Project capacity** -> `service_id` set. Tools: `create_booking`, `update_booking`, `list_bookings` (its `project_id` filters server-side)
+- **Either kind** can be removed with `delete_booking` (confirm-gated, names the person and the kind first -- a booking id shows neither)
 - **Utilisation**: `get_capacity_overview`
 
 Only one direction of that split is server-side. `list_absences` passes
@@ -139,6 +140,13 @@ Five things that bite if you don't know them:
 - **`POST /bookings` breaks the JSON:API convention used everywhere else here.**
   `person_id`, `event_id` and `service_id` go in `data.attributes` as flat
   values; sending them under `relationships` fails with `422 Invalid Attribute`.
+- **The API takes an overlapping absence without a word.** Booking the same week
+  twice is what a repeated `confirm` produces, and `get_capacity_overview` then
+  reports 80h of absence in a 40h week and calls the person overbooked on the
+  strength of a duplicate. `create_absence` therefore looks for absences in the
+  period first and refuses, unless `allow_overlap` says the clash is intended
+  (half days, or two types on one day). Cancelled and rejected entries do not
+  count as a clash -- they freed the period up again.
 - **Never hardcode absence categories.** Names and IDs are org-specific and are
   read at runtime via `GET /events` (`client.listEvents()`). Same reasoning as
   the `update_task_sprint` removal above.

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { ProductiveAPIClient } from '../../src/api/client.js';
 import type { ProductiveBooking } from '../../src/api/types.js';
 import {
@@ -399,5 +400,103 @@ describe('rejection reasons stay behind the same opt-in as notes', () => {
 
     expect(result.content[0].text).toContain('Status: Rejected');
     expect(result.content[0].text).not.toContain('still signed off sick');
+  });
+});
+
+describe('createAbsenceTool refuses to double-book a period', () => {
+  const existing = absence('900', { started_on: '2026-03-02', ended_on: '2026-03-06' });
+
+  it('refuses a period the person is already absent for, naming the clash', async () => {
+    const client = mockClient({
+      listBookings: vi.fn().mockResolvedValue({ data: [existing] }),
+    });
+
+    const error = await createAbsenceTool(
+      client,
+      {
+        person_id: '7',
+        absence_type: 'Vacation',
+        date_from: '2026-03-02',
+        date_to: '2026-03-06',
+        confirm: true,
+      },
+      {},
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(McpError);
+    expect((error as McpError).code).toBe(ErrorCode.InvalidParams);
+    expect((error as McpError).message).toContain('booking 900');
+    expect((error as McpError).message).toContain('allow_overlap');
+    expect(client.createBooking).not.toHaveBeenCalled();
+  });
+
+  it('books it anyway when the caller says the overlap is intended', async () => {
+    const client = mockClient({
+      listBookings: vi.fn().mockResolvedValue({ data: [existing] }),
+    });
+
+    await createAbsenceTool(
+      client,
+      {
+        person_id: '7',
+        absence_type: 'Vacation',
+        date_from: '2026-03-02',
+        date_to: '2026-03-06',
+        allow_overlap: true,
+        confirm: true,
+      },
+      {},
+    );
+
+    expect(client.createBooking).toHaveBeenCalled();
+  });
+
+  it('warns about the clash in the preview instead of failing it', async () => {
+    const client = mockClient({
+      listBookings: vi.fn().mockResolvedValue({ data: [existing] }),
+    });
+
+    const result = await createAbsenceTool(
+      client,
+      {
+        person_id: '7',
+        absence_type: 'Vacation',
+        date_from: '2026-03-02',
+        date_to: '2026-03-06',
+      },
+      {},
+    );
+
+    expect(result.content[0].text).toContain('already covered by');
+    expect(result.content[0].text).toContain('booking 900');
+    expect(client.createBooking).not.toHaveBeenCalled();
+  });
+
+  // Cancelled and rejected entries free the period up again -- treating them as
+  // a clash would lock a person out of rebooking a holiday they withdrew.
+  it('ignores cancelled and rejected absences when looking for clashes', async () => {
+    const client = mockClient({
+      listBookings: vi.fn().mockResolvedValue({
+        data: [
+          absence('901', { canceled: true }),
+          absence('902', { rejected: true }),
+          projectBooking('903'),
+        ],
+      }),
+    });
+
+    await createAbsenceTool(
+      client,
+      {
+        person_id: '7',
+        absence_type: 'Vacation',
+        date_from: '2026-03-02',
+        date_to: '2026-03-06',
+        confirm: true,
+      },
+      {},
+    );
+
+    expect(client.createBooking).toHaveBeenCalled();
   });
 });

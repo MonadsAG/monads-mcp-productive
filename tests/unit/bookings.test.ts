@@ -2,8 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { ProductiveAPIClient } from '../../src/api/client.js';
 import type { ProductiveBooking } from '../../src/api/types.js';
+import { ProductiveApiError } from '../../src/api/errors.js';
 import {
   createBookingTool,
+  deleteBookingTool,
   listBookingsTool,
   updateBookingTool,
 } from '../../src/tools/bookings.js';
@@ -67,6 +69,7 @@ function mockClient(overrides: Partial<Record<string, unknown>> = {}) {
     updateBooking: vi
       .fn()
       .mockResolvedValue(single(projectBooking('55', { total_working_days: 4 }))),
+    deleteBooking: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as ProductiveAPIClient;
 }
@@ -325,5 +328,54 @@ describe('listBookingsTool', () => {
     expect(client.listBookings).toHaveBeenCalledWith(
       expect.objectContaining({ project_id: '633049', limit: 50 }),
     );
+  });
+});
+
+describe('delete_booking', () => {
+  // The one call in this set that cannot be undone, and a booking id says
+  // nothing about whose entry it is -- so the preview has to.
+  it('names person, kind and period before deleting anything', async () => {
+    const client = mockClient();
+
+    const result = await deleteBookingTool(client, { booking_id: '55' });
+
+    expect(client.deleteBooking).not.toHaveBeenCalled();
+    expect(result.content[0].text).toContain('project capacity booking');
+    expect(result.content[0].text).toContain('Ada Lovelace');
+    expect(result.content[0].text).toContain('2026-03-02');
+    expect(result.content[0].text).toMatch(/no undo/i);
+  });
+
+  it('calls out an absence as such, so a mistyped id is visible', async () => {
+    const client = mockClient({
+      getBooking: vi.fn().mockResolvedValue(single(absenceBooking('77'))),
+    });
+
+    const result = await deleteBookingTool(client, { booking_id: '77' });
+
+    expect(result.content[0].text).toContain('ABSENCE');
+  });
+
+  it('deletes once confirmed and says what went', async () => {
+    const client = mockClient();
+
+    const result = await deleteBookingTool(client, { booking_id: '55', confirm: true });
+
+    expect(client.deleteBooking).toHaveBeenCalledWith('55');
+    expect(result.content[0].text).toContain('has been deleted');
+  });
+
+  it('reports a missing booking as a caller error, not an internal one', async () => {
+    const client = mockClient({
+      getBooking: vi
+        .fn()
+        .mockRejectedValue(new ProductiveApiError('The requested record was not found', 404)),
+    });
+
+    const error = await caught(deleteBookingTool(client, { booking_id: '999', confirm: true }));
+
+    expect(error).toBeInstanceOf(McpError);
+    expect(error.code).toBe(ErrorCode.InvalidParams);
+    expect(client.deleteBooking).not.toHaveBeenCalled();
   });
 });

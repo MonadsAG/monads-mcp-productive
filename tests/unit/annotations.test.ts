@@ -67,6 +67,7 @@ describe('tool annotations', () => {
     expect(destructive).toEqual([
       'archive_folder',
       'archive_task_list',
+      'delete_booking',
       'delete_comment',
       'delete_invoice',
       'delete_page',

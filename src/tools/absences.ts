@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { ProductiveAPIClient } from '../api/client.js';
-import type { ProductiveBookingCreate, ProductiveEvent } from '../api/types.js';
+import type { ProductiveBooking, ProductiveBookingCreate, ProductiveEvent } from '../api/types.js';
 import {
   BOOKING_METHOD,
   buildQuantity,
@@ -59,16 +59,13 @@ function sizeAbsence(
   return { workingDays, hoursPerDay };
 }
 
-/** Load the absence types and match the caller's input against them. */
-async function findEvent(
-  client: ProductiveAPIClient,
-  opts: { absence_type?: string; event_id?: string },
-): Promise<ProductiveEvent> {
-  const response = await client.listEvents();
-  return matchEvent(response.data ?? [], opts);
-}
-
-/** The matching half of findEvent, for callers that already hold the events. */
+/**
+ * Match the caller's absence type against the org's list.
+ *
+ * Takes the events rather than fetching them: both callers need the full list
+ * for something else as well -- naming types in the output, naming the types of
+ * conflicting bookings -- so fetching here would double the calls.
+ */
 function matchEvent(
   events: ProductiveEvent[],
   opts: { absence_type?: string; event_id?: string },
@@ -177,11 +174,54 @@ const createAbsenceSchema = z
       })
       .optional(),
     note: z.string().optional(),
+    allow_overlap: coerceBoolean.optional().default(false),
     confirm: coerceBoolean.optional().default(false),
   })
   .refine((v) => v.absence_type || v.event_id, {
     message: 'Provide either absence_type (name) or event_id',
   });
+
+/**
+ * Absences this person already has in the requested period.
+ *
+ * The API takes the booking happily and says nothing, so a repeated confirm
+ * writes the same week twice -- and get_capacity_overview then reports 80h of
+ * absence in a 40h week and calls the person overbooked on the strength of a
+ * duplicate. The date filters match on overlap, so what comes back is exactly
+ * the conflicting set.
+ */
+async function overlappingAbsences(
+  client: ProductiveAPIClient,
+  personId: string,
+  from: string,
+  to: string,
+): Promise<ProductiveBooking[]> {
+  try {
+    const response = await client.listBookings({
+      person_id: personId,
+      after: from,
+      before: to,
+      limit: 50,
+    });
+    return (response.data ?? []).filter(
+      (b) => isAbsenceBooking(b) && !b.attributes.canceled && !b.attributes.rejected,
+    );
+  } catch {
+    // A conflict check must never be the reason a booking cannot be made.
+    return [];
+  }
+}
+
+/** One line per conflicting absence, for the preview and the refusal alike. */
+function describeConflicts(conflicts: ProductiveBooking[], events: ProductiveEvent[]): string {
+  return conflicts
+    .map((b) => {
+      const eventId = b.relationships?.event?.data?.id;
+      const type = events.find((e) => e.id === eventId)?.attributes.name ?? 'absence';
+      return `  • ${type}, ${b.attributes.started_on} to ${b.attributes.ended_on} (booking ${b.id})`;
+    })
+    .join('\n');
+}
 
 export async function createAbsenceTool(
   client: ProductiveAPIClient,
@@ -198,7 +238,10 @@ export async function createAbsenceTool(
       throw new McpError(ErrorCode.InvalidParams, `date_to (${to}) is before date_from (${from}).`);
     }
 
-    const event = await findEvent(client, {
+    // Fetched here rather than through findEvent, because the same list names
+    // the types of any conflicting absences further down -- one call, not two.
+    const events = (await client.listEvents()).data ?? [];
+    const event = matchEvent(events, {
       absence_type: params.absence_type,
       event_id: params.event_id,
     });
@@ -235,11 +278,17 @@ export async function createAbsenceTool(
       );
     }
 
+    const conflicts = await overlappingAbsences(client, personId, from, to);
+
     if (!params.confirm) {
       const who = await describePerson(client, personId);
       const remoteHint = isRemoteWorkEvent(event)
         ? '\nThis type is remote work: it books working from home, not an absence — the person stays available.'
         : '';
+      const conflictHint =
+        conflicts.length > 0
+          ? `\n\n⚠️ This period is already covered by ${conflicts.length} absence(s):\n${describeConflicts(conflicts, events)}\nBooking on top of them double-counts the time. Pass "allow_overlap": true if that is really what you want.`
+          : '';
       return {
         content: [
           {
@@ -252,7 +301,7 @@ Period: ${from} to ${to}
 Working days: ${workingDays}
 Hours per day: ${Math.round(hoursPerDay * 100) / 100}
 Booking method: ${method}
-${params.note ? `Note: ${params.note}` : 'No note'}
+${params.note ? `Note: ${params.note}` : 'No note'}${conflictHint}
 
 Whether this needs approval depends on the person's approval policy — the result will say.
 
@@ -260,6 +309,18 @@ Call again with "confirm": true to book it.`,
           },
         ],
       };
+    }
+
+    // Refused rather than warned: the API accepts the duplicate without a word,
+    // and a repeated confirm is the easiest way to produce one. An override
+    // stays available for the cases that are genuinely legitimate -- half days,
+    // or two different types on the same day.
+    if (conflicts.length > 0 && !params.allow_overlap) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `This person already has ${conflicts.length} absence(s) covering ${from} to ${to}:\n${describeConflicts(conflicts, events)}\n` +
+          'Booking again would count the same time twice. Change the dates, delete the existing entry with delete_booking, or pass "allow_overlap": true to book it anyway.',
+      );
     }
 
     const payload: ProductiveBookingCreate = {
@@ -445,7 +506,7 @@ export const listAbsenceTypesDefinition = {
 export const createAbsenceDefinition = {
   name: 'create_absence',
   description:
-    'Book an absence (vacation, sick leave, unpaid leave, ...) for a person over a date range. Requires confirmation: the first call returns a summary, then repeat with "confirm": true to write it. Identify the type with absence_type (name, matched against list_absence_types) or event_id. A booked absence is NOT automatically approved — whether it needs approval depends on the person\'s approval policy, and the result reports the actual status.',
+    'Book an absence (vacation, sick leave, unpaid leave, ...) for a person over a date range. Requires confirmation: the first call returns a summary, then repeat with "confirm": true to write it. Identify the type with absence_type (name, matched against list_absence_types) or event_id. A booked absence is NOT automatically approved — whether it needs approval depends on the person\'s approval policy, and the result reports the actual status. An absence that overlaps one the person already has is refused unless allow_overlap is passed.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -483,6 +544,12 @@ export const createAbsenceDefinition = {
         enum: [1, 3],
       },
       note: { type: 'string', description: 'Optional note' },
+      allow_overlap: {
+        type: 'boolean',
+        description:
+          'Book even though the person already has an absence in this period. Off by default: the API accepts duplicates silently and they are then counted twice.',
+        default: false,
+      },
       confirm: {
         type: 'boolean',
         description: 'Set true to actually book. Call without it first to preview.',
