@@ -176,4 +176,55 @@ describe('ProductiveAPIClient filter keys', () => {
     expect(url).toContain('sort=started_on');
     expect(url).toContain('page%5Bnumber%5D=2');
   });
+
+  // Live-verified to actually narrow the result (2582 rows unfiltered, 70 for
+  // one invoice, 0 for an id that does not exist) -- a 200 alone would prove
+  // only that the key passed the allowlist, as filter[booking_type] shows.
+  it('listTimeEntries sends filter[invoice_id]', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listTimeEntries({ invoice_id: '1476811' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Binvoice_id%5D=1476811');
+    // not_eq matches only inside entries that already carry an attribution, so
+    // it never means "uninvoiced" and must not creep into this filter.
+    expect(url).not.toContain('not_eq');
+  });
+
+  it('listTimeEntries passes a comma-separated invoice list through unsplit', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listTimeEntries({ invoice_id: '1476811,1477175' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Binvoice_id%5D=1476811%2C1477175');
+  });
+
+  // `date` and `-date` are the only sort keys this endpoint accepts; `id`,
+  // `created_at` and the compound `date,id` all answer 400 (verified live).
+  // spec:impact checks filter[...] keys only, so nothing else guards this.
+  it('listTimeEntries sends the sort key and page it was given', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listTimeEntries({ sort: 'date', page: 2, limit: 200 });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('sort=date');
+    expect(url).toContain('page%5Bnumber%5D=2');
+    expect(url).toContain('page%5Bsize%5D=200');
+  });
+
+  it('listInvoices sends filter[number] for an invoice number lookup', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listInvoices({ number: '20260035' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Bnumber%5D=20260035');
+  });
 });

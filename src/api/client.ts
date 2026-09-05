@@ -488,8 +488,10 @@ export class ProductiveAPIClient {
     project_id?: string;
     task_id?: string;
     service_id?: string;
+    invoice_id?: string;
     approved?: boolean;
     approver_id?: string;
+    sort?: string;
     limit?: number;
     page?: number;
   }): Promise<ProductiveResponse<ProductiveTimeEntry>> {
@@ -522,8 +524,20 @@ export class ProductiveAPIClient {
       queryParams.append('filter[task_id]', params.task_id);
     }
 
-    if (params?.service_id) {
-      queryParams.append('filter[service_id]', params.service_id);
+    if (params?.invoice_id) {
+      // Live-verified to actually filter (2582 rows unfiltered, 70 for one
+      // invoice, 0 for an id that does not exist) -- worth stating because a
+      // documented filter can answer 200 and ignore its value, as
+      // filter[booking_type] does. Accepts a comma-separated list.
+      //
+      // Two traps this does NOT cover. `filter[invoice_id][not_eq]` is not
+      // "uninvoiced": it matches only inside entries that already carry an
+      // attribution, so negating one invoice answers 2081 rather than
+      // 2582 - 70. Use filter[invoiced] for that. And the response carries no
+      // `invoice_id` attribute at all -- only `invoice_attribution_id` and
+      // `invoiced` -- so the filter is the only way to establish the link and a
+      // returned row cannot be re-checked against the invoice that was asked for.
+      queryParams.append('filter[invoice_id]', params.invoice_id);
     }
 
     if (params?.approved !== undefined) {
@@ -540,6 +554,14 @@ export class ProductiveAPIClient {
 
     if (params?.approver_id) {
       queryParams.append('filter[approver_id]', params.approver_id);
+    }
+
+    if (params?.sort) {
+      // Only `date` and `-date` are live-verified here; `id`, `created_at` and
+      // the compound `date,id` all answer 400. Note that `spec:impact` checks
+      // filter[...] keys only and would not catch a bad sort key, so do not
+      // pass one that has not been tried against the API.
+      queryParams.append('sort', params.sort);
     }
 
     if (params?.limit) {
@@ -954,6 +976,7 @@ export class ProductiveAPIClient {
     invoice_state?: number;
     invoice_status?: number;
     payment_status?: number;
+    number?: string;
     after?: string;
     before?: string;
     full_query?: string;
@@ -971,6 +994,11 @@ export class ProductiveAPIClient {
       queryParams.append('filter[invoice_status]', params.invoice_status.toString());
     if (params?.payment_status)
       queryParams.append('filter[payment_status]', params.payment_status.toString());
+    // The invoice number a human reads off the document ("20260035"), not the
+    // internal id. The spec lists `contains` among this key's operators, so a
+    // caller matching on identity must still compare the returned `number`
+    // rather than trusting that one row came back.
+    if (params?.number) queryParams.append('filter[number]', params.number);
     // Invoices have no `after`/`before` filter (both 422 live). The invoice date
     // is `invoiced_on` -- the same field this endpoint already sorts by. Bounds are
     // inclusive so a range covers its edge days.

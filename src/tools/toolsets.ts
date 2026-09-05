@@ -84,6 +84,7 @@ export const TOOLSETS: Record<string, string[]> = {
     'get_invoice_pdf_url',
     'delete_invoice',
     'get_timesheet_report_url',
+    'get_invoice_time_entries',
     'mark_invoice_paid',
   ],
   docs: [

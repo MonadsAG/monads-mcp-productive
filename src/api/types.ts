@@ -1048,11 +1048,23 @@ export interface ProductiveLineItem {
   type: 'line_items';
   attributes: {
     description?: string;
-    quantity?: number;
+    /**
+     * Decimal *string* on the wire (`"191.25"`), despite reading like a number.
+     * Unlike `amount`/`unit_price` it is not in cents -- it is the quantity as
+     * shown on the invoice. Parse it, never consume it raw.
+     */
+    quantity?: string | number;
     unit_price?: string;
     amount?: string;
     discount?: string;
     position?: number;
+    /**
+     * Billing unit: 1=Hour, 2=Piece, 3=Day. Only `1` makes `quantity` a number
+     * of hours -- a piece line item quantity of `1` is one item, not one hour,
+     * and summing it into an hour total is a silent error (live: invoice
+     * 1439185 carries both kinds).
+     */
+    unit_id?: number;
     [key: string]: any;
   };
 }

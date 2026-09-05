@@ -19,7 +19,17 @@ export function buildIncludeMap(included?: ProductiveIncludedResource[]): Map<st
       const last = typeof attrs.last_name === 'string' ? attrs.last_name : '';
       name = `${first} ${last}`.trim() || undefined;
     } else {
-      name = typeof attrs.name === 'string' ? attrs.name : undefined;
+      // Tasks name themselves with `title`, not `name` (live: a sideloaded task
+      // carries `title: "#940 - Versandanweisung"` and no `name` at all). Reading
+      // only `name` is why this map has never resolved a task despite the
+      // docblock above listing them, and why `list_time_entries` always printed
+      // the bare task ID.
+      name =
+        typeof attrs.name === 'string'
+          ? attrs.name
+          : typeof attrs.title === 'string'
+            ? attrs.title
+            : undefined;
     }
 
     if (name) map.set(key, name);
