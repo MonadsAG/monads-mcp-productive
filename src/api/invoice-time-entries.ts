@@ -272,10 +272,17 @@ export function reconcileByService(
   serviceSubtotals: Subtotal[],
 ): ReconciledService[] | null {
   const rows: ReconciledService[] = [];
+  const claimed = new Set<string>();
 
   for (const service of serviceSubtotals) {
     const match = comparable.find((item) => item.description.startsWith(service.name));
-    if (!match) return null;
+    // A prefix match is not exclusive: with services "Beratung" and "Beratung
+    // Zusatz", the one line item "Beratung Zusatz - Mai" starts with both names
+    // and each row would then claim its full hours, reporting the invoice twice.
+    // The mapping is ambiguous in that case, which is the same situation as no
+    // match at all -- say so instead of inventing a breakdown that double-counts.
+    if (!match || claimed.has(match.id)) return null;
+    claimed.add(match.id);
 
     const lineItemHours = match.hours ?? 0;
     const difference = round2(lineItemHours - service.billable.hours);
@@ -321,6 +328,10 @@ export interface CollectedPages<T> {
 export async function collectPages<T extends { id: string }>(
   fetchPage: (page: number) => Promise<ProductiveResponse<T>>,
   maxPages: number = MAX_TIME_ENTRY_PAGES,
+  // The size `fetchPage` actually asks for. The short-page stop compares
+  // against this, so a caller requesting smaller pages must say so or every
+  // full page looks short and the sweep stops after the first one.
+  pageSize: number = MAX_PAGE_SIZE,
 ): Promise<CollectedPages<T>> {
   const byId = new Map<string, T>();
   const included: ProductiveIncludedResource[] = [];
@@ -336,7 +347,7 @@ export async function collectPages<T extends { id: string }>(
 
     const totalPages = response.meta?.total_pages;
     if (typeof totalPages === 'number' && page >= totalPages) break;
-    if (rows.length < MAX_PAGE_SIZE) break;
+    if (rows.length < pageSize) break;
     if (page === maxPages) {
       return { rows: [...byId.values()], included, truncated: true, expected };
     }

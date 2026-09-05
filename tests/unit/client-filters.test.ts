@@ -177,6 +177,19 @@ describe('ProductiveAPIClient filter keys', () => {
     expect(url).toContain('page%5Bnumber%5D=2');
   });
 
+  // Regression guard: filter[service_id] was once dropped from the query while
+  // the `service_id` parameter stayed in the signature, so list_time_entries
+  // kept accepting it and silently returned every entry in the org.
+  it('listTimeEntries sends filter[service_id]', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listTimeEntries({ service_id: '987654' });
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('filter%5Bservice_id%5D=987654');
+  });
+
   // Live-verified to actually narrow the result (2582 rows unfiltered, 70 for
   // one invoice, 0 for an id that does not exist) -- a 200 alone would prove
   // only that the key passed the allowlist, as filter[booking_type] shows.

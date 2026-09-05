@@ -524,6 +524,10 @@ export class ProductiveAPIClient {
       queryParams.append('filter[task_id]', params.task_id);
     }
 
+    if (params?.service_id) {
+      queryParams.append('filter[service_id]', params.service_id);
+    }
+
     if (params?.invoice_id) {
       // Live-verified to actually filter (2582 rows unfiltered, 70 for one
       // invoice, 0 for an id that does not exist) -- worth stating because a

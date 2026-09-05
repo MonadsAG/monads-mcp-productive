@@ -34,6 +34,16 @@ const MAX_FULL_DETAIL_ENTRIES = 300;
 /** One page is plenty: the busiest live invoice carries two line items. */
 const LINE_ITEM_PAGE_SIZE = 200;
 
+/**
+ * How many rows the number lookup below reads. A whole page, not the two an
+ * exact match plus one duplicate would need: `filter[number]` is a `contains`
+ * match, so a short invoice number ("5") matches every number containing it and
+ * the exactly-matching row need not be among the first few. Missing it there is
+ * not a harmless "not found" -- the ID lookup then wins and a completely
+ * different invoice is audited under the caller's number.
+ */
+const NUMBER_LOOKUP_PAGE_SIZE = 200;
+
 const getInvoiceTimeEntriesSchema = z.object({
   invoice: z.preprocess(
     (value) => (typeof value === 'number' ? String(value) : value),
@@ -82,7 +92,7 @@ async function resolveInvoice(
   selector: string,
 ): Promise<ResolvedInvoice> {
   const [byNumber, byId] = await Promise.all([
-    client.listInvoices({ number: selector, limit: 2 }),
+    client.listInvoices({ number: selector, limit: NUMBER_LOOKUP_PAGE_SIZE }),
     /^\d+$/.test(selector) ? getInvoiceOrNull(client, selector) : Promise.resolve(null),
   ]);
 
@@ -237,15 +247,18 @@ export async function getInvoiceTimeEntriesTool(
     const resolved = await resolveInvoice(client, params.invoice);
     const warnings = [...resolved.warnings];
 
-    const collected = await collectPages<ProductiveTimeEntry>((page) =>
-      client.listTimeEntries({
-        invoice_id: resolved.invoice.id,
-        // The only sort this endpoint accepts that is also the order the report
-        // wants. It is not unique, which is what `expected` below guards.
-        sort: 'date',
-        limit: MAX_PAGE_SIZE,
-        page,
-      }),
+    const collected = await collectPages<ProductiveTimeEntry>(
+      (page) =>
+        client.listTimeEntries({
+          invoice_id: resolved.invoice.id,
+          // The only sort this endpoint accepts that is also the order the report
+          // wants. It is not unique, which is what `expected` below guards.
+          sort: 'date',
+          limit: MAX_PAGE_SIZE,
+          page,
+        }),
+      MAX_TIME_ENTRY_PAGES,
+      MAX_PAGE_SIZE,
     );
 
     const lineItemsResponse = await client.listLineItems({
