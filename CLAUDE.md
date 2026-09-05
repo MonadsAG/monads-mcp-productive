@@ -91,21 +91,21 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 
 `PRODUCTIVE_TOOLSETS` (optional, comma-separated) restricts which domain groups of tools a deployment exposes -- unset/`all` means every tool, same as before this feature existed. Catalog lives in `src/tools/toolsets.ts`; `registry.ts`'s `getToolDefinitions`/`handleToolCall` filter `ListTools` and reject `CallTool` for disabled tools (not just hide them).
 
-| Toolset         | Covers                                                                             |
-| --------------- | ---------------------------------------------------------------------------------- |
-| `core`          | whoami, companies, projects, people, activities, recent updates, workflow statuses |
-| `tasks`         | tasks, task lists, subtasks, dependencies, backlog, reposition, my-tasks           |
-| `custom_fields` | custom field discovery + generic get/set                                           |
-| `comments`      | task comments, pins, reactions                                                     |
-| `time_tracking` | time entries, timers, approvals, deals/services                                    |
-| `invoicing`     | invoices, company budgets, line items, PDF/timesheet URLs                          |
-| `docs`          | folders (boards) + pages                                                           |
-| `todos`         | todos                                                                              |
+| Toolset               | Covers                                                                                                   |
+| --------------------- | -------------------------------------------------------------------------------------------------------- |
+| `core`                | whoami, companies, projects, people, activities, recent updates, workflow statuses                       |
+| `tasks`               | tasks, task lists, subtasks, dependencies, backlog, reposition, my-tasks                                 |
+| `custom_fields`       | custom field discovery + generic get/set                                                                 |
+| `comments`            | task comments, pins, reactions                                                                           |
+| `time_tracking`       | time entries, timers, approvals, deals/services                                                          |
+| `invoicing`           | invoices, company budgets, line items, PDF/timesheet URLs                                                |
+| `docs`                | folders (boards) + pages                                                                                 |
+| `todos`               | todos                                                                                                    |
 | `resource_management` | absences (types, create, list), project capacity bookings (create/update/delete/list), capacity overview |
 
 ## Resource Management (Absences & Capacity)
 
-Bookings are *planned* assignments, not logged time (that's `time_entries`). One
+Bookings are _planned_ assignments, not logged time (that's `time_entries`). One
 resource, two flavours, told apart by which relationship is set:
 
 - **Absence** -> `event_id` set. Tools: `list_absence_types`, `create_absence`, `list_absences`
@@ -152,7 +152,7 @@ Five things that bite if you don't know them:
   read at runtime via `GET /events` (`client.listEvents()`). Same reasoning as
   the `update_task_sprint` removal above.
 - **Remote work is booked like an absence but is not one.** The absence category
-  (the *event*) carries `absence_type: time_off | remote_work`, and working from
+  (the _event_) carries `absence_type: time_off | remote_work`, and working from
   home means the person is present and working. It therefore goes into its own
   `remoteMinutes` bucket, is never subtracted from capacity, and `list_absences`
   leaves it out unless `include_remote_work` is passed. Classifying it needs the
@@ -160,11 +160,11 @@ Five things that bite if you don't know them:
   counts as time off -- over-reporting an absence is the safer error. Such a type
   is always unpaid, enforced by the API: `POST /events` with
   `absence_type: remote_work` and a paid `event_type_id` answers `422 must be
-  unpaid for remote work absence`, which is why `list_absence_types` prints no
+unpaid for remote work absence`, which is why `list_absence_types` prints no
   paid/unpaid segment for one.
 - **Contracted hours come from `availabilities` on the person, not from
   entitlements** (those are absence quotas). Two shapes are in circulation: the
-  live API sends a JSON *string* of time-sliced two-week patterns
+  live API sends a JSON _string_ of time-sliced two-week patterns
   (`[from, to, pattern, calendarId]`), while the spec's own example
   (`docs/api-spec/resources/people.yaml`) shows a nested array of bare patterns.
   `parseAvailabilities` takes both, and `hasUnreadableAvailabilities` separates
@@ -178,7 +178,7 @@ Five things that bite if you don't know them:
   a plain week of leave is written as 40h against 32h contracted and then read
   back out of `get_capacity_overview` as OVERBOOKED. `countWorkingDays` is only
   the fallback for someone with no pattern on file. The same rule applies when
-  *reading*: `bookedMinutes` prorates a `total_time` booking onto the queried
+  _reading_: `bookedMinutes` prorates a `total_time` booking onto the queried
   window, and numerator and denominator both have to come from
   `workingDaysInRange`. Taking the API's `total_working_days` as the denominator
   mixes two calendars, and a booking that lies entirely inside the window then
@@ -300,7 +300,7 @@ credentials and fails the file instead of skipping it.
 - **New tool, new toolset entry**: added a tool to `registry.ts` without adding its name to `src/tools/toolsets.ts`? It silently disappears for any deployment with a restrictive `PRODUCTIVE_TOOLSETS` set (still works when unset, since that means "no filtering"). `tests/unit/toolsets.test.ts` has a completeness check that catches this at test time, not just in production.
 - **`filter[...]` keys can differ from the matching response attribute name**: Productive rejects unrecognized filter keys with "Filter 'x' is not supported on this endpoint" (on a 400 or a 422 — see the next bullet). Confirmed traps: person `is_active` attribute → filter is `filter[status]` (1: active/2: deactivated); deal `budget_type` attribute → filter is `filter[type]` (1: deal/2: budget); deal open/closed → `filter[budget_status]` (not `filter[status]`, which means something unrelated — `status_id`, a pipeline-stage relationship); time entry `approved`/`rejected`/`submitted` attributes → not filterable directly (422 live) — the real filter is `filter[status]` (undocumented enum `1`-`6`; live-confirmed against the sandbox: `1`=approved, `2`=no decision yet, `3`-`6` unconfirmed, no matching rows existed to verify — `list_time_entries`' `approved` boolean param maps `true`→`filter[status]=1` and `false`→`filter[status][not_eq]=1` to stay correct regardless of what the unconfirmed codes turn out to mean). Verify against the `x-filters` block in `docs/api-spec/resources/{resource}.yaml` before adding a new filter to `client.ts` — don't assume the attribute name is the filter name. `npm run spec:impact` checks every `filter[...]` key in `client.ts` against that list and fails on an unknown one.
 - **An unknown filter's status is not something to branch on**: `docs/api-spec/guides/filtering.md` documents 400, and both statuses have been seen live for the same class of failure — an earlier run got **422**, a later probe against the sandbox got **400** whose body then said `"code": "unsupported_filter"` with `"status": "unprocessable_content"` (the JSON:API status contradicting the HTTP line). What stayed constant across every observation is the message, `Filter 'x' is not supported on this endpoint` — match on that, not on the status code.
-- **A documented filter can be accepted and still do nothing**: `filter[booking_type]` is in `x-filters` for `/bookings`, answers HTTP 200, and ignores every value — plain or in `[eq]` form, each one returns the unfiltered set (verified live). A 200 therefore proves only that the key passed the whitelist, never that it filtered: check a new filter against a count you did yourself, not against the absence of an error. Two more findings from the same probe: `filter[person_id]` and `filter[event_id]` accept comma-separated lists (`a,b` returns exactly the union), and `filter[event_id][not_eq]` matches only inside the bookings that *have* an event, so negating every event id answers 0 rows rather than "all the project bookings". The probe is `tests/integration/bookings-filters.integration.test.ts`.
+- **A documented filter can be accepted and still do nothing**: `filter[booking_type]` is in `x-filters` for `/bookings`, answers HTTP 200, and ignores every value — plain or in `[eq]` form, each one returns the unfiltered set (verified live). A 200 therefore proves only that the key passed the whitelist, never that it filtered: check a new filter against a count you did yourself, not against the absence of an error. Two more findings from the same probe: `filter[person_id]` and `filter[event_id]` accept comma-separated lists (`a,b` returns exactly the union), and `filter[event_id][not_eq]` matches only inside the bookings that _have_ an event, so negating every event id answers 0 rows rather than "all the project bookings". The probe is `tests/integration/bookings-filters.integration.test.ts`.
 - **An event has to be archived before it can be deleted**: `DELETE /api/v2/events/{id}` answers `409 record_not_archived` while the absence type is still active. `PATCH /api/v2/events/{id}/archive` first, then the same DELETE returns 204. This bites integration tests hardest — a cleanup path that only deletes leaves its fixture behind in the org (it did), so archive-then-delete in `afterAll`.
 - **Tool-level tests don't catch wrong `filter[...]` keys**: tests like `tests/unit/people.test.ts` typically assert only on the params passed into a _mocked_ `client.ts` method, not the actual request URL — the bug above shipped invisibly for exactly this reason. When you touch filter-building code in `client.ts`, add/extend a `client-*.test.ts` test (pattern: `tests/unit/client-boards.test.ts`, `client-filters.test.ts`) that stubs `global.fetch` and asserts on the real query string.
 
