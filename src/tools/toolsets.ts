@@ -98,6 +98,7 @@ export const TOOLSETS: Record<string, string[]> = {
     'move_folder',
     'reposition_folder',
     'list_pages',
+    'list_page_children',
     'get_page',
     'create_page',
     'update_page',

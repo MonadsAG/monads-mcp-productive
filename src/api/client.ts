@@ -1536,9 +1536,24 @@ export class ProductiveAPIClient {
 
   // ---- Page methods ----
 
+  /**
+   * `parent_page_id` selects the direct children of a page, `root_page_id`
+   * every page in a Doc -- at any depth, since a grandchild still carries the
+   * top Doc's id, not its parent's (verified live: a 3-level fixture answered
+   * `filter[root_page_id]=<doc>` with both the child and the grandchild).
+   * Neither filter returns the page itself: a root Doc has `root_page_id: null`.
+   */
   async listPages(params?: {
     project_id?: string;
     creator_id?: string;
+    parent_page_id?: string;
+    root_page_id?: string;
+    /**
+     * JSON:API sparse fieldset. Worth setting when listing many pages: the
+     * collection response carries each page's full `body` (a whole
+     * document-format JSON blob) unless the fields are narrowed.
+     */
+    fields?: string[];
     sort?: string;
     limit?: number;
     page?: number;
@@ -1546,6 +1561,9 @@ export class ProductiveAPIClient {
     const q = new URLSearchParams();
     if (params?.project_id) q.append('filter[project_id]', params.project_id);
     if (params?.creator_id) q.append('filter[creator_id]', params.creator_id);
+    if (params?.parent_page_id) q.append('filter[parent_page_id]', params.parent_page_id);
+    if (params?.root_page_id) q.append('filter[root_page_id]', params.root_page_id);
+    if (params?.fields?.length) q.append('fields[pages]', params.fields.join(','));
     if (params?.sort) q.append('sort', params.sort);
     if (params?.limit) q.append('page[size]', params.limit.toString());
     if (params?.page) q.append('page[number]', params.page.toString());
@@ -1553,6 +1571,13 @@ export class ProductiveAPIClient {
     return this.makeRequest<ProductiveResponse<ProductivePage>>(`pages${qs ? `?${qs}` : ''}`);
   }
 
+  /**
+   * No sparse fieldset here on purpose: `fields[pages]` is silently ignored on
+   * this endpoint (measured -- all 18 attributes including the full `body` come
+   * back either way, with or without `include`), even though the *collection*
+   * endpoint honours it. Adding the parameter would only promise an
+   * optimisation it does not deliver.
+   */
   async getPage(pageId: string): Promise<ProductiveSingleResponse<ProductivePage>> {
     return this.makeRequest<ProductiveSingleResponse<ProductivePage>>(
       `pages/${pageId}?include=creator,project`,
