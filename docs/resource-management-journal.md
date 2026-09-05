@@ -653,7 +653,13 @@ Attributliste) und sollte bei Gelegenheit neu generiert werden.
 | Placeholder-Personen | echte Sandbox-Datensätze + Negativbefund echte Org (Status 200) |
 | `/placeholders`-Ressource | ausschliesslich Doku, kein echter Datensatz |
 | Soll-Arbeitszeit `availabilities` | alle 8 Personen der echten Org, anonymisiert ausgewertet |
-| Kapazitäts-Auswertungen | mit Fabian abgestimmt und priorisiert; nicht gegen echte Daten verifiziert |
+| Kapazitäts-Auswertungen | mit Fabian abgestimmt und priorisiert; der Toolpfad inzwischen live gegen die Sandbox gefahren (siehe unten), nicht gegen Produktivdaten |
+| Bookings-Filter (`event_id`, `person_id`, `project_id`, `booking_type`) | 2026-09-05 gegen die Sandbox gemessen, jeweils gegen eine selbst gezählte Referenzmenge von 196 Bookings (Spec, Abschnitt 4). Als Regression abgelegt: `tests/integration/bookings-filters.integration.test.ts` |
+| Toolpfad end-to-end | über `handleToolCall` gegen die Sandbox: `list_absence_types` (sechs Typen, alle „Time off"), `list_absences` (auch mit `absence_type: 'Vacation'`), `list_bookings` (mit und ohne `project_id`), `get_capacity_overview` (Team und Einzelperson) |
+| Fehlerpfade der Tools | `update_booking` mit erfundener ID liefert **-32602 InvalidParams** statt wie zuvor InternalError; `create_booking` mit nicht-numerischer `person_id` bricht in 0 ms ab, ohne die API anzufassen |
+| Remote-Work-Pfad | Remote-Typ und Testbuchung in der Sandbox angelegt, ausgelesen und beides wieder entfernt (Org steht wieder bei 196 Bookings und sechs Event-Typen). 16 h Homeoffice in einer 40-Stunden-Woche: `Absence: 0m · Remote: 16h`, `Free: 40h` — vorher wären daraus 24 h freie Kapazität geworden. `list_absences` blendet die Buchung per Default aus und nennt die Anzahl, `list_absence_types` rendert „Remote work · no allowance needed" ohne Paid/Unpaid |
+| Remote-Typen sind zwingend unbezahlt | `POST /events` mit `absence_type: 'remote_work'` und `event_type_id: 1` → **422 „must be unpaid for remote work absence"**; nur `event_type_id: 2` wird angelegt. Damit ist das weggelassene Paid/Unpaid-Segment gemessen, nicht aus der Spec abgeleitet |
+| Event-Typen löschen | `DELETE /api/v2/events/{id}` → **409 `record_not_archived`**, solange der Typ aktiv ist; erst nach `PATCH /api/v2/events/{id}/archive` liefert derselbe DELETE ein 204. Ein Cleanup, der nur löscht, lässt seine Testdaten stehen (genau so passiert) |
 | Kontingent-Pflicht bei begrenzten Event-Typen | 422 `entitlements_required` reproduziert, Gegenprobe mit unbegrenztem Typ erfolgreich |
 | Approval-Policies echte Org | `GET /people?include=approval_policy_assignment`, 4 von 8 |
 | Echte Monads-Org, schreibend | **nicht getestet** |
