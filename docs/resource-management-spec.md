@@ -63,7 +63,13 @@ Beide sind Bookings. Der Unterschied liegt in der gesetzten Relationship:
 
 Beim Lesen zuverlässig unterscheiden: mit `?include=event,service` laden und
 auswerten — `event.data != null` → Abwesenheit, `service.data != null` →
-Kapazität. Es gibt keinen Filter, der das allein leistet.
+Kapazität.
+
+Serverseitig geht nur eine Richtung: `filter[event_id]` mit allen Event-IDs
+liefert exakt die Abwesenheiten (Abschnitt 4). Für „nur Projekt-Bookings" gibt es
+keinen Filter — `booking_type` wird akzeptiert und ignoriert,
+`filter[event_id][not_eq]` matcht nur innerhalb der Bookings mit Event. Diese
+Richtung bleibt clientseitig.
 
 ---
 
@@ -120,9 +126,52 @@ this booking").
 
 ### Weitere nützliche Filter
 
-`filter[after]`, `filter[before]`, `filter[person_id]`,
+**Im Einsatz:** `filter[after]`, `filter[before]`, `filter[person_id]`,
 `filter[approval_status]`, `filter[with_draft]`, `filter[canceled]`,
 `filter[person_type]`
+
+**Live geprüft (Sandbox-Org, 2026-09-05).** Die weiteren in `x-filters.booking`
+(`docs/api-spec/resources/bookings.yaml`) dokumentierten Filter wurden gegen eine
+selbst gezählte Referenzmenge gemessen: 196 Bookings, clientseitig 63
+Abwesenheiten und 133 Projekt-Bookings.
+
+| Filter | Messung | Ergebnis |
+|---|---|---|
+| `event_id` = eine Event-ID | 18 Zeilen = exakt die clientseitige Zählung für diesen Typ | **wirkt** |
+| `event_id` = alle 6 Event-IDs, kommasepariert | 63 = exakt die Abwesenheiten | **wirkt**, Komma-Listen zulässig. Einziger serverseitiger Weg, die beiden Booking-Arten zu trennen |
+| `event_id[not_eq]` = alle 6 Event-IDs | **0** Zeilen, nicht 133 | der Filter matcht nur *innerhalb* der Bookings mit Event. Die Gegenrichtung (nur Projekt-Bookings) ist serverseitig **nicht** erreichbar |
+| `booking_type` = 1/2/3, `absence`, `project`, `time_off`, `remote_work`, auch als `[eq]` | HTTP 200, jeder Wert liefert die ungefilterte Menge | dokumentiert, akzeptiert, **wirkungslos** |
+| `person_id` = zwei IDs, kommasepariert | 97 = 28 + 69 | **wirkt**, Komma-Listen zulässig |
+| `project_id` = echte Projekt-ID | 93 Zeilen; nicht existierende ID: 0 | **wirkt** |
+| `budget_id` | akzeptiert, in dieser Org keine Treffer | Semantik nicht belegt |
+| `sort=started_on` | akzeptiert; `sort=bogus_field` → 400 „Sort by 'bogus_field' is not supported" | brauchbar für stabile Seitengrenzen |
+| `filter[bogus_xyz]` (Gegenprobe) | HTTP **400**, Body `code: "unsupported_filter"`, `status: "unprocessable_content"`, Detail „Filter 'bogus_xyz' is not supported on this endpoint" | ein unbekannter Filter legt den Aufruf lahm — Status wechselt (400 hier, 422 früher beobachtet), die Meldung bleibt |
+
+Zwei Lehren daraus:
+
+- **HTTP 200 belegt nicht, dass ein Filter wirkt.** `booking_type` steht in der
+  Doku, wird akzeptiert und tut nichts. Neue Filter deshalb gegen eine selbst
+  gezählte Menge prüfen, nicht gegen das Ausbleiben eines Fehlers.
+- **Die Trennung ist asymmetrisch.** Abwesenheiten lassen sich serverseitig
+  holen (`event_id` über alle Event-IDs), Projekt-Bookings nicht — dafür bleibt
+  die clientseitige Filterung nötig.
+
+**Was daraus für die Lese-Tools folgt:** `list_absences` filtert serverseitig
+über `filter[event_id]` und braucht keine clientseitige Trennung mehr. Auch
+`list_bookings` braucht sie nicht, sobald `project_id` gesetzt ist — eine
+Abwesenheit hat kein Projekt, der Filter schliesst sie also schon aus. Übrig
+bleibt genau ein Fall: „nur Projekt-Bookings, ohne Projektfilter". Dafür wird
+eine **ganze Seite** (`MAX_PAGE_SIZE`, 200 Zeilen) geholt und danach gefiltert,
+nicht ein Vielfaches von `limit`. Grund ist ein realer Fund aus dem Smoke-Test:
+im Fenster 2026-01-01..2026-12-31 hat die Testorg 25 Bookings, und alle 25 sind
+Abwesenheiten. Bei `limit: 3` hätte eine knapp bemessene Abfrage (9 Zeilen)
+„keine Projekt-Bookings" gemeldet, auch wenn direkt darunter welche gelegen
+hätten. Es ist derselbe eine Request — die breitere Abfrage kostet nur Payload.
+
+Die Probe ist als Regression abgelegt:
+`tests/integration/bookings-filters.integration.test.ts`. Sie ermittelt IDs und
+Referenzzählung zur Laufzeit und läuft daher gegen jede Org — ändert Productive
+das Verhalten, fällt es dort auf.
 
 ---
 
@@ -316,6 +365,36 @@ keine von der API erzwungene Regel.
    Soll-Arbeitszeit. Als **nachrangig** eingestuft: umsetzen, aber später.
    Warnliste, **keine** blockierende Validierung.
 
+### Remote-Arbeit ist keine Abwesenheit
+
+Eine Abwesenheitskategorie trägt am Event das Feld `absence_type` mit den Werten
+`time_off` und `remote_work` (`docs/api-spec/resources/events.yaml`). Homeoffice
+wird wie eine Abwesenheit gebucht, die Person arbeitet aber. Daraus folgt:
+
+- eigener Topf `remoteMinutes` in `CapacitySummary`, getrennt von
+  `absenceMinutes`;
+- **nicht** von der Soll-Arbeitszeit abgezogen und nicht Teil von
+  `plannedMinutes` — sonst zählt jeder Homeoffice-Tag als verlorene Kapazität;
+- `list_absences` blendet Remote-Arbeit per Default aus, Flag
+  `include_remote_work`; `list_absence_types` weist den Typ aus.
+
+Die Einordnung braucht das sideloadete Event. Fehlt es oder fehlt `absence_type`,
+gilt das Booking weiterhin als Abwesenheit — eine zu viel gemeldete Abwesenheit
+ist der harmlosere Fehler.
+
+`absence_type` ist live vorhanden und gefüllt (Sandbox, 2026-09-05). In dieser
+Org tragen alle sechs bestehenden Event-Typen `time_off`. Der Pfad wurde mit
+einem eigens angelegten Remote-Typ end-to-end durchgespielt und danach wieder
+aufgeräumt (Journal, Abschnitt 14): bei 16 h Homeoffice in einer 40-Stunden-Woche
+meldet `get_capacity_overview` `Absence: 0m · Remote: 16h` und `Free: 40h` —
+vorher wären daraus 24 h freie Kapazität geworden.
+
+**Remote-Typen sind API-seitig zwingend unbezahlt:** `POST /events` mit
+`absence_type: 'remote_work'` und `event_type_id: 1` (paid) antwortet
+`422 must be unpaid for remote work absence`; nur `event_type_id: 2` wird
+angelegt. Ein Paid/Unpaid-Hinweis an einem Remote-Typ ist deshalb keine
+Information, sondern Rauschen — `list_absence_types` lässt ihn dort weg.
+
 ### Soll-Arbeitszeit: Feld `availabilities` auf der Person
 
 `GET /people`, Feld `availabilities`. JSON-**String**, der ein Array von
@@ -381,12 +460,17 @@ Verhalten schnell auffindbar sind.
 | 2 | `stage_type` nur bei Kapazitäts-Bookings — aus zwei Datensätzen abgeleitet | Lese-Tools |
 | 3 | Kein Schreibtest gegen die Produktiv-Org, nur gegen eine Sandbox | alles Schreibende |
 | 4 | Ob eine Approval-Policy mehrstufige Genehmigung auslösen kann (mehrere `approval_statuses`), ist ungetestet — beobachtet wurde immer genau ein Eintrag | Statusanzeige im Tool |
+| 5 | Was `filter[budget_id]` genau selektiert, ist nicht belegt — der Filter wird akzeptiert, in der Sandbox gab es dazu keine Treffer (Abschnitt 4) | keine, solange er ungenutzt bleibt |
+| 6 | Wie lang die `filter[person_id]`-Liste werden darf, ist nicht ausgereizt. Belegt sind 16 aktive Personen (191 von 196 Zeilen — die fehlenden fünf gehören inaktiven Personen, also genau das gewollte Scoping). Beim Deckel von 200 Personen wären es rund 1600 Zeichen URL, ungetestet | Kapazitätsübersicht in sehr grossen Orgs: eine abgewiesene URL fiele als Fehler auf, nicht als stille Lücke |
 
 **Praktisch verifiziert und damit keine Annahmen mehr:** der Genehmigungspfad
 (Abschnitt 6, beide Varianten anhand echter Buchungen nachgestellt), die
 Kontingent-Prüfung (Abschnitt 5) sowie die `booking_method_id`-Ableitung, die
 inzwischen für beide Fälle bestätigt ist — `half_day_bookings: true` mit
-Methode 1 und `false` mit Methode 3, jeweils erfolgreich angelegt.
+Methode 1 und `false` mit Methode 3, jeweils erfolgreich angelegt. Dazu die
+Filter aus Abschnitt 4: `event_id` (auch als Komma-Liste), `person_id` als
+Komma-Liste und `project_id` wirken, `booking_type` wirkt nicht — alles gegen
+eine selbst gezählte Referenzmenge gemessen.
 
 ---
 

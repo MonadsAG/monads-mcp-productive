@@ -109,15 +109,32 @@ Bookings are *planned* assignments, not logged time (that's `time_entries`). One
 resource, two flavours, told apart by which relationship is set:
 
 - **Absence** -> `event_id` set. Tools: `list_absence_types`, `create_absence`, `list_absences`
-- **Project capacity** -> `service_id` set. Tools: `create_booking`, `update_booking`, `list_bookings`
+- **Project capacity** -> `service_id` set. Tools: `create_booking`, `update_booking`, `list_bookings` (its `project_id` filters server-side)
 - **Utilisation**: `get_capacity_overview`
 
-`list_absences` and `list_bookings` split the two kinds apart *after* the
-request, because the API cannot filter on it. Both therefore over-fetch
-(`overfetchLimit`) and trim afterwards -- asking for exactly `limit` rows lets
-one kind crowd the other out and report "none found" for something that exists.
+Only one direction of that split is server-side. `list_absences` passes
+`filter[event_id]` with every event id (the filter takes comma-separated lists),
+so what comes back is already the right kind. Nothing selects the inverse, which
+leaves exactly one case that still has to be filtered after the fact: project
+bookings without a `project_id` (pass one and the API excludes absences by
+itself, since an absence has no project). That case asks for a **whole page**
+(`MAX_PAGE_SIZE`, 200 rows), not a multiple of `limit` -- a window can hold
+nothing but absences for far longer than a few rows (the test org's 2026 holds
+25 bookings, every one of them an absence), and a narrow over-fetch then reports
+"no project bookings" for a window that has them just below the cut. Same single
+request either way; only the payload grows.
 
-Four things that bite if you don't know them:
+`get_capacity_overview` does **not** ask once per person. It pages through the
+window in one sweep (`collectBookings`, with `sort=started_on` so the page
+boundaries hold still), scoped to exactly the people being reported on by
+passing their ids as a comma-separated `filter[person_id]`, and buckets the rows
+per person afterwards -- 2-11 requests instead of up to 201, which is what keeps
+it inside the rate limit and the Worker's subrequest budget. The sweep stops at
+`MAX_BOOKING_PAGES` (10 x 200 rows) and says so in its output: from there on
+every figure is partial, so "free" is an upper bound rather than what is
+actually left.
+
+Five things that bite if you don't know them:
 
 - **`POST /bookings` breaks the JSON:API convention used everywhere else here.**
   `person_id`, `event_id` and `service_id` go in `data.attributes` as flat
@@ -125,16 +142,39 @@ Four things that bite if you don't know them:
 - **Never hardcode absence categories.** Names and IDs are org-specific and are
   read at runtime via `GET /events` (`client.listEvents()`). Same reasoning as
   the `update_task_sprint` removal above.
+- **Remote work is booked like an absence but is not one.** The absence category
+  (the *event*) carries `absence_type: time_off | remote_work`, and working from
+  home means the person is present and working. It therefore goes into its own
+  `remoteMinutes` bucket, is never subtracted from capacity, and `list_absences`
+  leaves it out unless `include_remote_work` is passed. Classifying it needs the
+  event sideloaded: if that is missing, or carries no `absence_type`, the booking
+  counts as time off -- over-reporting an absence is the safer error. Such a type
+  is always unpaid, enforced by the API: `POST /events` with
+  `absence_type: remote_work` and a paid `event_type_id` answers `422 must be
+  unpaid for remote work absence`, which is why `list_absence_types` prints no
+  paid/unpaid segment for one.
 - **Contracted hours come from `availabilities` on the person, not from
-  entitlements** (those are absence quotas). It is a JSON *string* holding
-  time-sliced two-week patterns -- see `src/api/capacity.ts`.
+  entitlements** (those are absence quotas). Two shapes are in circulation: the
+  live API sends a JSON *string* of time-sliced two-week patterns
+  (`[from, to, pattern, calendarId]`), while the spec's own example
+  (`docs/api-spec/resources/people.yaml`) shows a nested array of bare patterns.
+  `parseAvailabilities` takes both, and `hasUnreadableAvailabilities` separates
+  "no pattern on file" from "pattern there, shape not understood" -- reporting
+  the second as the first hides a bug behind a plausible number. See
+  `src/api/capacity.ts`.
 - **Hours and days must come from the same source.** Anything that multiplies
   hours by days (booking method 3) has to count days with
   `personWorkingDays`/`workingDaysInRange`, not `countWorkingDays`. Mixing the
   person's pattern with the calendar charges a Mon-Thu contract for the Friday:
   a plain week of leave is written as 40h against 32h contracted and then read
   back out of `get_capacity_overview` as OVERBOOKED. `countWorkingDays` is only
-  the fallback for someone with no pattern on file.
+  the fallback for someone with no pattern on file. The same rule applies when
+  *reading*: `bookedMinutes` prorates a `total_time` booking onto the queried
+  window, and numerator and denominator both have to come from
+  `workingDaysInRange`. Taking the API's `total_working_days` as the denominator
+  mixes two calendars, and a booking that lies entirely inside the window then
+  stops adding up to its own `total_time` as soon as a public holiday falls in
+  its period.
 
 Shared, API-free logic lives in `src/api/bookings-client.ts` (query/payload
 building, classification, type resolution) and `src/api/capacity.ts` (the
@@ -153,7 +193,11 @@ assumptions: `docs/resource-management-journal.md`.
 4. Export tool definition + handler, add to `src/tools/registry.ts`
 5. Follow existing patterns (Zod input schema, apiClient calls, JSON API format). Errors: let them
    out and end the handler with `catch (error) { throw toMcpError(error); }` -- do not hand-roll a
-   `new McpError(...)` mapping
+   `new McpError(...)` mapping. The resource-management tools call `rethrowToolError`
+   (`src/tools/tool-helpers.ts`) instead: it rewrites two booking-specific API messages into
+   something a caller can act on and hands everything else to `toMcpError`. That is a wrapper, not
+   an exception to the rule -- rolling the status mapping by hand again is exactly the bug that
+   wrapper fixed
 6. Add the new tool's name to the matching toolset in `src/tools/toolsets.ts` (or a new toolset) -- `tests/unit/toolsets.test.ts` asserts every registered tool is covered, and it will fail otherwise
 7. Give the definition `annotations` (see below) -- the `satisfies` clause in `getToolDefinitions()` makes this a compile error if you forget
 8. Ship: merge to `main` (auto-deploys — see Git Workflow), or `npm run worker:deploy` for a manual deploy
@@ -243,8 +287,10 @@ credentials and fails the file instead of skipping it.
 - **Page bodies are documents, not text**: `pages.body` holds a Productive Document Format document (`{"type":"doc","content":[...]}`). Sending a plain string returns **HTTP 500**, not a validation error. Create via `pages/create_with_markdown` (with `project_id` as an _attribute_, and only on root pages) and write the body via `pages/{id}/replace_body_with_markdown` or `/append_markdown`, both of which take a **flat** `{"markdown": "..."}` payload without the JSON:API envelope. See `docs/api-spec/guides/document-format.md`.
 - **Custom field value shapes**: a `custom_fields` entry's value shape depends on the field's data type — an array of option ID strings for dropdown/multi-select fields, an ISO date string for date fields, or the raw value for text/number/checkbox fields. The official spec documents the `custom_fields`/`custom_field_options` attributes (the type attribute is `data_type_id`, **not** `field_type`), but not which enum value means which type, and `resource_*.custom_fields` is only `type: object` — so the value shape per field type is still only confirmed by a live API test.
 - **New tool, new toolset entry**: added a tool to `registry.ts` without adding its name to `src/tools/toolsets.ts`? It silently disappears for any deployment with a restrictive `PRODUCTIVE_TOOLSETS` set (still works when unset, since that means "no filtering"). `tests/unit/toolsets.test.ts` has a completeness check that catches this at test time, not just in production.
-- **`filter[...]` keys can differ from the matching response attribute name**: Productive 422s on unrecognized filter keys ("Filter 'x' is not supported on this endpoint"). Confirmed traps: person `is_active` attribute → filter is `filter[status]` (1: active/2: deactivated); deal `budget_type` attribute → filter is `filter[type]` (1: deal/2: budget); deal open/closed → `filter[budget_status]` (not `filter[status]`, which means something unrelated — `status_id`, a pipeline-stage relationship); time entry `approved`/`rejected`/`submitted` attributes → not filterable directly (422 live) — the real filter is `filter[status]` (undocumented enum `1`-`6`; live-confirmed against the sandbox: `1`=approved, `2`=no decision yet, `3`-`6` unconfirmed, no matching rows existed to verify — `list_time_entries`' `approved` boolean param maps `true`→`filter[status]=1` and `false`→`filter[status][not_eq]=1` to stay correct regardless of what the unconfirmed codes turn out to mean). Verify against the `x-filters` block in `docs/api-spec/resources/{resource}.yaml` before adding a new filter to `client.ts` — don't assume the attribute name is the filter name. `npm run spec:impact` checks every `filter[...]` key in `client.ts` against that list and fails on an unknown one.
-- **Unknown filters answer 422, not 400**: `docs/api-spec/guides/filtering.md` documents a 400 for an unsupported filter, but the live API returns **422** with `Filter 'x' is not supported on this endpoint`. Match on the message, not the status code.
+- **`filter[...]` keys can differ from the matching response attribute name**: Productive rejects unrecognized filter keys with "Filter 'x' is not supported on this endpoint" (on a 400 or a 422 — see the next bullet). Confirmed traps: person `is_active` attribute → filter is `filter[status]` (1: active/2: deactivated); deal `budget_type` attribute → filter is `filter[type]` (1: deal/2: budget); deal open/closed → `filter[budget_status]` (not `filter[status]`, which means something unrelated — `status_id`, a pipeline-stage relationship); time entry `approved`/`rejected`/`submitted` attributes → not filterable directly (422 live) — the real filter is `filter[status]` (undocumented enum `1`-`6`; live-confirmed against the sandbox: `1`=approved, `2`=no decision yet, `3`-`6` unconfirmed, no matching rows existed to verify — `list_time_entries`' `approved` boolean param maps `true`→`filter[status]=1` and `false`→`filter[status][not_eq]=1` to stay correct regardless of what the unconfirmed codes turn out to mean). Verify against the `x-filters` block in `docs/api-spec/resources/{resource}.yaml` before adding a new filter to `client.ts` — don't assume the attribute name is the filter name. `npm run spec:impact` checks every `filter[...]` key in `client.ts` against that list and fails on an unknown one.
+- **An unknown filter's status is not something to branch on**: `docs/api-spec/guides/filtering.md` documents 400, and both statuses have been seen live for the same class of failure — an earlier run got **422**, a later probe against the sandbox got **400** whose body then said `"code": "unsupported_filter"` with `"status": "unprocessable_content"` (the JSON:API status contradicting the HTTP line). What stayed constant across every observation is the message, `Filter 'x' is not supported on this endpoint` — match on that, not on the status code.
+- **A documented filter can be accepted and still do nothing**: `filter[booking_type]` is in `x-filters` for `/bookings`, answers HTTP 200, and ignores every value — plain or in `[eq]` form, each one returns the unfiltered set (verified live). A 200 therefore proves only that the key passed the whitelist, never that it filtered: check a new filter against a count you did yourself, not against the absence of an error. Two more findings from the same probe: `filter[person_id]` and `filter[event_id]` accept comma-separated lists (`a,b` returns exactly the union), and `filter[event_id][not_eq]` matches only inside the bookings that *have* an event, so negating every event id answers 0 rows rather than "all the project bookings". The probe is `tests/integration/bookings-filters.integration.test.ts`.
+- **An event has to be archived before it can be deleted**: `DELETE /api/v2/events/{id}` answers `409 record_not_archived` while the absence type is still active. `PATCH /api/v2/events/{id}/archive` first, then the same DELETE returns 204. This bites integration tests hardest — a cleanup path that only deletes leaves its fixture behind in the org (it did), so archive-then-delete in `afterAll`.
 - **Tool-level tests don't catch wrong `filter[...]` keys**: tests like `tests/unit/people.test.ts` typically assert only on the params passed into a _mocked_ `client.ts` method, not the actual request URL — the bug above shipped invisibly for exactly this reason. When you touch filter-building code in `client.ts`, add/extend a `client-*.test.ts` test (pattern: `tests/unit/client-boards.test.ts`, `client-filters.test.ts`) that stubs `global.fetch` and asserts on the real query string.
 
 - **Some breaking changes are announced only by email**: the 422 error `code` switches from `invalid_attribute` to `invalid_attribute_value` on **2026-09-15** (opt in early with the `X-Feature-Flags: invalidAttributeValueCode` header). We are not affected -- `makeRequest` reads `detail || title` and never branches on `code` -- but note that this never appeared in the public changelog, so the weekly spec sync could not have caught it. Watch the Productive emails for this class of change.
