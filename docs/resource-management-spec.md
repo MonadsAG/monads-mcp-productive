@@ -40,10 +40,10 @@ Quelle: `src/api/client.ts`.
 
 ## 2. Datenmodell: Event / Booking / Time Entry
 
-| Objekt | Was es ist |
-|---|---|
-| **Event** | Definition eines Abwesenheitstyps — eine Kategorie/Vorlage, kein Termin |
-| **Booking** | Konkreter geplanter Eintrag im Ressourcenplan. Planung, nicht geleistete Zeit |
+| Objekt         | Was es ist                                                                       |
+| -------------- | -------------------------------------------------------------------------------- |
+| **Event**      | Definition eines Abwesenheitstyps — eine Kategorie/Vorlage, kein Termin          |
+| **Booking**    | Konkreter geplanter Eintrag im Ressourcenplan. Planung, nicht geleistete Zeit    |
 | **Time Entry** | Tatsächlich erfasste, geleistete Zeit (das, was die bestehenden Tools verwalten) |
 
 Ein Time Entry kann unabhängig davon existieren, ob es vorher ein Booking gab.
@@ -55,11 +55,11 @@ Aus einem Booking entsteht **kein** Time Entry.
 
 Beide sind Bookings. Der Unterschied liegt in der gesetzten Relationship:
 
-| | Abwesenheits-Booking | Kapazitäts-Booking |
-|---|---|---|
-| gesetzte Relationship | `event_id` | `service_id` (bzw. `project_id` / `budget_id`) |
-| die jeweils andere | `service`: `null` | `event`: leer |
-| `stage_type` | `null` | `1` = Deal, `2` = Budget |
+|                       | Abwesenheits-Booking | Kapazitäts-Booking                             |
+| --------------------- | -------------------- | ---------------------------------------------- |
+| gesetzte Relationship | `event_id`           | `service_id` (bzw. `project_id` / `budget_id`) |
+| die jeweils andere    | `service`: `null`    | `event`: leer                                  |
+| `stage_type`          | `null`               | `1` = Deal, `2` = Budget                       |
 
 Beim Lesen zuverlässig unterscheiden: mit `?include=event,service` laden und
 auswerten — `event.data != null` → Abwesenheit, `service.data != null` →
@@ -78,33 +78,33 @@ Richtung bleibt clientseitig.
 Vollständige Gegenüberstellung. „Response" heisst: von der API gesetzt,
 **nicht** selbst mitgeben.
 
-| Feld | Abwesenheit | Projekt-Kapazität | Anmerkung |
-|---|---|---|---|
-| `person_id` | **Pflicht** | **Pflicht** | flaches Attribut, siehe Abschnitt 5 |
-| `event_id` | **Pflicht** | — | zur Laufzeit aus `GET /events` |
-| `service_id` | — | **Pflicht** | Projektleistung |
-| `started_on` / `ended_on` | **Pflicht** | **Pflicht** | `YYYY-MM-DD` |
-| `booking_method_id` | **Pflicht** | **Pflicht** | 1 / 2 / 3, siehe unten |
-| `hours` + `time` | bei Methode 1 | bei Methode 1 | `time` in Minuten |
-| `percentage` | bei Methode 2 | bei Methode 2 | 0–100 |
-| `total_time` | bei Methode 3 | bei Methode 3 | Minuten |
-| `note` | optional | optional | Freitext |
-| `total_working_days` | Response | Response | API berechnet |
-| `approved`, `approved_at` | Response | Response | **nie selbst setzen** |
-| `rejected`, `rejected_at`, `rejected_reason` | Response | Response | |
-| `canceled`, `canceled_at` | Response | Response | |
-| `approval_statuses` | Response (Relationship) | Response | Status je Genehmiger |
-| `stage_type` | `null` | 1 = Deal, 2 = Budget | nur bei Kapazitäts-Bookings |
-| `draft` | nicht setzen | nicht setzen | Semantik unverifiziert, Abschnitt 11 |
-| `people_custom_fields` | Response | Response | enthält Personendaten — nicht durchreichen |
+| Feld                                         | Abwesenheit             | Projekt-Kapazität    | Anmerkung                                  |
+| -------------------------------------------- | ----------------------- | -------------------- | ------------------------------------------ |
+| `person_id`                                  | **Pflicht**             | **Pflicht**          | flaches Attribut, siehe Abschnitt 5        |
+| `event_id`                                   | **Pflicht**             | —                    | zur Laufzeit aus `GET /events`             |
+| `service_id`                                 | —                       | **Pflicht**          | Projektleistung                            |
+| `started_on` / `ended_on`                    | **Pflicht**             | **Pflicht**          | `YYYY-MM-DD`                               |
+| `booking_method_id`                          | **Pflicht**             | **Pflicht**          | 1 / 2 / 3, siehe unten                     |
+| `hours` + `time`                             | bei Methode 1           | bei Methode 1        | `time` in Minuten                          |
+| `percentage`                                 | bei Methode 2           | bei Methode 2        | 0–100                                      |
+| `total_time`                                 | bei Methode 3           | bei Methode 3        | Minuten                                    |
+| `note`                                       | optional                | optional             | Freitext                                   |
+| `total_working_days`                         | Response                | Response             | API berechnet                              |
+| `approved`, `approved_at`                    | Response                | Response             | **nie selbst setzen**                      |
+| `rejected`, `rejected_at`, `rejected_reason` | Response                | Response             |                                            |
+| `canceled`, `canceled_at`                    | Response                | Response             |                                            |
+| `approval_statuses`                          | Response (Relationship) | Response             | Status je Genehmiger                       |
+| `stage_type`                                 | `null`                  | 1 = Deal, 2 = Budget | nur bei Kapazitäts-Bookings                |
+| `draft`                                      | nicht setzen            | nicht setzen         | Semantik unverifiziert, Abschnitt 11       |
+| `people_custom_fields`                       | Response                | Response             | enthält Personendaten — nicht durchreichen |
 
 **`booking_method_id`** bestimmt, welches Mengenfeld gefüllt wird:
 
-| Wert | Bedeutung | zugehöriges Feld |
-|---|---|---|
-| 1 | Hours per day | `hours` + `time` |
-| 2 | Percentage | `percentage` |
-| 3 | Total hours | `total_time` |
+| Wert | Bedeutung     | zugehöriges Feld |
+| ---- | ------------- | ---------------- |
+| 1    | Hours per day | `hours` + `time` |
+| 2    | Percentage    | `percentage`     |
+| 3    | Total hours   | `total_time`     |
 
 > Beim **Schreiben** genügt das zur Methode passende Feld. Beim **Lesen** darf
 > sich ein Tool nicht darauf verlassen, dass die anderen `null` sind — die API
@@ -114,10 +114,10 @@ Vollständige Gegenüberstellung. „Response" heisst: von der API gesetzt,
 
 Beides existiert **nicht** als Feld auf dem Booking, nur als Query-Parameter:
 
-| Parameter | Werte |
-|---|---|
+| Parameter         | Werte                                                 |
+| ----------------- | ----------------------------------------------------- |
 | `approval_status` | 1 = Approved, 2 = Pending, 3 = Rejected, 5 = Canceled |
-| `person_type` | 1 = User, 2 = Contact, 3 = Placeholder, 4 = Agent |
+| `person_type`     | 1 = User, 2 = Contact, 3 = Placeholder, 4 = Agent     |
 
 Die Response liefert stattdessen `approved`, `approved_at`, `rejected`,
 `rejected_at`, `rejected_reason`, `canceled`, `canceled_at` sowie die
@@ -135,17 +135,17 @@ this booking").
 selbst gezählte Referenzmenge gemessen: 196 Bookings, clientseitig 63
 Abwesenheiten und 133 Projekt-Bookings.
 
-| Filter | Messung | Ergebnis |
-|---|---|---|
-| `event_id` = eine Event-ID | 18 Zeilen = exakt die clientseitige Zählung für diesen Typ | **wirkt** |
-| `event_id` = alle 6 Event-IDs, kommasepariert | 63 = exakt die Abwesenheiten | **wirkt**, Komma-Listen zulässig. Einziger serverseitiger Weg, die beiden Booking-Arten zu trennen |
-| `event_id[not_eq]` = alle 6 Event-IDs | **0** Zeilen, nicht 133 | der Filter matcht nur *innerhalb* der Bookings mit Event. Die Gegenrichtung (nur Projekt-Bookings) ist serverseitig **nicht** erreichbar |
-| `booking_type` = 1/2/3, `absence`, `project`, `time_off`, `remote_work`, auch als `[eq]` | HTTP 200, jeder Wert liefert die ungefilterte Menge | dokumentiert, akzeptiert, **wirkungslos** |
-| `person_id` = zwei IDs, kommasepariert | 97 = 28 + 69 | **wirkt**, Komma-Listen zulässig |
-| `project_id` = echte Projekt-ID | 93 Zeilen; nicht existierende ID: 0 | **wirkt** |
-| `budget_id` | akzeptiert, in dieser Org keine Treffer | Semantik nicht belegt |
-| `sort=started_on` | akzeptiert; `sort=bogus_field` → 400 „Sort by 'bogus_field' is not supported" | brauchbar für stabile Seitengrenzen |
-| `filter[bogus_xyz]` (Gegenprobe) | HTTP **400**, Body `code: "unsupported_filter"`, `status: "unprocessable_content"`, Detail „Filter 'bogus_xyz' is not supported on this endpoint" | ein unbekannter Filter legt den Aufruf lahm — Status wechselt (400 hier, 422 früher beobachtet), die Meldung bleibt |
+| Filter                                                                                   | Messung                                                                                                                                           | Ergebnis                                                                                                                                 |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `event_id` = eine Event-ID                                                               | 18 Zeilen = exakt die clientseitige Zählung für diesen Typ                                                                                        | **wirkt**                                                                                                                                |
+| `event_id` = alle 6 Event-IDs, kommasepariert                                            | 63 = exakt die Abwesenheiten                                                                                                                      | **wirkt**, Komma-Listen zulässig. Einziger serverseitiger Weg, die beiden Booking-Arten zu trennen                                       |
+| `event_id[not_eq]` = alle 6 Event-IDs                                                    | **0** Zeilen, nicht 133                                                                                                                           | der Filter matcht nur _innerhalb_ der Bookings mit Event. Die Gegenrichtung (nur Projekt-Bookings) ist serverseitig **nicht** erreichbar |
+| `booking_type` = 1/2/3, `absence`, `project`, `time_off`, `remote_work`, auch als `[eq]` | HTTP 200, jeder Wert liefert die ungefilterte Menge                                                                                               | dokumentiert, akzeptiert, **wirkungslos**                                                                                                |
+| `person_id` = zwei IDs, kommasepariert                                                   | 97 = 28 + 69                                                                                                                                      | **wirkt**, Komma-Listen zulässig                                                                                                         |
+| `project_id` = echte Projekt-ID                                                          | 93 Zeilen; nicht existierende ID: 0                                                                                                               | **wirkt**                                                                                                                                |
+| `budget_id`                                                                              | akzeptiert, in dieser Org keine Treffer                                                                                                           | Semantik nicht belegt                                                                                                                    |
+| `sort=started_on`                                                                        | akzeptiert; `sort=bogus_field` → 400 „Sort by 'bogus_field' is not supported"                                                                     | brauchbar für stabile Seitengrenzen                                                                                                      |
+| `filter[bogus_xyz]` (Gegenprobe)                                                         | HTTP **400**, Body `code: "unsupported_filter"`, `status: "unprocessable_content"`, Detail „Filter 'bogus_xyz' is not supported on this endpoint" | ein unbekannter Filter legt den Aufruf lahm — Status wechselt (400 hier, 422 früher beobachtet), die Meldung bleibt                      |
 
 Zwei Lehren daraus:
 
@@ -223,9 +223,16 @@ begrenztem Kontingent (`limitation_type_id` 2 oder 3) verlangt die API, dass
 die Person für genau diesen Typ ein Kontingent hinterlegt hat. Fehlt es:
 
 ```json
-{ "errors": [ { "status": "422", "code": "entitlements_required",
-  "detail": "has no allowance for this person",
-  "source": { "pointer": "data/attributes/event" } } ] }
+{
+  "errors": [
+    {
+      "status": "422",
+      "code": "entitlements_required",
+      "detail": "has no allowance for this person",
+      "source": { "pointer": "data/attributes/event" }
+    }
+  ]
+}
 ```
 
 Bei Typen mit `limitation_type_id: 4` (unbegrenzt) tritt das nicht auf.
@@ -254,13 +261,13 @@ serverseitig auf.
 
 Relevante Felder auf `approval_workflows`:
 
-| Feld | Bedeutung |
-|---|---|
+| Feld                      | Bedeutung                                                           |
+| ------------------------- | ------------------------------------------------------------------- |
 | `approval_requirement_id` | 1 = None, 2 = Any of the listed approvers, 3 = All listed approvers |
-| `approver_ids` | explizite, literale Genehmiger |
-| `dynamic_approver_ids` | Rollen-Tokens, zur Laufzeit aufgelöst (1 = Manager) |
-| `target_type_id` | 1 = Event, 2 = Time, 3 = Expense |
-| `event_id` | Abwesenheitskategorie, für die der Workflow gilt |
+| `approver_ids`            | explizite, literale Genehmiger                                      |
+| `dynamic_approver_ids`    | Rollen-Tokens, zur Laufzeit aufgelöst (1 = Manager)                 |
+| `target_type_id`          | 1 = Event, 2 = Time, 3 = Expense                                    |
+| `event_id`                | Abwesenheitskategorie, für die der Workflow gilt                    |
 
 Zwei Ebenen gehören zusammen: `dynamic_approver_ids` legt fest, **wer**
 genehmigen darf; die Relationship `approval_statuses` auf dem Booking hält
@@ -271,10 +278,10 @@ fest, **was** dieser Genehmiger bei einem konkreten Booking entschieden hat.
 Ausschlaggebend ist, ob die **gebuchte Person eine Approval-Policy zugewiesen**
 hat (Relationship `approval_policy_assignment` auf `GET /people/{id}`):
 
-| Person hat `approval_policy_assignment` | Ergebnis beim Anlegen |
-|---|---|
-| **ja** | `approved: false`, `approval_statuses` enthält einen offenen Eintrag |
-| **nein** | `approved: true` sofort, `approval_statuses` leer |
+| Person hat `approval_policy_assignment` | Ergebnis beim Anlegen                                                |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| **ja**                                  | `approved: false`, `approval_statuses` enthält einen offenen Eintrag |
+| **nein**                                | `approved: true` sofort, `approval_statuses` leer                    |
 
 Praktisch verifiziert: identischer Token, identisches Event, zwei
 verschiedene Personen → einmal Genehmigung ausgelöst, einmal nicht. Weder die
@@ -328,26 +335,26 @@ Der MCP-Server arbeitet produktiv mit **per-User-PATs** (BYOT, siehe
 `GET /events` liefert die konfigurierten Abwesenheitstypen. Auszuwertende
 Felder:
 
-| Feld | Bedeutung |
-|---|---|
-| `name` | Anzeigename — **nur durchreichen, nie im Tool prüfen oder mappen** |
-| `absence_type` | z. B. `time_off` |
-| `event_type_id` | 1 = Paid, 2 = Unpaid |
-| `limitation_type_id` | 2 = Limited by days, 3 = Limited by hours, 4 = Unlimited by hours |
-| `half_day_bookings` | Boolean — ob Halbtage buchbar sind |
+| Feld                 | Bedeutung                                                          |
+| -------------------- | ------------------------------------------------------------------ |
+| `name`               | Anzeigename — **nur durchreichen, nie im Tool prüfen oder mappen** |
+| `absence_type`       | z. B. `time_off`                                                   |
+| `event_type_id`      | 1 = Paid, 2 = Unpaid                                               |
+| `limitation_type_id` | 2 = Limited by days, 3 = Limited by hours, 4 = Unlimited by hours  |
+| `half_day_bookings`  | Boolean — ob Halbtage buchbar sind                                 |
 
 **Wahl von `booking_method_id`** — für beide Fälle praktisch bestätigt:
 
-| `half_day_bookings` | `booking_method_id` | mitzugeben |
-|---|---|---|
-| `true` | 1 = Hours per day | `hours` + `time` |
-| `false` | 3 = Total hours | `total_time` |
+| `half_day_bookings` | `booking_method_id` | mitzugeben       |
+| ------------------- | ------------------- | ---------------- |
+| `true`              | 1 = Hours per day   | `hours` + `time` |
+| `false`             | 3 = Total hours     | `total_time`     |
 
 Wenn das Tool die Methode selbst wählt, sollte sie trotzdem
 **überschreibbar** bleiben — die Zuordnung ist eine sinnvolle Voreinstellung,
 keine von der API erzwungene Regel.
 
-*Randnotiz: Bei Methode 3 liefert die Response `time: 0` statt `null`.*
+_Randnotiz: Bei Methode 3 liefert die Response `time: 0` statt `null`._
 
 ---
 
@@ -404,12 +411,12 @@ Zeitscheiben enthält:
 [[ "<gültig-ab>", <gültig-bis|null>, [14 Zahlen], <Kalender-ID> ]]
 ```
 
-| Position | Inhalt |
-|---|---|
-| `[0]` | Gültig-ab-Datum |
-| `[1]` | Gültig-bis-Datum, `null` = aktuell gültige Scheibe |
-| `[2]` | 14 Zahlen = Stunden je Tag über einen **Zwei-Wochen-Rhythmus** |
-| `[3]` | bei allen Personen identisch, vermutlich Kalender-ID — ignorieren |
+| Position | Inhalt                                                            |
+| -------- | ----------------------------------------------------------------- |
+| `[0]`    | Gültig-ab-Datum                                                   |
+| `[1]`    | Gültig-bis-Datum, `null` = aktuell gültige Scheibe                |
+| `[2]`    | 14 Zahlen = Stunden je Tag über einen **Zwei-Wochen-Rhythmus**    |
+| `[3]`    | bei allen Personen identisch, vermutlich Kalender-ID — ignorieren |
 
 **Zwei Fallstricke, die sonst falsche Zahlen erzeugen:**
 
@@ -433,12 +440,12 @@ Zeitscheiben enthält:
 
 ## 10. Nicht im Scope
 
-| Thema | Begründung |
-|---|---|
-| **Entitlements verwalten** | Fachlich ausgeschlossen — **aber:** die API erzwingt beim Anlegen ein vorhandenes Kontingent für begrenzte Abwesenheitstypen. Der Fehler `entitlements_required` muss abgefangen werden, siehe Abschnitt 5. Kontingente werden nicht vom Tool angelegt oder geändert |
-| **`/placeholders`-Ressource** | Anderes Feature (Platzhalter für Task-/Todo-Felder), nicht Ressourcenplanung. In der echten Org ohnehin 403 und plan-gegated |
-| **Placeholder-Personen als Anwendungsfall** | Produktiv werden keine angelegt. Der Mechanismus muss trotzdem sauber verarbeitet werden, siehe unten |
-| **`resource_requests`** | Eigener Workflow, der Anfragen in Bookings auflöst — nicht Teil dieser Aufgabe |
+| Thema                                       | Begründung                                                                                                                                                                                                                                                           |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Entitlements verwalten**                  | Fachlich ausgeschlossen — **aber:** die API erzwingt beim Anlegen ein vorhandenes Kontingent für begrenzte Abwesenheitstypen. Der Fehler `entitlements_required` muss abgefangen werden, siehe Abschnitt 5. Kontingente werden nicht vom Tool angelegt oder geändert |
+| **`/placeholders`-Ressource**               | Anderes Feature (Platzhalter für Task-/Todo-Felder), nicht Ressourcenplanung. In der echten Org ohnehin 403 und plan-gegated                                                                                                                                         |
+| **Placeholder-Personen als Anwendungsfall** | Produktiv werden keine angelegt. Der Mechanismus muss trotzdem sauber verarbeitet werden, siehe unten                                                                                                                                                                |
+| **`resource_requests`**                     | Eigener Workflow, der Anfragen in Bookings auflöst — nicht Teil dieser Aufgabe                                                                                                                                                                                       |
 
 ### Nachgetragen: Löschen und Überlappungsprüfung
 
@@ -473,14 +480,14 @@ nicht darauf ausgelegt werden.
 Keine davon blockiert die Umsetzung. Aufgeführt, damit sie bei abweichendem
 Verhalten schnell auffindbar sind.
 
-| # | Annahme | Auswirkung |
-|---|---|---|
-| 1 | `draft`-Semantik je Booking-Typ unverifiziert — Empfehlung: nicht setzen | Lese-Tools |
-| 2 | `stage_type` nur bei Kapazitäts-Bookings — aus zwei Datensätzen abgeleitet | Lese-Tools |
-| 3 | Kein Schreibtest gegen die Produktiv-Org, nur gegen eine Sandbox | alles Schreibende |
-| 4 | Ob eine Approval-Policy mehrstufige Genehmigung auslösen kann (mehrere `approval_statuses`), ist ungetestet — beobachtet wurde immer genau ein Eintrag | Statusanzeige im Tool |
-| 5 | Was `filter[budget_id]` genau selektiert, ist nicht belegt — der Filter wird akzeptiert, in der Sandbox gab es dazu keine Treffer (Abschnitt 4) | keine, solange er ungenutzt bleibt |
-| 6 | Wie lang die `filter[person_id]`-Liste werden darf, ist nicht ausgereizt. Belegt sind 16 aktive Personen (191 von 196 Zeilen — die fehlenden fünf gehören inaktiven Personen, also genau das gewollte Scoping). Beim Deckel von 200 Personen wären es rund 1600 Zeichen URL, ungetestet | Kapazitätsübersicht in sehr grossen Orgs: eine abgewiesene URL fiele als Fehler auf, nicht als stille Lücke |
+| #   | Annahme                                                                                                                                                                                                                                                                                 | Auswirkung                                                                                                  |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | `draft`-Semantik je Booking-Typ unverifiziert — Empfehlung: nicht setzen                                                                                                                                                                                                                | Lese-Tools                                                                                                  |
+| 2   | `stage_type` nur bei Kapazitäts-Bookings — aus zwei Datensätzen abgeleitet                                                                                                                                                                                                              | Lese-Tools                                                                                                  |
+| 3   | Kein Schreibtest gegen die Produktiv-Org, nur gegen eine Sandbox                                                                                                                                                                                                                        | alles Schreibende                                                                                           |
+| 4   | Ob eine Approval-Policy mehrstufige Genehmigung auslösen kann (mehrere `approval_statuses`), ist ungetestet — beobachtet wurde immer genau ein Eintrag                                                                                                                                  | Statusanzeige im Tool                                                                                       |
+| 5   | Was `filter[budget_id]` genau selektiert, ist nicht belegt — der Filter wird akzeptiert, in der Sandbox gab es dazu keine Treffer (Abschnitt 4)                                                                                                                                         | keine, solange er ungenutzt bleibt                                                                          |
+| 6   | Wie lang die `filter[person_id]`-Liste werden darf, ist nicht ausgereizt. Belegt sind 16 aktive Personen (191 von 196 Zeilen — die fehlenden fünf gehören inaktiven Personen, also genau das gewollte Scoping). Beim Deckel von 200 Personen wären es rund 1600 Zeichen URL, ungetestet | Kapazitätsübersicht in sehr grossen Orgs: eine abgewiesene URL fiele als Fehler auf, nicht als stille Lücke |
 
 **Praktisch verifiziert und damit keine Annahmen mehr:** der Genehmigungspfad
 (Abschnitt 6, beide Varianten anhand echter Buchungen nachgestellt), die
