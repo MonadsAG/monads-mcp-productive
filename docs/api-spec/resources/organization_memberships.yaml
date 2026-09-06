@@ -40,13 +40,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_organization_membership'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organization_memberships-show
       description: Retrieve a single organization membership.
     patch:
@@ -57,13 +57,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_organization_membership'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organization_memberships-update
       requestBody:
         $ref: '#/components/requestBodies/organization_membership'
@@ -76,13 +76,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organization_memberships-destroy
       description: Delete an organization membership.
   /api/v2/organization_memberships/{id}/dismiss_notifications:
@@ -94,13 +94,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_organization_membership'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organization_memberships-dismiss_notifications-dismiss_notifications
       description: Dismiss all notifications for an organization membership.
   /api/v2/organization_memberships:
@@ -126,12 +126,12 @@ paths:
         '200':
           $ref: '#/components/responses/single_organization_membership'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
+        - $ref: '#/components/parameters/header_organization'
       operationId: organization_memberships-read_notifications-read_notifications
 components:
   parameters:
@@ -449,14 +449,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -464,10 +472,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -476,10 +480,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -529,14 +529,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -545,59 +545,27 @@ components:
       type: object
       title: Organization membership Resource
       properties:
-        employees_favorite_filter:
-          title: Employees Favorite Filter
-          description: The favorite filter saved by this member for the employees section of the organization.
-          example:
-            eq: value
-        expenses_favorite_filter:
-          title: Expenses Favorite Filter
-          description: The member's pinned favorite filter for the expenses list view.
-          example:
-            eq: value
-        expense_approvals_favorite_filter:
-          title: Expense Approvals Favorite Filter
-          description: The expense approvals favorite filter.
-          example:
-            eq: value
-        budget_services_favorite_filter:
-          title: Budget Services Favorite Filter
-          description: The budget services favorite filter.
+        time_reminders:
+          type: boolean
+          title: Time Reminders
+          description: Whether this member receives time tracking reminder notifications.
           example:
             gt: 0
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this organization membership was last updated.
-          example:
-            gt: '2026-01-01'
-        docs_filter_id:
-          type: integer
-          title: Docs Filter
-          description: ID of the member's default filter for the docs list view.
-          example:
-            - 123
-        invoices_favorite_filter:
-          title: Invoices Favorite Filter
-          description: The member's pinned favorite filter for the invoices list view.
+        bookings_favorite_filter:
+          title: Bookings Favorite Filter
+          description: The member's pinned favorite filter for the bookings list view.
           example:
             eq: value
-        organization_id:
+        time_reports_filter_id:
           type: integer
-          title: Organization
-          description: ID of the organization this membership belongs to.
+          title: Time Reports Filter
+          description: ID of the saved time report filter applied by default for this organization membership.
           example:
             - 123
-        companies_favorite_filter:
-          title: Companies Favorite Filter
-          description: The member's pinned favorite filter for the companies list view.
-          example:
-            eq: value
-        deals_filter_id:
+        expense_approvals_filter_id:
           type: integer
-          title: Deals Filter
-          description: ID of the member's default filter for the deals list view.
+          title: Expense Approvals Filter
+          description: The expense approvals filter id.
           example:
             - 123
         budgets_favorite_filter:
@@ -605,155 +573,11 @@ components:
           description: The member's pinned favorite filter for the budgets list view.
           example:
             gt: 0
-        time_approvals_filter_id:
-          type: integer
-          title: Time Approvals Filter
-          description: The time approvals filter id.
-          example:
-            - 123
-        payments_favorite_filter:
-          title: Payments Favorite Filter
-          description: The member's pinned favorite filter for the payments list view.
+        companies_favorite_filter:
+          title: Companies Favorite Filter
+          description: The member's pinned favorite filter for the companies list view.
           example:
             eq: value
-        granular_notification_preferences:
-          type: object
-          title: Granular Notification Preferences
-          description: Granular per-event email notification preferences for this member.
-          example:
-            eq: value
-        budget_services_filter_id:
-          type: integer
-          title: Budget Services Filter
-          description: The budget services filter id.
-          example:
-            - 123
-        time_reports_filter_id:
-          type: integer
-          title: Time Reports Filter
-          description: ID of the saved time report filter applied by default for this organization membership.
-          example:
-            - 123
-        internal_budget_services_favorite_filter:
-          title: Internal Budget Services Favorite Filter
-          description: The internal budget services favorite filter.
-          example:
-            gt: 0
-        person:
-          title: Person
-          description: The person associated with this organization membership.
-          example:
-            eq: value
-        deal_services_favorite_filter:
-          title: Deal Services Favorite Filter
-          description: The deal services favorite filter.
-          example:
-            eq: value
-        expense_approvals_filter_id:
-          type: integer
-          title: Expense Approvals Filter
-          description: The expense approvals filter id.
-          example:
-            - 123
-        contacts_favorite_filter:
-          title: Contacts Favorite Filter
-          description: The member's pinned favorite filter for the contacts list view.
-          example:
-            eq: value
-        salary_reports_favorite_filter:
-          title: Salary Reports Favorite Filter
-          description: The salary report filter favorited by this organization membership.
-          example:
-            eq: value
-        contacts_filter_id:
-          type: integer
-          title: Contacts Filter
-          description: ID of the member's default filter for the contacts list view.
-          example:
-            - 123
-        preferences:
-          type: string
-          title: Preferences
-          description: Miscellaneous UI preferences stored for this member.
-          example:
-            eq: value
-        payments_filter_id:
-          type: integer
-          title: Payments Filter
-          description: ID of the member's default filter for the payments list view.
-          example:
-            - 123
-        employees_filter_id:
-          type: integer
-          title: Employees Filter
-          description: ID of the default filter this member uses in the employees section of the organization.
-          example:
-            - 123
-        tasks_favorite_filter:
-          title: Tasks Favorite Filter
-          description: The member's pinned favorite filter for the tasks list view.
-          example:
-            eq: value
-        deal_services_filter_id:
-          type: integer
-          title: Deal Services Filter
-          description: The deal services filter id.
-          example:
-            - 123
-        company_time_favorite_filter:
-          title: Company Time Favorite Filter
-          description: The company time favorite filter.
-          example:
-            gt: 0
-        tasks_filter_id:
-          type: integer
-          title: Tasks Filter
-          description: ID of the member's default filter for the tasks list view.
-          example:
-            - 123
-        user:
-          title: User
-          description: The user account associated with this organization membership.
-          example:
-            eq: value
-        projects_favorite_filter:
-          title: Projects Favorite Filter
-          description: The member's pinned favorite filter for the projects list view.
-          example:
-            eq: value
-        bookings_favorite_filter:
-          title: Bookings Favorite Filter
-          description: The member's pinned favorite filter for the bookings list view.
-          example:
-            eq: value
-        time_entry_reports_favorite_filter:
-          title: Time Entry Reports Favorite Filter
-          description: The pinned (favorite) time entry report filter for this organization membership.
-          example:
-            gt: 0
-        people_filter_id:
-          type: integer
-          title: People Filter
-          description: ID of the member's default filter for the people list view.
-          example:
-            - 123
-        invoices_filter_id:
-          type: integer
-          title: Invoices Filter
-          description: ID of the member's default filter for the invoices list view.
-          example:
-            - 123
-        time_approvals_favorite_filter:
-          title: Time Approvals Favorite Filter
-          description: The time approvals favorite filter.
-          example:
-            gt: 0
-        tasks_layout_id:
-          type: integer
-          title: Tasks Layout
-          description: ID of the layout preference used for the tasks view by this member.
-          example:
-            - 123
         expenses_filter_id:
           type: integer
           title: Expenses Filter
@@ -765,84 +589,20 @@ components:
           description: The time report filter favorited by this organization membership.
           example:
             gt: 0
-        organization:
-          title: Organization
-          description: The organization this membership belongs to.
+        projects_favorite_filter:
+          title: Projects Favorite Filter
+          description: The member's pinned favorite filter for the projects list view.
           example:
             eq: value
-        booking_approvals_favorite_filter:
-          title: Booking Approvals Favorite Filter
-          description: The saved filter ID for the current user's booking approvals view.
+        docs_favorite_filter:
+          title: Docs Favorite Filter
+          description: The member's pinned favorite filter for the docs list view.
           example:
             eq: value
-        people_favorite_filter:
-          title: People Favorite Filter
-          description: The member's pinned favorite filter for the people list view.
-          example:
-            eq: value
-        quick_start_config:
-          type: string
-          title: Quick Start Config
-          description: Configuration for the quick-start onboarding experience for this member.
-          example:
-            eq: value
-        position:
+        tasks_filter_id:
           type: integer
-          title: Position
-          description: The job title or position of this member within the organization.
-          example:
-            eq: value
-        salary_reports_filter_id:
-          type: integer
-          title: Salary Reports Filter
-          description: ID of the saved salary report filter applied by default for this organization membership.
-          example:
-            - 123
-        deals_favorite_filter:
-          title: Deals Favorite Filter
-          description: The member's pinned favorite filter for the deals list view.
-          example:
-            eq: value
-        weekly_emails:
-          type: boolean
-          title: Weekly Emails
-          description: Whether this member receives weekly summary emails from the organization.
-          example:
-            eq: value
-        bookings_filter_id:
-          type: integer
-          title: Bookings Filter
-          description: ID of the member's default filter for the bookings list view.
-          example:
-            - 123
-        projects_filter_id:
-          type: integer
-          title: Projects Filter
-          description: ID of the member's default filter for the projects list view.
-          example:
-            - 123
-        internal_budget_services_filter_id:
-          type: integer
-          title: Internal Budget Services Filter
-          description: The internal budget services filter id.
-          example:
-            - 123
-        company_time_filter_id:
-          type: integer
-          title: Company Time Filter
-          description: The company time filter id.
-          example:
-            - 123
-        budgets_filter_id:
-          type: integer
-          title: Budgets Filter
-          description: ID of the member's default filter for the budgets list view.
-          example:
-            - 123
-        booking_approvals_filter_id:
-          type: integer
-          title: Booking Approvals Filter
-          description: The booking approvals filter id.
+          title: Tasks Filter
+          description: ID of the member's default filter for the tasks list view.
           example:
             - 123
         time_entry_reports_filter_id:
@@ -851,15 +611,90 @@ components:
           description: The ID of the saved filter applied by default when viewing time entry reports.
           example:
             - 123
+        people_filter_id:
+          type: integer
+          title: People Filter
+          description: ID of the member's default filter for the people list view.
+          example:
+            - 123
+        deals_favorite_filter:
+          title: Deals Favorite Filter
+          description: The member's pinned favorite filter for the deals list view.
+          example:
+            eq: value
+        time_approvals_favorite_filter:
+          title: Time Approvals Favorite Filter
+          description: The time approvals favorite filter.
+          example:
+            gt: 0
+        payments_filter_id:
+          type: integer
+          title: Payments Filter
+          description: ID of the member's default filter for the payments list view.
+          example:
+            - 123
+        bookings_filter_id:
+          type: integer
+          title: Bookings Filter
+          description: ID of the member's default filter for the bookings list view.
+          example:
+            - 123
+        company_time_filter_id:
+          type: integer
+          title: Company Time Filter
+          description: The company time filter id.
+          example:
+            - 123
+        quick_start_config:
+          type: string
+          title: Quick Start Config
+          description: Configuration for the quick-start onboarding experience for this member.
+          example:
+            eq: value
         companies_filter_id:
           type: integer
           title: Companies Filter
           description: ID of the member's default filter for the companies list view.
           example:
             - 123
-        docs_favorite_filter:
-          title: Docs Favorite Filter
-          description: The member's pinned favorite filter for the docs list view.
+        deal_services_filter_id:
+          type: integer
+          title: Deal Services Filter
+          description: The deal services filter id.
+          example:
+            - 123
+        position:
+          type: integer
+          title: Position
+          description: The job title or position of this member within the organization.
+          example:
+            eq: value
+        internal_budget_services_filter_id:
+          type: integer
+          title: Internal Budget Services Filter
+          description: The internal budget services filter id.
+          example:
+            - 123
+        docs_filter_id:
+          type: integer
+          title: Docs Filter
+          description: ID of the member's default filter for the docs list view.
+          example:
+            - 123
+        weekly_emails:
+          type: boolean
+          title: Weekly Emails
+          description: Whether this member receives weekly summary emails from the organization.
+          example:
+            eq: value
+        person:
+          title: Person
+          description: The person associated with this organization membership.
+          example:
+            eq: value
+        contacts_favorite_filter:
+          title: Contacts Favorite Filter
+          description: The member's pinned favorite filter for the contacts list view.
           example:
             eq: value
         time_tracking_policy:
@@ -867,18 +702,183 @@ components:
           description: The time tracking policy applied to this member.
           example:
             gt: 0
+        salary_reports_filter_id:
+          type: integer
+          title: Salary Reports Filter
+          description: ID of the saved salary report filter applied by default for this organization membership.
+          example:
+            - 123
+        invoices_favorite_filter:
+          title: Invoices Favorite Filter
+          description: The member's pinned favorite filter for the invoices list view.
+          example:
+            eq: value
+        deal_services_favorite_filter:
+          title: Deal Services Favorite Filter
+          description: The deal services favorite filter.
+          example:
+            eq: value
+        expense_approvals_favorite_filter:
+          title: Expense Approvals Favorite Filter
+          description: The expense approvals favorite filter.
+          example:
+            eq: value
+        tasks_favorite_filter:
+          title: Tasks Favorite Filter
+          description: The member's pinned favorite filter for the tasks list view.
+          example:
+            eq: value
+        payments_favorite_filter:
+          title: Payments Favorite Filter
+          description: The member's pinned favorite filter for the payments list view.
+          example:
+            eq: value
+        budgets_filter_id:
+          type: integer
+          title: Budgets Filter
+          description: ID of the member's default filter for the budgets list view.
+          example:
+            - 123
+        deals_filter_id:
+          type: integer
+          title: Deals Filter
+          description: ID of the member's default filter for the deals list view.
+          example:
+            - 123
+        company_time_favorite_filter:
+          title: Company Time Favorite Filter
+          description: The company time favorite filter.
+          example:
+            gt: 0
+        projects_filter_id:
+          type: integer
+          title: Projects Filter
+          description: ID of the member's default filter for the projects list view.
+          example:
+            - 123
+        people_favorite_filter:
+          title: People Favorite Filter
+          description: The member's pinned favorite filter for the people list view.
+          example:
+            eq: value
+        organization_id:
+          type: integer
+          title: Organization
+          description: ID of the organization this membership belongs to.
+          example:
+            - 123
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this organization membership was last updated.
+          example:
+            gt: '2026-01-01'
+        budget_services_filter_id:
+          type: integer
+          title: Budget Services Filter
+          description: The budget services filter id.
+          example:
+            - 123
+        employees_filter_id:
+          type: integer
+          title: Employees Filter
+          description: ID of the default filter this member uses in the employees section of the organization.
+          example:
+            - 123
+        expenses_favorite_filter:
+          title: Expenses Favorite Filter
+          description: The member's pinned favorite filter for the expenses list view.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this membership belongs to.
+          example:
+            eq: value
+        time_approvals_filter_id:
+          type: integer
+          title: Time Approvals Filter
+          description: The time approvals filter id.
+          example:
+            - 123
+        granular_notification_preferences:
+          type: object
+          title: Granular Notification Preferences
+          description: Granular per-event email notification preferences for this member.
+          example:
+            eq: value
+        contacts_filter_id:
+          type: integer
+          title: Contacts Filter
+          description: ID of the member's default filter for the contacts list view.
+          example:
+            - 123
+        salary_reports_favorite_filter:
+          title: Salary Reports Favorite Filter
+          description: The salary report filter favorited by this organization membership.
+          example:
+            eq: value
         email_notifications:
           type: boolean
           title: Email Notifications
           description: Whether this member receives email notifications from the organization.
           example:
             eq: value
-        time_reminders:
-          type: boolean
-          title: Time Reminders
-          description: Whether this member receives time tracking reminder notifications.
+        booking_approvals_filter_id:
+          type: integer
+          title: Booking Approvals Filter
+          description: The booking approvals filter id.
+          example:
+            - 123
+        user:
+          title: User
+          description: The user account associated with this organization membership.
+          example:
+            eq: value
+        preferences:
+          type: string
+          title: Preferences
+          description: Miscellaneous UI preferences stored for this member.
+          example:
+            eq: value
+        budget_services_favorite_filter:
+          title: Budget Services Favorite Filter
+          description: The budget services favorite filter.
           example:
             gt: 0
+        time_entry_reports_favorite_filter:
+          title: Time Entry Reports Favorite Filter
+          description: The pinned (favorite) time entry report filter for this organization membership.
+          example:
+            gt: 0
+        booking_approvals_favorite_filter:
+          title: Booking Approvals Favorite Filter
+          description: The saved filter ID for the current user's booking approvals view.
+          example:
+            eq: value
+        tasks_layout_id:
+          type: integer
+          title: Tasks Layout
+          description: ID of the layout preference used for the tasks view by this member.
+          example:
+            - 123
+        invoices_filter_id:
+          type: integer
+          title: Invoices Filter
+          description: ID of the member's default filter for the invoices list view.
+          example:
+            - 123
+        internal_budget_services_favorite_filter:
+          title: Internal Budget Services Favorite Filter
+          description: The internal budget services favorite filter.
+          example:
+            gt: 0
+        employees_favorite_filter:
+          title: Employees Favorite Filter
+          description: The favorite filter saved by this member for the employees section of the organization.
+          example:
+            eq: value
       description: User-organization access link. Stores per-user preferences including notification settings, email preferences, default saved filters for each list view (tasks, deals, projects, invoices, expenses, bookings, etc.), time reminder settings, and UI layout preferences.
       example:
         id: '123'

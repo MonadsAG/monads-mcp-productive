@@ -38,15 +38,15 @@ description: |-
   For more details on how to work with remote work events, please refer to the [Remote Work](https://help.productive.io/en/articles/11026966-remote-work-beta) help article.
 x-filters:
   event:
-    sync_personal_integrations:
-      description: Filter by whether the event type syncs with personal calendar integrations.
+    half_day_bookings:
+      description: Filter by whether the event type allows half-day bookings.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    absence_type:
-      description: Filter by absence type (e.g. vacation, sick leave).
+    sync_personal_integrations:
+      description: Filter by whether the event type syncs with personal calendar integrations.
       operators:
         - contains
         - eq
@@ -59,8 +59,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    half_day_bookings:
-      description: Filter by whether the event type allows half-day bookings.
+    absence_type:
+      description: Filter by absence type (e.g. vacation, sick leave).
       operators:
         - contains
         - eq
@@ -73,8 +73,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    limitation_type:
-      description: Filter by the limitation type applied to entitlement accrual.
+    limited:
+      description: Filter by whether the event type has an entitlement limit (true) or is unlimited (false).
       operators:
         - contains
         - eq
@@ -87,8 +87,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    limited:
-      description: Filter by whether the event type has an entitlement limit (true) or is unlimited (false).
+    limitation_type:
+      description: Filter by the limitation type applied to entitlement accrual.
       operators:
         - contains
         - eq
@@ -104,13 +104,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_event'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: events-archive-archive
       description: Archive an event.
   /api/v2/events:
@@ -122,8 +122,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_event'
       parameters:
-        - $ref: '#/components/parameters/sort_event'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_event'
         - $ref: '#/components/parameters/filter_event'
       operationId: events-index
       description: List events.
@@ -157,13 +157,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_event'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: events-show
       description: Retrieve a single event.
     patch:
@@ -287,10 +287,20 @@ components:
       type: object
       title: Event Resource
       properties:
-        limited:
+        limitation_type_id:
+          enum:
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Limitation Type
+          description: 'ID of the limitation type controlling how time-off for this event is tracked: limited by days (2), limited by hours (3), or unlimited by hours (4).'
+          example:
+            - 123
+        half_day_bookings:
           type: boolean
-          title: Limited
-          description: When true, this event has a limit on the amount of time-off that can be booked.
+          title: Half Day Bookings
+          description: When true, bookings for this event can be created in half-day increments.
           example:
             eq: value
         status:
@@ -302,6 +312,21 @@ components:
           description: The archival status of this event, either active (1) or archived (2).
           example:
             eq: active
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this event.
+          example:
+            - 123
+        event_type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Event Type
+          description: ID of the event type indicating whether this absence is paid (1) or unpaid (2).
+          example:
+            - 123
         archived_at:
           type: string
           title: Archived At
@@ -309,10 +334,9 @@ components:
           description: Timestamp when this event was archived, or null if it is still active.
           example:
             gt: '2026-01-01'
-        name:
-          type: string
-          title: Name
-          description: The display name of this event.
+        organization:
+          title: Organization
+          description: The organization this event belongs to.
           example:
             eq: value
         limitation_type:
@@ -325,35 +349,6 @@ components:
           description: The limitation type of this event used for filtering (limited by days, limited by hours, or unlimited by hours).
           example:
             eq: active
-        sync_personal_integrations:
-          type: boolean
-          title: Sync Personal Integrations
-          description: When true, bookings for this event are automatically synced to personal calendar integrations.
-          example:
-            eq: value
-        half_day_bookings:
-          type: boolean
-          title: Half Day Bookings
-          description: When true, bookings for this event can be created in half-day increments.
-          example:
-            eq: value
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this event.
-          example:
-            - 123
-        color_id:
-          type: integer
-          title: Color
-          description: ID of the color associated with this event for display purposes.
-          example:
-            - 123
-        description:
-          type: string
-          title: Description
-          example:
-            eq: value
         absence_type:
           enum:
             - time_off
@@ -363,34 +358,39 @@ components:
           description: The absence category of this event, either time_off (standard time-off) or remote_work.
           example:
             eq: active
+        name:
+          type: string
+          title: Name
+          description: The display name of this event.
+          example:
+            eq: value
+        sync_personal_integrations:
+          type: boolean
+          title: Sync Personal Integrations
+          description: When true, bookings for this event are automatically synced to personal calendar integrations.
+          example:
+            eq: value
+        description:
+          type: string
+          title: Description
+          example:
+            eq: value
         icon_id:
           type: string
           title: Icon
           description: The icon identifier used to visually represent this event in the UI.
           example:
             - 123
-        limitation_type_id:
-          enum:
-            - 2
-            - 3
-            - 4
-          type: integer
-          title: Limitation Type
-          description: 'ID of the limitation type controlling how time-off for this event is tracked: limited by days (2), limited by hours (3), or unlimited by hours (4).'
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: The organization this event belongs to.
+        limited:
+          type: boolean
+          title: Limited
+          description: When true, this event has a limit on the amount of time-off that can be booked.
           example:
             eq: value
-        event_type_id:
-          enum:
-            - 1
-            - 2
+        color_id:
           type: integer
-          title: Event Type
-          description: ID of the event type indicating whether this absence is paid (1) or unpaid (2).
+          title: Color
+          description: ID of the color associated with this event for display purposes.
           example:
             - 123
       description: An absence event type (e.g. vacation, sick leave) used to categorize time-off bookings in the resource planner.
@@ -406,14 +406,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -421,10 +429,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -433,10 +437,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -486,14 +486,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

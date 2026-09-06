@@ -12,6 +12,11 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    target_type:
+      description: Identifies which entity type the template wraps. On create, selects the per-target `model_attributes` shape. `task` is read-only.
+      operators:
+        - eq
+        - not_eq
     id:
       description: Numeric identifier of the template.
       operators:
@@ -19,13 +24,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    target_type:
-      description: Identifies which entity type the template wraps. On create, selects the per-target `model_attributes` shape. `task` is read-only.
-      operators:
-        - eq
-        - not_eq
-    task_project_id:
-      description: Filter-only field — limits task templates (`target_type=task`) to those whose underlying task belongs to the given project.
+    project_id:
+      description: Project identifier — filterable to scope templates to a specific project context.
       operators:
         - contains
         - eq
@@ -38,8 +38,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    project_id:
-      description: Project identifier — filterable to scope templates to a specific project context.
+    task_project_id:
+      description: Filter-only field — limits task templates (`target_type=task`) to those whose underlying task belongs to the given project.
       operators:
         - contains
         - eq
@@ -55,9 +55,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_template'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_template'
         - $ref: '#/components/parameters/sort_template'
+        - $ref: '#/components/parameters/header_organization'
       operationId: templates-index
       description: List templates the requester has access to. Supports filtering by id, project, target type (with `deal`/`budget` discriminated via the underlying quote), free-text query, and a task-template-only `task_project_id` filter.
     post:
@@ -261,13 +261,13 @@ paths:
         '204':
           description: Template soft-deleted successfully.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: Numeric template id.
+        - $ref: '#/components/parameters/header_organization'
       operationId: templates-destroy
       description: Soft-delete a template and its wrapped target. The deletion is recorded in `deleted_items` and is recoverable from Trash.
 components:
@@ -344,6 +344,70 @@ components:
       type: object
       title: Template Resource
       properties:
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp of the most recent change to the template.
+          example: '2026-04-29T12:27:06.627+02:00'
+        project:
+          title: Project
+          description: Project this template was scoped under (denormalized via the wrapped target).
+          example:
+            data:
+              type: projects
+              id: '258974'
+        creator:
+          title: Creator
+          description: Person who created the template.
+          example:
+            data:
+              type: people
+              id: '13'
+        project_id:
+          type: integer
+          title: Project
+          description: Project identifier — filterable to scope templates to a specific project context.
+          example: 271026
+        deal:
+          title: Deal
+          description: Deal target when `target_type` is `deal`.
+          example:
+            data: null
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp of when the template was created.
+          example: '2023-01-24T14:08:06.857+01:00'
+        task_project_id:
+          type: integer
+          title: Task Project
+          description: Filter-only field — limits task templates (`target_type=task`) to those whose underlying task belongs to the given project.
+          example: 271026
+        target_id:
+          type: integer
+          title: Target
+          description: Id of the wrapped target.
+          example: '258974'
+        deleted_at:
+          type: string
+          title: Deleted At
+          format: date-time
+          nullable: true
+          description: Timestamp marking soft deletion. Non-null values mean the template is in Trash and recoverable via the `/deleted_items` endpoint.
+          example: null
+        color_id:
+          type: integer
+          title: Color
+          nullable: true
+          description: Color label assigned to the template.
+          example: null
+        query:
+          type: string
+          title: Query
+          description: Free-text query — matches against the wrapped target name.
+          example: offboarding
         copy_attributes:
           type: object
           title: Copy Attributes
@@ -352,24 +416,6 @@ components:
           example:
             copy_memberships: true
             copy_subpages: true
-        deal:
-          title: Deal
-          description: Deal target when `target_type` is `deal`.
-          example:
-            data: null
-        project:
-          title: Project
-          description: Project this template was scoped under (denormalized via the wrapped target).
-          example:
-            data:
-              type: projects
-              id: '258974'
-        name:
-          type: string
-          title: Name
-          maxLength: 255
-          description: Display name of the template. Required on create. Updates also rename the wrapped target.
-          example: 'Offboarding: General'
         description:
           type: string
           title: Description
@@ -381,35 +427,28 @@ components:
           title: Id
           description: Numeric identifier of the template.
           example: '18'
-        page:
-          title: Page
-          description: Page target when `target_type` is `page`.
+        task:
+          title: Task
+          description: Task target when `target_type` is `task`.
           example:
             data: null
-        creator:
-          title: Creator
-          description: Person who created the template.
+        name:
+          type: string
+          title: Name
+          maxLength: 255
+          description: Display name of the template. Required on create. Updates also rename the wrapped target.
+          example: 'Offboarding: General'
+        model_attributes:
+          type: object
+          title: Model Attributes
+          additionalProperties: true
+          description: Form-only polymorphic input bag. Required keys depend on `target_type` — see the create endpoint description for the per-target schema.
           example:
-            data:
-              type: people
-              id: '13'
-        query:
-          type: string
-          title: Query
-          description: Free-text query — matches against the wrapped target name.
-          example: offboarding
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp of the most recent change to the template.
-          example: '2026-04-29T12:27:06.627+02:00'
-        color_id:
-          type: integer
-          title: Color
-          nullable: true
-          description: Color label assigned to the template.
-          example: null
+            client_id: 412
+            project_manager_id: 13
+            project_type_id: 2
+            workflow_id: 1
+            project_color_id: 5
         target_type:
           enum:
             - budget
@@ -422,50 +461,11 @@ components:
           title: Target Type
           description: Identifies which entity type the template wraps. On create, selects the per-target `model_attributes` shape. `task` is read-only.
           example: project
-        task:
-          title: Task
-          description: Task target when `target_type` is `task`.
+        page:
+          title: Page
+          description: Page target when `target_type` is `page`.
           example:
             data: null
-        project_id:
-          type: integer
-          title: Project
-          description: Project identifier — filterable to scope templates to a specific project context.
-          example: 271026
-        deleted_at:
-          type: string
-          title: Deleted At
-          format: date-time
-          nullable: true
-          description: Timestamp marking soft deletion. Non-null values mean the template is in Trash and recoverable via the `/deleted_items` endpoint.
-          example: null
-        model_attributes:
-          type: object
-          title: Model Attributes
-          additionalProperties: true
-          description: Form-only polymorphic input bag. Required keys depend on `target_type` — see the create endpoint description for the per-target schema.
-          example:
-            client_id: 412
-            project_manager_id: 13
-            project_type_id: 2
-            workflow_id: 1
-            project_color_id: 5
-        task_project_id:
-          type: integer
-          title: Task Project
-          description: Filter-only field — limits task templates (`target_type=task`) to those whose underlying task belongs to the given project.
-          example: 271026
-        target_id:
-          type: integer
-          title: Target
-          description: Id of the wrapped target.
-          example: '258974'
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp of when the template was created.
-          example: '2023-01-24T14:08:06.857+01:00'
       description: Reusable starting point for a project, budget, deal, or page. Each template wraps a real entity (its `target`) created with template semantics; `target_type` discriminates the polymorphic create payload.
       example:
         type: templates
@@ -483,14 +483,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -498,10 +506,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -510,10 +514,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -563,14 +563,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

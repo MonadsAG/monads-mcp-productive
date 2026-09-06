@@ -16,13 +16,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_organization'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organizations-show
       description: Retrieve a single organization.
     patch:
@@ -41,13 +41,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: organizations-update
       requestBody:
         $ref: '#/components/requestBodies/organization'
@@ -60,13 +60,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organizations-destroy
       description: Delete an organization.
   /api/v2/organizations:
@@ -78,8 +78,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_organization'
       parameters:
-        - $ref: '#/components/parameters/filter_organization'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_organization'
         - $ref: '#/components/parameters/sort_organization'
       operationId: organizations-index
       description: List organizations.
@@ -97,13 +97,13 @@ paths:
           headers: {}
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: organizations-resend_code-resend_code
       description: Resend the verification code for an organization.
 components:
@@ -581,14 +581,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -596,10 +604,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -608,10 +612,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -661,14 +661,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -677,67 +677,71 @@ components:
       type: object
       title: Organization Resource
       properties:
-        number_format_id:
+        date_format_id:
           enum:
             - 1
             - 2
             - 3
             - 4
             - 5
+            - 6
+            - 7
           type: integer
-          title: Number Format
-          description: Number format preference for the organization. Controls how numbers are formatted (e.g. decimal separator).
+          title: Date Format
+          description: Date format preference for the organization. Controls how dates are displayed throughout the platform.
           example:
             - 123
-        metrics:
-          title: Metrics
-          description: Base64-encoded JSON containing UTM attribution metrics for the organization's acquisition source.
-          example:
-            eq: value
-        limited_service_types:
-          title: Limited Service Types
-          description: Whether service types are restricted to a limited set for the organization.
-          example:
-            eq: active
-        time_reminder_id:
-          enum:
-            - 1
-            - 2
-            - 3
-            - 4
-            - 5
-          type: integer
-          title: Time Reminder
-          description: The ID of the time reminder schedule used by the organization.
-          example:
-            - 123
-        numbering_format_settings:
-          type: object
-          title: Numbering Format Settings
-          description: Settings controlling the numbering format for invoices and other financial documents.
-          example:
-            eq: value
-        avatar_url:
+        fiscal_year_start:
           type: string
-          title: Avatar Url
-          description: URL of the organization's avatar image (thumbnail size).
+          title: Fiscal Year Start
+          format: date
+          description: Start date of the fiscal year if the organization uses a non-calendar fiscal year.
           example:
             eq: value
-        time_display_id:
+        payment_terms_type:
           enum:
-            - 1
-            - 2
+            - days_after_invoice_date
+            - end_of_month
+            - due_upon_receipt
+          type: string
+          title: Payment Terms Type
+          nullable: true
+          description: Organization-wide default payment terms, used for new invoices when no company-level terms are set.
+        deal_settings:
+          type: object
+          title: Deal Settings
+          description: Deal-level settings for time rounding, including rounding method and interval.
+          example:
+            eq: value
+        locale:
+          enum:
+            - en_US
+            - de_DE
+            - fr_FR
+            - es_ES
+            - it_IT
+          type: string
+          title: Locale
+          description: Locale setting for the organization (e.g. en_US, de_DE).
+          example:
+            eq: value
+        allow_user_email:
+          type: boolean
+          title: Allow User Email
+          description: Whether members can use their personal email address as the sender for invoice emails.
+          example:
+            eq: value
+        financial_months:
+          title: Financial Months
+          description: List of financial months with their start/end dates and lock status.
+          example:
+            eq: value
+        customer_success_specialist_id:
           type: integer
-          title: Time Display
-          description: Time display format preference (e.g. 12-hour or 24-hour clock).
+          title: Customer Success Specialist
+          description: ID of the Productive user assigned as the customer success specialist for this organization.
           example:
             - 123
-        overhead_recalculation_day:
-          type: integer
-          title: Overhead Recalculation Day
-          description: The day of the month on which overhead costs are recalculated.
-          example:
-            eq: value
         overhead_type_id:
           enum:
             - 1
@@ -748,10 +752,125 @@ components:
           description: Type of overhead calculation applied (e.g. fixed, percentage-based).
           example:
             - 123
-        timesheet_submission_settings:
+        timesheet_submission_reminders:
+          type: boolean
+          title: Timesheet Submission Reminders
+          description: Whether reminder emails are sent for pending timesheet submissions.
+          example:
+            gt: 0
+        expense_settings:
           type: object
-          title: Timesheet Submission Settings
-          description: Configuration settings for the timesheet submission workflow.
+          title: Expense Settings
+          description: Organization-level expense settings (e.g. approval defaults, categories).
+          example:
+            eq: value
+        exchange_rate_provider_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Exchange Rate Provider
+          description: Exchange rate data provider used for multi-currency calculations.
+          example:
+            - 123
+        overhead_amortization_period:
+          type: integer
+          title: Overhead Amortization Period
+          description: The number of months over which overhead costs are amortized.
+          example:
+            eq: value
+        facility_costs:
+          title: Facility Costs
+          description: Monthly facility cost amount in the organization's default currency.
+          example:
+            eq: value
+        invitation_token:
+          type: string
+          title: Invitation Token
+          description: Token used to invite new members to the organization.
+          example:
+            eq: value
+        overhead_subsidiary_switched_at:
+          type: string
+          title: Overhead Subsidiary Switched At
+          format: date-time
+          description: Timestamp when overhead tracking was switched to per-subsidiary mode.
+          example:
+            gt: '2026-01-01'
+        email_sender_name:
+          title: Email Sender Name
+          description: Display name shown as the sender of outgoing invoice emails.
+          example:
+            eq: value
+        force_single_sign_on:
+          type: boolean
+          title: Force Single Sign On
+          description: Whether SSO login is enforced, requiring all users to authenticate via the configured identity provider.
+          example:
+            eq: value
+        ai_enabled:
+          type: boolean
+          title: AI Enabled
+          description: Whether AI-powered features are enabled for the organization.
+          example:
+            eq: value
+        email_key:
+          type: string
+          title: Email Key
+          description: Unique email key (inbox key) for receiving emails into the organization.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: Name of the organization.
+          example:
+            eq: value
+        weight:
+          title: Weight
+          description: Internal weight value used for organization ranking (calculated as 1 / seat count).
+          example:
+            eq: value
+        subsidiary_count:
+          title: Subsidiary Count
+          description: Number of active subsidiaries within the organization.
+          example:
+            gt: 0
+        billing_email:
+          type: object
+          title: Billing Email
+          description: Email address used for billing correspondence.
+          example:
+            eq: value
+        timesheet_submission:
+          type: boolean
+          title: Timesheet Submission
+          description: Whether timesheet submission and approval workflow is enabled.
+          example:
+            gt: 0
+        email_domain_name:
+          title: Email Domain Name
+          description: Custom domain name used for the organization's invoice email sender address.
+          example:
+            eq: value
+        email_type_id:
+          type: integer
+          title: Email Type
+          description: Email client type used for sending invoices (e.g. SMTP, Sendgrid).
+          example:
+            - 123
+        facility_costs_breakdown:
+          type: object
+          title: Facility Costs Breakdown
+          description: Breakdown of facility costs by category or subsidiary.
+          example:
+            eq: value
+        invoice_timesheet_export_configuration:
+          type: object
+          title: Invoice Timesheet Export Configuration
+          description: Configuration for how timesheet data is exported and attached to invoices.
           example:
             gt: 0
         revenue_recognition_type_id:
@@ -769,294 +888,15 @@ components:
           description: The SCIM bearer token for provisioning users via an identity provider (SCIM 2.0).
           example:
             eq: value
-        billing_email:
-          type: object
-          title: Billing Email
-          description: Email address used for billing correspondence.
-          example:
-            eq: value
-        invoice_rounding_method_id:
-          type: integer
-          title: Invoice Rounding Method
-          description: Rounding method applied when generating invoice line item amounts.
-          example:
-            - 123
-        timesheet_submission:
-          type: boolean
-          title: Timesheet Submission
-          description: Whether timesheet submission and approval workflow is enabled.
-          example:
-            gt: 0
-        organization_subscription:
-          title: Organization Subscription
-          description: The organization's pricing plan subscription details.
-          example:
-            eq: value
-        deal_settings:
-          type: object
-          title: Deal Settings
-          description: Deal-level settings for time rounding, including rounding method and interval.
-          example:
-            eq: value
-        subsidiary_count:
-          title: Subsidiary Count
-          description: Number of active subsidiaries within the organization.
-          example:
-            gt: 0
-        force_two_factor_auth:
-          type: boolean
-          title: Force Two Factor Auth
-          description: Whether two-factor authentication is required for all organization members.
-          example:
-            eq: value
-        facility_costs_default:
-          title: Facility Costs Default
-          description: Facility costs in the default currency.
-          example:
-            eq: value
-        payment_terms_type:
-          enum:
-            - days_after_invoice_date
-            - end_of_month
-            - due_upon_receipt
-          type: string
-          title: Payment Terms Type
-          nullable: true
-          description: Organization-wide default payment terms, used for new invoices when no company-level terms are set.
-        invoice_timesheet_export_configuration:
-          type: object
-          title: Invoice Timesheet Export Configuration
-          description: Configuration for how timesheet data is exported and attached to invoices.
-          example:
-            gt: 0
-        week_start_day_id:
-          enum:
-            - 1
-            - 2
-            - 3
-          type: integer
-          title: Week Start Day
-          description: First day of the work week for the organization (e.g. Monday, Sunday).
-          example:
-            - 123
-        financial_months:
-          title: Financial Months
-          description: List of financial months with their start/end dates and lock status.
-          example:
-            eq: value
-        conflict_resolver_active:
-          type: boolean
-          title: Conflict Resolver Active
-          description: Whether the scheduling conflict resolver is active, automatically detecting and flagging overbooking conflicts.
-          example:
-            eq: value
-        onboarding_progress:
-          type: string
-          title: Onboarding Progress
-          description: Tracks the user's progress through the onboarding flow.
-          example:
-            eq: value
-        facility_costs_breakdown:
-          type: object
-          title: Facility Costs Breakdown
-          description: Breakdown of facility costs by category or subsidiary.
-          example:
-            eq: value
-        analytics_uid:
-          title: Analytics Uid
-          description: Google Analytics tracking ID associated with the organization.
-          example:
-            eq: value
-        financial_month_locking_partial_edit:
-          type: boolean
-          title: Financial Month Locking Partial Edit
-          description: Whether partial editing is allowed within a locked financial month.
-          example:
-            eq: value
-        customer_success_specialist_id:
-          type: integer
-          title: Customer Success Specialist
-          description: ID of the Productive user assigned as the customer success specialist for this organization.
-          example:
-            - 123
-        domain_verified:
-          title: Domain Verified
-          description: Whether the custom email domain has been verified for sending invoice emails.
-          example:
-            eq: value
-        ai_enabled:
-          type: boolean
-          title: AI Enabled
-          description: Whether AI-powered features are enabled for the organization.
-          example:
-            eq: value
-        organization_type_id:
-          type: integer
-          title: Organization Type
-          description: Type of organization (e.g. agency, consultancy).
-          example:
-            - 123
-        quick_start_config:
-          type: string
-          title: Quick Start Config
-          description: Quick start configuration used during initial setup.
-          example:
-            eq: value
-        exchange_rate_provider_id:
-          enum:
-            - 1
-            - 2
-            - 3
-            - 4
-          type: integer
-          title: Exchange Rate Provider
-          description: Exchange rate data provider used for multi-currency calculations.
-          example:
-            - 123
-        time_format_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Time Format
-          description: Time format preference for the organization (e.g. decimal hours vs. HH:MM).
-          example:
-            - 123
-        due_days:
-          type: integer
-          title: Due Days
-          description: 'Default day offset paired with `payment_terms_type` (org level): `days_after_invoice_date` — > 0, after the invoice date; `end_of_month` — >= 0, after the invoice month''s end; `due_upon_receipt` — ignored.'
-          example:
-            eq: value
-        overhead_amortization_period:
-          type: integer
-          title: Overhead Amortization Period
-          description: The number of months over which overhead costs are amortized.
-          example:
-            eq: value
-        email_sender_name:
-          title: Email Sender Name
-          description: Display name shown as the sender of outgoing invoice emails.
-          example:
-            eq: value
-        time_reminder_at:
-          type: integer
-          title: Time Reminder At
-          description: Hour of the day (0–23) when time reminder emails are sent.
-          example:
-            gt: '2026-01-01'
-        time_zone:
-          type: string
-          title: Time Zone
-          description: Default timezone for the organization (Rails TimeZone name, e.g. Eastern Time (US & Canada)).
-          example:
-            gt: 0
-        delivered_budget_recognition_date_id:
-          enum:
-            - 1
-            - 2
-            - 3
-            - 4
-            - 5
-            - 6
-          type: integer
-          title: Delivered Budget Recognition Date
-          description: Revenue recognition date rule applied to delivered budgets.
-          example:
-            - 123
-        invitation_token:
-          type: string
-          title: Invitation Token
-          description: Token used to invite new members to the organization.
-          example:
-            eq: value
         time_reminders:
           type: boolean
           title: Time Reminders
           description: Time reminder settings for prompting people to log their time.
           example:
             gt: 0
-        original_avatar_url:
-          title: Original Avatar Url
-          description: URL of the original full-size avatar image for this organization before resizing.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: Name of the organization.
-          example:
-            eq: value
-        man_day_minutes:
-          type: integer
-          title: Man Day Minutes
-          description: Number of minutes in a man-day, used to convert between hours and days in reports and scheduling.
-          example:
-            eq: value
-        facility_costs_normalized:
-          title: Facility Costs Normalized
-          description: Facility costs normalized to the base currency.
-          example:
-            eq: value
-        expense_markup:
-          type: number
-          title: Expense Markup
-          description: Default markup percentage applied to expenses on deals.
-          example:
-            eq: value
-        time_reminder_condition:
-          type: integer
-          title: Time Reminder Condition
-          description: Minimum tracked time percentage required before a time reminder is triggered.
-          example:
-            gt: 0
-        financial_month_locking_date:
-          type: integer
-          title: Financial Month Locking Date
-          description: Day of the month on which financial months are locked (1–28).
-          example:
-            gt: '2026-01-01'
-        time_locking_reminders:
-          type: boolean
-          title: Time Locking Reminders
-          description: Whether email reminders are sent before time entries are locked.
-          example:
-            gt: 0
-        currency_default:
-          title: Currency Default
-          description: Default currency code used as the base for monetary values.
-          example:
-            eq: value
-        sample_data_reverted_at:
-          type: string
-          title: Sample Data Reverted At
-          format: date-time
-          description: Timestamp when sample data was reverted (removed) from the organization.
-          example:
-            gt: '2026-01-01'
-        request_for_resource_enabled:
-          type: boolean
-          title: Request For Resource Enabled
-          description: Whether the resource request workflow is enabled, allowing managers to request people for projects.
-          example:
-            eq: value
-        single_sign_on:
-          type: boolean
-          title: Single Sign On
-          description: Whether SAML-based single sign-on is enabled.
-          example:
-            eq: value
-        email_key:
-          type: string
-          title: Email Key
-          description: Unique email key (inbox key) for receiving emails into the organization.
-          example:
-            eq: value
-        fiscal_year_start:
-          type: string
-          title: Fiscal Year Start
-          format: date
-          description: Start date of the fiscal year if the organization uses a non-calendar fiscal year.
+        analytics_uid:
+          title: Analytics Uid
+          description: Google Analytics tracking ID associated with the organization.
           example:
             eq: value
         autotracking_schedule_id:
@@ -1068,175 +908,60 @@ components:
           description: ID of the autotracking schedule assigned to this organization for automatic time entry creation.
           example:
             - 123
-        force_single_sign_on:
-          type: boolean
-          title: Force Single Sign On
-          description: Whether SSO login is enforced, requiring all users to authenticate via the configured identity provider.
+        due_days:
+          type: integer
+          title: Due Days
+          description: 'Default day offset paired with `payment_terms_type` (org level): `days_after_invoice_date` — > 0, after the invoice date; `end_of_month` — >= 0, after the invoice month''s end; `due_upon_receipt` — ignored.'
           example:
             eq: value
-        sample_data_imported_at:
+        single_sign_on:
+          type: boolean
+          title: Single Sign On
+          description: Whether SAML-based single sign-on is enabled.
+          example:
+            eq: value
+        self_attribution_comment:
           type: string
-          title: Sample Data Imported At
-          format: date-time
-          description: Timestamp when sample data was imported into the organization.
+          title: Self Attribution Comment
+          description: Additional comment or detail on how the organization discovered Productive.
           example:
             gt: '2026-01-01'
-        facility_costs:
-          title: Facility Costs
-          description: Monthly facility cost amount in the organization's default currency.
-          example:
-            eq: value
-        weight:
-          title: Weight
-          description: Internal weight value used for organization ranking (calculated as 1 / seat count).
-          example:
-            eq: value
-        email_local_name:
-          title: Email Local Name
-          description: Local part (username) of the custom invoice email sender address.
-          example:
-            eq: value
-        allow_time_off:
-          type: boolean
-          title: Allow Time Off
-          description: Whether time-off tracking is enabled for the organization.
-          example:
-            gt: 0
-        rounding_method_id:
-          enum:
-            - 1
-            - 2
-            - 3
-            - 4
-          type: integer
-          title: Rounding Method
-          description: Rounding method applied to time entries (e.g. round up, round down, round to nearest).
-          example:
-            - 123
-        expense_settings:
-          type: object
-          title: Expense Settings
-          description: Organization-level expense settings (e.g. approval defaults, categories).
-          example:
-            eq: value
-        currency_format_id:
+        time_display_id:
           enum:
             - 1
             - 2
           type: integer
-          title: Currency Format
-          description: Currency display format preference. Controls how currency symbols and amounts are positioned.
+          title: Time Display
+          description: Time display format preference (e.g. 12-hour or 24-hour clock).
           example:
             - 123
-        time_locking_period_id:
-          enum:
-            - 1
-            - 2
-            - 3
-          type: integer
-          title: Time Locking Period
-          description: Period unit used for time locking (e.g. days, weeks).
-          example:
-            - 123
-        allow_user_email:
-          type: boolean
-          title: Allow User Email
-          description: Whether members can use their personal email address as the sender for invoice emails.
-          example:
-            eq: value
-        time_tracking_policies_enabled:
-          type: boolean
-          title: Time Tracking Policies Enabled
-          description: When true, time tracking policies are enforced across the organization.
-          example:
-            gt: 0
-        owner:
-          title: Owner
-          description: The person who owns the organization account.
-          example:
-            eq: value
-        time_locking:
-          type: boolean
-          title: Time Locking
-          description: Whether time locking is enabled, preventing edits to time entries in locked periods.
-          example:
-            gt: 0
-        currency_normalized:
-          title: Currency Normalized
-          description: Normalized currency code used internally.
-          example:
-            eq: value
-        locale:
-          enum:
-            - en_US
-            - de_DE
-            - fr_FR
-            - es_ES
-            - it_IT
-          type: string
-          title: Locale
-          description: Locale setting for the organization (e.g. en_US, de_DE).
-          example:
-            eq: value
-        overhead:
-          type: boolean
-          title: Overhead
-          description: Whether overhead cost tracking is enabled for the organization.
-          example:
-            eq: value
-        date_format_id:
+        time_reminder_id:
           enum:
             - 1
             - 2
             - 3
             - 4
             - 5
-            - 6
-            - 7
           type: integer
-          title: Date Format
-          description: Date format preference for the organization. Controls how dates are displayed throughout the platform.
+          title: Time Reminder
+          description: The ID of the time reminder schedule used by the organization.
           example:
             - 123
-        verification_status_id:
-          enum:
-            - 1
-            - 2
-            - 3
-          type: integer
-          title: Verification Status
-          description: Verification status of the organization account.
-          example:
-            - 123
-        overhead_subsidiary_switched_at:
-          type: string
-          title: Overhead Subsidiary Switched At
-          format: date-time
-          description: Timestamp when overhead tracking was switched to per-subsidiary mode.
-          example:
-            gt: '2026-01-01'
-        email_type_id:
-          type: integer
-          title: Email Type
-          description: Email client type used for sending invoices (e.g. SMTP, Sendgrid).
-          example:
-            - 123
-        booked_demo:
+        financial_month_locking_partial_edit:
           type: boolean
-          title: Booked Demo
-          description: Whether the organization has booked a demo with Productive.
+          title: Financial Month Locking Partial Edit
+          description: Whether partial editing is allowed within a locked financial month.
           example:
             eq: value
-        verified_at:
-          type: string
-          title: Verified At
-          format: date-time
-          description: Timestamp when the organization account was verified.
+        time_reminder_condition:
+          type: integer
+          title: Time Reminder Condition
+          description: Minimum tracked time percentage required before a time reminder is triggered.
           example:
-            gt: '2026-01-01'
-        email_domain_name:
-          title: Email Domain Name
-          description: Custom domain name used for the organization's invoice email sender address.
+            gt: 0
+        organization_subscription:
+          title: Organization Subscription
+          description: The organization's pricing plan subscription details.
           example:
             eq: value
         decimal_places_id:
@@ -1250,22 +975,344 @@ components:
           description: Number of decimal places used when displaying monetary values.
           example:
             - 123
-        erector_id:
+        flags:
+          type: object
+          title: Flags
+          description: Feature flags for the organization, keyed by flag name with boolean values.
+          example:
+            eq: value
+        time_zone:
+          type: string
+          title: Time Zone
+          description: Default timezone for the organization (Rails TimeZone name, e.g. Eastern Time (US & Canada)).
+          example:
+            gt: 0
+        verified_at:
+          type: string
+          title: Verified At
+          format: date-time
+          description: Timestamp when the organization account was verified.
+          example:
+            gt: '2026-01-01'
+        sample_data_imported_at:
+          type: string
+          title: Sample Data Imported At
+          format: date-time
+          description: Timestamp when sample data was imported into the organization.
+          example:
+            gt: '2026-01-01'
+        allow_time_off:
+          type: boolean
+          title: Allow Time Off
+          description: Whether time-off tracking is enabled for the organization.
+          example:
+            gt: 0
+        currency_format_id:
+          enum:
+            - 1
+            - 2
           type: integer
-          title: Erector
-          description: ID of the Productive user who set up (erected) the organization.
+          title: Currency Format
+          description: Currency display format preference. Controls how currency symbols and amounts are positioned.
           example:
             - 123
+        time_tracking_policies_enabled:
+          type: boolean
+          title: Time Tracking Policies Enabled
+          description: When true, time tracking policies are enforced across the organization.
+          example:
+            gt: 0
         currency:
           type: string
           title: Currency
           description: Default currency code for the organization (e.g. USD, EUR).
           example:
             eq: value
-        timesheet_submission_reminders:
+        man_day_minutes:
+          type: integer
+          title: Man Day Minutes
+          description: Number of minutes in a man-day, used to convert between hours and days in reports and scheduling.
+          example:
+            eq: value
+        original_avatar_url:
+          title: Original Avatar Url
+          description: URL of the original full-size avatar image for this organization before resizing.
+          example:
+            eq: value
+        onboarding_progress:
+          type: string
+          title: Onboarding Progress
+          description: Tracks the user's progress through the onboarding flow.
+          example:
+            eq: value
+        organization_type_id:
+          type: integer
+          title: Organization Type
+          description: Type of organization (e.g. agency, consultancy).
+          example:
+            - 123
+        company:
+          title: Company
+          description: The client company linked to the organization.
+          example:
+            eq: value
+        booked_demo:
           type: boolean
-          title: Timesheet Submission Reminders
-          description: Whether reminder emails are sent for pending timesheet submissions.
+          title: Booked Demo
+          description: Whether the organization has booked a demo with Productive.
+          example:
+            eq: value
+        owner_id:
+          type: integer
+          title: Owner
+          description: ID of the person who owns the organization account.
+          example:
+            - 123
+        numbering_format_settings:
+          type: object
+          title: Numbering Format Settings
+          description: Settings controlling the numbering format for invoices and other financial documents.
+          example:
+            eq: value
+        avatar_url:
+          type: string
+          title: Avatar Url
+          description: URL of the organization's avatar image (thumbnail size).
+          example:
+            eq: value
+        time_locking_reminders:
+          type: boolean
+          title: Time Locking Reminders
+          description: Whether email reminders are sent before time entries are locked.
+          example:
+            gt: 0
+        time_tracking_policy_id:
+          type: integer
+          title: Time Tracking Policy
+          description: The ID of the active time tracking policy for the organization.
+          example:
+            - 123
+        rounding_method_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Rounding Method
+          description: Rounding method applied to time entries (e.g. round up, round down, round to nearest).
+          example:
+            - 123
+        currency_normalized:
+          title: Currency Normalized
+          description: Normalized currency code used internally.
+          example:
+            eq: value
+        remove_branding:
+          type: boolean
+          title: Remove Branding
+          description: Whether the Productive branding is removed from outgoing documents and emails.
+          example:
+            eq: value
+        owner:
+          title: Owner
+          description: The person who owns the organization account.
+          example:
+            eq: value
+        overhead:
+          type: boolean
+          title: Overhead
+          description: Whether overhead cost tracking is enabled for the organization.
+          example:
+            eq: value
+        time_locking_interval:
+          type: integer
+          title: Time Locking Interval
+          description: Number of periods (days or weeks) after which time entries are automatically locked.
+          example:
+            gt: 0
+        metrics:
+          title: Metrics
+          description: Base64-encoded JSON containing UTM attribution metrics for the organization's acquisition source.
+          example:
+            eq: value
+        verification_status_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Verification Status
+          description: Verification status of the organization account.
+          example:
+            - 123
+        financial_month_locking_date:
+          type: integer
+          title: Financial Month Locking Date
+          description: Day of the month on which financial months are locked (1–28).
+          example:
+            gt: '2026-01-01'
+        week_start_day_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Week Start Day
+          description: First day of the work week for the organization (e.g. Monday, Sunday).
+          example:
+            - 123
+        time_reminder_at:
+          type: integer
+          title: Time Reminder At
+          description: Hour of the day (0–23) when time reminder emails are sent.
+          example:
+            gt: '2026-01-01'
+        currency_default:
+          title: Currency Default
+          description: Default currency code used as the base for monetary values.
+          example:
+            eq: value
+        expense_markup:
+          type: number
+          title: Expense Markup
+          description: Default markup percentage applied to expenses on deals.
+          example:
+            eq: value
+        quick_start_config:
+          type: string
+          title: Quick Start Config
+          description: Quick start configuration used during initial setup.
+          example:
+            eq: value
+        working_hours:
+          type: object
+          title: Working Hours
+          description: Default working hours schedule for the organization, defining hours per day of the week.
+          example:
+            eq: value
+        erector_id:
+          type: integer
+          title: Erector
+          description: ID of the Productive user who set up (erected) the organization.
+          example:
+            - 123
+        domain_verified:
+          title: Domain Verified
+          description: Whether the custom email domain has been verified for sending invoice emails.
+          example:
+            eq: value
+        email_local_name:
+          title: Email Local Name
+          description: Local part (username) of the custom invoice email sender address.
+          example:
+            eq: value
+        invoice_rounding_method_id:
+          type: integer
+          title: Invoice Rounding Method
+          description: Rounding method applied when generating invoice line item amounts.
+          example:
+            - 123
+        force_two_factor_auth:
+          type: boolean
+          title: Force Two Factor Auth
+          description: Whether two-factor authentication is required for all organization members.
+          example:
+            eq: value
+        facility_costs_normalized:
+          title: Facility Costs Normalized
+          description: Facility costs normalized to the base currency.
+          example:
+            eq: value
+        overhead_recalculation_day:
+          type: integer
+          title: Overhead Recalculation Day
+          description: The day of the month on which overhead costs are recalculated.
+          example:
+            eq: value
+        time_format_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Time Format
+          description: Time format preference for the organization (e.g. decimal hours vs. HH:MM).
+          example:
+            - 123
+        delivered_budget_recognition_date_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+          type: integer
+          title: Delivered Budget Recognition Date
+          description: Revenue recognition date rule applied to delivered budgets.
+          example:
+            - 123
+        addons:
+          title: Addons
+          description: Active add-ons enabled for the organization.
+          example:
+            eq: value
+        time_locking:
+          type: boolean
+          title: Time Locking
+          description: Whether time locking is enabled, preventing edits to time entries in locked periods.
+          example:
+            gt: 0
+        rounding_interval_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Rounding Interval
+          description: Time rounding interval applied to time entries (e.g. 15 minutes, 30 minutes).
+          example:
+            - 123
+        sample_data_reverted_at:
+          type: string
+          title: Sample Data Reverted At
+          format: date-time
+          description: Timestamp when sample data was reverted (removed) from the organization.
+          example:
+            gt: '2026-01-01'
+        number_format_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+          type: integer
+          title: Number Format
+          description: Number format preference for the organization. Controls how numbers are formatted (e.g. decimal separator).
+          example:
+            - 123
+        request_for_resource_enabled:
+          type: boolean
+          title: Request For Resource Enabled
+          description: Whether the resource request workflow is enabled, allowing managers to request people for projects.
+          example:
+            eq: value
+        limited_service_types:
+          title: Limited Service Types
+          description: Whether service types are restricted to a limited set for the organization.
+          example:
+            eq: active
+        conflict_resolver_active:
+          type: boolean
+          title: Conflict Resolver Active
+          description: Whether the scheduling conflict resolver is active, automatically detecting and flagging overbooking conflicts.
+          example:
+            eq: value
+        timesheet_submission_settings:
+          type: object
+          title: Timesheet Submission Settings
+          description: Configuration settings for the timesheet submission workflow.
           example:
             gt: 0
         open_budget_recognition_date_id:
@@ -1281,74 +1328,27 @@ components:
           description: Revenue recognition date rule applied to open (in-progress) budgets.
           example:
             - 123
-        flags:
-          type: object
-          title: Flags
-          description: Feature flags for the organization, keyed by flag name with boolean values.
-          example:
-            eq: value
-        time_locking_interval:
-          type: integer
-          title: Time Locking Interval
-          description: Number of periods (days or weeks) after which time entries are automatically locked.
-          example:
-            gt: 0
-        remove_branding:
-          type: boolean
-          title: Remove Branding
-          description: Whether the Productive branding is removed from outgoing documents and emails.
-          example:
-            eq: value
-        working_hours:
-          type: object
-          title: Working Hours
-          description: Default working hours schedule for the organization, defining hours per day of the week.
-          example:
-            eq: value
-        rounding_interval_id:
+        time_locking_period_id:
           enum:
             - 1
             - 2
             - 3
           type: integer
-          title: Rounding Interval
-          description: Time rounding interval applied to time entries (e.g. 15 minutes, 30 minutes).
+          title: Time Locking Period
+          description: Period unit used for time locking (e.g. days, weeks).
           example:
             - 123
-        company:
-          title: Company
-          description: The client company linked to the organization.
-          example:
-            eq: value
-        self_attribution_comment:
-          type: string
-          title: Self Attribution Comment
-          description: Additional comment or detail on how the organization discovered Productive.
-          example:
-            gt: '2026-01-01'
-        owner_id:
-          type: integer
-          title: Owner
-          description: ID of the person who owns the organization account.
-          example:
-            - 123
-        addons:
-          title: Addons
-          description: Active add-ons enabled for the organization.
-          example:
-            eq: value
         self_attribution:
           type: string
           title: Self Attribution
           description: How the organization discovered Productive (self-reported attribution).
           example:
             gt: '2026-01-01'
-        time_tracking_policy_id:
-          type: integer
-          title: Time Tracking Policy
-          description: The ID of the active time tracking policy for the organization.
+        facility_costs_default:
+          title: Facility Costs Default
+          description: Facility costs in the default currency.
           example:
-            - 123
+            eq: value
       description: The organization resource representing the top-level account with global settings, preferences, and configuration.
       example:
         id: '109'

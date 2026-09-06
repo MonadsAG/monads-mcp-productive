@@ -32,8 +32,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_approval_policy_assignment'
       parameters:
-        - $ref: '#/components/parameters/filter_approval_policy_assignment'
         - $ref: '#/components/parameters/sort_approval_policy_assignment'
+        - $ref: '#/components/parameters/filter_approval_policy_assignment'
         - $ref: '#/components/parameters/header_organization'
       operationId: approval_policy_assignments-index
       description: List approval policy assignments with optional filters and pagination.
@@ -129,6 +129,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_approval_policy_assignment:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.approval_policy_assignment at the top of this file.
+      required: false
+      description: Filter parameter for querying approval policy assignments.
     sort_approval_policy_assignment:
       in: query
       name: sort
@@ -141,15 +150,6 @@ components:
       explode: false
       required: false
       description: Sort parameter for ordering approval policy assignments.
-    filter_approval_policy_assignment:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.approval_policy_assignment at the top of this file.
-      required: false
-      description: Filter parameter for querying approval policy assignments.
   requestBodies:
     approval_policy_assignment:
       content:
@@ -171,12 +171,6 @@ components:
       type: object
       title: Approval policy assignment Resource
       properties:
-        target_type:
-          type: string
-          title: Target Type
-          description: 'The type of target this policy is assigned to: ''Person'' for absence approvals or ''Quote'' for budget approvals.'
-          example:
-            eq: active
         organization:
           title: Organization
           description: The organization this approval policy assignment belongs to.
@@ -187,14 +181,20 @@ components:
           description: The person this assignment applies to, if the target is a person (for absence approvals).
           example:
             eq: value
-        deal:
-          title: Deal
-          description: The budget (deal) this assignment applies to, if the target is a budget.
+        target_type:
+          type: string
+          title: Target Type
+          description: 'The type of target this policy is assigned to: ''Person'' for absence approvals or ''Quote'' for budget approvals.'
           example:
-            eq: value
+            eq: active
         approval_policy:
           title: Approval Policy
           description: The approval policy assigned to this target.
+          example:
+            eq: value
+        deal:
+          title: Deal
+          description: The budget (deal) this assignment applies to, if the target is a budget.
           example:
             eq: value
         target_id:
@@ -226,14 +226,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -241,10 +249,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -253,10 +257,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -306,14 +306,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

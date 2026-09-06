@@ -8,6 +8,13 @@ description: |-
   Use these endpoints to configure recurring or event-driven billing without manual invoice creation.
 x-filters:
   automatic_invoicing_rule:
+    id:
+      description: Filter by automatic invoicing rule ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     budget_id:
       description: Filter by the associated budget (deal).
       operators:
@@ -17,13 +24,6 @@ x-filters:
         - not_eq
     creator_id:
       description: Filter by the person who created the rule.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by automatic invoicing rule ID.
       operators:
         - contains
         - eq
@@ -39,9 +39,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_automatic_invoicing_rule'
       parameters:
+        - $ref: '#/components/parameters/sort_automatic_invoicing_rule'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_automatic_invoicing_rule'
-        - $ref: '#/components/parameters/sort_automatic_invoicing_rule'
       operationId: automatic_invoicing_rules-index
       description: List automatic invoicing rules with optional filters and pagination.
     post:
@@ -99,13 +99,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the automatic invoicing rule to update.
-        - $ref: '#/components/parameters/header_organization'
       operationId: automatic_invoicing_rules-update
       requestBody:
         $ref: '#/components/requestBodies/automatic_invoicing_rule'
@@ -118,13 +118,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the automatic invoicing rule to delete.
-        - $ref: '#/components/parameters/header_organization'
       operationId: automatic_invoicing_rules-destroy
       description: Delete an automatic invoicing rule.
 components:
@@ -136,6 +136,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_automatic_invoicing_rule:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.automatic_invoicing_rule at the top of this file.
+      required: false
+      description: Filter parameter for querying automatic invoicing rules.
     sort_automatic_invoicing_rule:
       in: query
       name: sort
@@ -153,15 +162,6 @@ components:
       explode: false
       required: false
       description: The sort automatic invoicing rule.
-    filter_automatic_invoicing_rule:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.automatic_invoicing_rule at the top of this file.
-      required: false
-      description: Filter parameter for querying automatic invoicing rules.
   requestBodies:
     automatic_invoicing_rule:
       content:
@@ -191,11 +191,65 @@ components:
       type: object
       title: Automatic invoicing rule Resource
       properties:
+        next_invoice_date:
+          type: string
+          title: Next Invoice Date
+          format: date
+          description: The next scheduled date on which an invoice draft will be automatically created.
+          example:
+            gt: '2026-01-01'
+        creator:
+          title: Creator
+          description: The person who created this automatic invoicing rule.
+          example:
+            eq: value
+        reference_date:
+          enum:
+            - start_date
+            - end_date
+          type: string
+          title: Reference Date
+          description: The reference date used to calculate when invoices are created (e.g. period_start, period_end).
+          example:
+            gt: '2026-01-01'
+        creation_offset:
+          type: integer
+          title: Creation Offset
+          description: Number of time units to offset invoice creation from the reference date.
+          example:
+            eq: value
         created_at:
           title: Created At
           description: Timestamp when the automatic invoicing rule was created.
           example:
             gt: '2026-01-01'
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the automatic invoicing rule.
+          example:
+            - 123
+        skip_weekends:
+          type: boolean
+          title: Skip Weekends
+          description: When true, invoice creation is shifted to the next working day if the scheduled date falls on a weekend.
+          example:
+            eq: value
+        processed_at:
+          type: string
+          title: Processed At
+          format: date-time
+        creator_id:
+          type: integer
+          title: Creator
+          description: The ID of the person who created this automatic invoicing rule.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this automatic invoicing rule belongs to.
+          example:
+            eq: value
         budget:
           title: Budget
           description: The budget this automatic invoicing rule applies to.
@@ -211,66 +265,12 @@ components:
           description: The time unit for the creation offset (e.g. days, weeks, months).
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this automatic invoicing rule belongs to.
-          example:
-            eq: value
         budget_id:
           type: integer
           title: Budget
           description: The ID of the budget this automatic invoicing rule applies to.
           example:
             - 123
-        skip_weekends:
-          type: boolean
-          title: Skip Weekends
-          description: When true, invoice creation is shifted to the next working day if the scheduled date falls on a weekend.
-          example:
-            eq: value
-        creation_offset:
-          type: integer
-          title: Creation Offset
-          description: Number of time units to offset invoice creation from the reference date.
-          example:
-            eq: value
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier for the automatic invoicing rule.
-          example:
-            - 123
-        processed_at:
-          type: string
-          title: Processed At
-          format: date-time
-        next_invoice_date:
-          type: string
-          title: Next Invoice Date
-          format: date
-          description: The next scheduled date on which an invoice draft will be automatically created.
-          example:
-            gt: '2026-01-01'
-        creator_id:
-          type: integer
-          title: Creator
-          description: The ID of the person who created this automatic invoicing rule.
-          example:
-            - 123
-        reference_date:
-          enum:
-            - start_date
-            - end_date
-          type: string
-          title: Reference Date
-          description: The reference date used to calculate when invoices are created (e.g. period_start, period_end).
-          example:
-            gt: '2026-01-01'
-        creator:
-          title: Creator
-          description: The person who created this automatic invoicing rule.
-          example:
-            eq: value
       description: An automatic invoicing rule defines when invoice drafts are automatically created for a budget.
       example:
         id: '7'
@@ -288,14 +288,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -303,10 +311,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -315,10 +319,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -368,14 +368,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

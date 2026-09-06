@@ -8,8 +8,8 @@ description: |-
   A deal or budget can have multiple sections, each containing one or more services.
 x-filters:
   section:
-    name:
-      description: Filter by section name (text search).
+    id:
+      description: Filter by ID.
       operators:
         - contains
         - eq
@@ -29,8 +29,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by ID.
+    name:
+      description: Filter by section name (text search).
       operators:
         - contains
         - eq
@@ -46,9 +46,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_section'
       parameters:
-        - $ref: '#/components/parameters/filter_section'
-        - $ref: '#/components/parameters/sort_section'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_section'
+        - $ref: '#/components/parameters/filter_section'
       operationId: sections-index
       description: List all sections.
     post:
@@ -106,13 +106,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: sections-update
       requestBody:
         $ref: '#/components/requestBodies/section'
@@ -125,13 +125,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: sections-destroy
       description: Delete a section by ID.
 components:
@@ -143,6 +143,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_section:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.section at the top of this file.
+      required: false
+      description: Filters
     sort_section:
       in: query
       name: sort
@@ -155,15 +164,6 @@ components:
       explode: false
       required: false
       description: Sort section
-    filter_section:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.section at the top of this file.
-      required: false
-      description: Filters
   requestBodies:
     section:
       content:
@@ -200,29 +200,18 @@ components:
           description: The deal this section belongs to.
           example:
             eq: value
-        position:
-          type: integer
-          title: Position
-          description: The sort position of this section within the deal.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this section belongs to.
-          example:
-            eq: value
-        budget_id:
-          type: integer
-          title: Budget
-          description: ID of the budget this section belongs to.
-          example:
-            - 123
         preferences:
           type: object
           title: Preferences
           description: User-specific display preferences for this section, stored as key-value settings.
           example:
             eq: value
+        deal_id:
+          type: integer
+          title: Deal
+          description: ID of the deal this section belongs to.
+          example:
+            - 123
         description:
           type: string
           title: Description
@@ -232,24 +221,35 @@ components:
           description: The name of this section.
           example:
             eq: value
-        id:
+        budget_id:
           type: integer
-          title: Id
-          description: The unique identifier of this section.
+          title: Budget
+          description: ID of the budget this section belongs to.
           example:
             - 123
-        deal_id:
+        position:
           type: integer
-          title: Deal
-          description: ID of the deal this section belongs to.
+          title: Position
+          description: The sort position of this section within the deal.
           example:
-            - 123
+            eq: value
         editor_config:
           type: object
           title: Editor Config
           description: Rich text editor configuration and content for this section's description.
           example:
             eq: value
+        organization:
+          title: Organization
+          description: The organization this section belongs to.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this section.
+          example:
+            - 123
       description: Represents a named grouping of services within a deal or budget, used to organize line items into logical sections.
       example:
         id: '123'
@@ -262,14 +262,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -277,10 +285,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -289,10 +293,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -342,14 +342,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

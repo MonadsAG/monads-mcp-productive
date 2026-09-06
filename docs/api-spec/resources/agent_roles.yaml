@@ -13,13 +13,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_role'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The unique identifier of the agent role to retrieve.
-        - $ref: '#/components/parameters/header_organization'
       operationId: agent-roles-show
       description: Returns the role associated with the specified agent, including its permission settings.
     patch:
@@ -38,13 +38,13 @@ paths:
                 type: string
           description: Returned when the update fails validation — for example, when required fields are missing or contain invalid values.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The unique identifier of the agent role to update.
+        - $ref: '#/components/parameters/header_organization'
       operationId: agent-roles-update
       requestBody:
         $ref: '#/components/requestBodies/agent_role'
@@ -71,12 +71,51 @@ components:
       type: object
       title: Role Resource
       properties:
+        people_count:
+          type: integer
+          title: People Count
+          description: The number of people currently assigned to this role.
+          example:
+            gt: 0
         active_agents_count:
           type: integer
           title: Active Agents Count
           description: The number of active AI agents currently assigned to this role.
           example:
             gt: 0
+        user_type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: User Type
+          description: ID of the user type associated with this role (e.g. full user, limited user).
+          example:
+            - 123
+        inactive_agents_count:
+          type: integer
+          title: Inactive Agents Count
+          description: The number of inactive AI agents assigned to this role.
+          example:
+            gt: 0
+        editable_by_user:
+          type: boolean
+          title: Editable By User
+          description: Whether this role can be modified by regular users, or is a system-managed role.
+          example:
+            eq: value
+        active_users_count:
+          type: integer
+          title: Active Users Count
+          description: The number of active users currently assigned to this role.
+          example:
+            gt: 0
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this role.
+          example:
+            - 123
         base_role_id:
           enum:
             - 1
@@ -98,20 +137,26 @@ components:
           description: ID of the base role type this custom role is derived from (determines the permission baseline).
           example:
             - 123
+        name:
+          type: string
+          title: Name
+          description: The display name of this role.
+          example:
+            eq: value
+        permissions:
+          type: object
+          title: Permissions
+          description: The explicit permission settings configured for this role.
+          example:
+            eq: value
         organization:
           title: Organization
           description: The organization this role belongs to.
           example:
             eq: value
-        editable_by_user:
-          type: boolean
-          title: Editable By User
-          description: Whether this role can be modified by regular users, or is a system-managed role.
-          example:
-            eq: value
-        resolved_permissions:
-          title: Resolved Permissions
-          description: The effective resolved permissions for this role, including inherited permissions from the base role.
+        description:
+          type: string
+          title: Description
           example:
             eq: value
         inactive_users_count:
@@ -120,54 +165,9 @@ components:
           description: The number of inactive users assigned to this role.
           example:
             gt: 0
-        inactive_agents_count:
-          type: integer
-          title: Inactive Agents Count
-          description: The number of inactive AI agents assigned to this role.
-          example:
-            gt: 0
-        people_count:
-          type: integer
-          title: People Count
-          description: The number of people currently assigned to this role.
-          example:
-            gt: 0
-        active_users_count:
-          type: integer
-          title: Active Users Count
-          description: The number of active users currently assigned to this role.
-          example:
-            gt: 0
-        permissions:
-          type: object
-          title: Permissions
-          description: The explicit permission settings configured for this role.
-          example:
-            eq: value
-        user_type_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: User Type
-          description: ID of the user type associated with this role (e.g. full user, limited user).
-          example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this role.
-          example:
-            - 123
-        name:
-          type: string
-          title: Name
-          description: The display name of this role.
-          example:
-            eq: value
-        description:
-          type: string
-          title: Description
+        resolved_permissions:
+          title: Resolved Permissions
+          description: The effective resolved permissions for this role, including inherited permissions from the base role.
           example:
             eq: value
       description: A role defines a set of permissions that control what members assigned to it can access and do within the organization.
@@ -182,14 +182,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -197,10 +205,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -209,10 +213,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -262,14 +262,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

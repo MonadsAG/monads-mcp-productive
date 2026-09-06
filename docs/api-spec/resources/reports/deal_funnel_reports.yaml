@@ -4,6 +4,13 @@ info:
   version: 2.0.0
 x-filters:
   deal_funnel_report:
+    formulas:
+      description: Filter deal funnel report results by formulas.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     created_at:
       description: Filter deal funnel report results by created at.
       operators:
@@ -11,8 +18,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    formulas:
-      description: Filter deal funnel report results by formulas.
+    pipeline_id:
+      description: Filter deal funnel report results by pipeline id.
       operators:
         - contains
         - eq
@@ -25,13 +32,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    projected_revenue:
-      description: Filter deal funnel report results by projected revenue.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     date:
       description: Filter deal funnel report results by date.
       operators:
@@ -39,8 +39,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    pipeline_id:
-      description: Filter deal funnel report results by pipeline id.
+    projected_revenue:
+      description: Filter deal funnel report results by projected revenue.
       operators:
         - contains
         - eq
@@ -56,14 +56,26 @@ paths:
         '200':
           $ref: '#/components/responses/collection_deal_funnel_report'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_deal_funnel_report'
-        - $ref: '#/components/parameters/sort_deal_funnel_report'
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/group_deal_funnel_report'
+        - $ref: '#/components/parameters/sort_deal_funnel_report'
       operationId: reports-deal_funnel_reports-index
       description: Retrieve aggregated deal funnel report data grouped by configurable dimensions.
 components:
   parameters:
+    sort_deal_funnel_report:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort deal funnel report
+      explode: false
+      required: false
+      description: Sort deal funnel report
     group_deal_funnel_report:
       in: query
       name: group
@@ -79,18 +91,13 @@ components:
       explode: false
       required: false
       description: Group deal funnel report
-    sort_deal_funnel_report:
-      in: query
-      name: sort
-      style: form
+    header_organization:
+      in: header
+      name: X-Organization-Id
       schema:
-        type: array
-        items:
-          type: string
-        title: Sort deal funnel report
-      explode: false
-      required: false
-      description: Sort deal funnel report
+        type: string
+      required: true
+      description: Organization ID
     filter_deal_funnel_report:
       in: query
       name: filter
@@ -100,81 +107,46 @@ components:
         description: Filter keys and their operators are listed under x-filters.deal_funnel_report at the top of this file.
       required: false
       description: Filters
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
   schemas:
     resource_deal_funnel_report:
       type: object
       title: Deal funnel report Resource
       properties:
-        group:
-          type: string
-          title: Group
-          description: Dimension value used to group this report row (e.g. pipeline stage name or deal status label).
+        formula_fields:
+          title: Formula Fields
+          description: Formula fields — key-value hash of custom formula results for this report row.
           example:
             eq: value
-        report:
-          title: Report
-          description: The parent report row for this funnel row, used in hierarchical grouping.
+        deal_funnel:
+          title: Deal Funnel
+          description: Related deal funnel data combining pipeline, deal status, and this report row — used by the UI to compute conversion metrics.
           example:
             eq: value
-        deal_status:
-          title: Deal Status
-          description: The deal status (pipeline stage) this funnel row is grouped by.
-          example:
-            eq: active
-        total_budget_total:
-          title: Total Budget Total
-          description: Sum of total budget value for all deals in this funnel stage, in the budget currency.
+        budget_total:
+          title: Budget Total
+          description: Total contracted budget value for deals in this funnel stage.
           example:
             gt: 0
-        pipeline:
-          title: Pipeline
-          description: The pipeline this report row belongs to.
-          example:
-            eq: value
-        total_projected_revenue_normalized:
-          title: Total Projected Revenue Normalized
-          description: Sum of projected revenue for all deals in this funnel stage, in the normalized common currency.
-          example:
-            eq: value
         lost_count:
           type: integer
           title: Lost Count
           description: Number of deals in this funnel stage that were marked as lost.
           example:
             gt: 0
-        pipeline_id:
-          type: integer
-          title: Pipeline
-          description: ID of the pipeline this funnel row is grouped by.
-          example:
-            - 123
-        date:
-          type: string
-          title: Date
-          format: date
-          description: Date dimension for time-based filtering of the funnel report.
-          example:
-            gt: '2026-01-01'
-        formula_fields:
-          title: Formula Fields
-          description: Formula fields — key-value hash of custom formula results for this report row.
-          example:
-            eq: value
         total_budget_total_normalized:
           title: Total Budget Total Normalized
           description: Sum of total budget value for all deals in this funnel stage, in the normalized common currency.
           example:
             gt: 0
-        budget_total:
-          title: Budget Total
-          description: Total contracted budget value for deals in this funnel stage.
+        count:
+          type: integer
+          title: Count
+          description: Number of deals grouped into this report row.
+          example:
+            gt: 0
+        total_budget_total:
+          title: Total Budget Total
+          description: Sum of total budget value for all deals in this funnel stage, in the budget currency.
           example:
             gt: 0
         currency:
@@ -183,47 +155,16 @@ components:
           description: Currency code for this report row, reflecting the budget currency.
           example:
             eq: value
-        total_projected_revenue:
-          title: Total Projected Revenue
-          description: Sum of projected revenue for all deals in this funnel stage, in the budget currency.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this report row belongs to.
-          example:
-            eq: value
-        total_projected_revenue_default:
-          title: Total Projected Revenue Default
-          description: Sum of projected revenue for all deals in this funnel stage, in the organization's default currency.
-          example:
-            eq: value
-        projected_revenue:
-          title: Projected Revenue
-          description: Projected revenue for deals in this funnel stage, based on budget forecasting.
-          example:
-            eq: value
-        formulas:
-          type: integer
-          title: Formulas
-          description: Custom formula results for this report row, keyed by formula identifier.
-          example:
-            eq: value
-        currency_normalized:
-          title: Currency Normalized
-          description: Currency code for totals expressed in the organization's normalized (common) currency.
-          example:
-            eq: value
-        deal_funnel:
-          title: Deal Funnel
-          description: Related deal funnel data combining pipeline, deal status, and this report row — used by the UI to compute conversion metrics.
-          example:
-            eq: value
         total_budget_total_default:
           title: Total Budget Total Default
           description: Sum of total budget value for all deals in this funnel stage, in the organization's default currency.
           example:
             gt: 0
+        report:
+          title: Report
+          description: The parent report row for this funnel row, used in hierarchical grouping.
+          example:
+            eq: value
         created_at:
           type: string
           title: Created At
@@ -231,12 +172,71 @@ components:
           description: Timestamp when this report row was created.
           example:
             gt: '2026-01-01'
-        count:
-          type: integer
-          title: Count
-          description: Number of deals grouped into this report row.
+        deal_status:
+          title: Deal Status
+          description: The deal status (pipeline stage) this funnel row is grouped by.
           example:
-            gt: 0
+            eq: active
+        pipeline:
+          title: Pipeline
+          description: The pipeline this report row belongs to.
+          example:
+            eq: value
+        date:
+          type: string
+          title: Date
+          format: date
+          description: Date dimension for time-based filtering of the funnel report.
+          example:
+            gt: '2026-01-01'
+        projected_revenue:
+          title: Projected Revenue
+          description: Projected revenue for deals in this funnel stage, based on budget forecasting.
+          example:
+            eq: value
+        group:
+          type: string
+          title: Group
+          description: Dimension value used to group this report row (e.g. pipeline stage name or deal status label).
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this report row belongs to.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: Currency code for totals expressed in the organization's normalized (common) currency.
+          example:
+            eq: value
+        total_projected_revenue:
+          title: Total Projected Revenue
+          description: Sum of projected revenue for all deals in this funnel stage, in the budget currency.
+          example:
+            eq: value
+        pipeline_id:
+          type: integer
+          title: Pipeline
+          description: ID of the pipeline this funnel row is grouped by.
+          example:
+            - 123
+        formulas:
+          type: integer
+          title: Formulas
+          description: Custom formula results for this report row, keyed by formula identifier.
+          example:
+            eq: value
+        total_projected_revenue_default:
+          title: Total Projected Revenue Default
+          description: Sum of projected revenue for all deals in this funnel stage, in the organization's default currency.
+          example:
+            eq: value
+        total_projected_revenue_normalized:
+          title: Total Projected Revenue Normalized
+          description: Sum of projected revenue for all deals in this funnel stage, in the normalized common currency.
+          example:
+            eq: value
         currency_default:
           title: Currency Default
           description: Currency code for totals expressed in the organization's default currency.
@@ -256,14 +256,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -271,10 +279,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -283,10 +287,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -336,14 +336,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

@@ -8,36 +8,8 @@ description: |-
   Query usages to understand utilization of unfilled resource slots and identify over- or under-allocated placeholders in your resource plan.
 x-filters:
   placeholder_usage:
-    placeholder_id:
-      description: Filter by the associated placeholder.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    skip_weekends:
-      description: Filter to include only usages where weekends are skipped in interval calculations.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    todo_id:
-      description: Filter by the associated todo.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     project_id:
       description: Filter by the associated project (matches usages on tasks or todos within that project).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    target_type:
-      description: Filter by the target resource type (task or todo).
       operators:
         - contains
         - eq
@@ -57,8 +29,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    field:
-      description: Filter by the date-offset field used for interval calculation.
+    todo_id:
+      description: Filter by the associated todo.
       operators:
         - contains
         - eq
@@ -66,6 +38,34 @@ x-filters:
         - not_eq
     task_id:
       description: Filter by the associated task.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    skip_weekends:
+      description: Filter to include only usages where weekends are skipped in interval calculations.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    field:
+      description: Filter by the date-offset field used for interval calculation.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    target_type:
+      description: Filter by the target resource type (task or todo).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    placeholder_id:
+      description: Filter by the associated placeholder.
       operators:
         - contains
         - eq
@@ -81,9 +81,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_placeholder_usage'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_placeholder_usage'
         - $ref: '#/components/parameters/filter_placeholder_usage'
+        - $ref: '#/components/parameters/sort_placeholder_usage'
+        - $ref: '#/components/parameters/header_organization'
       operationId: placeholder_usages-index
       description: List all placeholder usages.
     post:
@@ -139,13 +139,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the placeholder usage to update.
-        - $ref: '#/components/parameters/header_organization'
       operationId: placeholder_usages-update
       description: Update a placeholder usage.
     delete:
@@ -156,13 +156,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the placeholder usage to delete.
-        - $ref: '#/components/parameters/header_organization'
       operationId: placeholder_usages-destroy
       description: Delete a placeholder usage by ID.
 components:
@@ -174,15 +174,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_placeholder_usage:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.placeholder_usage at the top of this file.
-      required: false
-      description: Filter parameter for querying placeholder usages.
     sort_placeholder_usage:
       in: query
       name: sort
@@ -220,6 +211,15 @@ components:
       explode: false
       required: false
       description: Sort order for placeholder usage list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
+    filter_placeholder_usage:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.placeholder_usage at the top of this file.
+      required: false
+      description: Filter parameter for querying placeholder usages.
   responses:
     single_placeholder_usage:
       content:
@@ -330,14 +330,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -345,10 +353,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -357,10 +361,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -410,14 +410,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -426,38 +426,6 @@ components:
       type: object
       title: Placeholder usage Resource
       properties:
-        project_id:
-          type: integer
-          title: Project
-          description: ID of the project this placeholder usage is associated with.
-          example:
-            - 123
-        interval_direction:
-          enum:
-            - before
-            - after
-          type: string
-          title: Interval Direction
-          description: The direction of the date offset relative to the reference date, either before or after.
-          example:
-            eq: value
-        todo_id:
-          type: integer
-          title: Todo
-          description: ID of the todo this placeholder usage is linked to, if the target is a todo.
-          example:
-            - 123
-        target_id:
-          type: integer
-          title: Target
-          description: The ID of the target record (task or todo) this placeholder usage applies to.
-          example:
-            - 123
-        task:
-          title: Task
-          description: The task this placeholder usage is linked to, if the target is a task.
-          example:
-            eq: value
         field:
           enum:
             - assignee
@@ -469,15 +437,60 @@ components:
           description: The task or todo field this placeholder is mapped to (e.g. assignee, due_date, start_date).
           example:
             eq: value
-        interval_unit:
-          enum:
-            - day
-            - week
-            - month
-            - year
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this placeholder usage is associated with.
+          example:
+            - 123
+        placeholder_id:
+          type: integer
+          title: Placeholder
+          description: ID of the placeholder associated with this usage.
+          example:
+            - 123
+        interval_enabled:
+          type: boolean
+          title: Interval Enabled
+          description: Whether the date offset interval is enabled for this placeholder usage.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this placeholder usage.
+          example:
+            - 123
+        target_type:
           type: string
-          title: Interval Unit
-          description: The unit of the date offset interval (day, week, month, or year).
+          title: Target Type
+          description: The type of the target record this placeholder usage applies to (task or todo).
+          example:
+            eq: active
+        interval_value:
+          type: integer
+          title: Interval Value
+          description: The numeric value of the date offset applied to the target field when using interval mode.
+          example:
+            eq: value
+        todo:
+          title: Todo
+          description: The todo this placeholder usage is linked to, if the target is a todo.
+          example:
+            eq: value
+        todo_id:
+          type: integer
+          title: Todo
+          description: ID of the todo this placeholder usage is linked to, if the target is a todo.
+          example:
+            - 123
+        interval_direction:
+          enum:
+            - before
+            - after
+          type: string
+          title: Interval Direction
+          description: The direction of the date offset relative to the reference date, either before or after.
           example:
             eq: value
         skip_weekends:
@@ -486,10 +499,10 @@ components:
           description: When true, weekends are excluded when calculating date offsets for this placeholder.
           example:
             eq: value
-        task_id:
+        target_id:
           type: integer
-          title: Task
-          description: ID of the task this placeholder usage is linked to, if the target is a task.
+          title: Target
+          description: The ID of the target record (task or todo) this placeholder usage applies to.
           example:
             - 123
         placeholder:
@@ -504,41 +517,28 @@ components:
           description: Timestamp when this placeholder usage was last updated.
           example:
             gt: '2026-01-01'
-        target_type:
+        task_id:
+          type: integer
+          title: Task
+          description: ID of the task this placeholder usage is linked to, if the target is a task.
+          example:
+            - 123
+        task:
+          title: Task
+          description: The task this placeholder usage is linked to, if the target is a task.
+          example:
+            eq: value
+        interval_unit:
+          enum:
+            - day
+            - week
+            - month
+            - year
           type: string
-          title: Target Type
-          description: The type of the target record this placeholder usage applies to (task or todo).
-          example:
-            eq: active
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this placeholder usage.
-          example:
-            - 123
-        todo:
-          title: Todo
-          description: The todo this placeholder usage is linked to, if the target is a todo.
+          title: Interval Unit
+          description: The unit of the date offset interval (day, week, month, or year).
           example:
             eq: value
-        interval_enabled:
-          type: boolean
-          title: Interval Enabled
-          description: Whether the date offset interval is enabled for this placeholder usage.
-          example:
-            eq: value
-        interval_value:
-          type: integer
-          title: Interval Value
-          description: The numeric value of the date offset applied to the target field when using interval mode.
-          example:
-            eq: value
-        placeholder_id:
-          type: integer
-          title: Placeholder
-          description: ID of the placeholder associated with this usage.
-          example:
-            - 123
         created_at:
           type: string
           title: Created At

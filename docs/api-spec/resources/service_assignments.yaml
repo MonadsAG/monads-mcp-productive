@@ -27,15 +27,15 @@ description: |-
   ```
 x-filters:
   service_assignment:
-    service_id:
-      description: Filter by the associated service.
+    id:
+      description: Filter by service assignment ID.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by service assignment ID.
+    service_id:
+      description: Filter by the associated service.
       operators:
         - contains
         - eq
@@ -58,9 +58,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_service_assignment'
       parameters:
+        - $ref: '#/components/parameters/filter_service_assignment'
         - $ref: '#/components/parameters/sort_service_assignment'
         - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_service_assignment'
       operationId: service_assignments-index
       description: List all service assignments.
     post:
@@ -137,13 +137,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: service_assignments-destroy
       description: Delete a service assignment by ID.
 components:
@@ -155,15 +155,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_service_assignment:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.service_assignment at the top of this file.
-      required: false
-      description: Filters
     sort_service_assignment:
       in: query
       name: sort
@@ -176,6 +167,15 @@ components:
       explode: false
       required: false
       description: Sort service assignment
+    filter_service_assignment:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.service_assignment at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     service_assignment:
       content:
@@ -202,15 +202,9 @@ components:
       type: object
       title: Service assignment Resource
       properties:
-        person_id:
-          type: integer
+        person:
           title: Person
-          description: ID of the person assigned to this service.
-          example:
-            - 123
-        service:
-          title: Service
-          description: The service this assignment belongs to.
+          description: The person assigned to this service.
           example:
             eq: value
         organization:
@@ -218,21 +212,27 @@ components:
           description: The organization this service assignment belongs to.
           example:
             eq: value
-        person:
-          title: Person
-          description: The person assigned to this service.
+        service:
+          title: Service
+          description: The service this assignment belongs to.
           example:
             eq: value
+        service_id:
+          type: integer
+          title: Service
+          description: ID of the service this assignment belongs to.
+          example:
+            - 123
         id:
           type: integer
           title: Id
           description: The unique identifier of this service assignment.
           example:
             - 123
-        service_id:
+        person_id:
           type: integer
-          title: Service
-          description: ID of the service this assignment belongs to.
+          title: Person
+          description: ID of the person assigned to this service.
           example:
             - 123
       description: Represents an assignment of a person to a service (line item) on a deal or budget.
@@ -255,14 +255,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -270,10 +278,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -282,10 +286,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -335,14 +335,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

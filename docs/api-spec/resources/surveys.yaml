@@ -5,13 +5,6 @@ info:
 description: Project forms for structured data collection. Surveys can trigger automations on submission, making them useful for intake forms, onboarding workflows, and status updates. Supports custom fields for form fields.
 x-filters:
   survey:
-    query:
-      description: Filter by title (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     project_id:
       description: Filter by the associated project.
       operators:
@@ -19,15 +12,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    created_at:
-      description: Filter by creation date range.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    creator_id:
-      description: Filter by the person who created the survey.
+    editable:
+      description: Filter to include only surveys that the current user has full edit access to.
       operators:
         - contains
         - eq
@@ -40,6 +26,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    query:
+      description: Filter by title (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     id:
       description: Filter by ID.
       operators:
@@ -47,8 +40,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    editable:
-      description: Filter to include only surveys that the current user has full edit access to.
+    creator_id:
+      description: Filter by the person who created the survey.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by creation date range.
       operators:
         - contains
         - eq
@@ -84,8 +84,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_survey'
       parameters:
-        - $ref: '#/components/parameters/filter_survey'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_survey'
         - $ref: '#/components/parameters/sort_survey'
       operationId: surveys-index
       description: List all surveys.
@@ -111,13 +111,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_survey'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the survey to retrieve.
+        - $ref: '#/components/parameters/header_organization'
       operationId: surveys-show
       description: Retrieve a single survey by ID.
     patch:
@@ -219,36 +219,6 @@ components:
       type: object
       title: Survey Resource
       properties:
-        organization:
-          title: Organization
-          description: The organization this survey belongs to.
-          example:
-            eq: value
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this survey was created.
-          example:
-            gt: '2026-01-01'
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who created this survey.
-          example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this survey.
-          example:
-            - 123
-        project_id:
-          type: integer
-          title: Project
-          description: ID of the project this survey is associated with.
-          example:
-            - 123
         submission_access:
           enum:
             - nobody
@@ -266,23 +236,29 @@ components:
           description: Public UUID used to identify this survey in shareable links.
           example:
             eq: value
+        organization:
+          title: Organization
+          description: The organization this survey belongs to.
+          example:
+            eq: value
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who created this survey.
+          example:
+            - 123
         creator:
           title: Creator
           description: The person who created this survey.
           example:
             eq: value
-        editable:
-          type: boolean
-          title: Editable
-          description: Whether the current user can edit this survey.
-          example:
-            eq: value
-        query:
+        updated_at:
           type: string
-          title: Query
-          description: Text search query applied when filtering surveys.
+          title: Updated At
+          format: date-time
+          description: Timestamp when this survey was last updated.
           example:
-            eq: value
+            gt: '2026-01-01'
         updater:
           title: Updater
           description: The person who last updated this survey.
@@ -294,18 +270,42 @@ components:
           description: The title of this survey.
           example:
             eq: value
-        updated_at:
+        query:
           type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this survey was last updated.
+          title: Query
+          description: Text search query applied when filtering surveys.
           example:
-            gt: '2026-01-01'
+            eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this survey is associated with.
+          example:
+            - 123
+        editable:
+          type: boolean
+          title: Editable
+          description: Whether the current user can edit this survey.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this survey.
+          example:
+            - 123
         project:
           title: Project
           description: The project this survey is associated with.
           example:
             eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this survey was created.
+          example:
+            gt: '2026-01-01'
       description: Project form for structured data collection. Supports automation triggers on submission. Responses are stored as survey_response records with field values.
       example:
         id: '7'
@@ -323,14 +323,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -338,10 +346,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -350,10 +354,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -403,14 +403,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

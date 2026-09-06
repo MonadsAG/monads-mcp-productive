@@ -5,8 +5,8 @@ info:
 description: Time-off balances for a person. Tracks allocated, used, and pending (approved but not taken) days for a specific absence category (event) and period. Updated automatically as bookings and approvals are processed.
 x-filters:
   entitlement:
-    used:
-      description: Filter by the number of days used from the entitlement.
+    end_date:
+      description: Filter by entitlement end date range (`end_date`).
       operators:
         - contains
         - eq
@@ -19,8 +19,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    person_id:
-      description: Filter by the associated person.
+    date:
+      description: Filter entitlements active on a specific date (where start_date <= date <= end_date).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by entitlement ID.
       operators:
         - contains
         - eq
@@ -33,8 +40,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    date:
-      description: Filter entitlements active on a specific date (where start_date <= date <= end_date).
+    person_id:
+      description: Filter by the associated person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    used:
+      description: Filter by the number of days used from the entitlement.
       operators:
         - contains
         - eq
@@ -42,20 +56,6 @@ x-filters:
         - not_eq
     start_date:
       description: Filter by entitlement start date range (`start_date`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    end_date:
-      description: Filter by entitlement end date range (`end_date`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by entitlement ID.
       operators:
         - contains
         - eq
@@ -71,8 +71,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_entitlement'
       parameters:
-        - $ref: '#/components/parameters/sort_entitlement'
         - $ref: '#/components/parameters/filter_entitlement'
+        - $ref: '#/components/parameters/sort_entitlement'
         - $ref: '#/components/parameters/header_organization'
       operationId: entitlements-index
       description: List entitlements.
@@ -131,13 +131,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: entitlements-update
       requestBody:
         $ref: '#/components/requestBodies/entitlement'
@@ -168,15 +168,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_entitlement:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.entitlement at the top of this file.
-      required: false
-      description: Filters
     sort_entitlement:
       in: query
       name: sort
@@ -198,6 +189,15 @@ components:
       explode: false
       required: false
       description: Sort entitlement
+    filter_entitlement:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.entitlement at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     entitlement:
       content:
@@ -229,12 +229,71 @@ components:
       type: object
       title: Entitlement Resource
       properties:
+        start_date:
+          type: string
+          title: Start Date
+          format: date
+          description: The date when this entitlement period starts.
+          example:
+            gt: '2026-01-01'
+        organization:
+          title: Organization
+          description: The organization this entitlement belongs to.
+          example:
+            eq: value
         person_id:
           type: integer
           title: Person
           description: The ID of the person this entitlement applies to.
           example:
             - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this entitlement record.
+          example:
+            - 123
+        date:
+          type: string
+          title: Date
+          format: date
+          description: The reference date for this entitlement record (typically the start of the accrual period).
+          example:
+            gt: '2026-01-01'
+        approval_workflow:
+          title: Approval Workflow
+          description: Whether an approval workflow is required for absence requests under this entitlement.
+          example:
+            eq: value
+        event_id:
+          type: integer
+          title: Event
+          description: The ID of the absence category (event) this entitlement covers.
+          example:
+            - 123
+        pending:
+          type: number
+          title: Pending
+          description: Hours pending approval — absence bookings submitted but not yet approved.
+          example:
+            eq: value
+        allocated:
+          type: number
+          title: Allocated
+          description: Total hours allocated to this person for the absence category in the entitlement period.
+          example:
+            eq: value
+        note:
+          type: string
+          title: Note
+          description: Optional note providing additional context for this entitlement allocation.
+          example:
+            eq: value
+        person:
+          title: Person
+          description: The person this entitlement applies to.
+          example:
+            eq: value
         event:
           title: Event
           description: The absence category (event) this entitlement is for, such as vacation or sick leave.
@@ -246,18 +305,6 @@ components:
           description: Hours already used — approved absence bookings that have been taken within the entitlement period.
           example:
             eq: value
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this entitlement record.
-          example:
-            - 123
-        note:
-          type: string
-          title: Note
-          description: Optional note providing additional context for this entitlement allocation.
-          example:
-            eq: value
         end_date:
           type: string
           title: End Date
@@ -265,53 +312,6 @@ components:
           description: The date when this entitlement period ends. After this date, unused hours may expire.
           example:
             gt: '2026-01-01'
-        allocated:
-          type: number
-          title: Allocated
-          description: Total hours allocated to this person for the absence category in the entitlement period.
-          example:
-            eq: value
-        date:
-          type: string
-          title: Date
-          format: date
-          description: The reference date for this entitlement record (typically the start of the accrual period).
-          example:
-            gt: '2026-01-01'
-        person:
-          title: Person
-          description: The person this entitlement applies to.
-          example:
-            eq: value
-        pending:
-          type: number
-          title: Pending
-          description: Hours pending approval — absence bookings submitted but not yet approved.
-          example:
-            eq: value
-        approval_workflow:
-          title: Approval Workflow
-          description: Whether an approval workflow is required for absence requests under this entitlement.
-          example:
-            eq: value
-        start_date:
-          type: string
-          title: Start Date
-          format: date
-          description: The date when this entitlement period starts.
-          example:
-            gt: '2026-01-01'
-        event_id:
-          type: integer
-          title: Event
-          description: The ID of the absence category (event) this entitlement covers.
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: The organization this entitlement belongs to.
-          example:
-            eq: value
       description: A time-off entitlement for a person showing allocated, used, and pending hours for an absence category.
       example:
         id: '40728'
@@ -341,14 +341,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -356,10 +364,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -368,10 +372,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -421,14 +421,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

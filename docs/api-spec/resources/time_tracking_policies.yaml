@@ -8,13 +8,6 @@ description: |-
   Policies are assigned to people or projects to ensure time tracking compliance across teams.
 x-filters:
   time_tracking_policy:
-    id:
-      description: Filter by time tracking policy ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     status:
       description: Filter time tracking policies by archival status; active (1) or archived (2).
       operators:
@@ -31,6 +24,13 @@ x-filters:
         - not_eq
     person_id:
       description: Filter by the people assigned to the policy.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by time tracking policy ID.
       operators:
         - contains
         - eq
@@ -64,9 +64,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_time_tracking_policy'
       parameters:
-        - $ref: '#/components/parameters/filter_time_tracking_policy'
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_time_tracking_policy'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_time_tracking_policy'
       operationId: time_tracking_policies-index
       description: List all time tracking policies.
     post:
@@ -99,13 +99,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_time_tracking_policy'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the time tracking policy to retrieve.
-        - $ref: '#/components/parameters/header_organization'
       operationId: time_tracking_policies-show
       description: Retrieve a single time tracking policy by ID.
     patch:
@@ -116,13 +116,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_time_tracking_policy'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the time tracking policy to update.
-        - $ref: '#/components/parameters/header_organization'
       operationId: time_tracking_policies-update
       requestBody:
         $ref: '#/components/requestBodies/time_tracking_policy'
@@ -153,13 +153,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_time_tracking_policy'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the time tracking policy.
-        - $ref: '#/components/parameters/header_organization'
       operationId: time_tracking_policies-restore-restore
       description: Restores a previously archived time tracking policy.
 components:
@@ -171,6 +171,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_time_tracking_policy:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.time_tracking_policy at the top of this file.
+      required: false
+      description: Filter parameter for querying time tracking policies.
     sort_time_tracking_policy:
       in: query
       name: sort
@@ -186,15 +195,6 @@ components:
       explode: false
       required: false
       description: The sort time tracking policy.
-    filter_time_tracking_policy:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.time_tracking_policy at the top of this file.
-      required: false
-      description: Filter parameter for querying time tracking policies.
   responses:
     single_time_tracking_policy:
       content:
@@ -313,14 +313,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -328,10 +336,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -340,10 +344,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -393,14 +393,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -409,44 +409,33 @@ components:
       type: object
       title: Time tracking policy Resource
       properties:
-        limited_tracking_message:
+        last_actor:
+          title: Last Actor
+          description: The person who last modified this time tracking policy.
+          example:
+            eq: value
+        holiday_limit:
+          type: integer
+          title: Holiday Limit
+          description: Maximum hours that can be tracked on a public holiday.
+          example:
+            eq: value
+        assigned_people_count:
+          title: Assigned People Count
+          description: The number of active people currently assigned to this time tracking policy.
+          example:
+            gt: 0
+        name:
           type: string
-          title: Limited Tracking Message
-          description: Message shown to people when time tracking is limited (not fully disabled) for them.
+          title: Name
+          description: The display name of the time tracking policy.
           example:
             eq: value
-        person_id:
-          type: integer
-          title: Person
-          description: The ID of the person this policy applies to, if person-specific.
-          example:
-            - 123
-        half_day_absence_limit:
-          type: integer
-          title: Half Day Absence Limit
-          description: Maximum hours that can be tracked on a half day of absence.
-          example:
-            eq: value
-        working_day_limit:
-          type: integer
-          title: Working Day Limit
-          description: Maximum hours that can be tracked on a standard working day.
-          example:
-            eq: value
-        status:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Status
-          description: The status of this policy, indicating whether it is active or archived.
-          example:
-            eq: active
-        created_at:
+        updated_at:
           type: string
-          title: Created At
+          title: Updated At
           format: date-time
-          description: Timestamp when the time tracking policy was created.
+          description: Timestamp when this time tracking policy was last updated.
           example:
             gt: '2026-01-01'
         creator:
@@ -460,15 +449,16 @@ components:
           description: Maximum hours that can be tracked on a non-working day.
           example:
             eq: value
-        name:
-          type: string
-          title: Name
-          description: The display name of the time tracking policy.
+        working_day_limit:
+          type: integer
+          title: Working Day Limit
+          description: Maximum hours that can be tracked on a standard working day.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this time tracking policy belongs to.
+        half_day_absence_limit:
+          type: integer
+          title: Half Day Absence Limit
+          description: Maximum hours that can be tracked on a half day of absence.
           example:
             eq: value
         note_mandatory:
@@ -477,48 +467,24 @@ components:
           description: When true, a note is required on every time entry submitted.
           example:
             eq: value
-        restrict_time_entry_overlap:
-          type: boolean
-          title: Restrict Time Entry Overlap
-          description: When true, overlapping time entry ranges are not allowed.
-          example:
-            gt: 0
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier for the time tracking policy.
-          example:
-            - 123
-        disabled_tracking_message:
-          type: string
-          title: Disabled Tracking Message
-          description: Message shown to people when time tracking is fully disabled for them.
-          example:
-            eq: value
-        holiday_limit:
-          type: integer
-          title: Holiday Limit
-          description: Maximum hours that can be tracked on a public holiday.
-          example:
-            eq: value
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this time tracking policy was last updated.
-          example:
-            gt: '2026-01-01'
         full_day_absence_limit:
           type: integer
           title: Full Day Absence Limit
           description: Maximum hours that can be tracked on a full day of absence.
           example:
             eq: value
-        last_actor:
-          title: Last Actor
-          description: The person who last modified this time tracking policy.
+        disabled_tracking_message:
+          type: string
+          title: Disabled Tracking Message
+          description: Message shown to people when time tracking is fully disabled for them.
           example:
             eq: value
+        restrict_time_entry_overlap:
+          type: boolean
+          title: Restrict Time Entry Overlap
+          description: When true, overlapping time entry ranges are not allowed.
+          example:
+            gt: 0
         archived_at:
           type: string
           title: Archived At
@@ -526,11 +492,45 @@ components:
           description: Timestamp when this policy was archived, or null if it is still active.
           example:
             gt: '2026-01-01'
-        assigned_people_count:
-          title: Assigned People Count
-          description: The number of active people currently assigned to this time tracking policy.
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the time tracking policy.
           example:
-            gt: 0
+            - 123
+        person_id:
+          type: integer
+          title: Person
+          description: The ID of the person this policy applies to, if person-specific.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this time tracking policy belongs to.
+          example:
+            eq: value
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: The status of this policy, indicating whether it is active or archived.
+          example:
+            eq: active
+        limited_tracking_message:
+          type: string
+          title: Limited Tracking Message
+          description: Message shown to people when time tracking is limited (not fully disabled) for them.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when the time tracking policy was created.
+          example:
+            gt: '2026-01-01'
       description: A time tracking policy defines rules for how time entries can be logged, including limits and mandatory fields.
       example:
         id: '123'

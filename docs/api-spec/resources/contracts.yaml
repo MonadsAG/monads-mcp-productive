@@ -10,13 +10,6 @@ description: |-
   Please note that we rate limit POST requests for generating recurring budgets to 50 requests per minute.
 x-filters:
   contract:
-    starts_on:
-      description: Filter by contract start date range (`starts_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     contract_interval_id:
       description: Filter by the associated contract interval.
       operators:
@@ -24,8 +17,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    ends_on:
-      description: Filter by contract end date range (`ends_on`).
+    next_occurrence_on:
+      description: Filter by next occurrence date range (`next_occurrence_on`).
       operators:
         - contains
         - eq
@@ -38,8 +31,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    next_occurrence_on:
-      description: Filter by next occurrence date range (`next_occurrence_on`).
+    ends_on:
+      description: Filter by contract end date range (`ends_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    starts_on:
+      description: Filter by contract start date range (`starts_on`).
       operators:
         - contains
         - eq
@@ -134,13 +134,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: contracts-destroy
       description: Delete a contract.
   /api/v2/contracts/{id}/generate:
@@ -277,14 +277,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -292,10 +300,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -304,10 +308,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -357,14 +357,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -373,25 +373,38 @@ components:
       type: object
       title: Contract Resource
       properties:
+        copy_purchase_order_number:
+          type: boolean
+          title: Copy Purchase Order Number
+          description: Whether to copy the purchase order number.
+          example: PO-2024-017
         template_id:
           title: Template
           description: ID of the budget used as the template for generating new budgets from this contract.
           example:
             - 123
-        id:
+        interval_id:
           type: integer
-          title: Id
-          description: The unique identifier of this contract.
+          title: Interval
+          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
           example:
             - 123
-        template:
-          title: Template
-          description: The budget used as the template for generating new budgets from this contract.
+        contract_interval_id:
+          type: integer
+          title: Contract Interval
+          description: ID of the recurrence interval (e.g. monthly, quarterly, annually) for this contract.
           example:
-            eq: value
+            - 123
         organization:
           title: Organization
           description: The organization this contract belongs to.
+          example:
+            eq: value
+        ends_on:
+          type: string
+          title: Ends On
+          format: date
+          description: Date when this contract ends, or null if it has no end date.
           example:
             eq: value
         next_occurrence_on:
@@ -414,36 +427,23 @@ components:
           description: Date when this contract starts.
           example:
             eq: value
+        template:
+          title: Template
+          description: The budget used as the template for generating new budgets from this contract.
+          example:
+            eq: value
         use_rollover_hours:
           type: boolean
           title: Use Rollover Hours
           description: Whether to roll over unused hours.
           example:
             eq: value
-        interval_id:
+        id:
           type: integer
-          title: Interval
-          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
+          title: Id
+          description: The unique identifier of this contract.
           example:
             - 123
-        contract_interval_id:
-          type: integer
-          title: Contract Interval
-          description: ID of the recurrence interval (e.g. monthly, quarterly, annually) for this contract.
-          example:
-            - 123
-        copy_purchase_order_number:
-          type: boolean
-          title: Copy Purchase Order Number
-          description: Whether to copy the purchase order number.
-          example: PO-2024-017
-        ends_on:
-          type: string
-          title: Ends On
-          format: date
-          description: Date when this contract ends, or null if it has no end date.
-          example:
-            eq: value
       description: A recurring retainer contract that auto-generates budgets at set intervals with optional rollover of unused amounts.
       example:
         id: '11'

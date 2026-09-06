@@ -61,9 +61,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_invoice_attribution'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_invoice_attribution'
         - $ref: '#/components/parameters/sort_invoice_attribution'
+        - $ref: '#/components/parameters/filter_invoice_attribution'
+        - $ref: '#/components/parameters/header_organization'
       operationId: invoice_attributions-index
       description: List invoice attributions.
     post:
@@ -140,13 +140,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: invoice_attributions-destroy
       description: Delete an invoice attribution.
 components:
@@ -158,6 +158,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_invoice_attribution:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.invoice_attribution at the top of this file.
+      required: false
+      description: Filters
     sort_invoice_attribution:
       in: query
       name: sort
@@ -170,15 +179,6 @@ components:
       explode: false
       required: false
       description: Sort invoice attribution
-    filter_invoice_attribution:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.invoice_attribution at the top of this file.
-      required: false
-      description: Filters
   requestBodies:
     invoice_attribution:
       content:
@@ -232,21 +232,6 @@ components:
       type: object
       title: Invoice attribution Resource
       properties:
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency for this invoice attribution.
-          example:
-            eq: value
-        amount_normalized:
-          title: Amount Normalized
-          description: The attributed amount converted to the normalized (reporting) currency.
-          example:
-            gt: 0
-        invoice:
-          title: Invoice
-          description: The invoice this attribution belongs to.
-          example:
-            eq: value
         date_from:
           type: string
           title: Date From
@@ -254,10 +239,24 @@ components:
           description: Date from which the attributed period starts, or null if not specified.
           example:
             eq: value
-        amount:
-          type: integer
-          title: Amount
-          description: The attributed amount in the invoice's currency.
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency for this invoice attribution.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized (reporting) currency for this invoice attribution.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this invoice attribution belongs to.
+          example:
+            eq: value
+        amount_normalized:
+          title: Amount Normalized
+          description: The attributed amount converted to the normalized (reporting) currency.
           example:
             gt: 0
         date_to:
@@ -272,14 +271,25 @@ components:
           description: The attributed amount converted to the organization's default currency.
           example:
             gt: 0
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized (reporting) currency for this invoice attribution.
+        currency:
+          title: Currency
+          description: The currency of this invoice attribution, inherited from the associated invoice.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this invoice attribution belongs to.
+        budget_id:
+          type: integer
+          title: Budget
+          description: ID of the budget (deal) this invoice attribution is linked to.
+          example:
+            - 123
+        budget:
+          title: Budget
+          description: The budget (deal) this invoice attribution is linked to.
+          example:
+            gt: 0
+        invoice:
+          title: Invoice
+          description: The invoice this attribution belongs to.
           example:
             eq: value
         invoice_id:
@@ -288,22 +298,12 @@ components:
           description: ID of the invoice this attribution belongs to.
           example:
             - 123
-        currency:
-          title: Currency
-          description: The currency of this invoice attribution, inherited from the associated invoice.
-          example:
-            eq: value
-        budget:
-          title: Budget
-          description: The budget (deal) this invoice attribution is linked to.
+        amount:
+          type: integer
+          title: Amount
+          description: The attributed amount in the invoice's currency.
           example:
             gt: 0
-        budget_id:
-          type: integer
-          title: Budget
-          description: ID of the budget (deal) this invoice attribution is linked to.
-          example:
-            - 123
       description: An invoice attribution links a portion of an invoice amount to a specific budget (deal), tracking which budget a part of the invoice covers and optionally the date range it applies to.
       example:
         id: '678'
@@ -325,14 +325,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -340,10 +348,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -352,10 +356,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -405,14 +405,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

@@ -68,9 +68,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_workflow'
       parameters:
-        - $ref: '#/components/parameters/sort_workflow'
         - $ref: '#/components/parameters/filter_workflow'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_workflow'
       operationId: workflows-index
       description: List all workflows.
     post:
@@ -111,13 +111,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_workflow'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: workflows-show
       description: Retrieve a single workflow by ID.
     patch:
@@ -136,13 +136,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: workflows-update
       requestBody:
         $ref: '#/components/requestBodies/workflow'
@@ -181,13 +181,13 @@ paths:
                 type: string
           description: Created
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: workflows-restore-restore
       description: Restore an archived workflow.
 components:
@@ -199,15 +199,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_workflow:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.workflow at the top of this file.
-      required: false
-      description: Filters
     sort_workflow:
       in: query
       name: sort
@@ -223,6 +214,15 @@ components:
       explode: false
       required: false
       description: Sort workflow
+    filter_workflow:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.workflow at the top of this file.
+      required: false
+      description: Filters
   responses:
     single_workflow:
       content:
@@ -289,14 +289,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -304,10 +312,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -316,10 +320,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -329,6 +329,7 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -345,12 +346,27 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -371,22 +387,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _single_relationship:
       anyOf:
         - type: object
@@ -409,21 +409,20 @@ components:
       type: object
       title: Workflow Resource
       properties:
-        query:
-          type: string
-          title: Query
-          description: Text search query to filter workflows by name.
-          example:
-            eq: value
         archived:
           type: boolean
           title: Archived
           description: When true, filter to include only archived workflows.
           example: true
-        name:
+        organization:
+          title: Organization
+          description: The organization this workflow belongs to.
+          example:
+            eq: value
+        query:
           type: string
-          title: Name
-          description: The display name of this workflow.
+          title: Query
+          description: Text search query to filter workflows by name.
           example:
             eq: value
         workflow_statuses:
@@ -431,11 +430,6 @@ components:
           description: The list of statuses defined in this workflow.
           example:
             eq: active
-        organization:
-          title: Organization
-          description: The organization this workflow belongs to.
-          example:
-            eq: value
         archived_at:
           type: string
           title: Archived At
@@ -443,6 +437,12 @@ components:
           description: Timestamp when this workflow was archived, or null if still active.
           example:
             gt: '2026-01-01'
+        name:
+          type: string
+          title: Name
+          description: The display name of this workflow.
+          example:
+            eq: value
       description: Named group of workflow statuses assigned to a project. Workflows define the task lifecycle for a project. Each workflow contains ordered statuses in Not Started, Started, or Closed categories.
       example:
         id: '75'

@@ -150,6 +150,62 @@ description: |-
   - `page_id: 321` - team is getting access to doc with id: 321
 x-filters:
   membership:
+    person_id:
+      description: Filter by specific person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    meeting_id:
+      description: Filter memberships by the meeting they grant access to.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    target_type:
+      description: Filter by the type of the target resource (used together with target_id).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    dynamic_group_id:
+      description: Filter by the associated dynamic group.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    type_id:
+      description: Filter by the membership type (e.g. person, team, dynamic group).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    page_id:
+      description: Filter by the associated page (doc).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    target_id:
+      description: Filter by the ID of the target resource (used together with target_type).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    dashboard_id:
+      description: Filter by the associated dashboard.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     survey_id:
       description: Filter by the associated survey.
       operators:
@@ -164,29 +220,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    target_type:
-      description: Filter by the type of the target resource (used together with target_id).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    person_id:
-      description: Filter by specific person.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    dashboard_id:
-      description: Filter by the associated dashboard.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    type_id:
-      description: Filter by the membership type (e.g. person, team, dynamic group).
+    filter_id:
+      description: Filter by the associated saved filter.
       operators:
         - contains
         - eq
@@ -199,29 +234,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    page_id:
-      description: Filter by the associated page (doc).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    meeting_id:
-      description: Filter memberships by the meeting they grant access to.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     deal_id:
       description: Filter by the associated deal.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    target_id:
-      description: Filter by the ID of the target resource (used together with target_type).
       operators:
         - contains
         - eq
@@ -241,20 +255,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    filter_id:
-      description: Filter by the associated saved filter.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    dynamic_group_id:
-      description: Filter by the associated dynamic group.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
 paths:
   /api/v2/memberships:
     get:
@@ -265,9 +265,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_membership'
       parameters:
-        - $ref: '#/components/parameters/sort_membership'
-        - $ref: '#/components/parameters/filter_membership'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_membership'
+        - $ref: '#/components/parameters/sort_membership'
       operationId: memberships-index
       description: List memberships.
     post:
@@ -333,13 +333,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: memberships-update
       requestBody:
         $ref: '#/components/requestBodies/membership'
@@ -352,13 +352,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: memberships-destroy
       description: Delete a membership.
 components:
@@ -370,15 +370,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_membership:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.membership at the top of this file.
-      required: false
-      description: Filters
     sort_membership:
       in: query
       name: sort
@@ -391,6 +382,15 @@ components:
       explode: false
       required: false
       description: Sort membership
+    filter_membership:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.membership at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     membership:
       content:
@@ -428,36 +428,36 @@ components:
       type: object
       title: Membership Resource
       properties:
-        type_id:
-          enum:
-            - 1
-            - 2
-            - 3
-          type: integer
-          title: Type
-          description: Numeric identifier for the membership type (e.g. viewer, editor, manager).
-          example:
-            - 123
-        target_type:
-          type: string
-          title: Target Type
-          description: The type of resource this membership applies to (e.g. project, page, survey).
-          example:
-            eq: active
-        page:
-          title: Page
-          description: The page this membership grants access to, if the target is a page.
-          example:
-            eq: value
         target_id:
           type: integer
           title: Target
           description: The ID of the target resource this membership applies to.
           example:
             - 123
-        filter:
-          title: Filter
-          description: The filter this membership grants access to, if the target is a filter.
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this membership.
+          example:
+            - 123
+        project:
+          title: Project
+          description: The project this membership grants access to, if applicable.
+          example:
+            eq: value
+        team:
+          title: Team
+          description: The team this membership applies to, if it grants team-level access.
+          example:
+            eq: value
+        dashboard:
+          title: Dashboard
+          description: The dashboard this membership grants access to, if the target is a dashboard.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this membership belongs to.
           example:
             eq: value
         deal_id:
@@ -466,26 +466,26 @@ components:
           description: ID of the deal this membership grants access to, if the target is a deal.
           example:
             - 123
-        meeting_id:
+        target_type:
+          type: string
+          title: Target Type
+          description: The type of resource this membership applies to (e.g. project, page, survey).
+          example:
+            eq: active
+        project_id:
           type: integer
-          title: Meeting
-          description: ID of the meeting this membership grants access to.
-          example: 4821
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this membership.
+          title: Project
+          description: The ID of the project this membership grants access to, if applicable.
           example:
             - 123
-        dashboard:
-          title: Dashboard
-          description: The dashboard this membership grants access to, if the target is a dashboard.
+        page:
+          title: Page
+          description: The page this membership grants access to, if the target is a page.
           example:
             eq: value
-        options:
-          type: object
-          title: Options
-          description: Additional options and settings for this membership.
+        person:
+          title: Person
+          description: The person this membership belongs to.
           example:
             eq: value
         deal:
@@ -493,29 +493,6 @@ components:
           description: The deal this membership grants access to, if the target is a deal.
           example:
             eq: value
-        filter_id:
-          type: integer
-          title: Filter
-          description: ID of the filter this membership grants access to, if the target is a filter.
-          example:
-            - 123
-        agent:
-          title: Agent
-          description: The AI agent associated with this membership, if the member is an agent rather than a person.
-          example:
-            eq: value
-        access_type_id:
-          enum:
-            - 1
-            - 2
-            - 3
-            - 4
-            - 5
-          type: integer
-          title: Access Type
-          description: ID of the access type determining the permission level of this membership (e.g. viewer, editor).
-          example:
-            - 123
         dynamic_group_id:
           enum:
             - 2
@@ -530,9 +507,26 @@ components:
           description: ID of the dynamic group this membership is assigned to, if assigned via a group rather than an individual.
           example:
             - 123
-        survey:
-          title: Survey
-          description: The survey this membership grants access to, if applicable.
+        pulse_id:
+          type: integer
+          title: Pulse
+          description: The ID of the pulse (view) this membership applies to, if applicable.
+          example:
+            - 123
+        filter_id:
+          type: integer
+          title: Filter
+          description: ID of the filter this membership grants access to, if the target is a filter.
+          example:
+            - 123
+        meeting_id:
+          type: integer
+          title: Meeting
+          description: ID of the meeting this membership grants access to.
+          example: 4821
+        filter:
+          title: Filter
+          description: The filter this membership grants access to, if the target is a filter.
           example:
             eq: value
         person_id:
@@ -541,33 +535,26 @@ components:
           description: The ID of the person this membership belongs to.
           example:
             - 123
-        dashboard_id:
+        survey_id:
           type: integer
-          title: Dashboard
-          description: ID of the dashboard this membership grants access to, if the target is a dashboard.
+          title: Survey
+          description: The ID of the survey this membership grants access to, if applicable.
           example:
             - 123
-        project_id:
-          type: integer
-          title: Project
-          description: The ID of the project this membership grants access to, if applicable.
-          example:
-            - 123
-        agent_id:
-          type: integer
-          title: Agent
-          description: ID of the AI agent associated with this membership, if the member is an agent.
-          example:
-            - 123
-        project:
-          title: Project
-          description: The project this membership grants access to, if applicable.
+        options:
+          type: object
+          title: Options
+          description: Additional options and settings for this membership.
           example:
             eq: value
-        pulse_id:
+        type_id:
+          enum:
+            - 1
+            - 2
+            - 3
           type: integer
-          title: Pulse
-          description: The ID of the pulse (view) this membership applies to, if applicable.
+          title: Type
+          description: Numeric identifier for the membership type (e.g. viewer, editor, manager).
           example:
             - 123
         page_id:
@@ -576,27 +563,40 @@ components:
           description: The ID of the page this membership grants access to, if applicable.
           example:
             - 123
-        person:
-          title: Person
-          description: The person this membership belongs to.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this membership belongs to.
-          example:
-            eq: value
-        survey_id:
+        agent_id:
           type: integer
-          title: Survey
-          description: The ID of the survey this membership grants access to, if applicable.
+          title: Agent
+          description: ID of the AI agent associated with this membership, if the member is an agent.
           example:
             - 123
-        team:
-          title: Team
-          description: The team this membership applies to, if it grants team-level access.
+        access_type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+          type: integer
+          title: Access Type
+          description: ID of the access type determining the permission level of this membership (e.g. viewer, editor).
+          example:
+            - 123
+        agent:
+          title: Agent
+          description: The AI agent associated with this membership, if the member is an agent rather than a person.
           example:
             eq: value
+        survey:
+          title: Survey
+          description: The survey this membership grants access to, if applicable.
+          example:
+            eq: value
+        dashboard_id:
+          type: integer
+          title: Dashboard
+          description: ID of the dashboard this membership grants access to, if the target is a dashboard.
+          example:
+            - 123
       description: Access control record granting a person or team access to a project, deal, page, dashboard, filter, survey, or agent. Defines the access level (type_id) and optional restrictions (options). Memberships drive visibility and edit permissions for shared resources.
       example:
         id: '7654'
@@ -622,14 +622,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -637,10 +645,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -649,10 +653,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -702,14 +702,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

@@ -40,8 +40,8 @@ paths:
           $ref: '#/components/responses/collection_timesheet'
       parameters:
         - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_timesheet'
         - $ref: '#/components/parameters/sort_timesheet'
+        - $ref: '#/components/parameters/filter_timesheet'
       operationId: timesheets-index
       description: List all timesheets.
     post:
@@ -109,6 +109,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_timesheet:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.timesheet at the top of this file.
+      required: false
+      description: Filter parameter for querying timesheets.
     sort_timesheet:
       in: query
       name: sort
@@ -128,15 +137,6 @@ components:
       explode: false
       required: false
       description: Sort order for timesheet list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
-    filter_timesheet:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.timesheet at the top of this file.
-      required: false
-      description: Filter parameter for querying timesheets.
   responses:
     single_timesheet:
       content:
@@ -207,14 +207,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -222,10 +230,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -234,10 +238,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -287,14 +287,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -303,17 +303,17 @@ components:
       type: object
       title: Timesheet Resource
       properties:
+        organization:
+          title: Organization
+          description: The organization this timesheet belongs to.
+          example:
+            eq: value
         person_id:
           type: integer
           title: Person
           description: The ID of the person this timesheet belongs to.
           example:
             - 123
-        person:
-          title: Person
-          description: The person this timesheet belongs to.
-          example:
-            eq: value
         creator:
           title: Creator
           description: The person who created this timesheet.
@@ -326,6 +326,11 @@ components:
           description: Timestamp when the timesheet was created.
           example:
             gt: '2026-01-01'
+        person:
+          title: Person
+          description: The person this timesheet belongs to.
+          example:
+            eq: value
         date:
           type: string
           title: Date
@@ -333,11 +338,6 @@ components:
           description: The date this timesheet covers.
           example:
             gt: '2026-01-01'
-        organization:
-          title: Organization
-          description: The organization this timesheet belongs to.
-          example:
-            eq: value
         creator_id:
           type: integer
           title: Creator

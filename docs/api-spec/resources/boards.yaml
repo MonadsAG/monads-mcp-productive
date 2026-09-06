@@ -37,20 +37,6 @@ description: |-
   ```
 x-filters:
   board:
-    query:
-      description: Search boards by name (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by board ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     status:
       description: Filter by active/archived status.
       operators:
@@ -60,6 +46,20 @@ x-filters:
         - not_eq
     project_id:
       description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Search boards by name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by board ID.
       operators:
         - contains
         - eq
@@ -75,13 +75,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_board'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: boards-archive-archive
       description: Archive a board.
   /api/v2/boards/copy:
@@ -113,8 +113,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_board'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_board'
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_board'
       operationId: boards-index
       description: List boards with optional filters and pagination.
@@ -174,13 +174,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_board'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: boards-reposition-reposition
       description: Reposition a board.
   /api/v2/boards/{id}/restore:
@@ -192,13 +192,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_board'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: boards-restore-restore
       description: Restore a board.
   /api/v2/boards/{id}:
@@ -210,13 +210,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_board'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: boards-show
       description: Retrieve a single board by ID.
     patch:
@@ -276,46 +276,33 @@ components:
       type: object
       title: Board Resource
       properties:
-        project_id:
-          type: integer
-          title: Project
-          description: The ID of the project this folder belongs to.
-          example:
-            - 123
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when the folder was archived, or null if active.
-          example:
-            gt: '2026-01-01'
-        position:
-          type: integer
-          title: Position
-          description: The display order position of this folder within its project.
-          example:
-            eq: value
         project:
           title: Project
           description: The project this folder belongs to.
           example:
             eq: value
-        placement:
-          type: integer
-          title: Placement
-          description: Indicates the folder's placement context (e.g. project or global).
+        query:
+          type: string
+          title: Query
+          description: A saved filter query string applied to this folder view.
           example:
             eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the folder.
+          example:
+            - 123
         name:
           type: string
           title: Name
           description: The display name of the folder.
           example:
             eq: value
-        hidden:
-          type: boolean
-          title: Hidden
-          description: When true, this folder is hidden from members who do not have explicit access.
+        placement:
+          type: integer
+          title: Placement
+          description: Indicates the folder's placement context (e.g. project or global).
           example:
             eq: value
         status:
@@ -327,23 +314,36 @@ components:
           description: The current status of the folder (e.g. active or archived).
           example:
             eq: active
-        id:
+        position:
           type: integer
-          title: Id
-          description: Unique identifier for the folder.
+          title: Position
+          description: The display order position of this folder within its project.
           example:
-            - 123
+            eq: value
         organization:
           title: Organization
           description: The organization this folder belongs to.
           example:
             eq: value
-        query:
-          type: string
-          title: Query
-          description: A saved filter query string applied to this folder view.
+        project_id:
+          type: integer
+          title: Project
+          description: The ID of the project this folder belongs to.
+          example:
+            - 123
+        hidden:
+          type: boolean
+          title: Hidden
+          description: When true, this folder is hidden from members who do not have explicit access.
           example:
             eq: value
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when the folder was archived, or null if active.
+          example:
+            gt: '2026-01-01'
       description: Folder (called Board internally) grouping task lists within a project. Supports name, position ordering, placement (top or bottom), archiving, and hidden visibility. Used to organize task lists into phases or sprints.
       example:
         id: '5522'
@@ -366,14 +366,22 @@ components:
       type: object
       title: Meta
       properties:
-        current_page:
+        total_count:
           type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         total_pages:
           type: integer
           description: Total number of pages available for the current query and page size.
           example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -381,10 +389,6 @@ components:
             feature_x: true
             notifications:
               email: true
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
         page_size:
           type: integer
           description: Number of records returned per page in this response.
@@ -393,10 +397,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -446,14 +446,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
         id:
           type: integer
           description: The unique identifier of the resource.
           example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
