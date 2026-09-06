@@ -44,12 +44,10 @@
   - Structured multi-step processes with clear progression indicators
   - Context-aware prompts that adapt based on user selections
   - Validation checkpoints at each workflow step
-  
-- **Hierarchical Workflow Enforcement**: 
+- **Hierarchical Workflow Enforcement**:
   - Each tool validates prerequisite selections before proceeding
   - Clear error messages when workflow steps are skipped
   - Progressive disclosure of options based on previous choices
-  
 - **Status Field Conversion Patterns**:
   - Standardized integer conversion for task status filtering
   - Consistent string-to-integer mapping across different endpoints
@@ -62,34 +60,34 @@
 - [x] **COMPLETED** - Review the documentation here: https://developer.productive.io/time_entries.html#time-entries , then implement a new skill in the server that will create time sheet entries. IMPORTANTLY all entries need to be double checked before being added to productive. All entries should be aligned to a task (even though it's optional in the API). We need to present lists to the user to select the right service, from the right budget, for the right project. All entries consist of bullet point notes that need to be added.
 
   **Implementation Approach**: Hierarchical workflow with MCP prompts for guided user experience
-  
+
   **Technical Implementation**:
   - **5-Step Process**: Companies → Projects → Budgets → Services → Tasks selection flow
   - **MCP Prompts Integration**: Added prompts.ts with guided workflow enforcement
   - **Status Field Conversion**: Integer conversion for task status (1=open, 2=closed)
   - **Hierarchical Validation**: Each step validates the previous selection before proceeding
   - **User Experience**: Progress indicators and clear selection menus at each step
-  
+
   **Tools Implemented**:
   1. `list_companies` - Lists active companies with filtering support
-  2. `list_projects` - Lists projects by company with status filtering  
+  2. `list_projects` - Lists projects by company with status filtering
   3. `list_budgets` - Lists project budgets with deal type and status information
   4. `list_services` - Lists budget services with detailed service information
   5. `create_time_entry` - Creates time entries with comprehensive validation
-  
+
   **Key Features**:
   - **Double-check validation** before entry creation (requirement fulfilled)
   - **Task alignment requirement** enforced (even though API allows optional)
   - **Bullet point notes** support with rich text formatting
   - **Error handling** for invalid selections and API failures
   - **Progress tracking** through multi-step workflow
-  
+
   **Performance Achievements**:
   - API response time: <1.5s average (exceeds <2s target)
   - Memory usage: ~45MB (well below 100MB target)
   - Error rate: <0.5% (exceeds <1% target)
   - Type safety: 100% TypeScript strict mode compliance
-  
+
   **Key Discoveries**:
   - Productive API uses different status formats across endpoints
   - MCP prompts enhance user experience significantly
@@ -153,20 +151,13 @@ interface ProductiveAPIClient {
   list<T>(endpoint: string, params?: FilterParams): Promise<APIResponse<T[]>>;
   get<T>(endpoint: string, id: string): Promise<APIResponse<T>>;
   create<T>(endpoint: string, data: CreateData): Promise<APIResponse<T>>;
-  update<T>(
-    endpoint: string,
-    id: string,
-    data: UpdateData
-  ): Promise<APIResponse<T>>;
+  update<T>(endpoint: string, id: string, data: UpdateData): Promise<APIResponse<T>>;
   delete(endpoint: string, id: string): Promise<void>;
 
   // Specialized methods
   listActivities(params: ActivityFilters): Promise<APIResponse<Activity[]>>;
   createComment(data: CommentData): Promise<APIResponse<Comment>>;
-  updateTaskStatus(
-    taskId: string,
-    statusId: string
-  ): Promise<APIResponse<Task>>;
+  updateTaskStatus(taskId: string, statusId: string): Promise<APIResponse<Task>>;
 }
 ```
 
@@ -182,7 +173,7 @@ export const toolName = {
 
 export async function toolFunction(
   client: ProductiveAPIClient,
-  args: unknown
+  args: unknown,
 ): Promise<MCPResponse>;
 ```
 
