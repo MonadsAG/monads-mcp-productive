@@ -5,13 +5,6 @@ info:
 description: Discussion is a thread of comments related to the highlighted part of docs (page) content.
 x-filters:
   discussion:
-    page_id:
-      description: Filter by the associated document page.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     id:
       description: Filter by discussion ID.
       operators:
@@ -21,6 +14,13 @@ x-filters:
         - not_eq
     status:
       description: Filter by discussion status (active or resolved).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    page_id:
+      description: Filter by the associated document page.
       operators:
         - contains
         - eq
@@ -36,9 +36,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_discussion'
       parameters:
-        - $ref: '#/components/parameters/filter_discussion'
-        - $ref: '#/components/parameters/sort_discussion'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_discussion'
+        - $ref: '#/components/parameters/filter_discussion'
       operationId: discussions-index
       description: List discussions.
     post:
@@ -96,13 +96,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: discussions-update
       requestBody:
         $ref: '#/components/requestBodies/discussion'
@@ -151,13 +151,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_discussion'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: discussions-resolve-resolve
       description: Resolve an open discussion.
   /api/v2/discussions/{id}/subscribe:
@@ -169,13 +169,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_discussion'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: discussions-subscribe-subscribe
       description: Subscribe to a discussion.
   /api/v2/discussions/{id}/unsubscribe:
@@ -205,6 +205,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_discussion:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.discussion at the top of this file.
+      required: false
+      description: Filters
     sort_discussion:
       in: query
       name: sort
@@ -224,15 +233,6 @@ components:
       explode: false
       required: false
       description: Sort discussion
-    filter_discussion:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.discussion at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_discussion:
       content:
@@ -303,22 +303,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -326,14 +310,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -383,14 +383,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -399,18 +399,11 @@ components:
       type: object
       title: Discussion Resource
       properties:
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this discussion.
+        created_at:
+          title: Created At
+          description: Timestamp when this discussion was created.
           example:
-            - 123
-        page_id:
-          type: integer
-          title: Page
-          description: ID of the page this discussion is attached to.
-          example:
-            - 123
+            gt: '2026-01-01'
         organization:
           title: Organization
           description: The organization this discussion belongs to.
@@ -422,16 +415,19 @@ components:
           description: A short text preview of the first comment or content in this discussion.
           example:
             eq: value
-        created_at:
-          title: Created At
-          description: Timestamp when this discussion was created.
+        page_id:
+          type: integer
+          title: Page
+          description: ID of the page this discussion is attached to.
+          example:
+            - 123
+        resolved_at:
+          type: string
+          title: Resolved At
+          format: date-time
+          description: Timestamp when this discussion was marked as resolved, or null if it is still active.
           example:
             gt: '2026-01-01'
-        page:
-          title: Page
-          description: The page this discussion is attached to.
-          example:
-            eq: value
         status:
           enum:
             - 1
@@ -441,24 +437,28 @@ components:
           description: The status of this discussion, either active (1) or resolved (2).
           example:
             eq: active
-        updated_at:
-          title: Updated At
-          description: Timestamp when this discussion was last updated.
-          example:
-            gt: '2026-01-01'
         subscriber_ids:
           title: Subscriber Ids
           description: An array of IDs of people who are subscribed to notifications for this discussion.
           example:
             - 123
             - 456
-        resolved_at:
-          type: string
-          title: Resolved At
-          format: date-time
-          description: Timestamp when this discussion was marked as resolved, or null if it is still active.
+        updated_at:
+          title: Updated At
+          description: Timestamp when this discussion was last updated.
           example:
             gt: '2026-01-01'
+        page:
+          title: Page
+          description: The page this discussion is attached to.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this discussion.
+          example:
+            - 123
       description: A threaded discussion attached to a page, task, or other resource, allowing team members to comment and resolve topics.
       example:
         id: '78'

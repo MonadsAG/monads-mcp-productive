@@ -8,6 +8,13 @@ description: |-
   Manage daily timesheet submissions, track approval status, and retrieve timesheet data by person or date range. Timesheets move through `draft` → `submitted` → `approved` / `rejected` states.
 x-filters:
   timesheet:
+    creator_id:
+      description: Filter by the person who created the timesheet.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     person_id:
       description: Filter by the associated person.
       operators:
@@ -17,13 +24,6 @@ x-filters:
         - not_eq
     date:
       description: Filter by the timesheet date.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    creator_id:
-      description: Filter by the person who created the timesheet.
       operators:
         - contains
         - eq
@@ -39,9 +39,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_timesheet'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_timesheet'
         - $ref: '#/components/parameters/filter_timesheet'
+        - $ref: '#/components/parameters/sort_timesheet'
+        - $ref: '#/components/parameters/header_organization'
       operationId: timesheets-index
       description: List all timesheets.
     post:
@@ -91,13 +91,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the timesheet to delete.
+        - $ref: '#/components/parameters/header_organization'
       operationId: timesheets-destroy
       description: Delete a timesheet by ID.
 components:
@@ -109,15 +109,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_timesheet:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.timesheet at the top of this file.
-      required: false
-      description: Filter parameter for querying timesheets.
     sort_timesheet:
       in: query
       name: sort
@@ -137,6 +128,15 @@ components:
       explode: false
       required: false
       description: Sort order for timesheet list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
+    filter_timesheet:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.timesheet at the top of this file.
+      required: false
+      description: Filter parameter for querying timesheets.
   responses:
     single_timesheet:
       content:
@@ -207,22 +207,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -230,14 +214,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -287,14 +287,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -303,39 +303,29 @@ components:
       type: object
       title: Timesheet Resource
       properties:
-        organization:
-          title: Organization
-          description: The organization this timesheet belongs to.
+        date:
+          type: string
+          title: Date
+          format: date
+          description: The date this timesheet covers.
           example:
-            eq: value
+            gt: '2026-01-01'
+        id:
+          title: Id
+          description: Unique identifier for the timesheet.
+          example:
+            - 123
         person_id:
           type: integer
           title: Person
           description: The ID of the person this timesheet belongs to.
           example:
             - 123
-        creator:
-          title: Creator
-          description: The person who created this timesheet.
-          example:
-            eq: value
         created_at:
           type: string
           title: Created At
           format: date-time
           description: Timestamp when the timesheet was created.
-          example:
-            gt: '2026-01-01'
-        person:
-          title: Person
-          description: The person this timesheet belongs to.
-          example:
-            eq: value
-        date:
-          type: string
-          title: Date
-          format: date
-          description: The date this timesheet covers.
           example:
             gt: '2026-01-01'
         creator_id:
@@ -344,11 +334,21 @@ components:
           description: The ID of the person who created this timesheet.
           example:
             - 123
-        id:
-          title: Id
-          description: Unique identifier for the timesheet.
+        person:
+          title: Person
+          description: The person this timesheet belongs to.
           example:
-            - 123
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this timesheet belongs to.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this timesheet.
+          example:
+            eq: value
       description: A daily aggregate of a person's time entries, serving as the unit of submission in the time approval workflow.
       example:
         id: '123'

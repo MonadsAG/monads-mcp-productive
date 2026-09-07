@@ -33,9 +33,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_overhead'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_overhead'
         - $ref: '#/components/parameters/sort_overhead'
+        - $ref: '#/components/parameters/header_organization'
       operationId: overheads-index
       description: List overheads.
   /api/v2/overheads/{id}/recalculate:
@@ -47,13 +47,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_overhead'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: overheads-recalculate-recalculate
       description: Recalculate overhead costs for a period.
   /api/v2/overheads/{id}:
@@ -131,98 +131,32 @@ components:
       type: object
       title: Overhead Resource
       properties:
-        subsidiary:
-          title: Subsidiary
-          description: The subsidiary this overhead record is associated with (null for global overheads).
-          example:
-            eq: value
-        internal_overhead_hours:
+        exchange_rate:
           type: number
-          title: Internal Overhead Hours
-          description: Hours tracked on internal projects that are marked as overhead during this period.
-          example:
-            eq: value
-        undertracked_costs_default:
-          title: Undertracked Costs Default
-          description: The undertracked costs converted to the organization's default currency.
-          example:
-            eq: value
-        facility_costs_normalized:
-          title: Facility Costs Normalized
-          description: The facility costs in the normalized (display) currency.
-          example:
-            eq: value
-        facility_costs:
-          type: integer
-          title: Facility Costs
-          description: The total facility (office and infrastructure) costs allocated to this overhead period.
-          example:
-            eq: value
-        time_off_hours:
-          type: number
-          title: Time Off Hours
-          description: Total paid time-off hours taken by employees during this overhead period.
+          title: Exchange Rate
+          description: The exchange rate used to convert costs to the organization's default currency for this period.
           example:
             gt: 0
-        organization:
-          title: Organization
-          description: The organization this overhead record belongs to.
-          example:
-            eq: value
-        new_internal_cost_per_hour_default:
-          title: New Internal Cost Per Hour Default
-          description: The new internal cost per hour default.
-          example:
-            eq: value
-        capacity:
-          type: number
-          title: Capacity
-          description: The total available work capacity in hours for the period, based on employee schedules.
-          example:
-            eq: value
-        new_internal_cost_per_hour_normalized:
-          title: New Internal Cost Per Hour Normalized
-          description: The new internal cost per hour normalized.
-          example:
-            eq: value
-        internal_expense_costs_default:
-          title: Internal Expense Costs Default
-          description: The internal expense costs default.
-          example:
-            eq: value
-        internal_work_costs_default:
-          title: Internal Work Costs Default
-          description: The internal work costs default.
-          example:
-            eq: value
-        overtracked_hours:
-          type: number
-          title: Overtracked Hours
-          description: Hours tracked in excess of the employee's scheduled capacity during this period.
-          example:
-            eq: value
-        started_on:
-          type: string
-          title: Started On
-          format: date
-          description: Date when this overhead period starts.
-          example:
-            eq: value
-        recalculating_status:
-          type: object
-          title: Recalculating Status
-          description: The current recalculation status of this overhead, tracking whether bookings and time entries have been processed.
-          example:
-            eq: active
-        uses_averaging:
-          type: boolean
-          title: Uses Averaging
-          description: When true, overhead costs are averaged over multiple past periods rather than using a single period's values.
-          example:
-            eq: value
         time_off_costs:
           title: Time Off Costs
           description: The total cost of paid time-off hours during this overhead period.
+          example:
+            gt: 0
+        internal_componentized_costs_normalized:
+          title: Internal Componentized Costs Normalized
+          description: The internal componentized costs normalized.
+          example:
+            eq: value
+        recalculated_at:
+          type: string
+          title: Recalculated At
+          format: date-time
+          description: Timestamp when the overhead costs were last recalculated from tracked time and bookings.
+          example:
+            gt: '2026-01-01'
+        time_off_costs_default:
+          title: Time Off Costs Default
+          description: The time off costs default.
           example:
             gt: 0
         ended_on:
@@ -232,31 +166,94 @@ components:
           description: Date when this overhead period ends, or null if this is the current projection period.
           example:
             eq: value
-        use_overhead:
-          type: boolean
-          title: Use Overhead
-          description: When true, overhead calculations are enabled and applied to cost rate computations for this subsidiary.
+        updater:
+          title: Updater
+          description: The person who last updated this overhead record.
           example:
             eq: value
-        facility_cost_per_hour:
-          title: Facility Cost Per Hour
-          description: The facility cost per hour.
-          example:
-            eq: value
-        internal_work_costs_normalized:
-          title: Internal Work Costs Normalized
-          description: The internal work costs normalized.
-          example:
-            eq: value
-        overhead_hours:
+        intercompany_hours:
           type: number
-          title: Overhead Hours
-          description: Total hours marked as overhead across all project types during this period.
+          title: Intercompany Hours
+        time_off_hours:
+          type: number
+          title: Time Off Hours
+          description: Total paid time-off hours taken by employees during this overhead period.
+          example:
+            gt: 0
+        capacity:
+          type: number
+          title: Capacity
+          description: The total available work capacity in hours for the period, based on employee schedules.
           example:
             eq: value
-        facility_costs_default:
-          title: Facility Costs Default
-          description: The facility costs converted to the organization's default currency.
+        time_off_costs_normalized:
+          title: Time Off Costs Normalized
+          description: The time off costs normalized.
+          example:
+            gt: 0
+        overtracked_hours:
+          type: number
+          title: Overtracked Hours
+          description: Hours tracked in excess of the employee's scheduled capacity during this period.
+          example:
+            eq: value
+        new_internal_cost_per_hour:
+          title: New Internal Cost Per Hour
+          description: The new internal cost per hour.
+          example:
+            eq: value
+        averaging_period:
+          type: integer
+          title: Averaging Period
+          description: The number of past overhead periods used to calculate projected estimates when averaging is enabled.
+          example:
+            eq: value
+        client_overhead_hours:
+          type: number
+          title: Client Overhead Hours
+          description: Hours tracked on billable client projects that are marked as overhead during this period.
+          example:
+            eq: value
+        undertracked_costs:
+          title: Undertracked Costs
+          description: The cost associated with undertracked hours — when employees tracked less time than their scheduled capacity.
+          example:
+            eq: value
+        internal_componentized_costs:
+          title: Internal Componentized Costs
+          description: The total internal costs including work, time-off, and expenses, adjusted for overhead inclusion controls.
+          example:
+            eq: value
+        facility_cost_per_hour_default:
+          title: Facility Cost Per Hour Default
+          description: The facility cost per hour default.
+          example:
+            eq: value
+        internal_expense_costs:
+          title: Internal Expense Costs
+          description: The total cost of internal expense reports during this overhead period.
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: The monetary values in this overhead record converted to the organization's default currency.
+          example:
+            eq: value
+        internal_work_costs_default:
+          title: Internal Work Costs Default
+          description: The internal work costs default.
+          example:
+            eq: value
+        facility_costs_breakdown:
+          type: object
+          title: Facility Costs Breakdown
+          description: A breakdown of facility costs by category (e.g. rent, utilities) for this overhead period.
+          example:
+            eq: value
+        internal_hours:
+          type: number
+          title: Internal Hours
+          description: Total hours tracked on internal (non-billable) projects during this overhead period.
           example:
             eq: value
         internal_componentized_costs_default:
@@ -264,16 +261,92 @@ components:
           description: The internal componentized costs default.
           example:
             eq: value
+        facility_cost_per_hour:
+          title: Facility Cost Per Hour
+          description: The facility cost per hour.
+          example:
+            eq: value
+        new_internal_cost_per_hour_normalized:
+          title: New Internal Cost Per Hour Normalized
+          description: The new internal cost per hour normalized.
+          example:
+            eq: value
+        internal_expense_costs_normalized:
+          title: Internal Expense Costs Normalized
+          description: The internal expense costs normalized.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this overhead record was last updated.
+          example:
+            gt: '2026-01-01'
         currency:
           type: string
           title: Currency
           description: The currency of monetary values in this overhead record.
           example:
             eq: value
-        client_overhead_hours:
+        internal_work_costs:
+          title: Internal Work Costs
+          description: The total cost of time tracked on internal projects during this overhead period.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this overhead record belongs to.
+          example:
+            eq: value
+        undertracked_costs_default:
+          title: Undertracked Costs Default
+          description: The undertracked costs converted to the organization's default currency.
+          example:
+            eq: value
+        uses_averaging:
+          type: boolean
+          title: Uses Averaging
+          description: When true, overhead costs are averaged over multiple past periods rather than using a single period's values.
+          example:
+            eq: value
+        client_hours:
           type: number
-          title: Client Overhead Hours
-          description: Hours tracked on billable client projects that are marked as overhead during this period.
+          title: Client Hours
+          description: Total hours tracked on billable client projects during this overhead period.
+          example:
+            eq: value
+        total_hours:
+          type: number
+          title: Total Hours
+          description: Total hours tracked across all project types during this overhead period.
+          example:
+            eq: value
+        facility_cost_per_hour_normalized:
+          title: Facility Cost Per Hour Normalized
+          description: The facility cost per hour normalized.
+          example:
+            eq: value
+        internal_overhead_hours:
+          type: number
+          title: Internal Overhead Hours
+          description: Hours tracked on internal projects that are marked as overhead during this period.
+          example:
+            eq: value
+        overtracked_costs:
+          title: Overtracked Costs
+          description: The cost associated with overtracked hours — when employees tracked more time than their scheduled capacity.
+          example:
+            eq: value
+        use_overhead:
+          type: boolean
+          title: Use Overhead
+          description: When true, overhead calculations are enabled and applied to cost rate computations for this subsidiary.
+          example:
+            eq: value
+        overtracked_costs_default:
+          title: Overtracked Costs Default
+          description: The overtracked costs converted to the organization's default currency.
           example:
             eq: value
         overhead_type_id:
@@ -283,27 +356,74 @@ components:
             - 3
           type: integer
           title: Overhead Type
-        time_off_costs_default:
-          title: Time Off Costs Default
-          description: The time off costs default.
+        facility_costs:
+          type: integer
+          title: Facility Costs
+          description: The total facility (office and infrastructure) costs allocated to this overhead period.
+          example:
+            eq: value
+        overhead_controls:
+          type: object
+          title: Overhead Controls
+          description: A set of flags controlling which overhead types (facility, work, time-off, expense, undertime, overtime) are included in cost calculations.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The monetary values in this overhead record in the normalized (display) currency.
+          example:
+            eq: value
+        overhead_hours:
+          type: number
+          title: Overhead Hours
+          description: Total hours marked as overhead across all project types during this period.
+          example:
+            eq: value
+        time_off_overhead_hours:
+          type: number
+          title: Time Off Overhead Hours
+          description: The time off overhead hours.
           example:
             gt: 0
-        currency_default:
-          title: Currency Default
-          description: The monetary values in this overhead record converted to the organization's default currency.
+        started_on:
+          type: string
+          title: Started On
+          format: date
+          description: Date when this overhead period starts.
           example:
             eq: value
-        internal_componentized_costs_normalized:
-          title: Internal Componentized Costs Normalized
-          description: The internal componentized costs normalized.
+        facility_costs_default:
+          title: Facility Costs Default
+          description: The facility costs converted to the organization's default currency.
           example:
             eq: value
-        client_hours:
+        internal_expense_costs_default:
+          title: Internal Expense Costs Default
+          description: The internal expense costs default.
+          example:
+            eq: value
+        subsidiary:
+          title: Subsidiary
+          description: The subsidiary this overhead record is associated with (null for global overheads).
+          example:
+            eq: value
+        new_internal_cost_per_hour_default:
+          title: New Internal Cost Per Hour Default
+          description: The new internal cost per hour default.
+          example:
+            eq: value
+        undertracked_hours:
           type: number
-          title: Client Hours
-          description: Total hours tracked on billable client projects during this overhead period.
+          title: Undertracked Hours
+          description: Hours not tracked by employees relative to their scheduled capacity during this period.
           example:
             eq: value
+        recalculating_status:
+          type: object
+          title: Recalculating Status
+          description: The current recalculation status of this overhead, tracking whether bookings and time entries have been processed.
+          example:
+            eq: active
         undertracked_costs_normalized:
           title: Undertracked Costs Normalized
           description: The undertracked costs in the normalized (display) currency.
@@ -314,140 +434,20 @@ components:
           description: The overtracked costs in the normalized (display) currency.
           example:
             eq: value
-        intercompany_hours:
-          type: number
-          title: Intercompany Hours
-        exchange_rate:
-          type: number
-          title: Exchange Rate
-          description: The exchange rate used to convert costs to the organization's default currency for this period.
-          example:
-            gt: 0
-        internal_expense_costs:
-          title: Internal Expense Costs
-          description: The total cost of internal expense reports during this overhead period.
-          example:
-            eq: value
-        time_off_costs_normalized:
-          title: Time Off Costs Normalized
-          description: The time off costs normalized.
-          example:
-            gt: 0
-        internal_expense_costs_normalized:
-          title: Internal Expense Costs Normalized
-          description: The internal expense costs normalized.
-          example:
-            eq: value
-        overtracked_costs_default:
-          title: Overtracked Costs Default
-          description: The overtracked costs converted to the organization's default currency.
-          example:
-            eq: value
-        updater:
-          title: Updater
-          description: The person who last updated this overhead record.
-          example:
-            eq: value
-        internal_componentized_costs:
-          title: Internal Componentized Costs
-          description: The total internal costs including work, time-off, and expenses, adjusted for overhead inclusion controls.
-          example:
-            eq: value
-        total_hours:
-          type: number
-          title: Total Hours
-          description: Total hours tracked across all project types during this overhead period.
-          example:
-            eq: value
-        facility_costs_breakdown:
-          type: object
-          title: Facility Costs Breakdown
-          description: A breakdown of facility costs by category (e.g. rent, utilities) for this overhead period.
-          example:
-            eq: value
-        overhead_controls:
-          type: object
-          title: Overhead Controls
-          description: A set of flags controlling which overhead types (facility, work, time-off, expense, undertime, overtime) are included in cost calculations.
-          example:
-            eq: value
-        facility_cost_per_hour_default:
-          title: Facility Cost Per Hour Default
-          description: The facility cost per hour default.
-          example:
-            eq: value
-        overtracked_costs:
-          title: Overtracked Costs
-          description: The cost associated with overtracked hours — when employees tracked more time than their scheduled capacity.
-          example:
-            eq: value
-        recalculated_at:
-          type: string
-          title: Recalculated At
-          format: date-time
-          description: Timestamp when the overhead costs were last recalculated from tracked time and bookings.
-          example:
-            gt: '2026-01-01'
-        currency_normalized:
-          title: Currency Normalized
-          description: The monetary values in this overhead record in the normalized (display) currency.
-          example:
-            eq: value
-        internal_hours:
-          type: number
-          title: Internal Hours
-          description: Total hours tracked on internal (non-billable) projects during this overhead period.
-          example:
-            eq: value
-        time_off_overhead_hours:
-          type: number
-          title: Time Off Overhead Hours
-          description: The time off overhead hours.
-          example:
-            gt: 0
-        undertracked_hours:
-          type: number
-          title: Undertracked Hours
-          description: Hours not tracked by employees relative to their scheduled capacity during this period.
-          example:
-            eq: value
-        new_internal_cost_per_hour:
-          title: New Internal Cost Per Hour
-          description: The new internal cost per hour.
-          example:
-            eq: value
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this overhead record was last updated.
-          example:
-            gt: '2026-01-01'
-        facility_cost_per_hour_normalized:
-          title: Facility Cost Per Hour Normalized
-          description: The facility cost per hour normalized.
-          example:
-            eq: value
         subsidiary_id:
           type: integer
           title: Subsidiary
           description: ID of the subsidiary this overhead record is associated with (null for global overheads).
           example:
             - 123
-        averaging_period:
-          type: integer
-          title: Averaging Period
-          description: The number of past overhead periods used to calculate projected estimates when averaging is enabled.
+        internal_work_costs_normalized:
+          title: Internal Work Costs Normalized
+          description: The internal work costs normalized.
           example:
             eq: value
-        undertracked_costs:
-          title: Undertracked Costs
-          description: The cost associated with undertracked hours — when employees tracked less time than their scheduled capacity.
-          example:
-            eq: value
-        internal_work_costs:
-          title: Internal Work Costs
-          description: The total cost of time tracked on internal projects during this overhead period.
+        facility_costs_normalized:
+          title: Facility Costs Normalized
+          description: The facility costs in the normalized (display) currency.
           example:
             eq: value
       description: An overhead record representing the internal cost breakdown for a subsidiary over a billing period.
@@ -462,22 +462,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -485,14 +469,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -542,14 +542,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

@@ -4,6 +4,27 @@ info:
   version: 2.0.0
 x-filters:
   payment_report:
+    subsidiary_id:
+      description: Filter payment report results by subsidiary id.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    written_off_on:
+      description: Filter payment report results by written off on.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    budget_id:
+      description: Filter by the associated budget (deal) ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     paid_on:
       description: Filter payment report results by paid on.
       operators:
@@ -11,15 +32,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    paid_after:
-      description: Filter payment report results by paid after.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    company_id:
-      description: Filter payment report results by company id.
+    number:
+      description: Filter payment report results by number.
       operators:
         - contains
         - eq
@@ -32,8 +46,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    external_id:
-      description: Filter payment report results by external id.
+    company_id:
+      description: Filter payment report results by company id.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter payment report results by id.
       operators:
         - contains
         - eq
@@ -53,43 +74,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    amount:
-      description: Filter by payment amount range.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter payment report results by id.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    written_off_on:
-      description: Filter payment report results by written off on.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    formulas:
-      description: Filter payment report results by formulas.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    budget_id:
-      description: Filter by the associated budget (deal) ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    subsidiary_id:
-      description: Filter payment report results by subsidiary id.
+    paid_after:
+      description: Filter payment report results by paid after.
       operators:
         - contains
         - eq
@@ -102,8 +88,22 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    number:
-      description: Filter payment report results by number.
+    external_id:
+      description: Filter payment report results by external id.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    formulas:
+      description: Filter payment report results by formulas.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    amount:
+      description: Filter by payment amount range.
       operators:
         - contains
         - eq
@@ -119,35 +119,14 @@ paths:
         '200':
           $ref: '#/components/responses/collection_payment_report'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_payment_report'
-        - $ref: '#/components/parameters/filter_payment_report'
         - $ref: '#/components/parameters/group_payment_report'
+        - $ref: '#/components/parameters/sort_payment_report'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_payment_report'
       operationId: reports-payment_reports-index
       description: Retrieve aggregated payment report data grouped by configurable dimensions.
 components:
   parameters:
-    group_payment_report:
-      in: query
-      name: group
-      style: form
-      schema:
-        enum:
-          - company
-          - date
-          - invoice
-          - month
-          - organization
-          - payment
-          - quarter
-          - subsidiary
-          - week
-          - year
-        type: string
-        title: Group payment report
-      explode: false
-      required: false
-      description: Group payment report
     filter_payment_report:
       in: query
       name: filter
@@ -157,6 +136,13 @@ components:
         description: Filter keys and their operators are listed under x-filters.payment_report at the top of this file.
       required: false
       description: Filters
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
     sort_payment_report:
       in: query
       name: sort
@@ -206,38 +192,67 @@ components:
       explode: false
       required: false
       description: Sort payment report
-    header_organization:
-      in: header
-      name: X-Organization-Id
+    group_payment_report:
+      in: query
+      name: group
+      style: form
       schema:
+        enum:
+          - company
+          - date
+          - invoice
+          - month
+          - organization
+          - payment
+          - quarter
+          - subsidiary
+          - week
+          - year
         type: string
-      required: true
-      description: Organization ID
+        title: Group payment report
+      explode: false
+      required: false
+      description: Group payment report
   schemas:
     resource_payment_report:
       type: object
       title: Payment report Resource
       properties:
-        date_period:
-          title: Date Period
-          description: Time period grouping for date (e.g. week, month, quarter).
-          example:
-            eq: value
-        id:
+        project_id:
           type: integer
-          title: Id
-          description: Unique identifier for this payment report row.
+          title: Project
+          description: Project id for this payment report group.
           example:
             - 123
+        quarter:
+          type: string
+          title: Quarter
+          description: Quarter grouping for this payment report row.
+          example:
+            eq: value
+        written_off_on:
+          type: string
+          title: Written Off On
+          format: date
+          description: Written off on for this payment report group.
+          example:
+            eq: value
         company_report:
           title: Company Report
           description: Company report for this payment report group.
           example:
             eq: value
-        month:
+        company_id:
+          type: integer
+          title: Company
+          description: Company id for this payment report group.
+          example:
+            - 123
+        paid_on:
           type: string
-          title: Month
-          description: Month grouping for this payment report row.
+          title: Paid On
+          format: date
+          description: Paid on for this payment report group.
           example:
             eq: value
         paid_after:
@@ -247,14 +262,14 @@ components:
           description: Paid after for this payment report group.
           example:
             eq: value
-        payment:
-          title: Payment
-          description: Payment for this payment report group.
+        company:
+          title: Company
+          description: Company for this payment report group.
           example:
             eq: value
-        currency_default:
-          title: Currency Default
-          description: Currency in the organization's default currency for this payment report group.
+        payment_note:
+          title: Payment Note
+          description: Payment note for this payment report group.
           example:
             eq: value
         date:
@@ -262,76 +277,6 @@ components:
           description: Date for this payment report group.
           example:
             gt: '2026-01-01'
-        deal:
-          title: Deal
-          description: Deal for this payment report group.
-          example:
-            eq: value
-        subsidiary_id:
-          type: integer
-          title: Subsidiary
-          description: Subsidiary id for this payment report group.
-          example:
-            - 123
-        invoice_id:
-          type: integer
-          title: Invoice
-          description: Invoice id for this payment report group.
-          example:
-            - 123
-        payment_note:
-          title: Payment Note
-          description: Payment note for this payment report group.
-          example:
-            eq: value
-        total_amount:
-          title: Total Amount
-          description: Sum of amount across all records in this payment report group.
-          example:
-            gt: 0
-        payment_date:
-          title: Payment Date
-          description: Payment date for this payment report group.
-          example:
-            gt: '2026-01-01'
-        payment_written_off_on:
-          title: Payment Written Off On
-          description: Payment written off on for this payment report group.
-          example:
-            eq: value
-        subsidiary:
-          title: Subsidiary
-          description: Subsidiary for this payment report group.
-          example:
-            eq: value
-        report:
-          title: Report
-          description: Report for this payment report group.
-          example:
-            eq: value
-        number:
-          type: string
-          title: Number
-          description: Number for this payment report group.
-          example:
-            eq: value
-        formulas:
-          type: integer
-          title: Formulas
-          description: Formulas for this payment report group.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: Query for this payment report group.
-          example:
-            eq: value
-        payment_paid_on:
-          title: Payment Paid On
-          description: Payment paid on for this payment report group.
-          example:
-            eq: value
         invoice:
           title: Invoice
           description: Invoice for this payment report group.
@@ -343,25 +288,154 @@ components:
           description: Week grouping for this payment report row.
           example:
             eq: value
+        budget_id:
+          type: integer
+          title: Budget
+          description: Budget id for this payment report group.
+          example:
+            - 123
+        formula_fields:
+          title: Formula Fields
+          description: Formula fields for this payment report group.
+          example:
+            eq: value
+        report:
+          title: Report
+          description: Report for this payment report group.
+          example:
+            eq: value
+        invoice_report:
+          title: Invoice Report
+          description: Invoice report for this payment report group.
+          example:
+            eq: value
+        deal:
+          title: Deal
+          description: Deal for this payment report group.
+          example:
+            eq: value
+        payment:
+          title: Payment
+          description: Payment for this payment report group.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: Query for this payment report group.
+          example:
+            eq: value
+        amount:
+          title: Amount
+          description: Amount for this payment report group.
+          example:
+            gt: 0
+        group:
+          type: string
+          title: Group
+          description: The grouping dimension for this payment report row.
+          example:
+            eq: value
+        total_amount:
+          title: Total Amount
+          description: Sum of amount across all records in this payment report group.
+          example:
+            gt: 0
+        payment_external_id:
+          title: Payment External
+          description: Payment external id for this payment report group.
+          example:
+            - 123
+        formulas:
+          type: integer
+          title: Formulas
+          description: Formulas for this payment report group.
+          example:
+            eq: value
+        count:
+          type: integer
+          title: Count
+          description: Number of payments in this report group.
+          example:
+            gt: 0
+        date_period:
+          title: Date Period
+          description: Time period grouping for date (e.g. week, month, quarter).
+          example:
+            eq: value
+        payment_paid_on:
+          title: Payment Paid On
+          description: Payment paid on for this payment report group.
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: Currency in the organization's default currency for this payment report group.
+          example:
+            eq: value
+        total_amount_normalized:
+          title: Total Amount Normalized
+          description: Sum of amount in the normalized currency across all records in this payment report group.
+          example:
+            gt: 0
+        payment_date:
+          title: Payment Date
+          description: Payment date for this payment report group.
+          example:
+            gt: '2026-01-01'
+        subsidiary_id:
+          type: integer
+          title: Subsidiary
+          description: Subsidiary id for this payment report group.
+          example:
+            - 123
+        payment_written_off_on:
+          title: Payment Written Off On
+          description: Payment written off on for this payment report group.
+          example:
+            eq: value
+        project:
+          title: Project
+          description: Project for this payment report group.
+          example:
+            eq: value
+        subsidiary:
+          title: Subsidiary
+          description: Subsidiary for this payment report group.
+          example:
+            eq: value
+        month:
+          type: string
+          title: Month
+          description: Month grouping for this payment report row.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for this payment report row.
+          example:
+            - 123
+        invoice_id:
+          type: integer
+          title: Invoice
+          description: Invoice id for this payment report group.
+          example:
+            - 123
         external_id:
           type: string
           title: External
           description: External id for this payment report group.
           example:
             - 123
-        invoice_report:
-          title: Invoice Report
-          description: Invoice report for this payment report group.
+        total_amount_default:
+          title: Total Amount Default
+          description: Sum of amount in the organization's default currency across all records in this payment report group.
           example:
-            eq: value
-        payment_external_id:
-          title: Payment External
-          description: Payment external id for this payment report group.
-          example:
-            - 123
-        company:
-          title: Company
-          description: Company for this payment report group.
+            gt: 0
+        currency_normalized:
+          title: Currency Normalized
+          description: Currency in the normalized currency for this payment report group.
           example:
             eq: value
         paid_before:
@@ -371,32 +445,15 @@ components:
           description: Paid before for this payment report group.
           example:
             eq: value
+        year:
+          type: string
+          title: Year
+          description: Year grouping for this payment report row.
+          example:
+            eq: value
         organization:
           title: Organization
           description: Organization for this payment report group.
-          example:
-            eq: value
-        paid_on:
-          type: string
-          title: Paid On
-          format: date
-          description: Paid on for this payment report group.
-          example:
-            eq: value
-        project_id:
-          type: integer
-          title: Project
-          description: Project id for this payment report group.
-          example:
-            - 123
-        project:
-          title: Project
-          description: Project for this payment report group.
-          example:
-            eq: value
-        currency_normalized:
-          title: Currency Normalized
-          description: Currency in the normalized currency for this payment report group.
           example:
             eq: value
         currency:
@@ -405,69 +462,12 @@ components:
           description: Currency for this payment report group.
           example:
             eq: value
-        formula_fields:
-          title: Formula Fields
-          description: Formula fields for this payment report group.
-          example:
-            eq: value
-        total_amount_default:
-          title: Total Amount Default
-          description: Sum of amount in the organization's default currency across all records in this payment report group.
-          example:
-            gt: 0
-        quarter:
+        number:
           type: string
-          title: Quarter
-          description: Quarter grouping for this payment report row.
+          title: Number
+          description: Number for this payment report group.
           example:
             eq: value
-        company_id:
-          type: integer
-          title: Company
-          description: Company id for this payment report group.
-          example:
-            - 123
-        amount:
-          title: Amount
-          description: Amount for this payment report group.
-          example:
-            gt: 0
-        written_off_on:
-          type: string
-          title: Written Off On
-          format: date
-          description: Written off on for this payment report group.
-          example:
-            eq: value
-        total_amount_normalized:
-          title: Total Amount Normalized
-          description: Sum of amount in the normalized currency across all records in this payment report group.
-          example:
-            gt: 0
-        year:
-          type: string
-          title: Year
-          description: Year grouping for this payment report row.
-          example:
-            eq: value
-        budget_id:
-          type: integer
-          title: Budget
-          description: Budget id for this payment report group.
-          example:
-            - 123
-        group:
-          type: string
-          title: Group
-          description: The grouping dimension for this payment report row.
-          example:
-            eq: value
-        count:
-          type: integer
-          title: Count
-          description: Number of payments in this report group.
-          example:
-            gt: 0
       description: An aggregated payment report row grouping invoices and payments by configurable dimensions with payment amount metrics.
       example:
         id: '123'
@@ -481,22 +481,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -504,14 +488,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -561,14 +561,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

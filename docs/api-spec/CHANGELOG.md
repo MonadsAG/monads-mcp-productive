@@ -1,5 +1,30 @@
 # Productive.io API Changelog
 
+## 2026-09-07
+
+**Spec:** OpenAPI 3.1.0, 397 paths, 655 operations
+
+### New paths
+
+- `/api/v2/proposals/{id}/signed_pdf`
+
+### Filter keys
+
+- **membership**: added `artifact_id`, `skill_id`
+- **project_relevancy_report**: added `booked_period_end`, `booked_period_start`
+
+### Resource attributes
+
+- **company**: added `domains`
+- **einvoice_transaction**: added `attachments`
+- **membership**: added `artifact`, `artifact_id`, `meeting`, `skill_id`
+- **price**: added `discount_amount`, `discount_amount_default`, `discount_amount_normalized`, `discount_type`
+- **project_relevancy_report**: added `booked_period_end`, `booked_period_start`
+- **proposal**: removed `audit_pdf_url`, `original_pdf_url`; added `number`
+- **service**: added `discount_type`
+
+---
+
 ## 2026-08-31
 
 **Spec:** OpenAPI 3.1.0, 396 paths, 654 operations

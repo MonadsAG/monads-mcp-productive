@@ -8,22 +8,8 @@ description: |-
   Track proposal status, send for signing, and record approvals through these endpoints.
 x-filters:
   proposal:
-    status:
-      description: Filter by proposal status.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    creator_id:
-      description: Filters proposals by the ID of the person who created them.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    responsible_id:
-      description: Filters proposals by the ID of their responsible person.
+    status_changed_at:
+      description: Filters proposals by the date their status last changed.
       operators:
         - contains
         - eq
@@ -43,22 +29,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    status_changed_at:
-      description: Filters proposals by the date their status last changed.
+    status:
+      description: Filter by proposal status.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    updated_at:
-      description: Filters proposals by their last update date.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    link_status:
-      description: Filters proposals by their public link sharing status.
+    creator_id:
+      description: Filters proposals by the ID of the person who created them.
       operators:
         - contains
         - eq
@@ -71,13 +50,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     created_at:
       description: Filters proposals by their creation date.
       operators:
@@ -85,8 +57,36 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    responsible_id:
+      description: Filters proposals by the ID of their responsible person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    link_status:
+      description: Filters proposals by their public link sharing status.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    updated_at:
+      description: Filters proposals by their last update date.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     budget_total:
       description: Filters proposals by their total budget amount.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
       operators:
         - contains
         - eq
@@ -144,13 +144,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_proposal'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the proposal to update.
+        - $ref: '#/components/parameters/header_organization'
       operationId: proposals-update
       description: Update a proposal.
     delete:
@@ -161,15 +161,31 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the proposal to delete.
+        - $ref: '#/components/parameters/header_organization'
       operationId: proposals-destroy
       description: Delete a proposal by ID.
+  /api/v2/proposals/{id}/signed_pdf:
+    get:
+      tags:
+        - Proposals
+      summary: Get a download URL for the signed proposal PDF
+      responses:
+        '200':
+          $ref: '#/components/responses/proposal_signed_pdf'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      operationId: proposals-signed_pdf-signed_pdf
   /api/v2/proposals/{id}/sync_status:
     get:
       tags:
@@ -179,13 +195,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_proposal'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the proposal to check sync status for.
+        - $ref: '#/components/parameters/header_organization'
       operationId: proposals-sync_status-sync_status
       description: Retrieve the sync status of a proposal.
   /api/v2/proposals/{id}/sync:
@@ -205,13 +221,13 @@ paths:
                 type: string
           description: Conflict
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the proposal to sync.
-        - $ref: '#/components/parameters/header_organization'
       operationId: proposals-sync-sync
       description: Sync a proposal with the associated deal.
   /api/v2/public/proposals/{uuid}/accept:
@@ -304,93 +320,17 @@ components:
       type: object
       title: Proposal Resource
       properties:
-        proposal_version_two:
-          type: boolean
-          title: Proposal Version Two
-        contact:
-          title: Contact
-          description: The contact person this proposal is addressed to.
-          example:
-            eq: value
-        deal:
-          title: Deal
-          description: The deal (sales opportunity) this proposal belongs to.
-          example:
-            eq: value
-        signed_pdf_url:
-          type: string
-          title: Signed Pdf Url
-          description: URL of the audit trail PDF for this proposal, capturing signature and viewing history.
-        exchange_date:
-          type: string
-          title: Exchange Date
-          format: date
-          description: The date used to determine the exchange rate applied to this proposal.
-          example:
-            gt: '2026-01-01'
-        disclaimer_accepted:
-          type: boolean
-          title: Disclaimer Accepted
-        note_interpolated:
-          title: Note Interpolated
-          description: The proposal note with all interpolation variables resolved.
-          example:
-            eq: value
-        original_pdf_url:
-          type: string
-          title: Original Pdf Url
-          deprecated: true
-          description: Deprecated URL, use `pdf_url` instead.
-          example:
-            eq: value
-        creator:
+        creator_id:
+          type: integer
           title: Creator
-          description: The person who created this proposal.
+          description: ID of the person who created this proposal.
           example:
-            eq: value
-        currency:
-          type: string
-          title: Currency
-          description: The currency code used for amounts in this proposal.
-          example:
-            eq: value
-        note:
-          type: string
-          title: Note
-          description: The body text of the proposal note, may contain interpolation variables.
-          example:
-            eq: value
-        signature_type:
-          enum:
-            - typed
-            - drawn
-            - uploaded
-          type: string
-          title: Signature Type
+            - 123
         budget_total_default:
           title: Budget Total Default
           description: The total budget amount of this proposal in the organization's default currency.
           example:
             gt: 0
-        footer:
-          title: Footer
-          description: The footer text template for the proposal, may contain interpolation variables.
-          example:
-            eq: value
-        custom_fields:
-          type: object
-          title: Custom Fields
-          description: Custom field values for this proposal.
-          example:
-            eq: value
-        responsible:
-          title: Responsible
-          description: The project manager responsible for this proposal.
-          example:
-            eq: value
-        signature_image_url:
-          type: string
-          title: Signature Image Url
         sent_at:
           type: string
           title: Sent At
@@ -398,28 +338,191 @@ components:
           description: Timestamp when the proposal was sent to the client.
           example:
             gt: '2026-01-01'
-        responsible_id:
+        budget_total_normalized:
+          title: Budget Total Normalized
+          description: The total budget amount of this proposal in the normalized (reporting) currency.
+          example:
+            gt: 0
+        deal_id:
           type: integer
-          title: Responsible
-          description: ID of the person responsible for this proposal.
+          title: Deal
+          description: The ID of the deal this proposal belongs to.
           example:
             - 123
-        proposal_pdf_preview_on_mobile:
-          type: boolean
-          title: Proposal Pdf Preview On Mobile
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency code.
+          example:
+            eq: value
         public_uuid:
           type: string
           title: Public Uuid
           description: The unique public UUID used to generate the proposal's public sharing link.
           example:
             eq: value
+        end_date:
+          type: string
+          title: End Date
+          format: date
+          description: The end date of the proposal's validity or service period.
+          example:
+            gt: '2026-01-01'
+        budget_total:
+          title: Budget Total
+          description: The total budget amount of this proposal in the proposal's currency.
+          example:
+            gt: 0
+        company_id:
+          type: integer
+          title: Company
+          description: ID of the client company associated with this proposal.
+          example:
+            - 123
         pdf_url:
           type: string
           title: Pdf Url
           description: The URL of the generated PDF for this proposal.
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized (reporting) currency code used across the organization.
+        disclaimer:
+          type: string
+          title: Disclaimer
+          description: The optional disclaimer text appended to the proposal.
+          example:
+            eq: value
+        client:
+          title: Client
+          description: The client company this proposal is addressed to.
+          example:
+            eq: value
+        contact:
+          title: Contact
+          description: The contact person this proposal is addressed to.
+          example:
+            eq: value
+        signed_pdf_url:
+          type: string
+          title: Signed Pdf Url
+          description: URL of the audit trail PDF for this proposal, capturing signature and viewing history.
+        note_interpolated:
+          title: Note Interpolated
+          description: The proposal note with all interpolation variables resolved.
+          example:
+            eq: value
+        status_changed_at:
+          type: string
+          title: Status Changed At
+          format: date-time
+          description: Timestamp when the proposal status last changed.
+          example:
+            gt: '2026-01-01'
+        proposal_pdf_preview_on_mobile:
+          type: boolean
+          title: Proposal Pdf Preview On Mobile
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: Custom field values for this proposal.
+          example:
+            eq: value
+        number:
+          type: string
+          title: Number
+          nullable: true
+        exchange_rate:
+          type: number
+          title: Exchange Rate
+          description: The exchange rate used to convert proposal amounts to the billing currency.
+          example:
+            gt: 0
+        footer:
+          title: Footer
+          description: The footer text template for the proposal, may contain interpolation variables.
+          example:
+            eq: value
+        responsible:
+          title: Responsible
+          description: The project manager responsible for this proposal.
+          example:
+            eq: value
+        proposal_version_two:
+          type: boolean
+          title: Proposal Version Two
+        creator:
+          title: Creator
+          description: The person who created this proposal.
+          example:
+            eq: value
+        disclaimer_accepted:
+          type: boolean
+          title: Disclaimer Accepted
+        purchase_order_number:
+          type: string
+          title: Purchase Order Number
+          description: The client's purchase order number associated with this proposal.
+          example: PO-2024-017
+        disclaimer_enabled:
+          type: boolean
+          title: Disclaimer Enabled
+          description: When true, the disclaimer text is shown on the proposal.
+          example:
+            eq: value
+        responder_email:
+          type: string
+          title: Responder Email
+          nullable: true
+          description: The email address of the person who responded to (signed) the proposal.
+          example:
+            eq: value
+        signature_image_url:
+          type: string
+          title: Signature Image Url
+        signature_type:
+          enum:
+            - typed
+            - drawn
+            - uploaded
+          type: string
+          title: Signature Type
+        tax_rate:
+          title: Tax Rate
+          description: The tax rate applied to proposal line items.
+          example:
+            gt: 0
+        organization:
+          title: Organization
+          description: The organization this proposal belongs to.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date
+          description: Timestamp of the last update to this proposal.
+          example:
+            gt: '2026-01-01'
+        project:
+          title: Project
+          description: The project associated with this proposal.
+          example:
+            eq: value
+        deal:
+          title: Deal
+          description: The deal (sales opportunity) this proposal belongs to.
+          example:
+            eq: value
+        subsidiary:
+          title: Subsidiary
+          description: The subsidiary (legal entity) issuing this proposal.
+          example:
+            eq: value
+        responsible_id:
+          type: integer
+          title: Responsible
+          description: ID of the person responsible for this proposal.
+          example:
+            - 123
+        proposal_from:
+          title: Proposal From
+          description: The sender details (subsidiary contact) shown on the proposal.
           example:
             eq: value
         link_status:
@@ -431,37 +534,87 @@ components:
           description: The public sharing link status of the proposal (e.g. active, disabled).
           example:
             eq: active
-        disclaimer_enabled:
-          type: boolean
-          title: Disclaimer Enabled
-          description: When true, the disclaimer text is shown on the proposal.
-          example:
-            eq: value
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency code.
-          example:
-            eq: value
-        tax_rate:
-          title: Tax Rate
-          description: The tax rate applied to proposal line items.
-          example:
-            gt: 0
-        budget_total_normalized:
-          title: Budget Total Normalized
-          description: The total budget amount of this proposal in the normalized (reporting) currency.
-          example:
-            gt: 0
-        responder_name:
+        decline_reason:
           type: string
-          title: Responder Name
+          title: Decline Reason
           nullable: true
-          description: The name of the person who responded to (signed) the proposal.
+        document_type:
+          title: Document Type
+          description: The document type template applied to this proposal for PDF generation.
+          example:
+            eq: active
+        signed:
+          title: Signed
+          description: When true, the proposal has been signed by the client.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the proposal.
+          example:
+            - 123
+        deal_creator:
+          title: Deal Creator
+          description: The person who created the deal associated with this proposal.
+          example:
+            eq: value
+        note:
+          type: string
+          title: Note
+          description: The body text of the proposal note, may contain interpolation variables.
+          example:
+            eq: value
+        footer_interpolated:
+          title: Footer Interpolated
+          description: The footer text with all interpolation variables resolved.
           example:
             eq: value
         proposal_to:
           title: Proposal To
           description: The recipient details (client contact) shown on the proposal.
+          example:
+            eq: value
+        responded_via_public_link:
+          type: boolean
+          title: Responded Via Public Link
+          nullable: true
+        exchange_date:
+          type: string
+          title: Exchange Date
+          format: date
+          description: The date used to determine the exchange rate applied to this proposal.
+          example:
+            gt: '2026-01-01'
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this proposal was created.
+          example:
+            gt: '2026-01-01'
+        date:
+          type: string
+          title: Date
+          format: date
+          description: Date when this proposal was issued.
+          example:
+            gt: '2026-01-01'
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized (reporting) currency code used across the organization.
+          example:
+            eq: value
+        currency:
+          type: string
+          title: Currency
+          description: The currency code used for amounts in this proposal.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The display name of the proposal.
           example:
             eq: value
         status:
@@ -475,160 +628,13 @@ components:
           description: The current status of the proposal (e.g. draft, sent, approved, rejected).
           example:
             eq: active
-        date:
+        responder_name:
           type: string
-          title: Date
-          format: date
-          description: Date when this proposal was issued.
-          example:
-            gt: '2026-01-01'
-        updated_at:
-          type: string
-          title: Updated At
-          format: date
-          description: Timestamp of the last update to this proposal.
-          example:
-            gt: '2026-01-01'
-        client:
-          title: Client
-          description: The client company this proposal is addressed to.
-          example:
-            eq: value
-        deal_creator:
-          title: Deal Creator
-          description: The person who created the deal associated with this proposal.
-          example:
-            eq: value
-        responder_email:
-          type: string
-          title: Responder Email
+          title: Responder Name
           nullable: true
-          description: The email address of the person who responded to (signed) the proposal.
+          description: The name of the person who responded to (signed) the proposal.
           example:
             eq: value
-        signed:
-          title: Signed
-          description: When true, the proposal has been signed by the client.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The display name of the proposal.
-          example:
-            eq: value
-        status_changed_at:
-          type: string
-          title: Status Changed At
-          format: date-time
-          description: Timestamp when the proposal status last changed.
-          example:
-            gt: '2026-01-01'
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who created this proposal.
-          example:
-            - 123
-        budget_total:
-          title: Budget Total
-          description: The total budget amount of this proposal in the proposal's currency.
-          example:
-            gt: 0
-        footer_interpolated:
-          title: Footer Interpolated
-          description: The footer text with all interpolation variables resolved.
-          example:
-            eq: value
-        deal_id:
-          type: integer
-          title: Deal
-          description: The ID of the deal this proposal belongs to.
-          example:
-            - 123
-        audit_pdf_url:
-          type: string
-          title: Audit Pdf Url
-          deprecated: true
-          description: Deprecated URL, use `signed_pdf_url` instead.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this proposal belongs to.
-          example:
-            eq: value
-        company_id:
-          type: integer
-          title: Company
-          description: ID of the client company associated with this proposal.
-          example:
-            - 123
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this proposal was created.
-          example:
-            gt: '2026-01-01'
-        disclaimer:
-          type: string
-          title: Disclaimer
-          description: The optional disclaimer text appended to the proposal.
-          example:
-            eq: value
-        decline_reason:
-          type: string
-          title: Decline Reason
-          nullable: true
-        proposal_from:
-          title: Proposal From
-          description: The sender details (subsidiary contact) shown on the proposal.
-          example:
-            eq: value
-        document_type:
-          title: Document Type
-          description: The document type template applied to this proposal for PDF generation.
-          example:
-            eq: active
-        responded_via_public_link:
-          type: boolean
-          title: Responded Via Public Link
-          nullable: true
-        purchase_order_number:
-          type: string
-          title: Purchase Order Number
-          description: The client's purchase order number associated with this proposal.
-          example: PO-2024-017
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier for the proposal.
-          example:
-            - 123
-        project:
-          title: Project
-          description: The project associated with this proposal.
-          example:
-            eq: value
-        subsidiary:
-          title: Subsidiary
-          description: The subsidiary (legal entity) issuing this proposal.
-          example:
-            eq: value
-        exchange_rate:
-          type: number
-          title: Exchange Rate
-          description: The exchange rate used to convert proposal amounts to the billing currency.
-          example:
-            gt: 0
-        end_date:
-          type: string
-          title: End Date
-          format: date
-          description: The end date of the proposal's validity or service period.
-          example:
-            gt: '2026-01-01'
       description: A document sent to a client summarizing proposed work, budget, and terms for a deal.
       example:
         id: '23'
@@ -651,22 +657,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -674,14 +664,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -731,14 +737,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -772,8 +778,6 @@ components:
                         $ref: '#/components/schemas/resource_proposal/properties/responder_name'
                       responder_email:
                         $ref: '#/components/schemas/resource_proposal/properties/responder_email'
-                      original_pdf_url:
-                        $ref: '#/components/schemas/resource_proposal/properties/original_pdf_url'
                       status_changed_at:
                         $ref: '#/components/schemas/resource_proposal/properties/status_changed_at'
                       disclaimer_enabled:
@@ -814,6 +818,8 @@ components:
                         $ref: '#/components/schemas/resource_proposal/properties/note'
                       footer:
                         $ref: '#/components/schemas/resource_proposal/properties/footer'
+                      number:
+                        $ref: '#/components/schemas/resource_proposal/properties/number'
                       signed:
                         $ref: '#/components/schemas/resource_proposal/properties/signed'
                       status:
@@ -836,8 +842,6 @@ components:
                         $ref: '#/components/schemas/resource_proposal/properties/public_uuid'
                       budget_total:
                         $ref: '#/components/schemas/resource_proposal/properties/budget_total'
-                      audit_pdf_url:
-                        $ref: '#/components/schemas/resource_proposal/properties/audit_pdf_url'
                       custom_fields:
                         $ref: '#/components/schemas/resource_proposal/properties/custom_fields'
                       exchange_date:
@@ -852,8 +856,6 @@ components:
                         $ref: '#/components/schemas/resource_proposal/properties/responder_email'
                       currency_default:
                         $ref: '#/components/schemas/resource_proposal/properties/currency_default'
-                      original_pdf_url:
-                        $ref: '#/components/schemas/resource_proposal/properties/original_pdf_url'
                       note_interpolated:
                         $ref: '#/components/schemas/resource_proposal/properties/note_interpolated'
                       status_changed_at:
@@ -909,6 +911,21 @@ components:
                 type: array
                 items: {}
       description: Single proposal
+    proposal_signed_pdf:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  url:
+                    type: string
+                    format: uri
+      description: Proposal signed PDF download URL
     collection_proposal:
       content:
         application/vnd.api+json:
@@ -931,6 +948,8 @@ components:
                           $ref: '#/components/schemas/resource_proposal/properties/note'
                         footer:
                           $ref: '#/components/schemas/resource_proposal/properties/footer'
+                        number:
+                          $ref: '#/components/schemas/resource_proposal/properties/number'
                         signed:
                           $ref: '#/components/schemas/resource_proposal/properties/signed'
                         status:
@@ -953,8 +972,6 @@ components:
                           $ref: '#/components/schemas/resource_proposal/properties/public_uuid'
                         budget_total:
                           $ref: '#/components/schemas/resource_proposal/properties/budget_total'
-                        audit_pdf_url:
-                          $ref: '#/components/schemas/resource_proposal/properties/audit_pdf_url'
                         custom_fields:
                           $ref: '#/components/schemas/resource_proposal/properties/custom_fields'
                         exchange_date:
@@ -969,8 +986,6 @@ components:
                           $ref: '#/components/schemas/resource_proposal/properties/responder_email'
                         currency_default:
                           $ref: '#/components/schemas/resource_proposal/properties/currency_default'
-                        original_pdf_url:
-                          $ref: '#/components/schemas/resource_proposal/properties/original_pdf_url'
                         note_interpolated:
                           $ref: '#/components/schemas/resource_proposal/properties/note_interpolated'
                         status_changed_at:
