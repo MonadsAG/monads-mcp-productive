@@ -8,15 +8,15 @@ description: |-
   Configure and verify DNS records (`SPF`, `DKIM`, `MX`) for your domain through these endpoints. A verified custom domain improves email deliverability and reinforces brand identity.
 x-filters:
   custom_domain:
-    id:
-      description: Filter by custom domain ID.
+    name:
+      description: Filter by domain name (text search).
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    name:
-      description: Filter by domain name (text search).
+    id:
+      description: Filter by custom domain ID.
       operators:
         - contains
         - eq
@@ -84,13 +84,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: custom_domains-destroy
       description: Delete a custom domain.
 components:
@@ -213,22 +213,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -236,14 +220,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -253,7 +253,6 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
-        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -270,27 +269,12 @@ components:
             data:
               - type: tasks
                 id: '42'
+        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -311,6 +295,22 @@ components:
       example:
         meta:
           included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _single_relationship:
       anyOf:
         - type: object
@@ -333,20 +333,21 @@ components:
       type: object
       title: Custom domain Resource
       properties:
-        mailgun_mx:
-          title: Mailgun Mx
-          description: The MX DNS records required for Mailgun email routing for this custom domain.
+        allow_user_email:
+          type: boolean
+          title: Allow User Email
+          description: Whether to allow user email.
           example:
             eq: value
-        subsidiaries:
-          title: Subsidiaries
-          description: The subsidiaries that use this custom domain.
-          example:
-            eq: value
-        name:
+        mailgun_dkim:
           type: string
-          title: Name
-          description: The custom domain name (hostname) used for client-facing portals.
+          title: Mailgun Dkim
+          description: The DKIM DNS record required for email authentication via Mailgun for this custom domain.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this custom domain belongs to.
           example:
             eq: value
         id:
@@ -355,21 +356,9 @@ components:
           description: The unique identifier of this custom domain.
           example:
             - 123
-        organization:
-          title: Organization
-          description: The organization this custom domain belongs to.
-          example:
-            eq: value
-        email_sender_address:
-          type: string
-          title: Email Sender Address
-          description: The email address used as the sender when sending emails via this custom domain.
-          example:
-            eq: value
-        allow_user_email:
-          type: boolean
-          title: Allow User Email
-          description: Whether to allow user email.
+        mailgun_mx:
+          title: Mailgun Mx
+          description: The MX DNS records required for Mailgun email routing for this custom domain.
           example:
             eq: value
         email_sender_name:
@@ -378,10 +367,15 @@ components:
           description: The sender name for emails.
           example:
             eq: value
-        mailgun_dkim:
+        subsidiaries:
+          title: Subsidiaries
+          description: The subsidiaries that use this custom domain.
+          example:
+            eq: value
+        email_sender_address:
           type: string
-          title: Mailgun Dkim
-          description: The DKIM DNS record required for email authentication via Mailgun for this custom domain.
+          title: Email Sender Address
+          description: The email address used as the sender when sending emails via this custom domain.
           example:
             eq: value
         verified_at:
@@ -395,6 +389,12 @@ components:
           type: string
           title: Mailgun Spf
           description: The SPF DNS record required for email sender authentication via Mailgun for this custom domain.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The custom domain name (hostname) used for client-facing portals.
           example:
             eq: value
       description: A custom URL domain configured for an organization's client-facing portals, with optional email sending settings.

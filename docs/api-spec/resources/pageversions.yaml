@@ -8,6 +8,13 @@ description: |-
   List the version history of a page and retrieve previous content. Versions allow teams to review changes over time and restore earlier drafts.
 x-filters:
   page_version:
+    page_id:
+      description: Filter by the associated page.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     person_id:
       description: Filter by the person who created this version.
       operators:
@@ -17,13 +24,6 @@ x-filters:
         - not_eq
     restored_from_version_id:
       description: Filter by the version this version was restored from.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    page_id:
-      description: Filter by the associated page.
       operators:
         - contains
         - eq
@@ -46,9 +46,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_page_version'
       parameters:
+        - $ref: '#/components/parameters/sort_page_version'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_page_version'
-        - $ref: '#/components/parameters/sort_page_version'
       operationId: page_versions-index
       description: Returns the version history of pages. Filter by `page_id` to list one page's versions; sort with `-created_at` for newest first.
     post:
@@ -112,13 +112,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: page_versions-update
       requestBody:
         $ref: '#/components/requestBodies/page_version_update'
@@ -166,16 +166,69 @@ components:
       type: object
       title: Page version Resource
       properties:
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this page version was created.
+          example:
+            gt: '2026-01-01'
+        page_id:
+          type: integer
+          title: Page
+          description: ID of the page this version belongs to.
+          example:
+            - 123
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this page version was last updated.
+          example:
+            gt: '2026-01-01'
+        person:
+          title: Person
+          description: The person who saved this version.
+          example:
+            eq: value
+        page:
+          title: Page
+          description: The page this version belongs to.
+          example:
+            eq: value
         person_id:
           type: integer
           title: Person
           description: ID of the person who saved this version.
           example:
             - 123
+        body_snapshot:
+          title: Body Snapshot
+          description: A snapshot of the page body in ProseMirror JSON format at the time this version was saved.
+          example:
+            eq: value
+        restored_from_version_id:
+          type: integer
+          title: Restored From Version
+          description: ID of the version this one was restored from, when the version marks a restore point.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: An optional user-defined name for this version (e.g. a milestone label).
+          example:
+            eq: value
         prosemirror_steps:
           type: object
           title: Prosemirror Steps
           description: The ordered list of ProseMirror operations that transform the previous version into this one.
+          example:
+            eq: value
+        title_snapshot:
+          type: string
+          title: Title Snapshot
+          description: A snapshot of the page title at the time this version was saved.
           example:
             eq: value
         id:
@@ -187,59 +240,6 @@ components:
         organization:
           title: Organization
           description: The organization this page version belongs to.
-          example:
-            eq: value
-        body_snapshot:
-          title: Body Snapshot
-          description: A snapshot of the page body in ProseMirror JSON format at the time this version was saved.
-          example:
-            eq: value
-        title_snapshot:
-          type: string
-          title: Title Snapshot
-          description: A snapshot of the page title at the time this version was saved.
-          example:
-            eq: value
-        restored_from_version_id:
-          type: integer
-          title: Restored From Version
-          description: ID of the version this one was restored from, when the version marks a restore point.
-          example:
-            - 123
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this page version was created.
-          example:
-            gt: '2026-01-01'
-        person:
-          title: Person
-          description: The person who saved this version.
-          example:
-            eq: value
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this page version was last updated.
-          example:
-            gt: '2026-01-01'
-        page_id:
-          type: integer
-          title: Page
-          description: ID of the page this version belongs to.
-          example:
-            - 123
-        name:
-          type: string
-          title: Name
-          description: An optional user-defined name for this version (e.g. a milestone label).
-          example:
-            eq: value
-        page:
-          title: Page
-          description: The page this version belongs to.
           example:
             eq: value
       description: A historical snapshot of a page's content created whenever the page is saved.
@@ -262,22 +262,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -285,14 +269,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -342,14 +342,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
@@ -362,6 +362,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_page_version:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.page_version at the top of this file.
+      required: false
+      description: Filters
     sort_page_version:
       in: query
       name: sort
@@ -381,15 +390,6 @@ components:
       explode: false
       required: false
       description: Sort page version
-    filter_page_version:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.page_version at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_page_version:
       content:

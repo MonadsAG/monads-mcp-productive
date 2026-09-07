@@ -5,15 +5,8 @@ info:
 description: The Webhook Log object represents a record of an unsuccessful webhook delivery attempt. When a webhook fails to deliver, a log is created with details about the failure.
 x-filters:
   webhook_log:
-    webhook_id:
-      description: Filter by the associated webhook.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    retry_job_id:
-      description: Filter by the background job ID used for scheduling the retry delivery.
+    before:
+      description: Filter by before.
       operators:
         - contains
         - eq
@@ -33,15 +26,22 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    after:
-      description: Filter by after.
+    webhook_id:
+      description: Filter by the associated webhook.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    before:
-      description: Filter by before.
+    retry_job_id:
+      description: Filter by the background job ID used for scheduling the retry delivery.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    after:
+      description: Filter by after.
       operators:
         - contains
         - eq
@@ -57,13 +57,22 @@ paths:
         '200':
           $ref: '#/components/responses/collection_webhook_log'
       parameters:
-        - $ref: '#/components/parameters/filter_webhook_log'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_webhook_log'
+        - $ref: '#/components/parameters/filter_webhook_log'
       operationId: webhook_logs-index
       description: List all webhook logs.
 components:
   parameters:
+    filter_webhook_log:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.webhook_log at the top of this file.
+      required: false
+      description: Filters
     sort_webhook_log:
       in: query
       name: sort
@@ -83,44 +92,11 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_webhook_log:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.webhook_log at the top of this file.
-      required: false
-      description: Filters
   schemas:
     resource_webhook_log:
       type: object
       title: Webhook log Resource
       properties:
-        webhook_id:
-          type: integer
-          title: Webhook
-          description: ID of the webhook that generated this log entry.
-          example:
-            - 123
-        retry_job_id:
-          type: string
-          title: Retry Job
-          description: The background job ID for a scheduled retry of this delivery, or null if no retry is pending.
-          example:
-            - 123
-        retry_attempt:
-          type: integer
-          title: Retry Attempt
-          description: The retry attempt number for this delivery, where 0 is the initial attempt.
-          example:
-            gt: '2026-01-01'
-        payload:
-          type: string
-          title: Payload
-          description: The JSON payload that was sent to the target URL.
-          example:
-            eq: value
         after:
           type: string
           title: After
@@ -128,10 +104,35 @@ components:
           description: Filter to return only webhook log entries created after this date.
           example:
             eq: value
+        retry_job_id:
+          type: string
+          title: Retry Job
+          description: The background job ID for a scheduled retry of this delivery, or null if no retry is pending.
+          example:
+            - 123
+        status_code:
+          type: integer
+          title: Status Code
+          description: The HTTP response status code returned by the target URL.
+          example:
+            eq: active
         id:
           type: integer
           title: Id
           description: The unique identifier of this webhook log entry.
+          example:
+            - 123
+        before:
+          type: string
+          title: Before
+          format: date
+          description: Filter to return only webhook log entries created before this date.
+          example:
+            eq: value
+        webhook_id:
+          type: integer
+          title: Webhook
+          description: ID of the webhook that generated this log entry.
           example:
             - 123
         created_at:
@@ -141,17 +142,16 @@ components:
           description: Timestamp when this webhook delivery attempt was made.
           example:
             gt: '2026-01-01'
-        status_code:
-          type: integer
-          title: Status Code
-          description: The HTTP response status code returned by the target URL.
-          example:
-            eq: active
-        before:
+        target_url:
           type: string
-          title: Before
-          format: date
-          description: Filter to return only webhook log entries created before this date.
+          title: Target Url
+          description: The URL to which the webhook payload was delivered.
+          example:
+            eq: value
+        payload:
+          type: string
+          title: Payload
+          description: The JSON payload that was sent to the target URL.
           example:
             eq: value
         organization:
@@ -164,12 +164,12 @@ components:
           description: The webhook that generated this log entry.
           example:
             eq: value
-        target_url:
-          type: string
-          title: Target Url
-          description: The URL to which the webhook payload was delivered.
+        retry_attempt:
+          type: integer
+          title: Retry Attempt
+          description: The retry attempt number for this delivery, where 0 is the initial attempt.
           example:
-            eq: value
+            gt: '2026-01-01'
       description: A webhook log records a single delivery attempt of a webhook event to its target URL, capturing the payload sent, HTTP response code, and retry details.
       example:
         id: '123'
@@ -184,22 +184,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -207,14 +191,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -264,14 +264,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

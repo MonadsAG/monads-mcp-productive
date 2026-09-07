@@ -33,13 +33,6 @@ description: |-
   ```
 x-filters:
   holiday:
-    holiday_calendar_id:
-      description: Filter by the associated holiday calendar.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     after:
       description: Filter by after.
       operators:
@@ -49,6 +42,13 @@ x-filters:
         - not_eq
     before:
       description: Filter by before.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    holiday_calendar_id:
+      description: Filter by the associated holiday calendar.
       operators:
         - contains
         - eq
@@ -64,9 +64,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_holiday'
       parameters:
-        - $ref: '#/components/parameters/filter_holiday'
-        - $ref: '#/components/parameters/sort_holiday'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_holiday'
+        - $ref: '#/components/parameters/filter_holiday'
       operationId: holidays-index
       description: List holidays.
     post:
@@ -161,6 +161,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_holiday:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.holiday at the top of this file.
+      required: false
+      description: Filters
     sort_holiday:
       in: query
       name: sort
@@ -173,15 +182,6 @@ components:
       explode: false
       required: false
       description: Sort holiday
-    filter_holiday:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.holiday at the top of this file.
-      required: false
-      description: Filters
   requestBodies:
     holiday:
       content:
@@ -211,6 +211,12 @@ components:
       type: object
       title: Holiday Resource
       properties:
+        holiday_calendar_id:
+          type: integer
+          title: Holiday Calendar
+          description: ID of the holiday calendar this holiday belongs to.
+          example:
+            - 123
         after:
           type: string
           title: After
@@ -218,37 +224,6 @@ components:
           description: Filter to return holidays on or after this date.
           example:
             eq: value
-        holiday_calendar_id:
-          type: integer
-          title: Holiday Calendar
-          description: ID of the holiday calendar this holiday belongs to.
-          example:
-            - 123
-        creator:
-          title: Creator
-          description: The person who created this holiday entry.
-          example:
-            eq: value
-        before:
-          type: string
-          title: Before
-          format: date
-          description: Filter to return holidays on or before this date.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The name of this holiday (e.g. Christmas Day).
-          example:
-            eq: value
-        date:
-          type: string
-          title: Date
-          format: date
-          description: The date of this holiday.
-          example:
-            gt: '2026-01-01'
         holiday_calendar:
           title: Holiday Calendar
           description: The holiday calendar this holiday belongs to.
@@ -259,6 +234,31 @@ components:
           description: The organization this holiday belongs to.
           example:
             eq: value
+        name:
+          type: string
+          title: Name
+          description: The name of this holiday (e.g. Christmas Day).
+          example:
+            eq: value
+        before:
+          type: string
+          title: Before
+          format: date
+          description: Filter to return holidays on or before this date.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this holiday entry.
+          example:
+            eq: value
+        date:
+          type: string
+          title: Date
+          format: date
+          description: The date of this holiday.
+          example:
+            gt: '2026-01-01'
       description: A non-working day within a holiday calendar that affects person availability calculations.
       example:
         id: '45'
@@ -276,22 +276,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -299,14 +283,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -356,14 +356,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

@@ -8,8 +8,15 @@ description: |-
   Edit history lives in [`page_versions`](openapi:group:pageversions); root pages on a project also carry custom fields.
 x-filters:
   page:
-    id:
-      description: Filter by ID.
+    full_query:
+      description: Full-text search across all fields of a page, including title and body content.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filter by the person who created the page.
       operators:
         - contains
         - eq
@@ -22,8 +29,57 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    custom_fields:
-      description: Filter by custom field values.
+    project_id:
+      description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subscriber_id:
+      description: Filter by the person subscribed to the page.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Filter by title or content (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by creation date range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    template:
+      description: Filter to include only pages that are based on a template.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    parent_page_id:
+      description: Filter by the direct parent page.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_status:
+      description: Filter by the status of the parent project (active or archived).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    edited_at:
+      description: Filter by last edited date range.
       operators:
         - contains
         - eq
@@ -41,71 +97,22 @@ x-filters:
       operators:
         - eq
         - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    custom_fields:
+      description: Filter by custom field values.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     fuzzy_people:
       description: Filter pages by people mentioned in the page content.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    parent_page_id:
-      description: Filter by the direct parent page.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    subscriber_id:
-      description: Filter by the person subscribed to the page.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    template:
-      description: Filter to include only pages that are based on a template.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    full_query:
-      description: Full-text search across all fields of a page, including title and body content.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    root_page_id:
-      description: Filter by the top-level ancestor page.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    edited_at:
-      description: Filter by last edited date range.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    project_status:
-      description: Filter by the status of the parent project (active or archived).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    project_id:
-      description: Filter by the associated project.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    query:
-      description: Filter by title or content (text search).
       operators:
         - contains
         - eq
@@ -118,13 +125,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    creator_id:
-      description: Filter by the person who created the page.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     jump_query:
       description: Filter pages by a quick search query used in jump navigation.
       operators:
@@ -132,8 +132,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    created_at:
-      description: Filter by creation date range.
+    root_page_id:
+      description: Filter by the top-level ancestor page.
       operators:
         - contains
         - eq
@@ -157,13 +157,13 @@ paths:
                 type: string
           description: Conflict
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the page.
-        - $ref: '#/components/parameters/header_organization'
       operationId: pages-convert-to-doc-convert-to-doc
       description: 'Promotes a subpage into a standalone doc: it is detached from its parent, keeps the project of the doc it came from, gets its own `public_uuid`, and its subpages move with it. The caller gets full access and the original doc''s person memberships are copied over. No request body.'
   /api/v2/pages/copy:
@@ -240,9 +240,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_page'
       parameters:
-        - $ref: '#/components/parameters/sort_page'
-        - $ref: '#/components/parameters/filter_page'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_page'
+        - $ref: '#/components/parameters/sort_page'
       operationId: pages-index
       description: Returns a paginated list of pages — docs (root pages) and their subpages alike. Scope the list with `filter[project_id]` (pages of a project), `filter[root_page_id]` (every page inside one doc) or `filter[parent_page_id]` (direct children of a page). `filter[query]` matches page titles, `filter[full_query]` searches titles and body content; `filter[creator_id]`, `filter[subscriber_id]`, `filter[edited_at]` and `filter[last_activity_at]` narrow the result further. Pass `filter[template]` to list only template docs.
   /api/v2/pages/{id}/move:
@@ -369,13 +369,13 @@ paths:
                 type: string
           description: Bad Gateway — the docs-realtime service returned an error or could not be reached.
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the page to append markdown content to.
-        - $ref: '#/components/parameters/header_organization'
       operationId: pages-proxy-append-markdown
       requestBody:
         $ref: '#/components/requestBodies/page_markdown_body'
@@ -501,13 +501,13 @@ paths:
                 type: string
           description: Bad Gateway — the docs-realtime service returned an error or could not be reached.
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the page whose body will be replaced.
-        - $ref: '#/components/parameters/header_organization'
       operationId: pages-proxy-replace-body-with-markdown
       requestBody:
         $ref: '#/components/requestBodies/page_markdown_body'
@@ -624,13 +624,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the page.
+        - $ref: '#/components/parameters/header_organization'
       operationId: pages-template-apply-template-on-parent
       requestBody:
         $ref: '#/components/requestBodies/page_apply_template'
@@ -875,22 +875,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -898,14 +882,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -915,7 +915,6 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
-        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -932,27 +931,12 @@ components:
             data:
               - type: tasks
                 id: '42'
+        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -973,18 +957,78 @@ components:
       example:
         meta:
           included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     resource_page:
       type: object
       title: Page Resource
       properties:
-        parent_page:
-          title: Parent Page
-          description: The parent page of this page in the hierarchy, if any.
+        project_status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Project Status
+          description: Status of the project this page belongs to (active or archived).
+          example:
+            eq: active
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this page belongs to.
+          example:
+            - 123
+        creator:
+          title: Creator
+          description: The person who created this page.
           example:
             eq: value
-        root_page:
-          title: Root Page
-          description: The root Doc page of the hierarchy this page belongs to. Null for root pages themselves.
+        organization:
+          title: Organization
+          description: The organization this page belongs to.
+          example:
+            eq: value
+        title:
+          type: string
+          title: Title
+          description: Title of the page.
+          example:
+            eq: value
+        attachment_ids:
+          title: Attachment Ids
+          description: IDs of attachments associated with this page.
+          example:
+            - 123
+            - 456
+        status:
+          type: integer
+          title: Status
+          description: The status filter value used when querying pages (active or archived).
+          example:
+            eq: active
+        position:
+          type: integer
+          title: Position
+          description: The display order position of this page among its siblings.
+          example:
+            eq: value
+        body:
+          title: Body
+          description: Rich text body of the page in ProseMirror JSON format.
           example:
             eq: value
         fuzzy_dates:
@@ -1000,26 +1044,72 @@ components:
           description: Unique identifier of the page.
           example:
             - 123
-        subscriber_id:
-          type: integer
-          title: Subscriber
-          description: ID of the subscriber (person) watching this page for updates.
-          example:
-            - 123
-        creator:
-          title: Creator
-          description: The person who created this page.
+        project:
+          title: Project
+          description: The project this page is associated with, if any.
           example:
             eq: value
+        updater:
+          title: Updater
+          description: The person who last edited this page.
+        edited_at:
+          type: string
+          title: Edited At
+          format: date-time
+          description: Timestamp when the page content was last edited.
+          example:
+            gt: '2026-01-01'
+        query:
+          type: string
+          title: Query
+          description: Search query matched against page title only.
+          example:
+            eq: value
+        fuzzy_people:
+          type: integer
+          title: Fuzzy People
+          description: Person IDs associated with the page for fuzzy search matching.
+          example:
+            eq: value
+        cover_image_url:
+          type: string
+          title: Cover Image Url
+          description: URL of the cover image displayed at the top of the page.
+          example:
+            eq: value
+        last_activity_at:
+          type: string
+          title: Last Activity At
+          format: date-time
+          description: Timestamp of the most recent activity on this page.
+          example:
+            gt: '2026-01-01'
         root_page_id:
           type: integer
           title: Root Page
           description: ID of the root Doc page. Null if this page is itself a root Doc.
           example:
             - 123
-        public:
-          title: Public
-          description: Whether this page is publicly accessible via a shared link.
+        cover_image_meta:
+          type: string
+          title: Cover Image Meta
+          description: Metadata for the cover image, such as dimensions and focal point.
+          example:
+            eq: value
+        creator_name:
+          title: Creator Name
+          description: Display name of the page creator.
+          example:
+            eq: value
+        target_doc_id:
+          type: integer
+          title: Target Doc
+          description: ID of the destination page for `PATCH /pages/{id}/move`; the moved page becomes its last child.
+          example: 48901
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: Custom field values set on this page. Only available on root pages that belong to a project.
           example:
             eq: value
         updated_at:
@@ -1029,12 +1119,6 @@ components:
           description: Timestamp when the page record was last updated.
           example:
             gt: '2026-01-01'
-        title:
-          type: string
-          title: Title
-          description: Title of the page.
-          example:
-            eq: value
         steps:
           type: array
           items:
@@ -1045,129 +1129,26 @@ components:
           description: The ProseMirror steps applied to this page's content during collaborative editing.
           example:
             eq: value
-        position:
-          type: integer
-          title: Position
-          description: The display order position of this page among its siblings.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this page belongs to.
-          example:
-            eq: value
-        icon_id:
-          type: string
-          title: Icon
-          description: Emoji or icon identifier displayed next to the page title.
-          example:
-            - 123
-        full_query:
-          type: string
-          title: Full Query
-          description: Full-text search query matching across all page fields including title and body.
-          example:
-            eq: value
-        public_uuid:
-          type: string
-          title: Public Uuid
-          description: UUID used in the public sharing URL for this page.
-          example:
-            eq: value
-        project_id:
-          type: integer
-          title: Project
-          description: ID of the project this page belongs to.
-          example:
-            - 123
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who created this page.
-          example:
-            - 123
-        updater:
-          title: Updater
-          description: The person who last edited this page.
-        cover_image_meta:
-          type: string
-          title: Cover Image Meta
-          description: Metadata for the cover image, such as dimensions and focal point.
-          example:
-            eq: value
-        cover_image_url:
-          type: string
-          title: Cover Image Url
-          description: URL of the cover image displayed at the top of the page.
-          example:
-            eq: value
-        edited_at:
-          type: string
-          title: Edited At
-          format: date-time
-          description: Timestamp when the page content was last edited.
-          example:
-            gt: '2026-01-01'
-        target_doc_id:
-          type: integer
-          title: Target Doc
-          description: ID of the destination page for `PATCH /pages/{id}/move`; the moved page becomes its last child.
-          example: 48901
-        jump_query:
-          type: string
-          title: Jump Query
-          description: Short query used for jump-to search navigation across pages.
-          example:
-            eq: value
-        project_status:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Project Status
-          description: Status of the project this page belongs to (active or archived).
-          example:
-            eq: active
-        last_activity_at:
-          type: string
-          title: Last Activity At
-          format: date-time
-          description: Timestamp of the most recent activity on this page.
-          example:
-            gt: '2026-01-01'
         attachments:
           title: Attachments
           description: Attachments linked to this page.
           example:
             eq: value
-        template:
-          type: string
-          title: Template
-          description: Filter only — pass `filter[template]` to return only template docs, i.e. docs on template projects.
+        public:
+          title: Public
+          description: Whether this page is publicly accessible via a shared link.
           example:
             eq: value
-        status:
-          type: integer
-          title: Status
-          description: The status filter value used when querying pages (active or archived).
-          example:
-            eq: active
         parent_page_id:
           type: integer
           title: Parent Page
           description: ID of the parent page in the hierarchy, or null if this is a root page.
           example:
             - 123
-        fuzzy_people:
-          type: integer
-          title: Fuzzy People
-          description: Person IDs associated with the page for fuzzy search matching.
-          example:
-            eq: value
-        version_number:
-          type: integer
-          title: Version Number
-          description: Incremental version counter for the page body, used to detect and prevent conflicting edits.
+        template:
+          type: string
+          title: Template
+          description: Filter only — pass `filter[template]` to return only template docs, i.e. docs on template projects.
           example:
             eq: value
         template_id:
@@ -1175,49 +1156,10 @@ components:
           title: Template
           description: 'ID of the source page: the page being copied on `POST /pages/copy`, or the template doc on the `apply_template_*` actions.'
           example: 48213
-        person_type:
-          type: integer
-          title: Person Type
-          description: Indicates the membership context of the current user (e.g. member or guest).
-          example:
-            eq: active
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when the page was created.
-          example:
-            gt: '2026-01-01'
-        body:
-          title: Body
-          description: Rich text body of the page in ProseMirror JSON format.
-          example:
-            eq: value
-        attachment_ids:
-          title: Attachment Ids
-          description: IDs of attachments associated with this page.
-          example:
-            - 123
-            - 456
-        project:
-          title: Project
-          description: The project this page is associated with, if any.
-          example:
-            eq: value
-        template_object:
-          title: Template Object
-          description: The template this page was created from, if any.
-          example:
-            eq: value
-        custom_fields:
+        preferences:
           type: object
-          title: Custom Fields
-          description: Custom field values set on this page. Only available on root pages that belong to a project.
-          example:
-            eq: value
-        creator_name:
-          title: Creator Name
-          description: Display name of the page creator.
+          title: Preferences
+          description: Page-level display preferences such as layout width, font size and default edit access.
           example:
             eq: value
         public_access:
@@ -1226,16 +1168,10 @@ components:
           description: Controls whether the page can be viewed publicly without authentication.
           example:
             eq: value
-        preferences:
-          type: object
-          title: Preferences
-          description: Page-level display preferences such as layout width, font size and default edit access.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: Search query matched against page title only.
+        version_number:
+          type: integer
+          title: Version Number
+          description: Incremental version counter for the page body, used to detect and prevent conflicting edits.
           example:
             eq: value
         project_name:
@@ -1243,6 +1179,70 @@ components:
           description: Name of the project this page belongs to.
           example:
             eq: value
+        full_query:
+          type: string
+          title: Full Query
+          description: Full-text search query matching across all page fields including title and body.
+          example:
+            eq: value
+        jump_query:
+          type: string
+          title: Jump Query
+          description: Short query used for jump-to search navigation across pages.
+          example:
+            eq: value
+        template_object:
+          title: Template Object
+          description: The template this page was created from, if any.
+          example:
+            eq: value
+        person_type:
+          type: integer
+          title: Person Type
+          description: Indicates the membership context of the current user (e.g. member or guest).
+          example:
+            eq: active
+        public_uuid:
+          type: string
+          title: Public Uuid
+          description: UUID used in the public sharing URL for this page.
+          example:
+            eq: value
+        subscriber_id:
+          type: integer
+          title: Subscriber
+          description: ID of the subscriber (person) watching this page for updates.
+          example:
+            - 123
+        icon_id:
+          type: string
+          title: Icon
+          description: Emoji or icon identifier displayed next to the page title.
+          example:
+            - 123
+        parent_page:
+          title: Parent Page
+          description: The parent page of this page in the hierarchy, if any.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when the page was created.
+          example:
+            gt: '2026-01-01'
+        root_page:
+          title: Root Page
+          description: The root Doc page of the hierarchy this page belongs to. Null for root pages themselves.
+          example:
+            eq: value
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who created this page.
+          example:
+            - 123
       description: A rich text document page. Root pages are standalone Docs with sharing settings; child pages form a hierarchy within a Doc.
       example:
         id: '78'
@@ -1290,15 +1290,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_page:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.page at the top of this file.
-      required: false
-      description: Filter parameter for querying pages.
     sort_page:
       in: query
       name: sort
@@ -1330,6 +1321,15 @@ components:
       explode: false
       required: false
       description: Sort order for page list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
+    filter_page:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.page at the top of this file.
+      required: false
+      description: Filter parameter for querying pages.
   requestBodies:
     page_apply_template:
       content:

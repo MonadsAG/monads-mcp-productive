@@ -39,6 +39,20 @@ description: |-
   You can find out more about To-dos in our [Help documentation] (https://help.productive.io/en/articles/4097412-task-to-do)
 x-filters:
   todo:
+    due_date:
+      description: Filter by due date range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    todoable_type:
+      description: Filter by the type of parent resource the todo belongs to (task or deal).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     status:
       description: Filter by completion status (open or closed).
       operators:
@@ -53,20 +67,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    task_id:
-      description: Filter by the associated task.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    todoable_type:
-      description: Filter by the type of parent resource the todo belongs to (task or deal).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     id:
       description: Filter by todo ID.
       operators:
@@ -74,15 +74,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    assignee_id:
-      description: Filter by the assigned person.
+    task_id:
+      description: Filter by the associated task.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    due_date:
-      description: Filter by due date range.
+    assignee_id:
+      description: Filter by the assigned person.
       operators:
         - contains
         - eq
@@ -98,9 +98,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_todo'
       parameters:
-        - $ref: '#/components/parameters/filter_todo'
-        - $ref: '#/components/parameters/sort_todo'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_todo'
+        - $ref: '#/components/parameters/filter_todo'
       operationId: todos-index
       description: Returns a paginated list of todos — checklist items attached to tasks or deals. Supports filtering by assignee, due date, task, deal, todoable type, and status (open/closed).
     post:
@@ -173,13 +173,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_todo'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: todos-show
       description: Returns a single todo by ID.
     patch:
@@ -206,13 +206,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: todos-update
       requestBody:
         $ref: '#/components/requestBodies/todo_update'
@@ -225,13 +225,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: todos-destroy
       description: Deletes a todo.
 components:
@@ -243,6 +243,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_todo:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.todo at the top of this file.
+      required: false
+      description: Filters
     sort_todo:
       in: query
       name: sort
@@ -255,15 +264,6 @@ components:
       explode: false
       required: false
       description: Sort todo
-    filter_todo:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.todo at the top of this file.
-      required: false
-      description: Filters
   requestBodies:
     todo_update:
       content:
@@ -326,6 +326,17 @@ components:
       type: object
       title: Todo Resource
       properties:
+        task_id:
+          type: integer
+          title: Task
+          description: ID of the task this todo belongs to.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this checklist item belongs to.
+          example:
+            eq: value
         due_date:
           type: string
           title: Due Date
@@ -333,92 +344,9 @@ components:
           description: The due date for completing this checklist item.
           example:
             gt: '2026-01-01'
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier for the checklist item.
-          example:
-            - 123
-        description:
-          type: string
-          title: Description
-          description: Text of the todo — the content of the checklist item.
-        due_time:
-          type: string
-          title: Due Time
-          format: time
-          description: The specific time of day the checklist item is due.
-          example:
-            gt: 0
-        status:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Status
-          description: 'Filter by todo status: 1 = open, 2 = closed.'
-          example:
-            eq: active
         deal:
           title: Deal
           description: The deal this checklist item belongs to, if attached to a deal.
-          example:
-            eq: value
-        position:
-          type: integer
-          title: Position
-          description: The display order of this todo within its parent list.
-          example:
-            eq: value
-        todoable_type:
-          type: string
-          title: Todoable Type
-          description: The type of the parent resource this todo is attached to (task or deal).
-          example:
-            eq: active
-        assignee_id:
-          type: integer
-          title: Assignee
-          description: The ID of the person assigned to complete this checklist item.
-          example:
-            - 123
-        closed:
-          type: boolean
-          title: Closed
-          description: Indicates whether this checklist item has been completed.
-          example: true
-        task_id:
-          type: integer
-          title: Task
-          description: ID of the task this todo belongs to.
-          example:
-            - 123
-        deal_id:
-          type: integer
-          title: Deal
-          description: The ID of the deal this checklist item belongs to, if applicable.
-          example:
-            - 123
-        closed_at:
-          type: string
-          title: Closed At
-          format: date-time
-          description: Timestamp when this checklist item was completed, or null if still open.
-          example:
-            gt: '2026-01-01'
-        task:
-          title: Task
-          description: The task this todo belongs to.
-          example:
-            eq: value
-        assignee:
-          title: Assignee
-          description: The person assigned to complete this checklist item.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this checklist item belongs to.
           example:
             eq: value
         created_at:
@@ -428,6 +356,78 @@ components:
           description: Timestamp when this checklist item was created.
           example:
             gt: '2026-01-01'
+        closed_at:
+          type: string
+          title: Closed At
+          format: date-time
+          description: Timestamp when this checklist item was completed, or null if still open.
+          example:
+            gt: '2026-01-01'
+        todoable_type:
+          type: string
+          title: Todoable Type
+          description: The type of the parent resource this todo is attached to (task or deal).
+          example:
+            eq: active
+        description:
+          type: string
+          title: Description
+          description: Text of the todo — the content of the checklist item.
+        assignee:
+          title: Assignee
+          description: The person assigned to complete this checklist item.
+          example:
+            eq: value
+        closed:
+          type: boolean
+          title: Closed
+          description: Indicates whether this checklist item has been completed.
+          example: true
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the checklist item.
+          example:
+            - 123
+        due_time:
+          type: string
+          title: Due Time
+          format: time
+          description: The specific time of day the checklist item is due.
+          example:
+            gt: 0
+        deal_id:
+          type: integer
+          title: Deal
+          description: The ID of the deal this checklist item belongs to, if applicable.
+          example:
+            - 123
+        assignee_id:
+          type: integer
+          title: Assignee
+          description: The ID of the person assigned to complete this checklist item.
+          example:
+            - 123
+        task:
+          title: Task
+          description: The task this todo belongs to.
+          example:
+            eq: value
+        position:
+          type: integer
+          title: Position
+          description: The display order of this todo within its parent list.
+          example:
+            eq: value
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: 'Filter by todo status: 1 = open, 2 = closed.'
+          example:
+            eq: active
       description: Checklist item on a task or deal. Supports description, assignee, due date (with optional time), position ordering, and completion tracking via closed_at timestamp.
       example:
         id: '24747'
@@ -456,22 +456,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -479,14 +463,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -536,14 +536,14 @@ components:
       type: object
       title: Resource Identifier
       properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
         type:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
       description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks

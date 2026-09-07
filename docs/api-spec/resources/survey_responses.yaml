@@ -5,22 +5,8 @@ info:
 description: Submitted survey responses. Each response links to a survey and contains field values for each survey field. Responses can trigger automations on submission.
 x-filters:
   survey_response:
-    survey_id:
-      description: Filter by the associated survey.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    creator_id:
-      description: Filter by the person who submitted the response.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    created_at:
-      description: Filter by creation date range.
+    custom_fields:
+      description: Filter by custom field values.
       operators:
         - contains
         - eq
@@ -33,8 +19,22 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    custom_fields:
-      description: Filter by custom field values.
+    survey_id:
+      description: Filter by the associated survey.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by creation date range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filter by the person who submitted the response.
       operators:
         - contains
         - eq
@@ -50,9 +50,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_survey_response'
       parameters:
-        - $ref: '#/components/parameters/filter_survey_response'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_survey_response'
+        - $ref: '#/components/parameters/filter_survey_response'
       operationId: survey_responses-index
       description: List all survey responses.
     post:
@@ -77,13 +77,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_survey_response'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the survey response to retrieve.
-        - $ref: '#/components/parameters/header_organization'
       operationId: survey_responses-show
       description: Retrieve a single survey response by ID.
     delete:
@@ -94,13 +94,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the survey response to delete.
+        - $ref: '#/components/parameters/header_organization'
       operationId: survey_responses-destroy
       description: Delete a survey response by ID.
 components:
@@ -112,6 +112,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_survey_response:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.survey_response at the top of this file.
+      required: false
+      description: Filter parameter for querying survey responses.
     sort_survey_response:
       in: query
       name: sort
@@ -139,15 +148,6 @@ components:
       explode: false
       required: false
       description: Sort order for survey response list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
-    filter_survey_response:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.survey_response at the top of this file.
-      required: false
-      description: Filter parameter for querying survey responses.
   responses:
     single_survey_response:
       content:
@@ -226,22 +226,6 @@ components:
       type: object
       title: Meta
       properties:
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -249,14 +233,30 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -266,7 +266,6 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
-        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -283,27 +282,12 @@ components:
             data:
               - type: tasks
                 id: '42'
+        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -324,6 +308,22 @@ components:
       example:
         meta:
           included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _single_relationship:
       anyOf:
         - type: object
@@ -346,18 +346,33 @@ components:
       type: object
       title: Survey response Resource
       properties:
-        creator_id:
+        id:
           type: integer
-          title: Creator
-          description: ID of the person who submitted this survey response.
+          title: Id
+          description: The unique identifier of this survey response.
           example:
             - 123
+        creator:
+          title: Creator
+          description: The person who submitted this survey response.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this survey response belongs to.
+          example:
+            eq: value
         custom_fields:
           type: string
           title: Custom Fields
           description: The custom field values submitted as part of this response.
           example:
             eq: value
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: File attachments associated with custom field values in this response.
+          example:
+            gt: '2026-01-01'
         updated_at:
           type: string
           title: Updated At
@@ -365,9 +380,9 @@ components:
           description: Timestamp when this survey response was last updated.
           example:
             gt: '2026-01-01'
-        creator:
-          title: Creator
-          description: The person who submitted this survey response.
+        survey:
+          title: Survey
+          description: The survey this response was submitted for.
           example:
             eq: value
         survey_id:
@@ -381,17 +396,6 @@ components:
           description: The survey field responses included in this submission.
           example:
             eq: value
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this survey response.
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: The organization this survey response belongs to.
-          example:
-            eq: value
         created_at:
           type: string
           title: Created At
@@ -399,16 +403,12 @@ components:
           description: Timestamp when this survey response was created.
           example:
             gt: '2026-01-01'
-        custom_field_attachments:
-          title: Custom Field Attachments
-          description: File attachments associated with custom field values in this response.
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who submitted this survey response.
           example:
-            gt: '2026-01-01'
-        survey:
-          title: Survey
-          description: The survey this response was submitted for.
-          example:
-            eq: value
+            - 123
       description: Submitted form response for a survey. Contains field values keyed by survey_field_id. Triggers any automations configured on the parent survey.
       example:
         id: '123'
