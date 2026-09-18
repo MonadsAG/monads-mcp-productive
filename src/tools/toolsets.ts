@@ -65,6 +65,7 @@ export const TOOLSETS: Record<string, string[]> = {
     'create_budget_service',
     'update_budget_service',
     'update_time_entry',
+    'delete_time_entry',
     'set_time_entry_approval',
     'get_timer',
     'start_timer',

@@ -73,6 +73,7 @@ describe('tool annotations', () => {
       'delete_page',
       'delete_task',
       'delete_task_dependency',
+      'delete_time_entry',
       'delete_todo',
       'finalize_invoice',
       'mark_invoice_paid',

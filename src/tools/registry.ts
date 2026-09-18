@@ -93,6 +93,7 @@ import {
   listDealServicesDefinition,
 } from './time-entries.js';
 import { updateTimeEntryTool, updateTimeEntryDefinition } from './time-entry-update.js';
+import { deleteTimeEntryTool, deleteTimeEntryDefinition } from './time-entry-delete.js';
 import { setTimeEntryApprovalTool, setTimeEntryApprovalDefinition } from './time-entry-approval.js';
 import {
   getTimerTool,
@@ -281,6 +282,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     createBudgetServiceDefinition,
     updateBudgetServiceDefinition,
     updateTimeEntryDefinition,
+    deleteTimeEntryDefinition,
     setTimeEntryApprovalDefinition,
     getTimerDefinition,
     startTimerDefinition,
@@ -447,6 +449,8 @@ export async function handleToolCall(
       return await updateBudgetServiceTool(apiClient, args);
     case 'update_time_entry':
       return await updateTimeEntryTool(apiClient, args);
+    case 'delete_time_entry':
+      return await deleteTimeEntryTool(apiClient, args);
     case 'set_time_entry_approval':
       return await setTimeEntryApprovalTool(apiClient, args);
     case 'get_timer':
