@@ -5,15 +5,8 @@ info:
 description: Form fields on a survey. Each field has a data type (text, number, date, dropdown, checkbox, file) and optional configuration. Dropdown and multi-select fields have selectable options managed via survey_field_options.
 x-filters:
   survey_field:
-    name:
-      description: Filter by field name (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    survey_id:
-      description: Filter by the associated survey.
+    origin_field_id:
+      description: Filter by the original field this field was copied from.
       operators:
         - contains
         - eq
@@ -33,8 +26,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    project_id:
-      description: Filter by the associated project.
+    survey_id:
+      description: Filter by the associated survey.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by field name (text search).
       operators:
         - contains
         - eq
@@ -47,8 +47,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    origin_field_id:
-      description: Filter by the original field this field was copied from.
+    project_id:
+      description: Filter by the associated project.
       operators:
         - contains
         - eq
@@ -82,9 +82,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_survey_field'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_survey_field'
         - $ref: '#/components/parameters/filter_survey_field'
-        - $ref: '#/components/parameters/header_organization'
       operationId: survey_fields-index
       description: List all survey fields.
     post:
@@ -117,13 +117,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_survey_field'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the survey field to retrieve.
-        - $ref: '#/components/parameters/header_organization'
       operationId: survey_fields-show
       description: Retrieve a single survey field by ID.
     patch:
@@ -142,13 +142,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the survey field to update.
+        - $ref: '#/components/parameters/header_organization'
       operationId: survey_fields-update
       requestBody:
         $ref: '#/components/requestBodies/survey_field'
@@ -197,6 +197,12 @@ components:
       type: object
       title: Survey field Resource
       properties:
+        survey_id:
+          type: integer
+          title: Survey
+          description: ID of the survey this field belongs to.
+          example:
+            - 123
         updated_at:
           type: string
           title: Updated At
@@ -204,16 +210,45 @@ components:
           description: Timestamp when this survey field was last updated.
           example:
             gt: '2026-01-01'
-        archived_at:
+        created_at:
           type: string
-          title: Archived At
+          title: Created At
           format: date-time
-          description: Timestamp when this survey field was archived, or null if not archived.
+          description: Timestamp when this survey field was created.
           example:
             gt: '2026-01-01'
-        survey:
-          title: Survey
-          description: The survey this field belongs to.
+        origin_field_id:
+          type: integer
+          title: Origin Field
+          description: ID of the original custom field this survey field was created from, if applicable.
+          example:
+            - 123
+        global:
+          type: boolean
+          title: Global
+          description: When true, this field is shared across all projects in the organization.
+          example:
+            eq: value
+        id:
+          title: Id
+          description: The unique identifier of this survey field.
+          example:
+            - 123
+        formatting_type_id:
+          type: integer
+          title: Formatting Type
+          description: ID of the formatting type that controls how this field's value is displayed.
+          example:
+            - 123
+        options:
+          title: Options
+          description: The answer options available for this survey field (for multiple-choice fields).
+          example:
+            eq: value
+        show_in_add_edit_views:
+          type: boolean
+          title: Show In Add Edit Views
+          description: The show in add edit views.
           example:
             eq: value
         data_type_id:
@@ -230,15 +265,15 @@ components:
           description: ID of the data type that determines what kind of value this field stores (text, number, date, etc.).
           example:
             - 123
-        custom_field_people:
-          title: Custom Field People
-          description: People associated with this survey field via custom field lookups.
+        origin_field:
+          title: Origin Field
+          description: The original custom field this survey field was created from, if applicable.
           example:
             eq: value
-        survey_id:
+        project_id:
           type: integer
-          title: Survey
-          description: ID of the survey this field belongs to.
+          title: Project
+          description: ID of the project this survey field belongs to.
           example:
             - 123
         sensitive:
@@ -253,95 +288,60 @@ components:
           description: The display order position of this field within the survey.
           example:
             eq: value
-        name:
-          type: string
-          title: Name
-          description: The name (label) of this survey field.
+        custom_field_people:
+          title: Custom Field People
+          description: People associated with this survey field via custom field lookups.
           example:
             eq: value
-        formatting_type_id:
-          type: integer
-          title: Formatting Type
-          description: ID of the formatting type that controls how this field's value is displayed.
-          example:
-            - 123
-        customizable_type:
-          type: string
-          title: Customizable Type
-          description: The resource type this survey field can be attached to (e.g. tasks, deals, contacts).
-          example:
-            eq: active
-        origin_field:
-          title: Origin Field
-          description: The original custom field this survey field was created from, if applicable.
+        survey:
+          title: Survey
+          description: The survey this field belongs to.
           example:
             eq: value
-        project_id:
-          type: integer
-          title: Project
-          description: ID of the project this survey field belongs to.
-          example:
-            - 123
         required:
           type: boolean
           title: Required
           description: Whether a response to this field is required when submitting the survey.
           example:
             eq: value
-        global:
-          type: boolean
-          title: Global
-          description: When true, this field is shared across all projects in the organization.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this survey field belongs to.
-          example:
-            eq: value
-        show_in_add_edit_views:
-          type: boolean
-          title: Show In Add Edit Views
-          description: The show in add edit views.
-          example:
-            eq: value
-        created_at:
+        customizable_type:
           type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this survey field was created.
+          title: Customizable Type
+          description: The resource type this survey field can be attached to (e.g. tasks, deals, contacts).
           example:
-            gt: '2026-01-01'
-        origin_field_id:
-          type: integer
-          title: Origin Field
-          description: ID of the original custom field this survey field was created from, if applicable.
+            eq: active
+        quick_add_enabled:
+          type: boolean
+          title: Quick Add Enabled
+          description: When true, this field can be quickly added to a resource without opening the full edit form.
           example:
-            - 123
-        archived:
-          title: Archived
-          description: Whether this survey field has been archived.
-          example: true
-        id:
-          title: Id
-          description: The unique identifier of this survey field.
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The name (label) of this survey field.
           example:
-            - 123
+            eq: value
         aggregation_type_id:
           type: integer
           title: Aggregation Type
           description: ID of the aggregation type used when summarizing responses to this field.
           example:
             - 123
-        options:
-          title: Options
-          description: The answer options available for this survey field (for multiple-choice fields).
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when this survey field was archived, or null if not archived.
           example:
-            eq: value
-        quick_add_enabled:
-          type: boolean
-          title: Quick Add Enabled
-          description: When true, this field can be quickly added to a resource without opening the full edit form.
+            gt: '2026-01-01'
+        archived:
+          title: Archived
+          description: Whether this survey field has been archived.
+          example: true
+        organization:
+          title: Organization
+          description: The organization this survey field belongs to.
           example:
             eq: value
       description: Form field on a survey with a data type (text, number, date, dropdown, checkbox, file), label, required flag, position, and optional description. Dropdown fields have selectable options via survey_field_options.
@@ -358,6 +358,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -365,30 +381,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -398,6 +398,7 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -414,12 +415,27 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -440,24 +456,9 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -468,7 +469,6 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:

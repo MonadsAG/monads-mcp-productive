@@ -15,6 +15,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     person_id:
       description: Filter by the person who created this version.
       operators:
@@ -24,13 +31,6 @@ x-filters:
         - not_eq
     restored_from_version_id:
       description: Filter by the version this version was restored from.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by ID.
       operators:
         - contains
         - eq
@@ -46,9 +46,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_page_version'
       parameters:
-        - $ref: '#/components/parameters/sort_page_version'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_page_version'
+        - $ref: '#/components/parameters/sort_page_version'
       operationId: page_versions-index
       description: Returns the version history of pages. Filter by `page_id` to list one page's versions; sort with `-created_at` for newest first.
     post:
@@ -87,13 +87,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_page_version'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: page_versions-show
       description: Retrieve a single page version.
     patch:
@@ -112,36 +112,19 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: page_versions-update
       requestBody:
-        $ref: '#/components/requestBodies/page_version_update'
+        $ref: '#/components/requestBodies/page_version'
       description: Renames a page version — `name` is the only writable attribute.
 components:
   requestBodies:
-    page_version_update:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    required:
-                      - name
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_page_version/properties/name'
-      description: Request body for renaming a page version.
     page_version:
       content:
         application/vnd.api+json:
@@ -166,19 +149,6 @@ components:
       type: object
       title: Page version Resource
       properties:
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this page version was created.
-          example:
-            gt: '2026-01-01'
-        page_id:
-          type: integer
-          title: Page
-          description: ID of the page this version belongs to.
-          example:
-            - 123
         updated_at:
           type: string
           title: Updated At
@@ -186,14 +156,22 @@ components:
           description: Timestamp when this page version was last updated.
           example:
             gt: '2026-01-01'
-        person:
-          title: Person
-          description: The person who saved this version.
+        name:
+          type: string
+          title: Name
+          description: An optional user-defined name for this version (e.g. a milestone label).
           example:
             eq: value
-        page:
+        page_id:
+          type: integer
           title: Page
-          description: The page this version belongs to.
+          description: ID of the page this version belongs to.
+          example:
+            - 123
+        title_snapshot:
+          type: string
+          title: Title Snapshot
+          description: A snapshot of the page title at the time this version was saved.
           example:
             eq: value
         person_id:
@@ -213,10 +191,19 @@ components:
           description: ID of the version this one was restored from, when the version marks a restore point.
           example:
             - 123
-        name:
-          type: string
-          title: Name
-          description: An optional user-defined name for this version (e.g. a milestone label).
+        person:
+          title: Person
+          description: The person who saved this version.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this page version belongs to.
+          example:
+            eq: value
+        page:
+          title: Page
+          description: The page this version belongs to.
           example:
             eq: value
         prosemirror_steps:
@@ -225,23 +212,19 @@ components:
           description: The ordered list of ProseMirror operations that transform the previous version into this one.
           example:
             eq: value
-        title_snapshot:
-          type: string
-          title: Title Snapshot
-          description: A snapshot of the page title at the time this version was saved.
-          example:
-            eq: value
         id:
           type: integer
           title: Id
           description: The unique identifier of this page version.
           example:
             - 123
-        organization:
-          title: Organization
-          description: The organization this page version belongs to.
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this page version was created.
           example:
-            eq: value
+            gt: '2026-01-01'
       description: A historical snapshot of a page's content created whenever the page is saved.
       example:
         id: '45'
@@ -262,6 +245,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -269,30 +268,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -302,6 +285,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -312,12 +296,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -338,22 +337,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
   parameters:
     header_organization:
       in: header
@@ -362,15 +345,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_page_version:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.page_version at the top of this file.
-      required: false
-      description: Filters
     sort_page_version:
       in: query
       name: sort
@@ -390,6 +364,15 @@ components:
       explode: false
       required: false
       description: Sort page version
+    filter_page_version:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.page_version at the top of this file.
+      required: false
+      description: Filters
   responses:
     single_page_version:
       content:

@@ -30,27 +30,6 @@ description: |-
   ```
 x-filters:
   payment:
-    project_id:
-      description: Filter by the associated project.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by payment ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    external_id:
-      description: Filter by external payment ID from an integrated system.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     invoice_id:
       description: Filter by the associated invoice.
       operators:
@@ -58,50 +37,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    paid_before:
-      description: Filter payments made on or before this date (`paid_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    written_off_on:
-      description: Filter by write-off date range (`written_off_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    amount:
-      description: Filter by payment amount range.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    budget_id:
-      description: Filter by the associated budget or deal.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    paid_after:
-      description: Filter payments made on or after this date (`paid_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    subsidiary_id:
-      description: Filter by the associated subsidiary (via the invoice).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    number:
-      description: Filter by the invoice number associated with the payment.
+    query:
+      description: Search payments by invoice number or related text.
       operators:
         - contains
         - eq
@@ -114,6 +51,34 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    paid_after:
+      description: Filter payments made on or after this date (`paid_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    budget_id:
+      description: Filter by the associated budget or deal.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    written_off_on:
+      description: Filter by write-off date range (`written_off_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    paid_before:
+      description: Filter payments made on or before this date (`paid_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     paid_on:
       description: Filter by payment date range (`paid_on`).
       operators:
@@ -121,8 +86,43 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    query:
-      description: Search payments by invoice number or related text.
+    project_id:
+      description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    external_id:
+      description: Filter by external payment ID from an integrated system.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    number:
+      description: Filter by the invoice number associated with the payment.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subsidiary_id:
+      description: Filter by the associated subsidiary (via the invoice).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by payment ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    amount:
+      description: Filter by payment amount range.
       operators:
         - contains
         - eq
@@ -138,9 +138,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_payment'
       parameters:
+        - $ref: '#/components/parameters/filter_payment'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_payment'
-        - $ref: '#/components/parameters/filter_payment'
       operationId: payments-index
       description: List all payments.
     post:
@@ -217,13 +217,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: payments-destroy
       description: Delete a payment by ID.
 components:
@@ -235,15 +235,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_payment:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.payment at the top of this file.
-      required: false
-      description: Filters
     sort_payment:
       in: query
       name: sort
@@ -269,6 +260,15 @@ components:
       explode: false
       required: false
       description: Sort payment
+    filter_payment:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.payment at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     payment:
       content:
@@ -320,83 +320,15 @@ components:
       type: object
       title: Payment Resource
       properties:
-        currency:
-          title: Currency
-          description: The currency of this payment, inherited from the associated invoice.
-          example: GBP
-        external_id:
-          type: string
-          title: External
-          description: An external identifier for this payment, used when syncing with third-party accounting systems.
-          example: xero-pay-456
-        paid_on:
-          type: string
-          title: Paid On
-          format: date
-          description: Date when the payment was received (paid).
-          example: '2026-03-15'
-        budget_id:
-          type: integer
-          title: Budget
-          description: ID of the budget (deal) associated with the invoice this payment was applied to.
-          example: 456789
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier of this payment.
-          example: 345678
-        project_id:
-          type: integer
-          title: Project
-          description: ID of the project associated with the invoice this payment was applied to.
-          example: 567890
-        paid_before:
-          type: string
-          title: Paid Before
-          format: date
-          description: Filter for payments made before this date (used as a filter parameter).
-          example: '2026-03-31'
-        company_id:
-          type: integer
-          title: Company
-          description: ID of the company (client) on the invoice this payment was applied to.
-          example: 234567
+        invoice_number:
+          title: Invoice Number
+          description: The invoice number of the associated invoice at the time this payment was recorded.
+          example: INV-2026-042
         number:
           type: string
           title: Number
           description: The auto-generated sequence number for this payment.
           example: PAY-2026-015
-        amount:
-          type: integer
-          title: Amount
-          description: The payment amount in the invoice's currency.
-          example: 200000
-        note:
-          type: string
-          title: Note
-          description: An optional note or memo about this payment.
-          example: 'Wire transfer ref: WT-9281'
-        amount_default:
-          title: Amount Default
-          description: The payment amount converted to the organization's default currency.
-          example: 232000
-        amount_normalized:
-          title: Amount Normalized
-          description: The payment amount converted to the normalized (reporting) currency.
-          example: 200000
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized (reporting) currency for this payment.
-          example: GBP
-        query:
-          type: string
-          title: Query
-          description: A full-text search query to filter payments by invoice number or note.
-          example: INV-2026
-        date:
-          title: Date
-          description: Date when the payment was recorded.
-          example: '2026-03-15'
         subsidiary_id:
           type: integer
           title: Subsidiary
@@ -409,27 +341,32 @@ components:
             data:
               type: invoices
               id: '789012'
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency for this payment.
-          example: EUR
-        invoice_id:
-          type: integer
-          title: Invoice
-          description: ID of the invoice this payment was applied to.
-          example: 789012
-        paid_after:
-          type: string
-          title: Paid After
-          format: date
-          description: Filter for payments made after this date (used as a filter parameter).
-          example: '2026-03-01'
         written_off_on:
           type: string
           title: Written Off On
           format: date
           description: Date when this payment was written off as uncollectable, or null if the payment is not written off.
           example: null
+        amount:
+          type: integer
+          title: Amount
+          description: The payment amount in the invoice's currency.
+          example: 200000
+        invoice_id:
+          type: integer
+          title: Invoice
+          description: ID of the invoice this payment was applied to.
+          example: 789012
+        query:
+          type: string
+          title: Query
+          description: A full-text search query to filter payments by invoice number or note.
+          example: INV-2026
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project associated with the invoice this payment was applied to.
+          example: 567890
         organization:
           title: Organization
           description: The organization this payment belongs to.
@@ -437,10 +374,73 @@ components:
             data:
               type: organizations
               id: '109'
-        invoice_number:
-          title: Invoice Number
-          description: The invoice number of the associated invoice at the time this payment was recorded.
-          example: INV-2026-042
+        paid_before:
+          type: string
+          title: Paid Before
+          format: date
+          description: Filter for payments made before this date (used as a filter parameter).
+          example: '2026-03-31'
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier of this payment.
+          example: 345678
+        budget_id:
+          type: integer
+          title: Budget
+          description: ID of the budget (deal) associated with the invoice this payment was applied to.
+          example: 456789
+        amount_default:
+          title: Amount Default
+          description: The payment amount converted to the organization's default currency.
+          example: 232000
+        note:
+          type: string
+          title: Note
+          description: An optional note or memo about this payment.
+          example: 'Wire transfer ref: WT-9281'
+        external_id:
+          type: string
+          title: External
+          description: An external identifier for this payment, used when syncing with third-party accounting systems.
+          example: xero-pay-456
+        date:
+          title: Date
+          description: Date when the payment was recorded.
+          example: '2026-03-15'
+        amount_normalized:
+          title: Amount Normalized
+          description: The payment amount converted to the normalized (reporting) currency.
+          example: 200000
+        paid_after:
+          type: string
+          title: Paid After
+          format: date
+          description: Filter for payments made after this date (used as a filter parameter).
+          example: '2026-03-01'
+        paid_on:
+          type: string
+          title: Paid On
+          format: date
+          description: Date when the payment was received (paid).
+          example: '2026-03-15'
+        company_id:
+          type: integer
+          title: Company
+          description: ID of the company (client) on the invoice this payment was applied to.
+          example: 234567
+        currency:
+          title: Currency
+          description: The currency of this payment, inherited from the associated invoice.
+          example: GBP
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency for this payment.
+          example: EUR
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized (reporting) currency for this payment.
+          example: GBP
       description: A payment record representing an amount received against an invoice, internally referred to as an InvoicePayment.
       example:
         id: '67'
@@ -460,6 +460,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -467,30 +483,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -500,6 +500,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -510,12 +511,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -536,22 +552,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
   responses:
     single_payment:
       content:

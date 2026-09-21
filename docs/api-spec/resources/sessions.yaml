@@ -5,15 +5,15 @@ info:
 description: '**Sessions** represent authenticated login sessions for users accessing Productive.'
 x-filters:
   session:
-    machine:
-      description: Filter to include only machine (non-human) sessions.
+    creator_id:
+      description: Filter by the person who created the session.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    creator_id:
-      description: Filter by the person who created the session.
+    machine:
+      description: Filter to include only machine (non-human) sessions.
       operators:
         - contains
         - eq
@@ -36,8 +36,8 @@ paths:
         '200':
           $ref: '#/components/responses/collection_session'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_session'
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_session'
       operationId: sessions-index
       description: List all active sessions.
@@ -134,13 +134,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: sessions-validate_otp-validate_otp
       description: Validate a one-time password for a session.
 components:
@@ -304,6 +304,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -311,30 +327,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -344,6 +344,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -354,12 +355,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -380,26 +396,90 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     resource_session:
       type: object
       title: Session Resource
       properties:
+        read_only:
+          type: boolean
+          title: Read Only
+          description: When true, this session has read-only access and cannot make changes.
+          example:
+            eq: value
+        platform:
+          type: string
+          title: Platform
+          description: The operating system platform detected from the device used to create this session.
+          example:
+            eq: value
+        last_ip:
+          type: string
+          title: Last Ip
+          description: The IP address from which this session was last used.
+          example:
+            eq: value
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the user who created this session (typically the same as user_id, unless created by an agent).
+          example:
+            - 123
+        agent_first_name:
+          title: Agent First Name
+          description: The first name of the agent (admin) who created this session on behalf of the user, or null if the user created it themselves.
+          example:
+            eq: value
+        user:
+          title: User
+          description: The user this session belongs to.
+          example:
+            eq: value
+        firebase_token:
+          title: Firebase Token
+          description: The Firebase push notification token for this session, used for mobile push notifications.
+          example:
+            eq: value
+        device:
+          type: string
+          title: Device
+          description: The type of device used to create this session, such as desktop or mobile.
+          example:
+            eq: value
+        single_sign_on:
+          type: boolean
+          title: Single Sign On
+          description: Whether this session was authenticated via Single Sign-On.
+          example:
+            eq: value
+        browser:
+          type: string
+          title: Browser
+          description: The browser used to create this session, as detected from the user agent string.
+          example:
+            eq: value
+        machine:
+          type: boolean
+          title: Machine
+          description: When true, this session belongs to a machine (API token) rather than an interactive user session.
+          example:
+            eq: value
+        last_activity_at:
+          type: string
+          title: Last Activity At
+          format: date-time
+          description: Timestamp of the last request made in this session.
+          example:
+            gt: '2026-01-01'
+        cordova_device_version:
+          title: Cordova Device Version
+          description: The OS version of the Cordova (mobile) device used to create this session.
+          example:
+            eq: value
+        cordova_device_platform:
+          title: Cordova Device Platform
+          description: The platform of the Cordova (mobile) device (e.g. iOS or Android) used to create this session.
+          example:
+            eq: value
         cordova_device_uid:
           title: Cordova Device Uid
           description: The unique device identifier of the Cordova (mobile) device used to create this session.
@@ -410,20 +490,9 @@ components:
           description: The unique identifier of this session.
           example:
             - 123
-        read_only:
-          type: boolean
-          title: Read Only
-          description: When true, this session has read-only access and cannot make changes.
-          example:
-            eq: value
-        user:
-          title: User
-          description: The user this session belongs to.
-          example:
-            eq: value
-        cordova_device_version:
-          title: Cordova Device Version
-          description: The OS version of the Cordova (mobile) device used to create this session.
+        agent_avatar:
+          title: Agent Avatar
+          description: The avatar URL of the agent (admin) who created this session on behalf of the user, if applicable.
           example:
             eq: value
         agent_last_name:
@@ -431,47 +500,6 @@ components:
           description: The last name of the agent (admin) who created this session on behalf of the user, or null if the user created it themselves.
           example:
             eq: value
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the user who created this session (typically the same as user_id, unless created by an agent).
-          example:
-            - 123
-        firebase_token:
-          title: Firebase Token
-          description: The Firebase push notification token for this session, used for mobile push notifications.
-          example:
-            eq: value
-        browser:
-          type: string
-          title: Browser
-          description: The browser used to create this session, as detected from the user agent string.
-          example:
-            eq: value
-        token_expires_at:
-          type: string
-          title: Token Expires At
-          format: date-time
-          description: Timestamp when this session's token expires, or null if the session does not expire.
-          example:
-            gt: '2026-01-01'
-        agent_first_name:
-          title: Agent First Name
-          description: The first name of the agent (admin) who created this session on behalf of the user, or null if the user created it themselves.
-          example:
-            eq: value
-        machine:
-          type: boolean
-          title: Machine
-          description: When true, this session belongs to a machine (API token) rather than an interactive user session.
-          example:
-            eq: value
-        user_id:
-          type: integer
-          title: User
-          description: ID of the user this session belongs to.
-          example:
-            - 123
         token:
           title: Token
           description: The API access token for authenticating requests in this session.
@@ -482,22 +510,22 @@ components:
           description: The model of the Cordova (mobile) device used to create this session.
           example:
             eq: value
-        location:
-          type: string
-          title: Location
-          description: The geographic location associated with the last IP address used in this session.
+        app_version:
+          title: App Version
+          description: The version of the Productive app used when this session was created.
           example:
             eq: value
-        single_sign_on:
-          type: boolean
-          title: Single Sign On
-          description: Whether this session was authenticated via Single Sign-On.
-          example:
-            eq: value
-        platform:
+        token_expires_at:
           type: string
-          title: Platform
-          description: The operating system platform detected from the device used to create this session.
+          title: Token Expires At
+          format: date-time
+          description: Timestamp when this session's token expires, or null if the session does not expire.
+          example:
+            gt: '2026-01-01'
+        note:
+          type: string
+          title: Note
+          description: An optional note describing the purpose of this session or API token.
           example:
             eq: value
         name:
@@ -506,37 +534,10 @@ components:
           description: A user-assigned label for this session, used to identify API tokens or machine sessions.
           example:
             eq: value
-        device:
+        location:
           type: string
-          title: Device
-          description: The type of device used to create this session, such as desktop or mobile.
-          example:
-            eq: value
-        app_version:
-          title: App Version
-          description: The version of the Productive app used when this session was created.
-          example:
-            eq: value
-        cordova_device_platform:
-          title: Cordova Device Platform
-          description: The platform of the Cordova (mobile) device (e.g. iOS or Android) used to create this session.
-          example:
-            eq: value
-        note:
-          type: string
-          title: Note
-          description: An optional note describing the purpose of this session or API token.
-          example:
-            eq: value
-        last_ip:
-          type: string
-          title: Last Ip
-          description: The IP address from which this session was last used.
-          example:
-            eq: value
-        agent_avatar:
-          title: Agent Avatar
-          description: The avatar URL of the agent (admin) who created this session on behalf of the user, if applicable.
+          title: Location
+          description: The geographic location associated with the last IP address used in this session.
           example:
             eq: value
         two_factor_auth:
@@ -545,13 +546,12 @@ components:
           description: When true, two-factor authentication has been verified for this session.
           example:
             eq: value
-        last_activity_at:
-          type: string
-          title: Last Activity At
-          format: date-time
-          description: Timestamp of the last request made in this session.
+        user_id:
+          type: integer
+          title: User
+          description: ID of the user this session belongs to.
           example:
-            gt: '2026-01-01'
+            - 123
       description: An API access token session for a user, tracking device, browser, and IP information.
       example:
         id: '86742'

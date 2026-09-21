@@ -5,15 +5,15 @@ info:
 description: Approval policies define who approves time entries, absences, or expenses. Configures the set of approvers and whether all approvers must approve (unanimous) or any single approver is sufficient.
 x-filters:
   approval_policy:
-    status:
-      description: Filter by active/archived status.
+    type_id:
+      description: Filter by approval policy type ID.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    type_id:
-      description: Filter by approval policy type ID.
+    status:
+      description: Filter by active/archived status.
       operators:
         - contains
         - eq
@@ -44,13 +44,13 @@ paths:
                 type: string
           description: Conflict
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the approval policy to archive.
-        - $ref: '#/components/parameters/header_organization'
       operationId: approval_policies-archive-archive
       description: Archive an approval policy.
   /api/v2/approval_policies:
@@ -105,13 +105,13 @@ paths:
                 type: string
           description: Conflict
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the approval policy to restore.
-        - $ref: '#/components/parameters/header_organization'
       operationId: approval_policies-restore-restore
       description: Restore an approval policy.
   /api/v2/approval_policies/{id}:
@@ -123,13 +123,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_approval_policy'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the approval policy to retrieve.
+        - $ref: '#/components/parameters/header_organization'
       operationId: approval_policies-show
       description: Retrieve a single approval policy by ID.
     patch:
@@ -148,13 +148,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the approval policy to update.
+        - $ref: '#/components/parameters/header_organization'
       operationId: approval_policies-update
       requestBody:
         $ref: '#/components/requestBodies/approval_policy'
@@ -189,11 +189,19 @@ components:
       type: object
       title: Approval policy Resource
       properties:
-        organization:
-          title: Organization
-          description: The organization this approval policy belongs to.
+        default:
+          type: boolean
+          title: Default
+          description: Indicates whether this is the default approval policy for its type.
           example:
             eq: value
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when the approval policy was archived, or null if active.
+          example:
+            gt: '2026-01-01'
         status:
           enum:
             - 1
@@ -203,6 +211,11 @@ components:
           description: The current status of the approval policy (e.g. active or archived).
           example:
             eq: active
+        organization:
+          title: Organization
+          description: The organization this approval policy belongs to.
+          example:
+            eq: value
         type_id:
           enum:
             - 1
@@ -213,23 +226,10 @@ components:
           description: 'Numeric identifier for the approval policy type: 1 = absence, 2 = budget, 3 = deal.'
           example:
             - 123
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when the approval policy was archived, or null if active.
-          example:
-            gt: '2026-01-01'
         custom:
           type: boolean
           title: Custom
           description: Indicates whether this is a custom approval policy created for a specific assignment.
-          example:
-            eq: value
-        default:
-          type: boolean
-          title: Default
-          description: Indicates whether this is the default approval policy for its type.
           example:
             eq: value
         name:
@@ -251,6 +251,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -258,30 +274,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -291,6 +291,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -301,12 +302,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -327,22 +343,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
   parameters:
     header_organization:
       in: header
