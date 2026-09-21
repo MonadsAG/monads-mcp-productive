@@ -162,18 +162,16 @@ components:
           example:
             - 123
             - 456
-        subscribers:
-          title: Subscribers
-          description: The people subscribed to receive notifications about approval decisions.
-          example:
-            eq: value
-        dynamic_approver_ids:
-          type: string
-          title: Dynamic Approver Ids
-          description: Array of IDs of roles or rule-based approvers dynamically resolved at approval time.
+        target_type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Target Type
+          description: Numeric identifier for the approval target type (e.g. time entries, expenses, absences).
           example:
             - 123
-            - 456
         organization:
           title: Organization
           description: The organization this approval workflow belongs to.
@@ -185,36 +183,43 @@ components:
           description: The ID of the approval policy this workflow belongs to.
           example:
             - 123
-        event:
-          title: Event
-          description: The absence category (event) this workflow applies to, if the target type is absence.
+        approver_ids:
+          title: Approver Ids
+          description: Array of IDs of people explicitly assigned as approvers in this workflow.
           example:
-            eq: value
+            - 123
+            - 456
         id:
           type: integer
           title: Id
           description: Unique identifier for the approval workflow.
           example:
             - 123
-        target_type_id:
-          enum:
-            - 1
-            - 2
-            - 3
-          type: integer
-          title: Target Type
-          description: Numeric identifier for the approval target type (e.g. time entries, expenses, absences).
-          example:
-            - 123
-        subscriber_ids:
-          title: Subscriber Ids
-          description: Array of IDs of people subscribed to receive notifications about approval decisions.
+        dynamic_approver_ids:
+          type: string
+          title: Dynamic Approver Ids
+          description: Array of IDs of roles or rule-based approvers dynamically resolved at approval time.
           example:
             - 123
             - 456
-        approver_ids:
-          title: Approver Ids
-          description: Array of IDs of people explicitly assigned as approvers in this workflow.
+        approval_policy:
+          title: Approval Policy
+          description: The approval policy this workflow belongs to.
+          example:
+            eq: value
+        subscribers:
+          title: Subscribers
+          description: The people subscribed to receive notifications about approval decisions.
+          example:
+            eq: value
+        event:
+          title: Event
+          description: The absence category (event) this workflow applies to, if the target type is absence.
+          example:
+            eq: value
+        subscriber_ids:
+          title: Subscriber Ids
+          description: Array of IDs of people subscribed to receive notifications about approval decisions.
           example:
             - 123
             - 456
@@ -223,6 +228,12 @@ components:
           description: The people assigned as approvers in this workflow.
           example:
             eq: value
+        event_id:
+          type: integer
+          title: Event
+          description: The ID of the absence category (event) this workflow applies to, if applicable.
+          example:
+            - 123
         approval_requirement_id:
           enum:
             - 1
@@ -233,17 +244,6 @@ components:
           description: Internal identifier for the approval requirement configuration.
           example:
             - 123
-        event_id:
-          type: integer
-          title: Event
-          description: The ID of the absence category (event) this workflow applies to, if applicable.
-          example:
-            - 123
-        approval_policy:
-          title: Approval Policy
-          description: The approval policy this workflow belongs to.
-          example:
-            eq: value
       description: An approval workflow defines the approvers and subscribers for a specific approval target type within an approval policy.
       example:
         id: '169549'
@@ -274,6 +274,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -281,30 +297,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -314,6 +314,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -324,12 +325,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -350,24 +366,9 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -384,7 +385,6 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:

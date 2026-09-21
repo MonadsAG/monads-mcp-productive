@@ -35,15 +35,8 @@ description: |-
   ```
 x-filters:
   folder:
-    project_id:
-      description: Filter by the ID of the project the folder belongs to.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    query:
-      description: Filter by folder name using a text search query.
+    status:
+      description: Filter by folder archive status.
       operators:
         - contains
         - eq
@@ -56,8 +49,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    status:
-      description: Filter by folder archive status.
+    query:
+      description: Filter by folder name using a text search query.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the ID of the project the folder belongs to.
       operators:
         - contains
         - eq
@@ -73,13 +73,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_folder'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the folder.
+        - $ref: '#/components/parameters/header_organization'
       operationId: folders-archive-archive
       description: Archives a folder and all of its task lists, hiding them from active views. Reversible via [`/folders/{id}/restore`](#tag/Folders/operation/folders-restore-restore).
   /api/v2/folders/copy:
@@ -232,13 +232,13 @@ paths:
                 type: string
           description: The folder could not be moved due to validation errors.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the folder.
+        - $ref: '#/components/parameters/header_organization'
       operationId: folders-move-move
       requestBody:
         $ref: '#/components/requestBodies/folder_move'
@@ -299,13 +299,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_folder'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the folder.
-        - $ref: '#/components/parameters/header_organization'
       operationId: folders-restore-restore
       description: Restores an archived folder — and its task lists — back to active status.
   /api/v2/folders/{id}:
@@ -317,13 +317,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_folder'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the folder.
+        - $ref: '#/components/parameters/header_organization'
       operationId: folders-show
       description: Returns a single folder by ID.
     patch:
@@ -342,13 +342,13 @@ paths:
                 type: string
           description: The folder could not be updated due to validation errors.
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The numeric ID of the folder.
-        - $ref: '#/components/parameters/header_organization'
       operationId: folders-update
       requestBody:
         $ref: '#/components/requestBodies/folder'
@@ -449,27 +449,10 @@ components:
       type: object
       title: Folder Resource
       properties:
-        name:
-          type: string
-          title: Name
-          description: The display name of this folder.
-          example:
-            eq: value
-        placement:
+        position:
           type: integer
-          title: Placement
-          description: The fractional index used for ordering folders within a project, managed by the reposition endpoint.
-          example:
-            eq: value
-        hidden:
-          type: boolean
-          title: Hidden
-          description: Whether the folder is hidden from client users. Clients cannot see a hidden folder or its contents; internal project members are unaffected.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this folder belongs to.
+          title: Position
+          description: The integer sort position of this folder within its project.
           example:
             eq: value
         id:
@@ -478,9 +461,16 @@ components:
           description: The unique identifier of this folder.
           example:
             - 123
-        project:
-          title: Project
-          description: The project this folder belongs to.
+        name:
+          type: string
+          title: Name
+          description: The display name of this folder.
+          example:
+            eq: value
+        hidden:
+          type: boolean
+          title: Hidden
+          description: Whether the folder is hidden from client users. Clients cannot see a hidden folder or its contents; internal project members are unaffected.
           example:
             eq: value
         project_id:
@@ -489,6 +479,35 @@ components:
           description: The ID of the project this folder belongs to.
           example:
             - 123
+        query:
+          type: string
+          title: Query
+          description: The name of this folder, used as a search query field in filter operations.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this folder belongs to.
+          example:
+            eq: value
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: The timestamp when this folder was archived, or null if the folder is active.
+          example:
+            gt: '2026-01-01'
+        project:
+          title: Project
+          description: The project this folder belongs to.
+          example:
+            eq: value
+        placement:
+          type: integer
+          title: Placement
+          description: The fractional index used for ordering folders within a project, managed by the reposition endpoint.
+          example:
+            eq: value
         status:
           enum:
             - 1
@@ -498,25 +517,6 @@ components:
           description: The archive status of this folder. Returns 1 for active folders and 2 for archived folders.
           example:
             eq: active
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: The timestamp when this folder was archived, or null if the folder is active.
-          example:
-            gt: '2026-01-01'
-        position:
-          type: integer
-          title: Position
-          description: The integer sort position of this folder within its project.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: The name of this folder, used as a search query field in filter operations.
-          example:
-            eq: value
       description: The folder resource schema representing a collection of task lists within a project.
       example:
         id: '5522'
@@ -536,6 +536,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -543,30 +559,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -576,6 +576,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -586,12 +587,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -612,22 +628,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
   parameters:
     header_organization:
       in: header

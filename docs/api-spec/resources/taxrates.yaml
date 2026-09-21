@@ -35,13 +35,6 @@ description: |-
   ```
 x-filters:
   tax_rate:
-    primary_component_value:
-      description: Filter by the value of the primary tax component.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     status:
       description: Filter by status (active or archived).
       operators:
@@ -49,15 +42,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    secondary_component_name:
-      description: Filter by the name of the secondary tax component.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    secondary_component_value:
-      description: Filter by the value of the secondary tax component.
+    primary_component_value:
+      description: Filter by the value of the primary tax component.
       operators:
         - contains
         - eq
@@ -70,8 +56,22 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    secondary_component_value:
+      description: Filter by the value of the secondary tax component.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     primary_component_name:
       description: Filter by the name of the primary tax component.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    secondary_component_name:
+      description: Filter by the name of the secondary tax component.
       operators:
         - contains
         - eq
@@ -128,8 +128,8 @@ paths:
                 type: string
           description: Forbidden
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_tax_rate'
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_tax_rate'
       operationId: tax_rates-index
       description: List all tax rates.
@@ -179,13 +179,13 @@ paths:
                 type: string
           description: Forbidden
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: tax_rates-restore-restore
       description: Restore an archived tax rate.
   /api/v2/tax_rates/{id}:
@@ -205,13 +205,13 @@ paths:
                 type: string
           description: Forbidden
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: tax_rates-show
       description: Retrieve a single tax rate by ID.
     patch:
@@ -238,13 +238,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: tax_rates-update
       requestBody:
         $ref: '#/components/requestBodies/tax_rate'
@@ -284,32 +284,11 @@ components:
       type: object
       title: Tax rate Resource
       properties:
-        subsidiary_name:
-          title: Subsidiary Name
-          description: The name of the subsidiary this tax rate is associated with.
-          example: Acme Corp Canada
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this tax rate.
-          example: 456789
-        name:
+        primary_component_name:
           type: string
-          title: Name
-          description: The display name of this tax rate.
-          example: HST 13%
-        secondary_component_value:
-          type: number
-          title: Secondary Component Value
-          description: The percentage value of the optional secondary tax component.
-          example: 8
-        organization:
-          title: Organization
-          description: The organization this tax rate belongs to.
-          example:
-            data:
-              type: organizations
-              id: '109'
+          title: Primary Component Name
+          description: The label for the primary tax component (e.g. VAT or GST).
+          example: GST
         status:
           enum:
             - 1
@@ -318,21 +297,6 @@ components:
           title: Status
           description: The status of this tax rate, used for filtering (active or archived).
           example: 1
-        subsidiary_id:
-          type: integer
-          title: Subsidiary
-          description: ID of the subsidiary this tax rate is associated with.
-          example: 234
-        primary_component_name:
-          type: string
-          title: Primary Component Name
-          description: The label for the primary tax component (e.g. VAT or GST).
-          example: GST
-        primary_component_value:
-          type: number
-          title: Primary Component Value
-          description: The percentage value of the primary tax component.
-          example: 5
         subsidiary:
           title: Subsidiary
           description: The subsidiary this tax rate is associated with.
@@ -340,17 +304,53 @@ components:
             data:
               type: subsidiaries
               id: '234'
+        secondary_component_name:
+          type: string
+          title: Secondary Component Name
+          description: The label for the optional secondary tax component (e.g. PST in Canada).
+          example: PST
+        subsidiary_name:
+          title: Subsidiary Name
+          description: The name of the subsidiary this tax rate is associated with.
+          example: Acme Corp Canada
+        subsidiary_id:
+          type: integer
+          title: Subsidiary
+          description: ID of the subsidiary this tax rate is associated with.
+          example: 234
+        primary_component_value:
+          type: number
+          title: Primary Component Value
+          description: The percentage value of the primary tax component.
+          example: 5
+        organization:
+          title: Organization
+          description: The organization this tax rate belongs to.
+          example:
+            data:
+              type: organizations
+              id: '109'
+        secondary_component_value:
+          type: number
+          title: Secondary Component Value
+          description: The percentage value of the optional secondary tax component.
+          example: 8
         archived_at:
           type: string
           title: Archived At
           format: date-time
           description: Timestamp when this tax rate was archived, or null if active.
           example: null
-        secondary_component_name:
+        name:
           type: string
-          title: Secondary Component Name
-          description: The label for the optional secondary tax component (e.g. PST in Canada).
-          example: PST
+          title: Name
+          description: The display name of this tax rate.
+          example: HST 13%
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this tax rate.
+          example: 456789
       description: A tax rate with optional primary and secondary components, associated with a subsidiary and applied to invoices and line items.
       example:
         type: tax_rates
@@ -375,6 +375,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -382,30 +398,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -415,6 +415,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -425,12 +426,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -451,22 +467,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
   parameters:
     header_organization:
       in: header

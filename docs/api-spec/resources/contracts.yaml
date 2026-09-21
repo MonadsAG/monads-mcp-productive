@@ -17,15 +17,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    next_occurrence_on:
-      description: Filter by next occurrence date range (`next_occurrence_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by contract ID.
+    contract_interval_id:
+      description: Filter by the associated contract interval.
       operators:
         - contains
         - eq
@@ -38,8 +31,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    contract_interval_id:
-      description: Filter by the associated contract interval.
+    id:
+      description: Filter by contract ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    next_occurrence_on:
+      description: Filter by next occurrence date range (`next_occurrence_on`).
       operators:
         - contains
         - eq
@@ -55,9 +55,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_contract'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_contract'
         - $ref: '#/components/parameters/filter_contract'
-        - $ref: '#/components/parameters/header_organization'
       operationId: contracts-index
       description: List contracts with optional filters and pagination.
     post:
@@ -90,13 +90,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_contract'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: contracts-show
       description: Retrieve a single contract by ID.
     patch:
@@ -134,13 +134,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: contracts-destroy
       description: Delete a contract.
   /api/v2/contracts/{id}/generate:
@@ -152,13 +152,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_contract'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: contracts-generate-generate
       description: Generate a contract.
 components:
@@ -277,6 +277,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -284,30 +300,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -317,6 +317,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -327,12 +328,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -353,47 +369,48 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     resource_contract:
       type: object
       title: Contract Resource
       properties:
-        interval_id:
+        contract_interval_id:
           type: integer
-          title: Interval
-          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
+          title: Contract Interval
+          description: ID of the recurrence interval (e.g. monthly, quarterly, annually) for this contract.
           example:
             - 123
+        ends_on:
+          type: string
+          title: Ends On
+          format: date
+          description: Date when this contract ends, or null if it has no end date.
+          example:
+            eq: value
+        template:
+          title: Template
+          description: The budget used as the template for generating new budgets from this contract.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this contract belongs to.
+          example:
+            eq: value
         id:
           type: integer
           title: Id
           description: The unique identifier of this contract.
           example:
             - 123
-        organization:
-          title: Organization
-          description: The organization this contract belongs to.
+        template_id:
+          title: Template
+          description: ID of the budget used as the template for generating new budgets from this contract.
           example:
-            eq: value
-        copy_expenses:
+            - 123
+        use_rollover_hours:
           type: boolean
-          title: Copy Expenses
-          description: Whether to copy expenses from the template.
+          title: Use Rollover Hours
+          description: Whether to roll over unused hours.
           example:
             eq: value
         starts_on:
@@ -410,26 +427,16 @@ components:
           description: The date of the next occurrence.
           example:
             eq: value
-        contract_interval_id:
-          type: integer
-          title: Contract Interval
-          description: ID of the recurrence interval (e.g. monthly, quarterly, annually) for this contract.
-          example:
-            - 123
-        template:
-          title: Template
-          description: The budget used as the template for generating new budgets from this contract.
-          example:
-            eq: value
-        use_rollover_hours:
+        copy_expenses:
           type: boolean
-          title: Use Rollover Hours
-          description: Whether to roll over unused hours.
+          title: Copy Expenses
+          description: Whether to copy expenses from the template.
           example:
             eq: value
-        template_id:
-          title: Template
-          description: ID of the budget used as the template for generating new budgets from this contract.
+        interval_id:
+          type: integer
+          title: Interval
+          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
           example:
             - 123
         copy_purchase_order_number:
@@ -437,13 +444,6 @@ components:
           title: Copy Purchase Order Number
           description: Whether to copy the purchase order number.
           example: PO-2024-017
-        ends_on:
-          type: string
-          title: Ends On
-          format: date
-          description: Date when this contract ends, or null if it has no end date.
-          example:
-            eq: value
       description: A recurring retainer contract that auto-generates budgets at set intervals with optional rollover of unused amounts.
       example:
         id: '11'

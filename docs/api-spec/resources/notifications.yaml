@@ -8,8 +8,8 @@ description: |-
   List a user's notifications and mark them as read through these endpoints.
 x-filters:
   notification:
-    type:
-      description: Filter by notification type (the resource type that triggered the notification).
+    date_after:
+      description: Filter notifications where the last action occurred on or after this date.
       operators:
         - contains
         - eq
@@ -22,13 +22,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    dismissed:
-      description: Filter to include only dismissed (or non-dismissed) notifications.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     before:
       description: Filter by before.
       operators:
@@ -36,8 +29,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by ID.
+    type:
+      description: Filter by notification type (the resource type that triggered the notification).
       operators:
         - contains
         - eq
@@ -45,20 +38,6 @@ x-filters:
         - not_eq
     date_before:
       description: Filter notifications where the last action occurred on or before this date.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    last_action_at:
-      description: Filter by the timestamp of the last action triggering this notification.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    important:
-      description: Filter to include only high-importance notifications.
       operators:
         - contains
         - eq
@@ -78,8 +57,29 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    date_after:
-      description: Filter notifications where the last action occurred on or after this date.
+    important:
+      description: Filter to include only high-importance notifications.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    dismissed:
+      description: Filter to include only dismissed (or non-dismissed) notifications.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    last_action_at:
+      description: Filter by the timestamp of the last action triggering this notification.
       operators:
         - contains
         - eq
@@ -95,13 +95,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_notification'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: notifications-dismiss-dismiss
       description: Dismiss a notification.
   /api/v2/notifications:
@@ -114,8 +114,8 @@ paths:
           $ref: '#/components/responses/collection_notification'
       parameters:
         - $ref: '#/components/parameters/filter_notification'
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_notification'
+        - $ref: '#/components/parameters/header_organization'
       operationId: notifications-index
       description: List notifications.
   /api/v2/notifications/{id}/read:
@@ -145,13 +145,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_notification'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: notifications-show
       description: Retrieve a single notification.
   /api/v2/notifications/{id}/undismiss:
@@ -360,6 +360,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -367,30 +383,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -400,6 +400,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -410,12 +411,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -436,66 +452,14 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     resource_notification:
       type: object
       title: Notification Resource
       properties:
-        dismissed:
+        read:
           type: boolean
-          title: Dismissed
-          description: When true, this notification has been dismissed by the user.
-          example:
-            eq: value
-        target_type:
-          type: string
-          title: Target Type
-          description: The type of the target resource this notification is about (e.g. task, deal, project).
-          example:
-            eq: active
-        last_action_at:
-          type: string
-          title: Last Action At
-          format: date-time
-          description: Timestamp of the most recent activity that updated this notification.
-          example:
-            gt: '2026-01-01'
-        before:
-          type: string
-          title: Before
-          format: date-time
-          description: The value of the changed field before the action that triggered this notification.
-          example:
-            eq: value
-        made_by_automation:
-          title: Made By Automation
-          description: When true, this notification was triggered by an automation rule rather than a person.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this notification belongs to.
-          example:
-            eq: value
-        mention:
-          type: boolean
-          title: Mention
-          description: When true, the current user was directly mentioned in the content that triggered this notification.
+          title: Read
+          description: When true, the current user has read this notification.
           example:
             eq: value
         target_label:
@@ -503,48 +467,36 @@ components:
           description: A human-readable label for the notification target type (e.g. 'budget' for production pipeline deals).
           example:
             eq: value
-        excerpt:
-          title: Excerpt
-          description: A short preview of the content that triggered this notification.
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the notification.
           example:
-            eq: value
-        actor:
-          title: Actor
-          description: The person who performed the action that triggered this notification.
-          example:
-            eq: value
-        owner:
-          title: Owner
-          description: The organization membership (inbox) that owns this notification.
-          example:
-            eq: value
-        root_type:
-          title: Root Type
-          description: The type of the root resource this notification traces back to.
-          example:
-            eq: active
-        date_before:
-          type: string
-          title: Date Before
-          format: date
-          description: The start of the date range for filtering notification activity.
-          example:
-            eq: value
-        target_title:
-          title: Target Title
-          description: The display name of the target resource this notification is about.
-          example:
-            eq: value
-        type:
-          type: string
-          title: Type
-          description: Filters notifications by the target resource type (e.g. task, deal, project, page, invoice).
-          example:
-            eq: active
-        read:
+            - 123
+        dismissed:
           type: boolean
-          title: Read
-          description: When true, the current user has read this notification.
+          title: Dismissed
+          description: When true, this notification has been dismissed by the user.
+          example:
+            eq: value
+        first_unread_activity_id:
+          type: integer
+          title: First Unread Activity
+          description: ID of the first unread activity in this notification thread.
+          example:
+            - 123
+        after:
+          type: string
+          title: After
+          format: date-time
+          description: The value of the changed field after the action that triggered this notification.
+          example:
+            eq: value
+        before:
+          type: string
+          title: Before
+          format: date-time
+          description: The value of the changed field before the action that triggered this notification.
           example:
             eq: value
         title:
@@ -552,18 +504,11 @@ components:
           description: The localized title text describing what happened in this notification.
           example:
             eq: value
-        project_id:
-          type: integer
-          title: Project
-          description: The ID of the project associated with the notification target.
+        root_type:
+          title: Root Type
+          description: The type of the root resource this notification traces back to.
           example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier for the notification.
-          example:
-            - 123
+            eq: active
         parent_title:
           title: Parent Title
           description: The display name of the parent resource containing the notification target.
@@ -574,23 +519,48 @@ components:
           description: The number of new activity events since the notification was last read.
           example:
             gt: 0
-        after:
-          type: string
-          title: After
-          format: date-time
-          description: The value of the changed field after the action that triggered this notification.
+        excerpt:
+          title: Excerpt
+          description: A short preview of the content that triggered this notification.
           example:
             eq: value
+        important:
+          type: boolean
+          title: Important
+          description: When true, this notification is marked as important and shown prominently in the inbox.
+          example:
+            eq: value
+        target_title:
+          title: Target Title
+          description: The display name of the target resource this notification is about.
+          example:
+            eq: value
+        actor:
+          title: Actor
+          description: The person who performed the action that triggered this notification.
+          example:
+            eq: value
+        made_by_automation:
+          title: Made By Automation
+          description: When true, this notification was triggered by an automation rule rather than a person.
+          example:
+            eq: value
+        type:
+          type: string
+          title: Type
+          description: Filters notifications by the target resource type (e.g. task, deal, project, page, invoice).
+          example:
+            eq: active
+        target_type:
+          type: string
+          title: Target Type
+          description: The type of the target resource this notification is about (e.g. task, deal, project).
+          example:
+            eq: active
         root_id:
           type: integer
           title: Root
           description: The ID of the root resource this notification traces back to (e.g. for shared report membership).
-          example:
-            - 123
-        first_unread_activity_id:
-          type: integer
-          title: First Unread Activity
-          description: ID of the first unread activity in this notification thread.
           example:
             - 123
         target_id:
@@ -599,27 +569,16 @@ components:
           description: The ID of the target resource this notification is about.
           example:
             - 123
-        important:
-          type: boolean
-          title: Important
-          description: When true, this notification is marked as important and shown prominently in the inbox.
-          example:
-            eq: value
-        date_after:
+        last_action_at:
           type: string
-          title: Date After
-          format: date
-          description: The end of the date range for filtering notification activity.
+          title: Last Action At
+          format: date-time
+          description: Timestamp of the most recent activity that updated this notification.
           example:
-            eq: value
-        parent_type:
-          title: Parent Type
-          description: The type of the parent resource containing the notification target.
-          example:
-            eq: active
-        changeset:
-          title: Changeset
-          description: A summary of the field changes that triggered this notification.
+            gt: '2026-01-01'
+        owner:
+          title: Owner
+          description: The organization membership (inbox) that owns this notification.
           example:
             eq: value
         parent_id:
@@ -628,6 +587,47 @@ components:
           description: The ID of the parent resource containing the notification target (e.g. project ID for a task).
           example:
             - 123
+        organization:
+          title: Organization
+          description: The organization this notification belongs to.
+          example:
+            eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: The ID of the project associated with the notification target.
+          example:
+            - 123
+        parent_type:
+          title: Parent Type
+          description: The type of the parent resource containing the notification target.
+          example:
+            eq: active
+        date_after:
+          type: string
+          title: Date After
+          format: date
+          description: The end of the date range for filtering notification activity.
+          example:
+            eq: value
+        changeset:
+          title: Changeset
+          description: A summary of the field changes that triggered this notification.
+          example:
+            eq: value
+        date_before:
+          type: string
+          title: Date Before
+          format: date
+          description: The start of the date range for filtering notification activity.
+          example:
+            eq: value
+        mention:
+          type: boolean
+          title: Mention
+          description: When true, the current user was directly mentioned in the content that triggered this notification.
+          example:
+            eq: value
       description: An inbox notification for a user about changes to subscribed entities.
       example:
         id: '123'

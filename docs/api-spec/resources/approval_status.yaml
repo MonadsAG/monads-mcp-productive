@@ -18,18 +18,6 @@ description: |-
   The status is mutated via the dedicated `approve` and `reject` endpoints, which also trigger the broader approval flow on the target — potentially auto-approving (or auto-rejecting) the target once the workflow's rule is satisfied.
 x-filters:
   approval_status:
-    actual_approver_id:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    booking_id:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     time_entry_id:
       operators:
         - contains
@@ -42,12 +30,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    approver_id:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     id:
       operators:
         - contains
@@ -55,6 +37,24 @@ x-filters:
         - not_contain
         - not_eq
     approval_workflow_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    approver_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    actual_approver_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    booking_id:
       operators:
         - contains
         - eq
@@ -116,12 +116,12 @@ paths:
         '200':
           $ref: '#/components/responses/single_approval_status'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
+        - $ref: '#/components/parameters/header_organization'
       operationId: approval_statuses-reject-reject
       requestBody:
         content:
@@ -148,12 +148,12 @@ paths:
         '200':
           $ref: '#/components/responses/single_approval_status'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
+        - $ref: '#/components/parameters/header_organization'
       operationId: approval_statuses-show
       description: Returns a single approval status by id.
 components:
@@ -275,6 +275,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -282,30 +298,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -315,6 +315,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -325,12 +326,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -351,68 +367,26 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     resource_approval_status:
       type: object
       title: Approval status Resource
       properties:
-        actual_approver_id:
-          type: integer
-          title: Actual Approver
-          description: The ID of the person who actually approved or rejected this status. May differ from the assigned approver when a fallback or override was used.
-        approval_workflow:
-          title: Approval Workflow
-          description: The workflow that produced this approval status.
-        time_entry:
-          title: Time Entry
-          description: The time entry awaiting approval. Present when `target_type` is `time_entry`.
-        approval_workflow_id:
-          type: integer
-          title: Approval Workflow
-          description: The ID of the workflow that produced this approval status.
-        actual_approver:
-          title: Actual Approver
-          description: The person who actually approved or rejected this status. May differ from the assigned approver when a fallback or override was used.
-        expense:
-          title: Expense
-          description: The expense awaiting approval. Present when `target_type` is `expense`.
         rejected_at:
           type: string
           title: Rejected At
           format: date-time
           description: Timestamp at which this approval status was rejected. Null while pending or approved.
-        approver_id:
+        id:
           type: integer
-          title: Approver
-          description: The ID of the person assigned to act on this approval status. Null when the approver is resolved dynamically.
-        expense_id:
+          title: Id
+          description: The unique identifier of this approval status.
+        approval_workflow:
+          title: Approval Workflow
+          description: The workflow that produced this approval status.
+        approval_workflow_id:
           type: integer
-          title: Expense
-          description: The ID of the expense this approval status belongs to.
-        approved_at:
-          type: string
-          title: Approved At
-          format: date-time
-          description: Timestamp at which this approval status was approved. Null while pending or rejected.
-        approver_group_key:
-          type: string
-          title: Approver Group Key
-          description: Logical grouping key. Approval statuses sharing the same key form a single approval requirement — approving any one of them counts as approving the whole group.
+          title: Approval Workflow
+          description: The ID of the workflow that produced this approval status.
         dynamic_approver_type_id:
           enum:
             - 1
@@ -422,6 +396,27 @@ components:
           type: integer
           title: Dynamic Approver Type
           description: Identifies the role-based approver when the approver is resolved dynamically rather than from an explicit person.
+        booking_id:
+          type: integer
+          title: Booking
+          description: The ID of the booking this approval status belongs to.
+        expense_id:
+          type: integer
+          title: Expense
+          description: The ID of the expense this approval status belongs to.
+        note:
+          type: string
+          title: Note
+          description: Optional note added by the actor when approving or rejecting this status.
+        actual_approver:
+          title: Actual Approver
+          description: The person who actually approved or rejected this status. May differ from the assigned approver when a fallback or override was used.
+        booking:
+          title: Booking
+          description: The booking awaiting approval. Present when `target_type` is `booking`.
+        approver:
+          title: Approver
+          description: The person assigned to act on this approval status. Null when the approver is resolved dynamically.
         fallback_approver_type_id:
           enum:
             - 1
@@ -429,20 +424,26 @@ components:
           type: integer
           title: Fallback Approver Type
           description: Identifies the approver to use when the dynamic approver cannot be resolved.
-        booking:
-          title: Booking
-          description: The booking awaiting approval. Present when `target_type` is `booking`.
-        approver:
-          title: Approver
-          description: The person assigned to act on this approval status. Null when the approver is resolved dynamically.
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this approval status.
         time_entry_id:
           type: integer
           title: Time Entry
           description: The ID of the time entry this approval status belongs to.
+        expense:
+          title: Expense
+          description: The expense awaiting approval. Present when `target_type` is `expense`.
+        approver_group_key:
+          type: string
+          title: Approver Group Key
+          description: Logical grouping key. Approval statuses sharing the same key form a single approval requirement — approving any one of them counts as approving the whole group.
+        actual_approver_id:
+          type: integer
+          title: Actual Approver
+          description: The ID of the person who actually approved or rejected this status. May differ from the assigned approver when a fallback or override was used.
+        approved_at:
+          type: string
+          title: Approved At
+          format: date-time
+          description: Timestamp at which this approval status was approved. Null while pending or rejected.
         target_type:
           enum:
             - booking
@@ -451,11 +452,10 @@ components:
           type: string
           title: Target Type
           description: The type of entity this approval status belongs to.
-        booking_id:
+        time_entry:
+          title: Time Entry
+          description: The time entry awaiting approval. Present when `target_type` is `time_entry`.
+        approver_id:
           type: integer
-          title: Booking
-          description: The ID of the booking this approval status belongs to.
-        note:
-          type: string
-          title: Note
-          description: Optional note added by the actor when approving or rejecting this status.
+          title: Approver
+          description: The ID of the person assigned to act on this approval status. Null when the approver is resolved dynamically.

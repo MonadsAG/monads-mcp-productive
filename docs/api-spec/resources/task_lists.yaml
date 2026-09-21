@@ -35,29 +35,8 @@ description: |-
   ```
 x-filters:
   task_list:
-    restorable:
-      description: Filter to task lists that are archived but whose parent folder is still active (can be restored).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     id:
       description: Filter by task list ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    project_id:
-      description: Filter by project ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    folder_id:
-      description: Filter by folder ID (alias for board_id).
       operators:
         - contains
         - eq
@@ -72,6 +51,27 @@ x-filters:
         - not_eq
     status:
       description: Filter by task list status (active or archived).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    folder_id:
+      description: Filter by folder ID (alias for board_id).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by project ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    restorable:
+      description: Filter to task lists that are archived but whose parent folder is still active (can be restored).
       operators:
         - contains
         - eq
@@ -284,13 +284,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_task_list'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: task_lists-reposition-reposition
       requestBody:
         $ref: '#/components/requestBodies/task_list_reposition'
@@ -357,20 +357,20 @@ paths:
                 type: string
           description: Returned when the update request body fails validation.
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: task_lists-update
       requestBody:
-        $ref: '#/components/requestBodies/task_list_update'
+        $ref: '#/components/requestBodies/task_list'
       description: Updates a task list. Only the provided attributes are modified — rename it or reassign it to a different folder via `folder_id`. To relocate a task list to a **different project** (which remaps task workflow statuses), use [`PATCH /task_lists/{id}/move`](#tag/Task-Lists/operation/task_lists-move) instead.
 components:
   requestBodies:
-    task_list_update:
+    task_list:
       content:
         application/vnd.api+json:
           schema:
@@ -381,6 +381,10 @@ components:
                 properties:
                   attributes:
                     type: object
+                    required:
+                      - name
+                      - project_id
+                      - folder_id
                     properties:
                       name:
                         $ref: '#/components/schemas/resource_task_list/properties/name'
@@ -390,7 +394,7 @@ components:
                         $ref: '#/components/schemas/resource_task_list/properties/folder_id'
                       project_id:
                         $ref: '#/components/schemas/resource_task_list/properties/project_id'
-      description: Request body for creating or updating a task list. Specify the project, optional folder, name, position, and placement. Use archived_at to archive the list.
+      description: Request body for creating or updating a task list. Specify the project, optional board (folder), name, position, and placement. Use archived_at to archive the list.
     task_list_reposition:
       content:
         application/vnd.api+json:
@@ -432,31 +436,6 @@ components:
                       folder_id:
                         $ref: '#/components/schemas/resource_task_list/properties/folder_id'
       description: Request body for moving a task list to a different folder, optionally remapping task workflow statuses.
-    task_list:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    required:
-                      - name
-                      - project_id
-                      - folder_id
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_task_list/properties/name'
-                      position:
-                        $ref: '#/components/schemas/resource_task_list/properties/position'
-                      folder_id:
-                        $ref: '#/components/schemas/resource_task_list/properties/folder_id'
-                      project_id:
-                        $ref: '#/components/schemas/resource_task_list/properties/project_id'
-      description: Request body for creating or updating a task list. Specify the project, optional board (folder), name, position, and placement. Use archived_at to archive the list.
     task_list_copy:
       content:
         application/vnd.api+json:
@@ -495,16 +474,9 @@ components:
           description: The sort position of this task list within its project.
           example:
             eq: value
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when this task list was archived, or null if active.
-          example:
-            gt: '2026-01-01'
-        project:
-          title: Project
-          description: The project this task list belongs to.
+        folder:
+          title: Folder
+          description: The folder this task list belongs to.
           example:
             eq: value
         company_name:
@@ -513,23 +485,12 @@ components:
           description: The name of the client company associated with the project this task list belongs to.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this task list belongs to.
-          example:
-            eq: value
         folder_id:
           type: integer
           title: Folder
           description: ID of the folder this task list belongs to.
           example:
             - 123
-        folder_name:
-          type: string
-          title: Folder Name
-          description: The name of the folder this task list belongs to.
-          example:
-            eq: value
         status:
           enum:
             - 1
@@ -539,10 +500,21 @@ components:
           description: 'The archival status of this task list: active or archived.'
           example:
             eq: active
-        name:
+        project_name:
           type: string
-          title: Name
-          description: The name of this task list.
+          title: Project Name
+          description: The name of the project this task list belongs to.
+          example:
+            eq: value
+        project:
+          title: Project
+          description: The project this task list belongs to.
+          example:
+            eq: value
+        folder_name:
+          type: string
+          title: Folder Name
+          description: The name of the folder this task list belongs to.
           example:
             eq: value
         id:
@@ -551,15 +523,21 @@ components:
           description: The unique identifier of this task list.
           example:
             - 123
-        project_id:
-          type: integer
-          title: Project
-          description: ID of the project this task list belongs to.
+        query:
+          type: string
+          title: Query
+          description: A search query string used to filter task lists by name.
           example:
-            - 123
-        folder:
-          title: Folder
-          description: The folder this task list belongs to.
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The name of this task list.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this task list belongs to.
           example:
             eq: value
         email_key:
@@ -568,30 +546,31 @@ components:
           description: A unique key used to create tasks in this task list via email.
           example:
             eq: value
-        placement:
-          type: integer
-          title: Placement
-          description: The display placement position of this task list within its folder.
-          example:
-            eq: value
-        project_name:
-          type: string
-          title: Project Name
-          description: The name of the project this task list belongs to.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: A search query string used to filter task lists by name.
-          example:
-            eq: value
         restorable:
           type: string
           title: Restorable
           description: Whether this task list is restorable (archived while its parent folder is still active).
           example:
             eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this task list belongs to.
+          example:
+            - 123
+        placement:
+          type: integer
+          title: Placement
+          description: The display placement position of this task list within its folder.
+          example:
+            eq: value
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when this task list was archived, or null if active.
+          example:
+            gt: '2026-01-01'
       description: Task grouping within a project folder. Supports name, position ordering, placement, archiving, and an email_key for creating tasks via email. Task lists belong to a project and optionally to a board (folder).
       example:
         id: '14308'
@@ -617,6 +596,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -624,30 +619,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -657,6 +636,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -667,12 +647,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -693,22 +688,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
   parameters:
     header_organization:
       in: header

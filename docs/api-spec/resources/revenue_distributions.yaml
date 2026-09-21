@@ -8,6 +8,20 @@ description: |-
   Configure and query revenue schedules — specifying what portion of a service's value is recognized in each period — for accurate financial reporting.
 x-filters:
   revenue_distribution:
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    start_on:
+      description: Filter by the start date of the distribution period.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     end_on:
       description: Filter by the end date of the distribution period.
       operators:
@@ -22,15 +36,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    start_on:
-      description: Filter by the start date of the distribution period.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    amount:
-      description: Filter by the monetary amount of the revenue distribution.
+    amount_percent:
+      description: Filter by percentage amount of the revenue distribution.
       operators:
         - contains
         - eq
@@ -43,15 +50,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    amount_percent:
-      description: Filter by percentage amount of the revenue distribution.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by ID.
+    amount:
+      description: Filter by the monetary amount of the revenue distribution.
       operators:
         - contains
         - eq
@@ -74,9 +74,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_revenue_distribution'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_revenue_distribution'
         - $ref: '#/components/parameters/sort_revenue_distribution'
+        - $ref: '#/components/parameters/header_organization'
       operationId: revenue_distributions-index
       description: List all revenue distributions.
     post:
@@ -107,13 +107,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_revenue_distribution'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the revenue distribution to retrieve.
-        - $ref: '#/components/parameters/header_organization'
       operationId: revenue_distributions-show
       description: Retrieve a single revenue distribution by ID.
     patch:
@@ -124,13 +124,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_revenue_distribution'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the revenue distribution to update.
-        - $ref: '#/components/parameters/header_organization'
       operationId: revenue_distributions-update
       description: Update a revenue distribution.
     delete:
@@ -141,13 +141,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the revenue distribution to delete.
-        - $ref: '#/components/parameters/header_organization'
       operationId: revenue_distributions-destroy
       description: Delete a revenue distribution by ID.
 components:
@@ -291,6 +291,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -298,30 +314,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -331,6 +331,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -341,12 +342,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -367,33 +383,32 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     resource_revenue_distribution:
       type: object
       title: Revenue distribution Resource
       properties:
-        created_at:
-          type: string
-          title: Created At
-          format: date
-          description: Timestamp when this revenue distribution was created.
+        deal_id:
+          type: integer
+          title: Deal
+          description: ID of the deal this revenue distribution belongs to.
           example:
-            gt: '2026-01-01'
+            - 123
+        amount_normalized:
+          title: Amount Normalized
+          description: The revenue amount for this distribution period in the deal's currency.
+          example:
+            gt: 0
+        amount:
+          title: Amount
+          description: The revenue amount for this distribution period in the deal's currency.
+          example:
+            gt: 0
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this revenue distribution.
+          example:
+            - 123
         start_on:
           type: string
           title: Start On
@@ -401,14 +416,38 @@ components:
           description: Date when this revenue distribution period starts.
           example:
             eq: value
+        end_on:
+          type: string
+          title: End On
+          format: date
+          description: Date when this revenue distribution period ends.
+          example:
+            eq: value
+        amount_default:
+          title: Amount Default
+          description: The revenue amount for this distribution period in the organization's default currency.
+          example:
+            gt: 0
+        created_at:
+          type: string
+          title: Created At
+          format: date
+          description: Timestamp when this revenue distribution was created.
+          example:
+            gt: '2026-01-01'
         currency_default:
           title: Currency Default
           description: The organization's default currency code.
           example:
             eq: value
-        deal:
-          title: Deal
-          description: The deal this revenue distribution belongs to.
+        organization:
+          title: Organization
+          description: The organization this revenue distribution belongs to.
+          example:
+            eq: value
+        currency:
+          title: Currency
+          description: The currency code of the deal this revenue distribution belongs to.
           example:
             eq: value
         creator_id:
@@ -417,48 +456,9 @@ components:
           description: ID of the person who created this revenue distribution.
           example:
             - 123
-        end_on:
-          type: string
-          title: End On
-          format: date
-          description: Date when this revenue distribution period ends.
-          example:
-            eq: value
         currency_normalized:
           title: Currency Normalized
           description: The currency code of the deal this revenue distribution belongs to.
-          example:
-            eq: value
-        amount:
-          title: Amount
-          description: The revenue amount for this distribution period in the deal's currency.
-          example:
-            gt: 0
-        currency:
-          title: Currency
-          description: The currency code of the deal this revenue distribution belongs to.
-          example:
-            eq: value
-        deal_id:
-          type: integer
-          title: Deal
-          description: ID of the deal this revenue distribution belongs to.
-          example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this revenue distribution.
-          example:
-            - 123
-        amount_normalized:
-          title: Amount Normalized
-          description: The revenue amount for this distribution period in the deal's currency.
-          example:
-            gt: 0
-        organization:
-          title: Organization
-          description: The organization this revenue distribution belongs to.
           example:
             eq: value
         amount_percent:
@@ -467,11 +467,11 @@ components:
           description: The percentage of the deal's total revenue allocated to this distribution period.
           example:
             gt: 0
-        amount_default:
-          title: Amount Default
-          description: The revenue amount for this distribution period in the organization's default currency.
+        deal:
+          title: Deal
+          description: The deal this revenue distribution belongs to.
           example:
-            gt: 0
+            eq: value
       description: A record defining how deal revenue is distributed across a specific date range.
       example:
         id: '123'

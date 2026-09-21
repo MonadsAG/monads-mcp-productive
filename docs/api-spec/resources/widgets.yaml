@@ -27,9 +27,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_widget'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_widget'
         - $ref: '#/components/parameters/filter_widget'
-        - $ref: '#/components/parameters/header_organization'
       operationId: widgets-index
       description: List all widgets.
     post:
@@ -62,13 +62,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_widget'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: widgets-show
       description: Retrieve a single widget by ID.
     patch:
@@ -87,13 +87,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: widgets-update
       requestBody:
         $ref: '#/components/requestBodies/widget'
@@ -189,15 +189,10 @@ components:
       type: object
       title: Widget Resource
       properties:
-        dashboard_id:
+        height:
           type: integer
-          title: Dashboard
-          description: ID of the dashboard this widget belongs to.
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: The organization this widget belongs to.
+          title: Height
+          description: The height of this widget in dashboard grid units.
           example:
             eq: value
         widget_type_id:
@@ -223,23 +218,24 @@ components:
           description: The type of content this widget displays, such as Tasks, Report, or Note.
           example:
             - 123
-        dashboard:
-          title: Dashboard
-          description: The dashboard this widget belongs to.
-          example:
-            eq: value
-        content:
-          type: string
-          title: Content
-          description: The rich text or HTML content of this widget, used for note-type widgets.
-          example:
-            eq: value
         attachment_ids:
           title: Attachment Ids
           description: IDs of attachments to associate with this widget.
           example:
             - 123
             - 456
+        content:
+          type: string
+          title: Content
+          description: The rich text or HTML content of this widget, used for note-type widgets.
+          example:
+            eq: value
+        filter_id:
+          type: integer
+          title: Filter
+          description: ID of the saved filter applied to this widget's data.
+          example:
+            - 123
         width:
           type: integer
           title: Width
@@ -252,32 +248,36 @@ components:
           description: The display title shown at the top of this widget.
           example:
             eq: value
-        filter:
-          title: Filter
-          description: The saved filter applied to this widget's data.
+        attachments:
+          title: Attachments
+          description: Attachments linked to this widget.
           example:
             eq: value
+        organization:
+          title: Organization
+          description: The organization this widget belongs to.
+          example:
+            eq: value
+        dashboard:
+          title: Dashboard
+          description: The dashboard this widget belongs to.
+          example:
+            eq: value
+        dashboard_id:
+          type: integer
+          title: Dashboard
+          description: ID of the dashboard this widget belongs to.
+          example:
+            - 123
         column_position:
           type: integer
           title: Column Position
           description: The horizontal column position of this widget within the dashboard grid.
           example:
             eq: value
-        height:
-          type: integer
-          title: Height
-          description: The height of this widget in dashboard grid units.
-          example:
-            eq: value
-        filter_id:
-          type: integer
+        filter:
           title: Filter
-          description: ID of the saved filter applied to this widget's data.
-          example:
-            - 123
-        attachments:
-          title: Attachments
-          description: Attachments linked to this widget.
+          description: The saved filter applied to this widget's data.
           example:
             eq: value
         row_position:
@@ -299,6 +299,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -306,30 +322,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -339,6 +339,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -349,12 +350,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -375,24 +391,9 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -409,7 +410,6 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:

@@ -38,6 +38,13 @@ description: |-
   ```
 x-filters:
   time_entry_version:
+    event:
+      description: Filter by the type of change event (e.g. create, update, delete, approve, reject).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     creator_id:
       description: Filter by the person who made the change.
       operators:
@@ -45,15 +52,7 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by time entry version ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    event:
-      description: Filter by the type of change event (e.g. create, update, delete, approve, reject).
+    service_id:
       operators:
         - contains
         - eq
@@ -66,13 +65,14 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    person_id:
+    id:
+      description: Filter by time entry version ID.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    service_id:
+    person_id:
       operators:
         - contains
         - eq
@@ -84,14 +84,14 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    created_at:
-      description: Filter by the version creation date range.
+    date:
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    date:
+    created_at:
+      description: Filter by the version creation date range.
       operators:
         - contains
         - eq
@@ -121,13 +121,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_time_entry_version'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: time_entry_versions-show
       description: Retrieve a single time entry version by ID.
 components:
@@ -261,6 +261,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -268,30 +284,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -301,6 +301,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -311,12 +312,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -337,35 +353,94 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     resource_time_entry_version:
       type: object
       title: Time entry version Resource
       properties:
-        person:
+        date:
+          type: string
+          title: Date
+          format: date
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this time entry version record.
+          example:
+            - 123
+        person_id:
+          type: integer
           title: Person
         creator:
           title: Creator
           description: The person who made the change that created this version.
           example:
             eq: value
+        service_id:
+          type: integer
+          title: Service
+        item_id:
+          type: integer
+          title: Item
+          description: The ID of the time entry this version record belongs to.
+          example:
+            - 123
+        changeset:
+          title: Changeset
+          description: A map of field names to before/after values representing changes made to the time entry in this version.
+          example:
+            eq: value
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who made the change that created this version.
+          example:
+            - 123
+        object_changes:
+          type: object
+          title: Object Changes
+          description: The field-level changes recorded in this version as a map of field names to before and after values.
+          example:
+            eq: value
+        item_type:
+          type: string
+          title: Item Type
+          description: The resource type of the versioned item, always TimeEntry.
+          example:
+            eq: active
+        person:
+          title: Person
+        organization:
+          title: Organization
+          description: The organization this time entry version belongs to.
+          example:
+            eq: value
+        deal_id:
+          type: integer
+          title: Deal
+        item_name:
+          title: Item Name
+          description: The display name of the time entry at the time of this version (e.g., the service or task name).
+          example:
+            eq: value
         deal:
           title: Deal
+        event:
+          type: string
+          title: Event
+          description: The type of change event recorded by this version (e.g. create, update, destroy).
+          example:
+            eq: value
+        time_entry_id:
+          type: integer
+          title: Time Entry
+          description: The ID of the time entry this version record belongs to.
+          example:
+            - 123
+        service:
+          title: Service
+          description: The service the time entry was logged against at the time of this version.
+          example:
+            eq: value
         created_at:
           type: string
           title: Created At
@@ -373,81 +448,6 @@ components:
           description: Timestamp when this version record was created.
           example:
             gt: '2026-01-01'
-        organization:
-          title: Organization
-          description: The organization this time entry version belongs to.
-          example:
-            eq: value
-        person_id:
-          type: integer
-          title: Person
-        item_name:
-          title: Item Name
-          description: The display name of the time entry at the time of this version (e.g., the service or task name).
-          example:
-            eq: value
-        item_id:
-          type: integer
-          title: Item
-          description: The ID of the time entry this version record belongs to.
-          example:
-            - 123
-        deal_id:
-          type: integer
-          title: Deal
-        date:
-          type: string
-          title: Date
-          format: date
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who made the change that created this version.
-          example:
-            - 123
-        time_entry_id:
-          type: integer
-          title: Time Entry
-          description: The ID of the time entry this version record belongs to.
-          example:
-            - 123
-        service_id:
-          type: integer
-          title: Service
-        object_changes:
-          type: object
-          title: Object Changes
-          description: The field-level changes recorded in this version as a map of field names to before and after values.
-          example:
-            eq: value
-        changeset:
-          title: Changeset
-          description: A map of field names to before/after values representing changes made to the time entry in this version.
-          example:
-            eq: value
-        service:
-          title: Service
-          description: The service the time entry was logged against at the time of this version.
-          example:
-            eq: value
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this time entry version record.
-          example:
-            - 123
-        item_type:
-          type: string
-          title: Item Type
-          description: The resource type of the versioned item, always TimeEntry.
-          example:
-            eq: active
-        event:
-          type: string
-          title: Event
-          description: The type of change event recorded by this version (e.g. create, update, destroy).
-          example:
-            eq: value
       description: The resource time entry version.
       example:
         id: '123'

@@ -5,22 +5,15 @@ info:
 description: Pipeline stages defining deal outcomes. Each status belongs to a pipeline and has an outcome category (open, won, lost, or delivered). Statuses can enable time tracking, expense tracking, booking tracking, and probability estimation.
 x-filters:
   deal_status:
+    probability_enabled:
+      description: Filter to stages with probability tracking enabled or disabled.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     pipeline_type_id:
       description: Filter by pipeline type (sales or production).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    pipeline_id:
-      description: Filter by associated pipeline.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by deal status ID.
       operators:
         - contains
         - eq
@@ -33,8 +26,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    time_tracking_enabled:
-      description: Filter to stages with time tracking enabled or disabled.
+    query:
+      description: Filter by deal status name (text search).
       operators:
         - contains
         - eq
@@ -47,15 +40,22 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    probability_enabled:
-      description: Filter to stages with probability tracking enabled or disabled.
+    time_tracking_enabled:
+      description: Filter to stages with time tracking enabled or disabled.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    query:
-      description: Filter by deal status name (text search).
+    expense_tracking_enabled:
+      description: Filter to stages with expense tracking enabled or disabled.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by deal status ID.
       operators:
         - contains
         - eq
@@ -68,8 +68,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    expense_tracking_enabled:
-      description: Filter to stages with expense tracking enabled or disabled.
+    pipeline_id:
+      description: Filter by associated pipeline.
       operators:
         - contains
         - eq
@@ -138,13 +138,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_deal_status'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: deal_statuses-show
       description: Retrieve a single deal status by ID.
     patch:
@@ -198,13 +198,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: deal_statuses-destroy
       description: Delete a deal status.
   /api/v2/deal_statuses/merge:
@@ -376,6 +376,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -383,30 +399,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -416,6 +416,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -426,12 +427,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -452,38 +468,23 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     resource_deal_status:
       type: object
       title: Deal status Resource
       properties:
-        lost_reason_enabled:
+        time_tracking_enabled:
           type: boolean
-          title: Lost Reason Enabled
-          description: When true, a lost reason must be provided when a deal is moved to this stage.
+          title: Time Tracking Enabled
+          description: When true, time entries can be logged for deals in this pipeline stage.
           example:
-            eq: value
-        pipeline_id:
-          type: integer
-          title: Pipeline
-          description: The ID of the pipeline this stage belongs to.
+            gt: 0
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when the pipeline stage was archived, or null if active.
           example:
-            - 123
+            gt: '2026-01-01'
         status_id:
           enum:
             - 1
@@ -501,38 +502,15 @@ components:
           description: When true, bookings can be tracked for deals in this pipeline stage.
           example:
             eq: value
+        organization:
+          title: Organization
+          description: The organization this pipeline stage belongs to.
+          example:
+            eq: value
         used:
           type: boolean
           title: Used
           description: Indicates whether any deals are currently in this pipeline stage.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The display name of the pipeline stage.
-          example:
-            eq: value
-        probability:
-          type: integer
-          title: Probability
-          description: The default win probability percentage for deals in this stage.
-          example:
-            eq: value
-        created_at:
-          title: Created At
-          description: Timestamp when this pipeline stage was created.
-          example:
-            gt: '2026-01-01'
-        position:
-          type: integer
-          title: Position
-          description: The display order position of this stage within the pipeline.
-          example:
-            eq: value
-        pipeline:
-          title: Pipeline
-          description: The pipeline this stage belongs to.
           example:
             eq: value
         probability_enabled:
@@ -541,40 +519,28 @@ components:
           description: When true, win probability is tracked for deals in this pipeline stage.
           example:
             eq: value
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when the pipeline stage was archived, or null if active.
-          example:
-            gt: '2026-01-01'
-        query:
-          type: string
-          title: Query
-          description: A saved filter query string applied to this pipeline stage view.
+        lost_reason_enabled:
+          type: boolean
+          title: Lost Reason Enabled
+          description: When true, a lost reason must be provided when a deal is moved to this stage.
           example:
             eq: value
-        time_tracking_enabled:
-          type: boolean
-          title: Time Tracking Enabled
-          description: When true, time entries can be logged for deals in this pipeline stage.
-          example:
-            gt: 0
-        id:
+        pipeline_id:
           type: integer
-          title: Id
-          description: Unique identifier for the pipeline stage.
+          title: Pipeline
+          description: The ID of the pipeline this stage belongs to.
           example:
             - 123
+        position:
+          type: integer
+          title: Position
+          description: The display order position of this stage within the pipeline.
+          example:
+            eq: value
         expense_tracking_enabled:
           type: boolean
           title: Expense Tracking Enabled
           description: When true, expenses can be tracked for deals in this pipeline stage.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this pipeline stage belongs to.
           example:
             eq: value
         color_id:
@@ -583,6 +549,29 @@ components:
           description: The color ID used to visually distinguish this pipeline stage.
           example:
             - 123
+        pipeline:
+          title: Pipeline
+          description: The pipeline this stage belongs to.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: A saved filter query string applied to this pipeline stage view.
+          example:
+            eq: value
+        probability:
+          type: integer
+          title: Probability
+          description: The default win probability percentage for deals in this stage.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The display name of the pipeline stage.
+          example:
+            eq: value
         pipeline_type_id:
           enum:
             - 1
@@ -592,6 +581,17 @@ components:
           description: Numeric identifier for the pipeline type (1 = sales, 2 = production).
           example:
             - 123
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the pipeline stage.
+          example:
+            - 123
+        created_at:
+          title: Created At
+          description: Timestamp when this pipeline stage was created.
+          example:
+            gt: '2026-01-01'
       description: Pipeline stage defining the outcome and tracking capabilities for deals in that stage. The status_id determines outcome category (open/won/lost/delivered). Optional flags enable time, expense, and booking tracking, probability estimation, and lost reason capture.
       example:
         id: '5'

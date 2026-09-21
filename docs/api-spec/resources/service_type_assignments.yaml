@@ -31,13 +31,6 @@ description: |-
   ```
 x-filters:
   service_type_assignment:
-    id:
-      description: Filter by service type assignment ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     service_type_id:
       description: Filter by the associated service type.
       operators:
@@ -47,6 +40,13 @@ x-filters:
         - not_eq
     person_id:
       description: Filter by the assigned person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by service type assignment ID.
       operators:
         - contains
         - eq
@@ -122,13 +122,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: service_type_assignments-update
       requestBody:
         $ref: '#/components/requestBodies/service_type_assignment'
@@ -206,28 +206,11 @@ components:
       type: object
       title: Service type assignment Resource
       properties:
-        organization:
-          title: Organization
-          description: The organization this service type assignment belongs to.
-          example:
-            eq: value
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this service type assignment.
-          example:
-            - 123
         person:
           title: Person
           description: The person assigned to this service type.
           example:
             eq: value
-        service_type_id:
-          type: integer
-          title: Service Type
-          description: ID of the service type this assignment belongs to.
-          example:
-            - 123
         person_id:
           type: integer
           title: Person
@@ -239,6 +222,23 @@ components:
           description: The service type this assignment belongs to.
           example:
             eq: active
+        service_type_id:
+          type: integer
+          title: Service Type
+          description: ID of the service type this assignment belongs to.
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this service type assignment.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this service type assignment belongs to.
+          example:
+            eq: value
       description: The resource service type assignment.
       example:
         id: '123'
@@ -255,6 +255,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -262,30 +278,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -295,6 +295,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -305,12 +306,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -331,22 +347,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
   responses:
     single_service_type_assignment:
       content:

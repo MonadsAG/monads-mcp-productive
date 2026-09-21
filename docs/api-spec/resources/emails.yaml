@@ -8,12 +8,6 @@ description: |-
   List and retrieve email threads associated with records through these endpoints.
 x-filters:
   email:
-    task_id:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     status:
       description: Filter by email resolution status (unresolved, resolved, or dismissed).
       operators:
@@ -21,8 +15,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    after:
-      description: Filter by after.
+    recipient_id:
+      description: Filter by a recipient person.
       operators:
         - contains
         - eq
@@ -42,41 +36,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by email ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    proposal_id:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     company_id:
       description: Filter by emails associated with a client company (via recipients, linked deal, invoice, or project).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    purchase_order_id:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    recipient_id:
-      description: Filter by a recipient person.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    before:
-      description: Filter by before.
       operators:
         - contains
         - eq
@@ -88,7 +49,21 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    deal_id:
+    proposal_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by email ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    after:
+      description: Filter by after.
       operators:
         - contains
         - eq
@@ -101,6 +76,31 @@ x-filters:
         - not_contain
         - not_eq
     thread_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    deal_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    task_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    before:
+      description: Filter by before.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    purchase_order_id:
       operators:
         - contains
         - eq
@@ -142,13 +142,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_email'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: emails-show
       description: Retrieve a single email.
     delete:
@@ -159,13 +159,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: emails-destroy
       description: Delete an email.
   /api/v2/emails/{id}/dismiss:
@@ -177,13 +177,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_email'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: emails-dismiss-dismiss
       description: Dismiss an email from the inbox.
   /api/v2/emails:
@@ -235,20 +235,24 @@ components:
       type: object
       title: Email Resource
       properties:
+        before:
+          type: string
+          title: Before
+          format: date
+          description: Filter emails created before this date.
+          example:
+            eq: value
+        payment_reminder:
+          title: Payment Reminder
+          description: The payment reminder this email is associated with.
+          example:
+            eq: value
+        task_id:
+          type: integer
+          title: Task
         attachments:
           title: Attachments
           description: The file attachments associated with this email.
-          example:
-            eq: value
-        auto_linked:
-          type: boolean
-          title: Auto Linked
-          description: Whether this email was automatically linked to a deal or resource by the system.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this email belongs to.
           example:
             eq: value
         sender_or_recipient_id:
@@ -257,52 +261,6 @@ components:
           description: The sender or recipient id.
           example:
             - 123
-        task_id:
-          type: integer
-          title: Task
-        linked_id:
-          type: integer
-          title: Linked
-          description: The ID of the polymorphic resource this email is linked to (deal, invoice, workspace, etc.).
-          example:
-            - 123
-        outgoing:
-          type: boolean
-          title: Outgoing
-          description: Whether this email was sent outgoing from Productive, as opposed to an incoming received email.
-          example:
-            eq: value
-        linked_type:
-          type: string
-          title: Linked Type
-          description: The type of resource this email is linked to (e.g. Quote, Invoice, Workspace).
-          example:
-            eq: active
-        payment_reminder:
-          title: Payment Reminder
-          description: The payment reminder this email is associated with.
-          example:
-            eq: value
-        delivered_at:
-          type: string
-          title: Delivered At
-          format: date-time
-          description: Timestamp when this email was successfully delivered, or null if not yet delivered.
-          example:
-            gt: '2026-01-01'
-        cc_recipients:
-          title: Cc Recipients
-          description: The CC recipients of this email.
-          example:
-            eq: value
-        thread_id:
-          type: integer
-          title: Thread
-        body_html:
-          title: Body Html
-          description: The raw HTML body of this email, available when the email inbox feature is enabled.
-          example:
-            eq: value
         dismissed_at:
           type: string
           title: Dismissed At
@@ -310,24 +268,40 @@ components:
           description: Timestamp when this email was dismissed from the inbox, or null if it has not been dismissed.
           example:
             gt: '2026-01-01'
-        failed_at:
-          type: string
-          title: Failed At
-          format: date-time
-          description: Timestamp when delivery of this email failed, or null if no failure occurred.
+        integration:
+          title: Integration
+          description: The email integration (inbox connection) through which this email was synced.
           example:
-            gt: '2026-01-01'
-        received_at:
+            eq: value
+        subject:
           type: string
-          title: Received At
-          format: date-time
-          description: Timestamp when this email was received from the external provider.
+          title: Subject
+          description: The subject line of this email.
           example:
-            gt: '2026-01-01'
-        recipient_id:
+            eq: value
+        project_id:
           type: integer
-          title: Recipient
-          description: Filter to return emails where this person is a recipient.
+          title: Project
+        cc_recipients:
+          title: Cc Recipients
+          description: The CC recipients of this email.
+          example:
+            eq: value
+        unread:
+          type: boolean
+          title: Unread
+          description: Whether this email has been marked as unread.
+          example:
+            eq: value
+        participants:
+          title: Participants
+          description: The people who participated in this email thread as senders or recipients.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this email.
           example:
             - 123
         creator_id:
@@ -336,42 +310,63 @@ components:
           description: ID of the person who created or sent this email.
           example:
             - 123
-        snippet:
-          type: string
-          title: Snippet
-          description: A short preview snippet of the email content.
+        bcc_recipients:
+          title: Bcc Recipients
+          description: The BCC recipients of this email.
           example:
             eq: value
-        company_id:
+        body:
+          title: Body
+          description: The plain text body of this email.
+          example:
+            eq: value
+        outgoing:
+          type: boolean
+          title: Outgoing
+          description: Whether this email was sent outgoing from Productive, as opposed to an incoming received email.
+          example:
+            eq: value
+        after:
+          type: string
+          title: After
+          format: date
+          description: Filter emails created after this date.
+          example:
+            eq: value
+        linked_id:
           type: integer
-          title: Company
-          description: Filter to return emails associated with a specific company, matched via recipients, deals, or invoices.
+          title: Linked
+          description: The ID of the polymorphic resource this email is linked to (deal, invoice, workspace, etc.).
           example:
             - 123
-        before:
+        received_at:
           type: string
-          title: Before
-          format: date
-          description: Filter emails created before this date.
+          title: Received At
+          format: date-time
+          description: Timestamp when this email was received from the external provider.
+          example:
+            gt: '2026-01-01'
+        from:
+          type: string
+          title: From
+          description: The sender's email address.
           example:
             eq: value
+        deal_id:
+          type: integer
+          title: Deal
         to_recipients:
           title: To Recipients
           description: The primary (To:) recipients of this email.
           example:
             eq: value
-        creator:
-          title: Creator
-          description: The person who created or sent this email.
-          example:
-            eq: value
         purchase_order_id:
           type: integer
           title: Purchase Order
-        id:
+        company_id:
           type: integer
-          title: Id
-          description: The unique identifier of this email.
+          title: Company
+          description: Filter to return emails associated with a specific company, matched via recipients, deals, or invoices.
           example:
             - 123
         status:
@@ -384,73 +379,42 @@ components:
           description: 'The inbox status of this email: unresolved (1), resolved/linked (2), or dismissed (3).'
           example:
             eq: active
-        unread:
-          type: boolean
-          title: Unread
-          description: Whether this email has been marked as unread.
-          example:
-            eq: value
-        recipients:
-          title: Recipients
-          description: A grouped map of recipients by type (to, cc, bcc), each with address, person ID, and delivery status.
-          example:
-            eq: value
-        invoice_id:
-          type: integer
-          title: Invoice
-        bcc_recipients:
-          title: Bcc Recipients
-          description: The BCC recipients of this email.
-          example:
-            eq: value
-        project_id:
-          type: integer
-          title: Project
         proposal_id:
           type: integer
           title: Proposal
-        deal:
-          title: Deal
-          description: The deal or quote this email is linked to.
-          example:
-            eq: value
-        body:
-          title: Body
-          description: The plain text body of this email.
-          example:
-            eq: value
-        from:
-          type: string
-          title: From
-          description: The sender's email address.
-          example:
-            eq: value
-        after:
-          type: string
-          title: After
-          format: date
-          description: Filter emails created after this date.
-          example:
-            eq: value
-        integration:
-          title: Integration
-          description: The email integration (inbox connection) through which this email was synced.
-          example:
-            eq: value
-        invoice:
-          title: Invoice
-          description: The invoice this email is linked to.
-          example:
-            eq: value
-        subject:
-          type: string
-          title: Subject
-          description: The subject line of this email.
-          example:
-            eq: value
-        deal_id:
+        invoice_id:
           type: integer
-          title: Deal
+          title: Invoice
+        creator:
+          title: Creator
+          description: The person who created or sent this email.
+          example:
+            eq: value
+        linked_type:
+          type: string
+          title: Linked Type
+          description: The type of resource this email is linked to (e.g. Quote, Invoice, Workspace).
+          example:
+            eq: active
+        snippet:
+          type: string
+          title: Snippet
+          description: A short preview snippet of the email content.
+          example:
+            eq: value
+        failed_at:
+          type: string
+          title: Failed At
+          format: date-time
+          description: Timestamp when delivery of this email failed, or null if no failure occurred.
+          example:
+            gt: '2026-01-01'
+        recipient_id:
+          type: integer
+          title: Recipient
+          description: Filter to return emails where this person is a recipient.
+          example:
+            - 123
         created_at:
           type: string
           title: Created At
@@ -458,12 +422,42 @@ components:
           description: Timestamp when this email record was created in Productive.
           example:
             gt: '2026-01-01'
-        external_id:
-          type: string
-          title: External
-          description: The external identifier of this email from the originating email provider.
+        body_html:
+          title: Body Html
+          description: The raw HTML body of this email, available when the email inbox feature is enabled.
           example:
-            - 123
+            eq: value
+        auto_linked:
+          type: boolean
+          title: Auto Linked
+          description: Whether this email was automatically linked to a deal or resource by the system.
+          example:
+            eq: value
+        thread_id:
+          type: integer
+          title: Thread
+        deal:
+          title: Deal
+          description: The deal or quote this email is linked to.
+          example:
+            eq: value
+        invoice:
+          title: Invoice
+          description: The invoice this email is linked to.
+          example:
+            eq: value
+        delivered_at:
+          type: string
+          title: Delivered At
+          format: date-time
+          description: Timestamp when this email was successfully delivered, or null if not yet delivered.
+          example:
+            gt: '2026-01-01'
+        recipients:
+          title: Recipients
+          description: A grouped map of recipients by type (to, cc, bcc), each with address, person ID, and delivery status.
+          example:
+            eq: value
         thread:
           title: Thread
           description: The email inbox thread this email belongs to.
@@ -474,9 +468,15 @@ components:
           description: A truncated version of the plain text body, used for preview purposes.
           example:
             eq: value
-        participants:
-          title: Participants
-          description: The people who participated in this email thread as senders or recipients.
+        external_id:
+          type: string
+          title: External
+          description: The external identifier of this email from the originating email provider.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this email belongs to.
           example:
             eq: value
       description: A synced email message linked to deals, invoices, companies, or other resources in Productive.
@@ -494,6 +494,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -501,30 +517,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -534,6 +534,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -544,12 +545,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -570,24 +586,9 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -604,7 +605,6 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:

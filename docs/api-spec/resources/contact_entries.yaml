@@ -5,8 +5,8 @@ info:
 description: Contact information records (email, phone, website, postal address) for companies and people. Multiple contact entries can be attached to a single company or person, each with a type (e.g. work, personal) and optional billing-specific fields.
 x-filters:
   contact_entry:
-    subsidiary_id:
-      description: Filter by the associated subsidiary.
+    contactable_type:
+      description: Filter by the type of the contactable resource (person or company).
       operators:
         - contains
         - eq
@@ -14,6 +14,13 @@ x-filters:
         - not_eq
     contactable_id:
       description: Filter by the ID of the contactable resource (person or company).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subsidiary_id:
+      description: Filter by the associated subsidiary.
       operators:
         - contains
         - eq
@@ -28,13 +35,6 @@ x-filters:
         - not_eq
     person_id:
       description: Filter by the associated person.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    contactable_type:
-      description: Filter by the type of the contactable resource (person or company).
       operators:
         - contains
         - eq
@@ -57,9 +57,9 @@ paths:
         '200':
           $ref: '#/components/responses/collection_contact_entry'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_contact_entry'
         - $ref: '#/components/parameters/filter_contact_entry'
-        - $ref: '#/components/parameters/header_organization'
       operationId: contact_entries-index
       description: List contact entries with optional filters and pagination.
     post:
@@ -92,13 +92,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_contact_entry'
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: contact_entries-show
       description: Retrieve a single contact entry by ID.
     patch:
@@ -117,13 +117,13 @@ paths:
                 type: string
           description: Unprocessable Entity
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: contact_entries-update
       requestBody:
         $ref: '#/components/requestBodies/contact_entry'
@@ -136,13 +136,13 @@ paths:
         '204':
           description: No Content
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
+        - $ref: '#/components/parameters/header_organization'
       operationId: contact_entries-destroy
       description: Delete a contact entry.
 components:
@@ -239,10 +239,49 @@ components:
       type: object
       title: Contact entry Resource
       properties:
-        person_id:
+        vat:
+          type: string
+          title: Vat
+          description: The VAT number associated with this contact entry.
+          example:
+            eq: value
+        state:
+          type: string
+          title: State
+          description: The state or province of this contact entry.
+          example:
+            eq: active
+        company:
+          title: Company
+          description: The company this contact entry belongs to, if the contactable is a company.
+          example:
+            eq: value
+        email:
+          type: string
+          title: Email
+          description: The email address of this contact entry.
+          example:
+            eq: value
+        organization_id:
+          title: Organization
+          description: ID of the organization this contact entry belongs to.
+          example:
+            - 123
+        invoice_template_id:
+          title: Invoice Template
+          description: ID of the invoice template this contact entry is linked to.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: The display name on this contact entry.
+          example:
+            eq: value
+        company_id:
           type: integer
-          title: Person
-          description: ID of the person this contact entry belongs to, if the contactable is a person.
+          title: Company
+          description: ID of the company this contact entry belongs to, if the contactable is a company.
           example:
             - 123
         billing_address:
@@ -251,71 +290,9 @@ components:
           description: The billing address associated with this contact entry.
           example:
             eq: value
-        company:
-          title: Company
-          description: The company this contact entry belongs to, if the contactable is a company.
-          example:
-            eq: value
-        subsidiary_id:
-          type: integer
-          title: Subsidiary
-          description: ID of the subsidiary this contact entry is linked to, if applicable.
-          example:
-            - 123
-        state:
-          type: string
-          title: State
-          description: The state or province of this contact entry.
-          example:
-            eq: active
-        invoice_template_id:
+        invoice_template:
           title: Invoice Template
-          description: ID of the invoice template this contact entry is linked to.
-          example:
-            - 123
-        type:
-          type: string
-          title: Type
-          description: The type of this contact entry, indicating the context (e.g. company or person contact).
-          example:
-            eq: active
-        company_id:
-          type: integer
-          title: Company
-          description: ID of the company this contact entry belongs to, if the contactable is a company.
-          example:
-            - 123
-        contactable_type:
-          type: string
-          title: Contactable Type
-          description: The type of the associated contactable resource.
-          example:
-            eq: active
-        email:
-          type: string
-          title: Email
-          description: The email address of this contact entry.
-          example:
-            eq: value
-        person:
-          title: Person
-          description: The person this contact entry belongs to, if the contactable is a person.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this contact entry belongs to.
-          example:
-            eq: value
-        subsidiary:
-          title: Subsidiary
-          description: The subsidiary this contact entry is linked to, if applicable.
-          example:
-            eq: value
-        vat:
-          type: string
-          title: Vat
-          description: The VAT number associated with this contact entry.
+          description: The invoice template this contact entry is linked to, for pre-filling invoice contact details.
           example:
             eq: value
         website:
@@ -324,21 +301,16 @@ components:
           description: The website URL of this contact entry.
           example:
             eq: value
-        invoice_template:
-          title: Invoice Template
-          description: The invoice template this contact entry is linked to, for pre-filling invoice contact details.
+        phone:
+          type: string
+          title: Phone
+          description: The phone number of this contact entry.
           example:
             eq: value
-        zipcode:
-          type: string
-          title: Zipcode
-          description: The ZIP or postal code.
-          example:
-            eq: value
-        address:
-          type: string
-          title: Address
-          description: The street address of this contact entry.
+        billing_email:
+          type: boolean
+          title: Billing Email
+          description: The email address used for billing on this contact entry.
           example:
             eq: value
         country:
@@ -347,38 +319,35 @@ components:
           description: The country of this contact entry.
           example:
             gt: 0
+        invoice:
+          title: Invoice
+          description: The invoice this contact entry is associated with, if applicable.
+          example:
+            eq: value
+        subsidiary:
+          title: Subsidiary
+          description: The subsidiary this contact entry is linked to, if applicable.
+          example:
+            eq: value
+        city:
+          type: string
+          title: City
+          description: The city of this contact entry.
+          example:
+            eq: value
         contactable_id:
           type: integer
           title: Contactable
           description: The ID of the associated contactable resource.
           example:
             - 123
-        billing_email:
-          type: boolean
-          title: Billing Email
-          description: The email address used for billing on this contact entry.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The display name on this contact entry.
-          example:
-            eq: value
-        organization_id:
+        purchase_order_id:
+          title: Purchase Order
+          description: ID of the purchase order this contact entry is associated with, if applicable.
+          example: 1234567
+        organization:
           title: Organization
-          description: ID of the organization this contact entry belongs to.
-          example:
-            - 123
-        invoice:
-          title: Invoice
-          description: The invoice this contact entry is associated with, if applicable.
-          example:
-            eq: value
-        phone:
-          type: string
-          title: Phone
-          description: The phone number of this contact entry.
+          description: The organization this contact entry belongs to.
           example:
             eq: value
         invoice_id:
@@ -387,10 +356,36 @@ components:
           description: ID of the invoice this contact entry is associated with, if applicable.
           example:
             - 123
-        purchase_order_id:
-          title: Purchase Order
-          description: ID of the purchase order this contact entry is associated with, if applicable.
-          example: 1234567
+        subsidiary_id:
+          type: integer
+          title: Subsidiary
+          description: ID of the subsidiary this contact entry is linked to, if applicable.
+          example:
+            - 123
+        type:
+          type: string
+          title: Type
+          description: The type of this contact entry, indicating the context (e.g. company or person contact).
+          example:
+            eq: active
+        contactable_type:
+          type: string
+          title: Contactable Type
+          description: The type of the associated contactable resource.
+          example:
+            eq: active
+        person_id:
+          type: integer
+          title: Person
+          description: ID of the person this contact entry belongs to, if the contactable is a person.
+          example:
+            - 123
+        zipcode:
+          type: string
+          title: Zipcode
+          description: The ZIP or postal code.
+          example:
+            eq: value
         purchase_order:
           title: Purchase Order
           description: The purchase order this contact entry is associated with, if applicable.
@@ -398,10 +393,15 @@ components:
             data:
               type: purchase_orders
               id: '1234567'
-        city:
+        person:
+          title: Person
+          description: The person this contact entry belongs to, if the contactable is a person.
+          example:
+            eq: value
+        address:
           type: string
-          title: City
-          description: The city of this contact entry.
+          title: Address
+          description: The street address of this contact entry.
           example:
             eq: value
       description: Contact information record (email, phone, website, or postal address) for a company or person. Supports multiple entries per contact with type classification. Billing-specific fields (billing_address, billing_email, VAT) are available for company contacts with financials enabled.
@@ -453,6 +453,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -460,30 +476,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -493,6 +493,7 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -503,12 +504,27 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -529,22 +545,6 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
   responses:
     single_contact_entry:
       content:
