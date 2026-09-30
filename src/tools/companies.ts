@@ -7,6 +7,10 @@ const listCompaniesSchema = z.object({
   limit: z.coerce.number().min(1).max(200).default(30).optional(),
 });
 
+function formatDomains(domains: string[] | undefined): string {
+  return domains?.length ? `Domains: ${domains.join(', ')}` : 'No domains';
+}
+
 export async function listCompaniesTool(
   client: ProductiveAPIClient,
   args: unknown,
@@ -38,7 +42,7 @@ export async function listCompaniesTool(
           : '';
 
         return `• ${company.attributes.name} (ID: ${company.id})
-  ${company.attributes.domain ? `Domain: ${company.attributes.domain}` : 'No domain'}
+  ${formatDomains(company.attributes.domains)}
   ${tags}`;
       })
       .join('\n\n');
@@ -61,7 +65,7 @@ export async function listCompaniesTool(
 export const listCompaniesDefinition = {
   name: 'list_companies',
   description:
-    "List companies (clients/customers), optionally filtered by active/archived status. Returns each company's name, ID, domain, description, and tags. A company ID from here filters list_projects and list_invoices, and is the entry point for the list_companies -> list_projects -> list_tasks drill-down. Returns 30 results by default; raise limit (max 200) for large workspaces.",
+    "List companies (clients/customers), optionally filtered by active/archived status. Returns each company's name, ID, email domains, and tags. A company ID from here filters list_projects and list_invoices, and is the entry point for the list_companies -> list_projects -> list_tasks drill-down. Returns 30 results by default; raise limit (max 200) for large workspaces.",
   inputSchema: {
     type: 'object',
     properties: {
