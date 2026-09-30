@@ -7,7 +7,7 @@ export interface ProductiveCompany {
     vat?: string;
     default_currency?: string;
     company_code?: string;
-    domain?: string;
+    domains?: string[];
     tag_list?: string[];
     created_at: string;
     [key: string]: any;
