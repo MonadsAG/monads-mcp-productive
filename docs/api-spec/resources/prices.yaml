@@ -5,14 +5,8 @@ info:
 description: Rate card line items with billing configuration. Each price belongs to a rate card and defines a service type, billing type (hourly, fixed, etc.), unit, rate, and optional tracking defaults. Supports discounts, markups, budget caps, and custom fields.
 x-filters:
   price:
-    booking_tracking_enabled:
-      description: Filter to include only price entries where booking tracking is enabled.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    query:
+    service_type_id:
+      description: Filter by the associated service type.
       operators:
         - contains
         - eq
@@ -25,36 +19,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    booking_tracking_enabled:
+      description: Filter to include only price entries where booking tracking is enabled.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     unit_id:
       description: Filter by unit ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter by ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    service_type_id:
-      description: Filter by the associated service type.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    company_id:
-      description: Filter by client company.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    rate_card_id:
-      description: Filter by the associated rate card.
       operators:
         - contains
         - eq
@@ -67,8 +40,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    time_tracking_enabled:
-      description: Filter to include only price entries where time tracking is enabled.
+    rate_card_id:
+      description: Filter by the associated rate card.
       operators:
         - contains
         - eq
@@ -81,8 +54,35 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    query:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    company_id:
+      description: Filter by client company.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     rate_card_status:
       description: Filter by the status of the associated rate card (active or archived).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    time_tracking_enabled:
+      description: Filter to include only price entries where time tracking is enabled.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
       operators:
         - contains
         - eq
@@ -133,13 +133,13 @@ paths:
         '200':
           $ref: '#/components/responses/single_price'
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: prices-show
       description: Retrieve a single price by ID.
     patch:
@@ -177,13 +177,13 @@ paths:
         '204':
           description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
       operationId: prices-destroy
       description: Delete a price by ID.
 components:
@@ -309,36 +309,21 @@ components:
       type: object
       title: Price Resource
       properties:
-        rate_card_id:
-          type: integer
-          title: Rate Card
-          description: ID of the rate card this price entry belongs to, if any.
-          example:
-            - 123
-        rate_default:
-          title: Rate Default
-          description: Rate in the organization's default currency.
+        estimated_cost_default:
+          title: Estimated Cost Default
+          description: The estimated cost converted to the organization's default currency, in whole currency units.
           example:
             gt: 0
-        custom_fields:
-          type: object
-          title: Custom Fields
-          description: Custom field values for this price entry.
-          example:
-            eq: value
-        time_tracking_enabled:
+        expense_tracking_enabled:
           type: boolean
-          title: Time Tracking Enabled
-          description: When true, time entries can be tracked against this price entry.
-          example:
-            gt: 0
-        discount_amount_normalized:
-          title: Discount Amount Normalized
-        company:
-          title: Company
-          description: The client company associated with this price entry.
+          title: Expense Tracking Enabled
+          description: When true, expenses can be tracked against this price entry.
           example:
             eq: value
+        discount_amount:
+          type: number
+          title: Discount Amount
+          description: The money value of the discount in effect. On read, it is the user-set fixed amount in amount mode, otherwise the value computed from `discount` and the line total (quantity × rate) — check `discount_type` for which one you are looking at. On write, a positive value selects the fixed-amount discount (allowed only on fixed-price services, capped at the line total) and resets `discount` to 0, `0` or `null` clears it, and omitting the attribute leaves it untouched. A request with positive values in both `discount` and `discount_amount` is rejected with `discount_mode_ambiguous`. Requires the `service_discount_fixed_amount` release flag; without it, writes here are ignored.
         updated_at:
           type: string
           title: Updated At
@@ -346,54 +331,27 @@ components:
           description: Timestamp when this price entry was last updated.
           example:
             gt: '2026-01-01'
-        company_id:
-          type: integer
-          title: Company
-          description: ID of the client company associated with this price entry.
-          example:
-            - 123
-        discount_amount_default:
-          title: Discount Amount Default
-        discount:
-          type: number
-          title: Discount
-          description: The discount percentage applied to the rate of this price entry.
+        rate_card:
+          title: Rate Card
+          description: The rate card this price entry belongs to, if any.
           example:
             gt: 0
-        booking_tracking_enabled:
-          type: boolean
-          title: Booking Tracking Enabled
-          description: When true, resource bookings can be tracked against this price entry.
+        discount_amount_default:
+          title: Discount Amount Default
+        estimated_hours:
+          type: number
+          title: Estimated Hours
+          description: The estimated number of hours for this price entry.
           example:
-            eq: value
-        service_type_id:
-          type: integer
-          title: Service Type
-          description: ID of the service type associated with this price entry.
-          example:
-            - 123
-        name:
-          type: string
-          title: Name
-          description: Display name for this rate card line item (typically the service type name).
-          example:
-            eq: value
-        currency_normalized:
-          title: Currency Normalized
-          description: Currency-normalized price for reporting purposes.
-          example:
-            eq: value
+            gt: 0
+        discount_amount_normalized:
+          title: Discount Amount Normalized
         editor_config:
           type: object
           title: Editor Config
           description: Configuration for the rich-text editor associated with this price entry.
           example:
             eq: value
-        estimated_cost_normalized:
-          title: Estimated Cost Normalized
-          description: The estimated cost converted to the organization's normalized currency, in whole currency units.
-          example:
-            gt: 0
         rate_card_status:
           enum:
             - 1
@@ -403,21 +361,21 @@ components:
           description: The status of the rate card associated with this price entry (active or archived).
           example:
             gt: 0
-        markup:
-          type: number
-          title: Markup
-          description: The markup percentage added on top of the cost for this price entry.
-          example:
-            eq: value
-        id:
+        company_id:
           type: integer
-          title: Id
-          description: The unique identifier of this price.
+          title: Company
+          description: ID of the client company associated with this price entry.
           example:
             - 123
-        rate_normalized:
-          title: Rate Normalized
-          description: Rate normalized to a common currency for cross-company comparison.
+        quantity:
+          type: number
+          title: Quantity
+          description: The quantity of units for this price entry.
+          example:
+            eq: value
+        estimated_cost_normalized:
+          title: Estimated Cost Normalized
+          description: The estimated cost converted to the organization's normalized currency, in whole currency units.
           example:
             gt: 0
         custom_field_people:
@@ -425,6 +383,45 @@ components:
           description: People referenced by custom field values on this price entry.
           example:
             eq: value
+        markup:
+          type: number
+          title: Markup
+          description: The markup percentage added on top of the cost for this price entry.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: Currency-normalized price for reporting purposes.
+          example:
+            eq: value
+        time_tracking_enabled:
+          type: boolean
+          title: Time Tracking Enabled
+          description: When true, time entries can be tracked against this price entry.
+          example:
+            gt: 0
+        service_type_id:
+          type: integer
+          title: Service Type
+          description: ID of the service type associated with this price entry.
+          example:
+            - 123
+        booking_tracking_enabled:
+          type: boolean
+          title: Booking Tracking Enabled
+          description: When true, resource bookings can be tracked against this price entry.
+          example:
+            eq: value
+        rate_default:
+          title: Rate Default
+          description: Rate in the organization's default currency.
+          example:
+            gt: 0
+        service_type:
+          title: Service Type
+          description: The service type associated with this price entry.
+          example:
+            eq: active
         unit_id:
           enum:
             - 1
@@ -435,45 +432,9 @@ components:
           description: ID of the unit used for this price entry (e.g. hours, days).
           example:
             - 123
-        currency_default:
-          title: Currency Default
-          description: Price in the organization's default currency.
-          example:
-            eq: value
-        estimated_hours:
-          type: number
-          title: Estimated Hours
-          description: The estimated number of hours for this price entry.
-          example:
-            gt: 0
-        rate:
-          type: number
-          title: Rate
-          description: Billing rate in the rate card's currency.
-          example:
-            gt: 0
-        expense_tracking_enabled:
-          type: boolean
-          title: Expense Tracking Enabled
-          description: When true, expenses can be tracked against this price entry.
-          example:
-            eq: value
-        rate_card:
-          title: Rate Card
-          description: The rate card this price entry belongs to, if any.
-          example:
-            gt: 0
-        quantity:
-          type: number
-          title: Quantity
-          description: The quantity of units for this price entry.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this price entry belongs to.
-          example:
-            eq: value
+        query:
+          type: string
+          title: Query
         discount_type:
           enum:
             - percentage
@@ -481,51 +442,17 @@ components:
           type: string
           title: Discount Type
           description: Read-only. Which discount is in effect — `amount` when `discount` is 0 and `discount_amount` is positive, `percentage` otherwise.
-        budget_cap_enabled:
-          type: boolean
-          title: Budget Cap Enabled
-          description: When true, the price entry has a budget cap configured for spending limits.
-          example:
-            gt: 0
-        service_type:
-          title: Service Type
-          description: The service type associated with this price entry.
-          example:
-            eq: active
-        estimated_cost_default:
-          title: Estimated Cost Default
-          description: The estimated cost converted to the organization's default currency, in whole currency units.
-          example:
-            gt: 0
-        discount_amount:
+        rate:
           type: number
-          title: Discount Amount
-          description: The money value of the discount in effect. On read, it is the user-set fixed amount in amount mode, otherwise the value computed from `discount` and the line total (quantity × rate) — check `discount_type` for which one you are looking at. On write, a positive value selects the fixed-amount discount (allowed only on fixed-price services, capped at the line total) and resets `discount` to 0, `0` or `null` clears it, and omitting the attribute leaves it untouched. A request with positive values in both `discount` and `discount_amount` is rejected with `discount_mode_ambiguous`. Requires the `service_discount_fixed_amount` release flag; without it, writes here are ignored.
-        updater:
-          title: Updater
-          description: The person who last updated this price entry.
+          title: Rate
+          description: Billing rate in the rate card's currency.
+          example:
+            gt: 0
+        company:
+          title: Company
+          description: The client company associated with this price entry.
           example:
             eq: value
-        estimated_cost:
-          type: number
-          title: Estimated Cost
-          description: The estimated cost of this price entry in the entry's currency, in whole currency units.
-          example:
-            gt: 0
-        currency:
-          type: string
-          title: Currency
-          description: Currency code for this price (e.g. USD, EUR).
-          example:
-            eq: value
-        custom_field_attachments:
-          title: Custom Field Attachments
-          description: File attachments linked to custom fields on this price entry.
-          example:
-            gt: '2026-01-01'
-        query:
-          type: string
-          title: Query
         billing_type_id:
           enum:
             - 1
@@ -537,6 +464,79 @@ components:
           description: 'Billing type for services using this price: hourly, daily, fixed-fee, etc.'
           example:
             - 123
+        budget_cap_enabled:
+          type: boolean
+          title: Budget Cap Enabled
+          description: When true, the price entry has a budget cap configured for spending limits.
+          example:
+            gt: 0
+        discount:
+          type: number
+          title: Discount
+          description: The discount percentage applied to the rate of this price entry.
+          example:
+            gt: 0
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: Custom field values for this price entry.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: Display name for this rate card line item (typically the service type name).
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: Price in the organization's default currency.
+          example:
+            eq: value
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: File attachments linked to custom fields on this price entry.
+          example:
+            gt: '2026-01-01'
+        rate_card_id:
+          type: integer
+          title: Rate Card
+          description: ID of the rate card this price entry belongs to, if any.
+          example:
+            - 123
+        rate_normalized:
+          title: Rate Normalized
+          description: Rate normalized to a common currency for cross-company comparison.
+          example:
+            gt: 0
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this price.
+          example:
+            - 123
+        updater:
+          title: Updater
+          description: The person who last updated this price entry.
+          example:
+            eq: value
+        estimated_cost:
+          type: number
+          title: Estimated Cost
+          description: The estimated cost of this price entry in the entry's currency, in whole currency units.
+          example:
+            gt: 0
+        organization:
+          title: Organization
+          description: The organization this price entry belongs to.
+          example:
+            eq: value
+        currency:
+          type: string
+          title: Currency
+          description: Currency code for this price (e.g. USD, EUR).
+          example:
+            eq: value
       description: A rate card line item defining billing type, hourly/daily rate, tracking unit, and default settings for new services.
       example:
         id: '123'
@@ -551,6 +551,22 @@ components:
       type: object
       title: Meta
       properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -558,30 +574,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         page_size:
           type: integer
           description: Number of records returned per page in this response.
           example: 30
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
       description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
@@ -591,6 +591,7 @@ components:
         max_page_size: 200
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
           properties:
@@ -607,12 +608,27 @@ components:
             data:
               - type: tasks
                 id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      example:
+        type: tasks
+        id: '42'
     _not_included:
       type: object
       title: Not included
@@ -633,24 +649,9 @@ components:
       example:
         meta:
           included: false
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
           properties:
@@ -661,7 +662,6 @@ components:
             data:
               type: tasks
               id: '42'
-        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
