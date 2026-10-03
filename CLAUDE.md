@@ -33,6 +33,7 @@ src/
 │   ├── pat-crypto.ts     # AES-256-GCM encrypt/decrypt for per-user PATs
 │   ├── pat-store.ts      # Per-user PAT storage in USER_PAT_KV (keyed by Entra oid)
 │   ├── user-resolver.ts  # Entra oid → Productive person ID (KV-cached, uses the user's PAT)
+│   ├── self-resolver.ts  # stdio: token → own person ID at startup (when PRODUCTIVE_USER_ID is unset)
 │   └── workers-oauth-utils.ts  # OAuth utilities (CSRF, state, cookies, HMAC signing)
 ├── config/
 │   ├── index.ts          # Stdio env validation (dotenv + Zod)
@@ -330,6 +331,8 @@ credentials and fails the file instead of skipping it.
 - **An event has to be archived before it can be deleted**: `DELETE /api/v2/events/{id}` answers `409 record_not_archived` while the absence type is still active. `PATCH /api/v2/events/{id}/archive` first, then the same DELETE returns 204. This bites integration tests hardest — a cleanup path that only deletes leaves its fixture behind in the org (it did), so archive-then-delete in `afterAll`.
 - **Tool-level tests don't catch wrong `filter[...]` keys**: tests like `tests/unit/people.test.ts` typically assert only on the params passed into a _mocked_ `client.ts` method, not the actual request URL — the bug above shipped invisibly for exactly this reason. When you touch filter-building code in `client.ts`, add/extend a `client-*.test.ts` test (pattern: `tests/unit/client-boards.test.ts`, `client-filters.test.ts`) that stubs `global.fetch` and asserts on the real query string.
 
+- **`organization_memberships` is the way from a token to its own person ID**: the endpoint is scoped to the authenticated user, not to what the token may see. An admin token (verified: it reads all 17 salaries in the sandbox) still gets exactly **one** membership, with or without `filter[organization_id]`; another membership's ID answers 404. The person ID is in `relationships.person.data.id` only with `?include=person` (the stub gotcha above). The filter wants an **integer**, so the slug in `PRODUCTIVE_ORG_ID` (`12345-company`) answers `unsupported_filter_value_type` -- `listOwnOrganizationMemberships` sends the numeric prefix. The stdio entry point (`src/auth/self-resolver.ts`) uses this when `PRODUCTIVE_USER_ID` is unset and takes the ID only when exactly one person comes back; the Worker resolves by Entra email instead (`user-resolver.ts`).
+
 - **Some breaking changes are announced only by email**: the 422 error `code` switches from `invalid_attribute` to `invalid_attribute_value` on **2026-09-15** (opt in early with the `X-Feature-Flags: invalidAttributeValueCode` header). We are not affected -- `makeRequest` reads `detail || title` and never branches on `code` -- but note that this never appeared in the public changelog, so the weekly spec sync could not have caught it. Watch the Productive emails for this class of change.
 
 - **Never branch on the error `code`, branch on the HTTP status**: `src/utils/errors.ts` maps Productive failures onto MCP error codes using `ProductiveApiError.httpStatus` only. The JSON:API `code` field appears in neither the OpenAPI spec nor any guide, and its 422 values change on 2026-09-15 (see above) -- reading the status keeps us out of that. Caller-fault statuses are `400/404/409/422`; `409` is in the set because `pin_comment`, `unpin_comment`, `reject_time_entry` and `unreject_time_entry` hit endpoints where the spec documents it, and "already pinned" is a caller problem, not a server one.
@@ -349,6 +352,7 @@ All secrets are set via `wrangler secret put` (production) or `.dev.vars` (local
 | `PRODUCTIVE_API_TOKEN`    | Legacy stdio fallback only — NOT used by the Worker (per-user PATs replace it)   |
 | `PRODUCTIVE_ORG_ID`       | Organization ID with slug (shared across users)                                  |
 | `PRODUCTIVE_API_BASE_URL` | API base URL (default: production)                                               |
+| `PRODUCTIVE_USER_ID`      | stdio only, optional: person ID behind "me" -- resolved from the token if unset  |
 | `PRODUCTIVE_TOOLSETS`     | Optional, comma-separated toolset names to enable (default: all — see Toolsets)  |
 | `ENTRA_CLIENT_ID`         | Entra App Registration client ID                                                 |
 | `ENTRA_CLIENT_SECRET`     | Entra App Registration client secret                                             |

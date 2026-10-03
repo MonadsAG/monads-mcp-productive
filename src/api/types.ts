@@ -233,6 +233,22 @@ export interface ProductiveSingleResponse<T> {
   included?: ProductiveIncludedResource[];
 }
 
+/**
+ * The link between the authenticated user and an organization. Only the person
+ * relationship is modelled: it is what identifies the token owner (see
+ * `listOwnOrganizationMemberships`). It carries `data` only when the request
+ * adds `?include=person`; a plain GET returns a stub.
+ */
+export interface ProductiveOrganizationMembership {
+  id: string;
+  type: 'organization_memberships';
+  relationships?: {
+    person?: {
+      data?: { id: string; type: 'people' } | null;
+    };
+  };
+}
+
 export interface ProductivePerson {
   id: string;
   type: 'people';

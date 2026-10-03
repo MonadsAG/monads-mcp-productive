@@ -121,7 +121,9 @@ openssl rand -hex 32 | npx wrangler secret put PAT_ENC_KEY             # encrypt
 > **No shared Productive token.** Each user supplies their own Productive PAT via the
 > `/settings` page (see [Per-user tokens](#per-user-tokens-byot)), so `PRODUCTIVE_API_TOKEN`
 > is **not** needed by the Worker. It remains only for the legacy local stdio entrypoint
-> (set it in `.env`, not as a Worker secret).
+> (set it in `.env`, not as a Worker secret). There, `PRODUCTIVE_API_TOKEN` and
+> `PRODUCTIVE_ORG_ID` are enough: the person ID behind "me" is resolved from the token at
+> startup, so `PRODUCTIVE_USER_ID` is only needed to override it.
 
 ### 5. Deploy
 

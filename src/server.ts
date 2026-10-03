@@ -6,6 +6,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { getConfig } from './config/index.js';
 import { ProductiveAPIClient } from './api/client.js';
+import { withSelfPersonId } from './auth/self-resolver.js';
 import { registerToolsOnServer } from './tools/registry.js';
 import { getEnabledToolNames } from './tools/toolsets.js';
 import { LOGO_DATA_URI } from './auth/logo.js';
@@ -17,7 +18,11 @@ import {
 } from './prompts/timesheet.js';
 
 export async function createServer() {
-  const config = getConfig();
+  const baseConfig = getConfig();
+  const apiClient = new ProductiveAPIClient(baseConfig);
+  // MCPHub-style deployments pass only the token; resolve "me" from it unless
+  // PRODUCTIVE_USER_ID is set. Must run before the description below reads it.
+  const config = await withSelfPersonId(baseConfig, apiClient);
   const hasConfiguredUser = !!config.PRODUCTIVE_USER_ID;
 
   const server = new Server(
@@ -34,7 +39,6 @@ export async function createServer() {
       },
     },
   );
-  const apiClient = new ProductiveAPIClient(config);
   const enabledToolNames = getEnabledToolNames(config.PRODUCTIVE_TOOLSETS);
 
   // Register all tools via shared registry
