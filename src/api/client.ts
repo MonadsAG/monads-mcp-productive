@@ -6,6 +6,7 @@ import {
   ProductiveBoard,
   ProductiveTaskList,
   ProductivePerson,
+  ProductiveOrganizationMembership,
   ProductiveActivity,
   ProductiveComment,
   ProductiveWorkflowStatus,
@@ -337,6 +338,32 @@ export class ProductiveAPIClient {
 
   async getPerson(personId: string): Promise<ProductiveSingleResponse<ProductivePerson>> {
     return this.makeRequest<ProductiveSingleResponse<ProductivePerson>>(`people/${personId}`);
+  }
+
+  /**
+   * The memberships of the token owner. The endpoint is scoped to the
+   * authenticated user, not to what the token may see: an admin token gets its
+   * own membership only (verified against the sandbox, where the same token
+   * reads all 17 salaries). `include=person` is required, without it the person
+   * relationship comes back as a stub with no id.
+   *
+   * The filter takes an integer, so only the numeric prefix of an org ID such
+   * as `12345-company-name` is sent -- the slug answers `unsupported_filter_value_type`.
+   */
+  async listOwnOrganizationMemberships(
+    signal?: AbortSignal,
+  ): Promise<ProductiveResponse<ProductiveOrganizationMembership>> {
+    const queryParams = new URLSearchParams({ include: 'person' });
+    const numericOrgId = /^\d+/.exec(this.config.PRODUCTIVE_ORG_ID)?.[0];
+
+    if (numericOrgId) {
+      queryParams.append('filter[organization_id]', numericOrgId);
+    }
+
+    return this.makeRequest<ProductiveResponse<ProductiveOrganizationMembership>>(
+      `organization_memberships?${queryParams.toString()}`,
+      { signal },
+    );
   }
 
   async getTask(taskId: string): Promise<ProductiveSingleResponse<ProductiveTask>> {
