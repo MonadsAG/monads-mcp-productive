@@ -36,6 +36,15 @@ describe('listProjectsTool', () => {
     expect(text).not.toContain('undefined');
   });
 
+  it('also honours the documented status attribute, should a response carry it', async () => {
+    const project = {
+      ...mockProject('1', null),
+      attributes: { ...mockProject('1', null).attributes, status: 2 },
+    };
+
+    expect(await listProjectsText([project])).toContain('Status: archived');
+  });
+
   it('treats a project without archived_at as active', async () => {
     const project = mockProject('1', null);
     delete (project.attributes as { archived_at?: string | null }).archived_at;
