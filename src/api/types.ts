@@ -22,7 +22,9 @@ export interface ProductiveProject {
   type: 'projects';
   attributes: {
     name: string;
-    status: 'active' | 'archived';
+    // No `status` attribute in responses: `status` (1/2) is only a filter key.
+    // Archived projects carry a timestamp here, active ones null.
+    archived_at?: string | null;
     created_at: string;
     [key: string]: any;
   };

@@ -41,7 +41,7 @@ export async function listProjectsTool(
         const companyId = project.relationships?.company?.data?.id;
         const companyName = resolveName(nameMap, 'companies', companyId);
         return `• ${project.attributes.name} (ID: ${project.id})
-  Status: ${project.attributes.status}
+  Status: ${project.attributes.archived_at ? 'archived' : 'active'}
   ${companyName ? `Company: ${companyName}` : companyId ? `Company ID: ${companyId}` : ''}`;
       })
       .join('\n\n');
