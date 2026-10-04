@@ -19,6 +19,7 @@ import { getUserPat } from './auth/pat-store.js';
 import { EntraAuthHandler, type EntraProps } from './auth/entra-handler.js';
 import { registerNoTokenHandlers, registerToolsOnServer } from './tools/registry.js';
 import { getEnabledToolNames } from './tools/toolsets.js';
+import { registerPromptsOnServer } from './prompts/registry.js';
 import { LOGO_DATA_URI } from './auth/logo.js';
 
 export default new OAuthProvider({
@@ -36,8 +37,10 @@ export default new OAuthProvider({
           version: '1.2.0',
           icons: [{ src: LOGO_DATA_URI, mimeType: 'image/svg+xml', sizes: ['any'] }],
         },
-        { capabilities: { tools: {} } },
+        { capabilities: { tools: {}, prompts: {} } },
       );
+      // Prompts are static guidance: served with or without a stored PAT.
+      registerPromptsOnServer(server);
 
       // BYOT: each request authenticates with the calling user's own Productive
       // PAT, loaded + decrypted from KV by their Entra oid -- no shared admin token.

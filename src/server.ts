@@ -1,21 +1,12 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
 import { getConfig } from './config/index.js';
 import { ProductiveAPIClient } from './api/client.js';
 import { withSelfPersonId } from './auth/self-resolver.js';
 import { registerToolsOnServer } from './tools/registry.js';
 import { getEnabledToolNames } from './tools/toolsets.js';
 import { LOGO_DATA_URI } from './auth/logo.js';
-import {
-  generateTimesheetPrompt,
-  timesheetPromptDefinition,
-  generateQuickTimesheetPrompt,
-  quickTimesheetPromptDefinition,
-} from './prompts/timesheet.js';
+import { registerPromptsOnServer } from './prompts/registry.js';
 
 export async function createServer() {
   const baseConfig = getConfig();
@@ -44,25 +35,8 @@ export async function createServer() {
   // Register all tools via shared registry
   registerToolsOnServer(server, apiClient, config, enabledToolNames);
 
-  // Register prompt handlers
-  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
-    prompts: [timesheetPromptDefinition, quickTimesheetPromptDefinition],
-  }));
-
-  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    switch (name) {
-      case 'timesheet_entry':
-        return await generateTimesheetPrompt(args);
-
-      case 'timesheet_step':
-        return await generateQuickTimesheetPrompt(args);
-
-      default:
-        throw new Error(`Unknown prompt: ${name}`);
-    }
-  });
+  // Register prompt handlers via shared registry
+  registerPromptsOnServer(server);
 
   // Connect to stdio transport
   const transport = new StdioServerTransport();
