@@ -311,7 +311,8 @@ The stdio entry point is also published to npm as
 [`@monadsag/productive-mcp`](https://www.npmjs.com/package/@monadsag/productive-mcp), for hosts
 that start MCP servers as local processes (such as the Monads MCP hub). Every push to `main`
 publishes a new version from CI with npm provenance: major and minor come from `package.json`,
-the patch is the CI run number. There is no manual release step.
+the patch is the CI run number. There is no manual release step. Each release ships an
+`npm-shrinkwrap.json`, so every install gets exactly the dependency tree CI tested.
 
 ```bash
 npx -y @monadsag/productive-mcp@latest
@@ -327,8 +328,8 @@ npx -y @monadsag/productive-mcp@latest
 The server speaks MCP on stdout and logs to stderr only. Note that the unscoped
 `productive-mcp` on npm is the upstream original by berwickgeek, not this fork.
 
-`npm run build && npm run package:smoke` packs the package, installs it into an empty
-directory and starts it over stdio, the same way a host does.
+`npm run build && npm run package:smoke` packs the package, serves it from a throwaway local
+registry and starts it with `npx` over stdio, the same way the hub does.
 
 ## Development
 
