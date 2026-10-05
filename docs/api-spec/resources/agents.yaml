@@ -69,9 +69,8 @@ paths:
       tags:
         - Agents
       summary: Activate an agent
-      responses:
-        '200':
-          $ref: '#/components/responses/single_agent'
+      operationId: agents-activate-activate
+      description: Reactivates a previously deactivated agent, making it available again. Clears the `deactivated_at` timestamp.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -80,26 +79,33 @@ paths:
             type: string
           required: true
           description: The unique identifier of the agent to activate.
-      operationId: agents-activate-activate
-      description: Reactivates a previously deactivated agent, making it available again. Clears the `deactivated_at` timestamp.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_agent'
   /api/v2/agents:
     get:
       tags:
         - Agents
       summary: Get agents
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_agent'
+      operationId: agents-index
+      description: Returns a paginated list of agents in the organization. Supports filtering by status, manager, custom role, name, and more.
       parameters:
         - $ref: '#/components/parameters/filter_agent'
         - $ref: '#/components/parameters/sort_agent'
         - $ref: '#/components/parameters/header_organization'
-      operationId: agents-index
-      description: Returns a paginated list of agents in the organization. Supports filtering by status, manager, custom role, name, and more.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_agent'
     post:
       tags:
         - Agents
       summary: Create an agent
+      operationId: agents-create
+      description: Creates a new agent in the organization with the specified name, manager, role, and optional avatar.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/agent'
       responses:
         '201':
           $ref: '#/components/responses/single_agent'
@@ -111,20 +117,13 @@ paths:
               schema:
                 type: string
           description: Returned when creating an agent fails validation — for example, when required fields like name or manager are missing.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: agents-create
-      requestBody:
-        $ref: '#/components/requestBodies/agent'
-      description: Creates a new agent in the organization with the specified name, manager, role, and optional avatar.
   /api/v2/agents/{id}/deactivate:
     patch:
       tags:
         - Agents
       summary: Deactivate an agent
-      responses:
-        '200':
-          $ref: '#/components/responses/single_agent'
+      operationId: agents-deactivate-deactivate
+      description: Deactivates the specified agent, preventing it from being used. Sets `deactivated_at` to the current time.
       parameters:
         - in: path
           name: id
@@ -133,16 +132,16 @@ paths:
           required: true
           description: The unique identifier of the agent to deactivate.
         - $ref: '#/components/parameters/header_organization'
-      operationId: agents-deactivate-deactivate
-      description: Deactivates the specified agent, preventing it from being used. Sets `deactivated_at` to the current time.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_agent'
   /api/v2/agents/{id}:
     get:
       tags:
         - Agents
       summary: Get an agent
-      responses:
-        '200':
-          $ref: '#/components/responses/single_agent'
+      operationId: agents-show
+      description: Returns a single agent by ID, including its attributes and related resources.
       parameters:
         - in: path
           name: id
@@ -151,12 +150,25 @@ paths:
           required: true
           description: The unique identifier of the agent to retrieve.
         - $ref: '#/components/parameters/header_organization'
-      operationId: agents-show
-      description: Returns a single agent by ID, including its attributes and related resources.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_agent'
     patch:
       tags:
         - Agents
       summary: Update an agent
+      operationId: agents-update
+      description: Updates an existing agent's attributes such as name, title, manager, or custom role.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The unique identifier of the agent to update.
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/agent'
       responses:
         '200':
           $ref: '#/components/responses/single_agent'
@@ -168,56 +180,156 @@ paths:
               schema:
                 type: string
           description: Returned when the agent update fails validation — for example, when required fields are missing or contain invalid values.
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The unique identifier of the agent to update.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: agents-update
-      requestBody:
-        $ref: '#/components/requestBodies/agent'
-      description: Updates an existing agent's attributes such as name, title, manager, or custom role.
 components:
-  requestBodies:
-    agent:
+  responses:
+    single_agent:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_agent/properties/avatar_url'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_agent/properties/updated_at'
+                      created_at:
+                        $ref: '#/components/schemas/resource_agent/properties/created_at'
+                      title:
+                        $ref: '#/components/schemas/resource_agent/properties/title'
+                      status:
+                        $ref: '#/components/schemas/resource_agent/properties/status'
+                      name:
+                        $ref: '#/components/schemas/resource_agent/properties/name'
+                      deactivated_at:
+                        $ref: '#/components/schemas/resource_agent/properties/deactivated_at'
+                  relationships:
+                    type: object
+                    properties:
+                      custom_role:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      agent_config:
+                        $ref: '#/components/schemas/_single_relationship'
+                      manager:
+                        $ref: '#/components/schemas/_single_relationship'
+              included:
+                type: array
+                items: {}
+      description: A single agent record returned in JSON:API format, including attributes and related resources.
+    collection_agent:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
               data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    required:
-                      - name
-                      - manager_id
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_agent/properties/name'
-                      title:
-                        $ref: '#/components/schemas/resource_agent/properties/title'
-                      avatar_url:
-                        $ref: '#/components/schemas/resource_agent/properties/avatar_url'
-                      manager_id:
-                        $ref: '#/components/schemas/resource_agent/properties/manager_id'
-                      custom_role_id:
-                        $ref: '#/components/schemas/resource_agent/properties/custom_role_id'
-      description: Request body for creating or updating an agent, including name, title, manager, custom role, and optional avatar.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    relationships:
+                      type: object
+                      properties:
+                        custom_role:
+                          $ref: '#/components/schemas/_single_relationship'
+                        manager:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        agent_config:
+                          $ref: '#/components/schemas/_single_relationship'
+                    attributes:
+                      type: object
+                      properties:
+                        created_at:
+                          $ref: '#/components/schemas/resource_agent/properties/created_at'
+                        name:
+                          $ref: '#/components/schemas/resource_agent/properties/name'
+                        deactivated_at:
+                          $ref: '#/components/schemas/resource_agent/properties/deactivated_at'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_agent/properties/updated_at'
+                        avatar_url:
+                          $ref: '#/components/schemas/resource_agent/properties/avatar_url'
+                        status:
+                          $ref: '#/components/schemas/resource_agent/properties/status'
+                        title:
+                          $ref: '#/components/schemas/resource_agent/properties/title'
+              included:
+                type: array
+                items: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+      description: Collection agent
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_agent:
       type: object
       title: Agent Resource
+      description: Represents an AI agent — an automated member of the organization backed by a `Person` record, with its own name, role, manager, and optional configuration.
       properties:
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: The timestamp when this agent was created.
         id:
           type: integer
           title: Id
@@ -282,10 +394,15 @@ components:
           type: string
           title: Query
           description: Free-text search filter for agents — matches against the agent's name.
-      description: Represents an AI agent — an automated member of the organization backed by a `Person` record, with its own name, role, manager, and optional configuration.
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: The timestamp when this agent was created.
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -318,67 +435,39 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
+  requestBodies:
+    agent:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      custom_role_id:
+                        $ref: '#/components/schemas/resource_agent/properties/custom_role_id'
+                      manager_id:
+                        $ref: '#/components/schemas/resource_agent/properties/manager_id'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_agent/properties/avatar_url'
+                      name:
+                        $ref: '#/components/schemas/resource_agent/properties/name'
+                      title:
+                        $ref: '#/components/schemas/resource_agent/properties/title'
+                    required:
+                      - name
+                      - manager_id
+      description: Request body for creating or updating an agent, including name, title, manager, custom role, and optional avatar.
   parameters:
     header_organization:
       in: header
@@ -407,92 +496,3 @@ components:
         description: Filter keys and their operators are listed under x-filters.agent at the top of this file.
       required: false
       description: Query parameter for filtering the agents list. Accepts filter fields defined in the `filter_agent` schema.
-  responses:
-    single_agent:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_agent/properties/name'
-                      title:
-                        $ref: '#/components/schemas/resource_agent/properties/title'
-                      status:
-                        $ref: '#/components/schemas/resource_agent/properties/status'
-                      avatar_url:
-                        $ref: '#/components/schemas/resource_agent/properties/avatar_url'
-                      created_at:
-                        $ref: '#/components/schemas/resource_agent/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_agent/properties/updated_at'
-                      deactivated_at:
-                        $ref: '#/components/schemas/resource_agent/properties/deactivated_at'
-                  relationships:
-                    type: object
-                    properties:
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      manager:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_role:
-                        $ref: '#/components/schemas/_single_relationship'
-                      agent_config:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: A single agent record returned in JSON:API format, including attributes and related resources.
-    collection_agent:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_agent/properties/name'
-                        title:
-                          $ref: '#/components/schemas/resource_agent/properties/title'
-                        status:
-                          $ref: '#/components/schemas/resource_agent/properties/status'
-                        avatar_url:
-                          $ref: '#/components/schemas/resource_agent/properties/avatar_url'
-                        created_at:
-                          $ref: '#/components/schemas/resource_agent/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_agent/properties/updated_at'
-                        deactivated_at:
-                          $ref: '#/components/schemas/resource_agent/properties/deactivated_at'
-                    relationships:
-                      type: object
-                      properties:
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        manager:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_role:
-                          $ref: '#/components/schemas/_single_relationship'
-                        agent_config:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection agent

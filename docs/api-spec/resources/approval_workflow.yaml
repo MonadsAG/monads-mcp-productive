@@ -40,23 +40,22 @@ paths:
       tags:
         - Approval Workflow
       summary: Creates the approval workflow
+      operationId: approval_workflows-create
+      description: Create a new approval workflow.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/approval_workflow'
       responses:
         '201':
           $ref: '#/components/responses/single_approval_workflow'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: approval_workflows-create
-      requestBody:
-        $ref: '#/components/requestBodies/approval_workflow'
-      description: Create a new approval workflow.
   /api/v2/approval_workflows/{id}:
     get:
       tags:
         - Approval Workflow
       summary: Gets the approval workflow
-      responses:
-        '200':
-          $ref: '#/components/responses/single_approval_workflow'
+      operationId: approval_workflows-show
+      description: Retrieve a single approval workflow by ID.
       parameters:
         - in: path
           name: id
@@ -65,12 +64,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: approval_workflows-show
-      description: Retrieve a single approval workflow by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_approval_workflow'
     patch:
       tags:
         - Approval Workflow
       summary: Updates the approval workflow
+      operationId: approval_workflows-update
+      description: Update an approval workflow.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/approval_workflow'
       responses:
         '200':
           $ref: '#/components/responses/single_approval_workflow'
@@ -82,25 +94,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: approval_workflows-update
-      requestBody:
-        $ref: '#/components/requestBodies/approval_workflow'
-      description: Update an approval workflow.
     delete:
       tags:
         - Approval Workflow
       summary: Deletes the approval workflow
-      responses:
-        '204':
-          description: No Content
+      operationId: approval_workflows-destroy
+      description: Delete an approval workflow.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -109,8 +108,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: approval_workflows-destroy
-      description: Delete an approval workflow.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -120,40 +120,132 @@ components:
         type: string
       required: true
       description: Organization ID
-  requestBodies:
-    approval_workflow:
+  responses:
+    single_approval_workflow:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single approval workflow record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The approval workflow resource object.
                 properties:
+                  relationships:
+                    type: object
+                    description: Approval workflow relationships.
+                    properties:
+                      approval_policy:
+                        $ref: '#/components/schemas/_single_relationship'
+                      event:
+                        $ref: '#/components/schemas/_single_relationship'
+                      subscribers:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approvers:
+                        $ref: '#/components/schemas/_collection_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Approval workflow attributes.
                     properties:
-                      event_id:
-                        $ref: '#/components/schemas/resource_approval_workflow/properties/event_id'
-                      approver_ids:
-                        $ref: '#/components/schemas/resource_approval_workflow/properties/approver_ids'
-                      subscriber_ids:
-                        $ref: '#/components/schemas/resource_approval_workflow/properties/subscriber_ids'
-                      target_type_id:
-                        $ref: '#/components/schemas/resource_approval_workflow/properties/target_type_id'
-                      approval_policy_id:
-                        $ref: '#/components/schemas/resource_approval_workflow/properties/approval_policy_id'
                       dynamic_approver_ids:
                         $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_approver_ids'
                       dynamic_subscriber_ids:
                         $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_subscriber_ids'
                       approval_requirement_id:
                         $ref: '#/components/schemas/resource_approval_workflow/properties/approval_requirement_id'
-      description: Request body for creating or updating an approval workflow.
+                      target_type_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/target_type_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '15'
+                type: approval_workflows
+                attributes:
+                  approval_requirement_id: 1
+                  target_type_id: 1
+                  dynamic_approver_ids: []
+                  dynamic_subscriber_ids: []
+                relationships:
+                  event:
+                    data: null
+                  approval_policy:
+                    data:
+                      type: approval_policies
+                      id: '7'
+                  approvers:
+                    data:
+                      - type: people
+                        id: '8'
+                  subscribers:
+                    data: []
+              included: []
+      description: Single approval workflow
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_approval_workflow:
       type: object
       title: Approval workflow Resource
+      description: An approval workflow defines the approvers and subscribers for a specific approval target type within an approval policy.
       properties:
         dynamic_subscriber_ids:
           type: string
@@ -244,7 +336,6 @@ components:
           description: Internal identifier for the approval requirement configuration.
           example:
             - 123
-      description: An approval workflow defines the approvers and subscribers for a specific approval target type within an approval policy.
       example:
         id: '169549'
         type: approval_workflows
@@ -270,107 +361,12 @@ components:
           subscribers:
             meta:
               included: false
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
     _collection_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
           properties:
             data:
               type: array
@@ -380,7 +376,6 @@ components:
               example:
                 - type: tasks
                   id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
           example:
             data:
               - type: tasks
@@ -390,43 +385,109 @@ components:
         data:
           - type: tasks
             id: '42'
-  responses:
-    single_approval_workflow:
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+  requestBodies:
+    approval_workflow:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API document containing the approval workflow data.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the approval_workflow resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: The attributes of the approval_workflow resource to create or update.
                     properties:
+                      approval_requirement_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/approval_requirement_id'
+                      event_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/event_id'
+                      approver_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/approver_ids'
+                      dynamic_subscriber_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_subscriber_ids'
                       target_type_id:
                         $ref: '#/components/schemas/resource_approval_workflow/properties/target_type_id'
                       dynamic_approver_ids:
                         $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_approver_ids'
-                      dynamic_subscriber_ids:
-                        $ref: '#/components/schemas/resource_approval_workflow/properties/dynamic_subscriber_ids'
-                      approval_requirement_id:
-                        $ref: '#/components/schemas/resource_approval_workflow/properties/approval_requirement_id'
-                  relationships:
-                    type: object
-                    properties:
-                      event:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approvers:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      subscribers:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approval_policy:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single approval workflow
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/subscriber_ids'
+                      approval_policy_id:
+                        $ref: '#/components/schemas/resource_approval_workflow/properties/approval_policy_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: approval_workflows
+                attributes:
+                  approval_requirement_id: 1
+                  target_type_id: 1
+                relationships:
+                  approval_policy:
+                    data:
+                      type: approval_policies
+                      id: '7'
+                  approvers:
+                    data:
+                      - type: people
+                        id: '8'
+      description: Request body for creating or updating an approval workflow.

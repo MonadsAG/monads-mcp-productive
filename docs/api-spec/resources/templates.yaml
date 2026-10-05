@@ -51,35 +51,20 @@ paths:
       tags:
         - Templates
       summary: Get templates
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_template'
+      operationId: templates-index
+      description: List templates the requester has access to. Supports filtering by id, project, target type (with `deal`/`budget` discriminated via the underlying quote), free-text query, and a task-template-only `task_project_id` filter.
       parameters:
         - $ref: '#/components/parameters/sort_template'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_template'
-      operationId: templates-index
-      description: List templates the requester has access to. Supports filtering by id, project, target type (with `deal`/`budget` discriminated via the underlying quote), free-text query, and a task-template-only `task_project_id` filter.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_template'
     post:
       tags:
         - Templates
       summary: Create a template
-      responses:
-        '201':
-          $ref: '#/components/responses/single_template'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Validation error — for example, missing or invalid `target_type`, or a per-target permission failure.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
       operationId: templates-create
-      requestBody:
-        $ref: '#/components/requestBodies/template'
       description: |-
         Create a new template. The `attributes.target_type` field is a discriminator that selects one of four creation paths, each with its own required `model_attributes` shape and permission check.
 
@@ -177,30 +162,12 @@ paths:
         ```
 
         **Save as Template** — to create a project template from an **existing** project (boards, tasks, settings copied), use [`POST /projects/copy`](#tag/Projects/operation/projects-copy) with `attributes.copy_as_template: true`. The `target_type=project` path on this endpoint only creates a **fresh, empty** template.
-  /api/v2/templates/{id}:
-    get:
-      tags:
-        - Templates
-      summary: Gets a template
-      responses:
-        '200':
-          $ref: '#/components/responses/single_template'
       parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: Numeric template id.
         - $ref: '#/components/parameters/header_organization'
-      operationId: templates-show
-      description: Fetch a single template by id.
-    patch:
-      tags:
-        - Templates
-      summary: Update a template
+      requestBody:
+        $ref: '#/components/requestBodies/template'
       responses:
-        '200':
+        '201':
           $ref: '#/components/responses/single_template'
         '422':
           content:
@@ -209,7 +176,14 @@ paths:
             Content-Type:
               schema:
                 type: string
-          description: Validation error from the target-specific update form.
+          description: Validation error — for example, missing or invalid `target_type`, or a per-target permission failure.
+  /api/v2/templates/{id}:
+    get:
+      tags:
+        - Templates
+      summary: Gets a template
+      operationId: templates-show
+      description: Fetch a single template by id.
       parameters:
         - in: path
           name: id
@@ -218,9 +192,14 @@ paths:
           required: true
           description: Numeric template id.
         - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_template'
+    patch:
+      tags:
+        - Templates
+      summary: Update a template
       operationId: templates-update
-      requestBody:
-        $ref: '#/components/requestBodies/template'
       description: |-
         Update a template's name, description, and target-specific fields inside `model_attributes`. The dispatcher routes to a target-aware form: `deal` updates retainer fields (when the retainer feature is enabled), `budget` updates color (propagated to the underlying budget). Renaming a template also renames the wrapped target.
 
@@ -253,13 +232,6 @@ paths:
           }
         }
         ```
-    delete:
-      tags:
-        - Templates
-      summary: Deletes a template
-      responses:
-        '204':
-          description: Template soft-deleted successfully.
       parameters:
         - in: path
           name: id
@@ -268,8 +240,36 @@ paths:
           required: true
           description: Numeric template id.
         - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/template'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_template'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Validation error from the target-specific update form.
+    delete:
+      tags:
+        - Templates
+      summary: Deletes a template
       operationId: templates-destroy
       description: Soft-delete a template and its wrapped target. The deletion is recorded in `deleted_items` and is recoverable from Trash.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Numeric template id.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '204':
+          description: Template soft-deleted successfully.
 components:
   parameters:
     header_organization:
@@ -313,36 +313,362 @@ components:
       explode: false
       required: false
       description: Sort the templates collection by one or more fields. Prefix a field with `-` for descending order.
-  requestBodies:
-    template:
+  responses:
+    single_template:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Top-level JSON:API document for a single template.
             properties:
               data:
                 type: object
+                description: Primary JSON:API resource(s) returned.
                 properties:
+                  relationships:
+                    type: object
+                    description: Related resources, returned as JSON:API resource identifiers.
+                    properties:
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      page:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      project:
+                        data:
+                          type: projects
+                          id: '258974'
+                      deal:
+                        data: null
+                      page:
+                        data: null
+                      task:
+                        data: null
+                      creator:
+                        data:
+                          type: people
+                          id: '13'
                   attributes:
                     type: object
+                    description: Template's serialized attributes.
                     properties:
+                      created_at:
+                        $ref: '#/components/schemas/resource_template/properties/created_at'
+                      description:
+                        $ref: '#/components/schemas/resource_template/properties/description'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_template/properties/updated_at'
                       name:
                         $ref: '#/components/schemas/resource_template/properties/name'
                       target_id:
                         $ref: '#/components/schemas/resource_template/properties/target_id'
-                      description:
-                        $ref: '#/components/schemas/resource_template/properties/description'
+                      color_id:
+                        $ref: '#/components/schemas/resource_template/properties/color_id'
+                      deleted_at:
+                        $ref: '#/components/schemas/resource_template/properties/deleted_at'
                       target_type:
                         $ref: '#/components/schemas/resource_template/properties/target_type'
-                      copy_attributes:
-                        $ref: '#/components/schemas/resource_template/properties/copy_attributes'
-                      model_attributes:
-                        $ref: '#/components/schemas/resource_template/properties/model_attributes'
-      description: JSON:API payload for creating or updating a template. `attributes.target_type` discriminates which `model_attributes` keys are required.
+                    example:
+                      name: 'Offboarding: General'
+                      description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                      target_id: '258974'
+                      target_type: project
+                      color_id: null
+                      created_at: '2023-01-24T14:08:06.857+01:00'
+                      updated_at: '2026-04-29T12:27:06.627+02:00'
+                      deleted_at: null
+                example:
+                  type: templates
+                  id: '18'
+                  attributes:
+                    name: 'Offboarding: General'
+                    description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                    target_id: '258974'
+                    target_type: project
+                    color_id: null
+                    created_at: '2023-01-24T14:08:06.857+01:00'
+                    updated_at: '2026-04-29T12:27:06.627+02:00'
+                    deleted_at: null
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '258974'
+                    deal:
+                      data: null
+                    page:
+                      data: null
+                    task:
+                      data: null
+                    creator:
+                      data:
+                        type: people
+                        id: '13'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource for a template.
+                description: Sideloaded related resources requested via `include`.
+                example: []
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                type: templates
+                id: '18'
+                attributes:
+                  name: 'Offboarding: General'
+                  description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                  target_id: '258974'
+                  target_type: project
+                  color_id: null
+                  created_at: '2023-01-24T14:08:06.857+01:00'
+                  updated_at: '2026-04-29T12:27:06.627+02:00'
+                  deleted_at: null
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '258974'
+                  deal:
+                    data: null
+                  page:
+                    data: null
+                  task:
+                    data: null
+                  creator:
+                    data:
+                      type: people
+                      id: '13'
+              meta:
+                current_page: 1
+              included: []
+      description: Successful response containing the requested template.
+    collection_template:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Top-level JSON:API document for a paginated templates collection.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A single template in the collection.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Template's serialized attributes.
+                      properties:
+                        target_type:
+                          $ref: '#/components/schemas/resource_template/properties/target_type'
+                        description:
+                          $ref: '#/components/schemas/resource_template/properties/description'
+                        color_id:
+                          $ref: '#/components/schemas/resource_template/properties/color_id'
+                        target_id:
+                          $ref: '#/components/schemas/resource_template/properties/target_id'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_template/properties/updated_at'
+                        deleted_at:
+                          $ref: '#/components/schemas/resource_template/properties/deleted_at'
+                        name:
+                          $ref: '#/components/schemas/resource_template/properties/name'
+                        created_at:
+                          $ref: '#/components/schemas/resource_template/properties/created_at'
+                      example:
+                        name: 'Offboarding: General'
+                        description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                        target_id: '258974'
+                        target_type: project
+                        color_id: null
+                        created_at: '2023-01-24T14:08:06.857+01:00'
+                        updated_at: '2026-04-29T12:27:06.627+02:00'
+                        deleted_at: null
+                    relationships:
+                      type: object
+                      description: Related resources, returned as JSON:API resource identifiers.
+                      properties:
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        page:
+                          $ref: '#/components/schemas/_single_relationship'
+                        filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        task:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        project:
+                          data:
+                            type: projects
+                            id: '258974'
+                        deal:
+                          data: null
+                        page:
+                          data: null
+                        task:
+                          data: null
+                        creator:
+                          data:
+                            type: people
+                            id: '13'
+                  example:
+                    type: templates
+                    id: '18'
+                    attributes:
+                      name: 'Offboarding: General'
+                      description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                      target_id: '258974'
+                      target_type: project
+                      color_id: null
+                      created_at: '2023-01-24T14:08:06.857+01:00'
+                      updated_at: '2026-04-29T12:27:06.627+02:00'
+                      deleted_at: null
+                    relationships:
+                      project:
+                        data:
+                          type: projects
+                          id: '258974'
+                      deal:
+                        data: null
+                      page:
+                        data: null
+                      task:
+                        data: null
+                      creator:
+                        data:
+                          type: people
+                          id: '13'
+                description: Primary JSON:API resource(s) returned.
+                example:
+                  - type: templates
+                    id: '18'
+                    attributes:
+                      name: 'Offboarding: General'
+                      description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                      target_id: '258974'
+                      target_type: project
+                      color_id: null
+                      created_at: '2023-01-24T14:08:06.857+01:00'
+                      updated_at: '2026-04-29T12:27:06.627+02:00'
+                      deleted_at: null
+                    relationships:
+                      project:
+                        data:
+                          type: projects
+                          id: '258974'
+                      deal:
+                        data: null
+                      page:
+                        data: null
+                      task:
+                        data: null
+                      creator:
+                        data:
+                          type: people
+                          id: '13'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource for a template.
+                description: Sideloaded related resources requested via `include`.
+                example: []
+            example:
+              data:
+                - type: templates
+                  id: '18'
+                  attributes:
+                    name: 'Offboarding: General'
+                    description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                    target_id: '258974'
+                    target_type: project
+                    color_id: null
+                    created_at: '2023-01-24T14:08:06.857+01:00'
+                    updated_at: '2026-04-29T12:27:06.627+02:00'
+                    deleted_at: null
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '258974'
+                    deal:
+                      data: null
+                    page:
+                      data: null
+                    task:
+                      data: null
+                    creator:
+                      data:
+                        type: people
+                        id: '13'
+              meta:
+                total_count: 25
+                current_page: 1
+                total_pages: 13
+              included: []
+      description: Successful response containing a paginated list of templates.
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_template:
       type: object
       title: Template Resource
+      description: Reusable starting point for a project, budget, deal, or page. Each template wraps a real entity (its `target`) created with template semantics; `target_type` discriminates the polymorphic create payload.
       properties:
         name:
           type: string
@@ -467,7 +793,6 @@ components:
           title: Query
           description: Free-text query — matches against the wrapped target name.
           example: offboarding
-      description: Reusable starting point for a project, budget, deal, or page. Each template wraps a real entity (its `target`) created with template semantics; `target_type` discriminates the polymorphic create payload.
       example:
         type: templates
         id: '18'
@@ -480,57 +805,15 @@ components:
           created_at: '2023-01-24T14:08:06.857+01:00'
           updated_at: '2026-04-29T12:27:06.627+02:00'
           deleted_at: null
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -543,6 +826,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -552,16 +836,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -569,111 +854,70 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
-  responses:
-    single_template:
+  requestBodies:
+    template:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API payload schema for creating or updating a template. `attributes.target_type` discriminates the required `model_attributes` shape.
             properties:
               data:
                 type: object
+                description: JSON:API primary resource wrapper for the template create/update payload.
                 properties:
                   attributes:
                     type: object
+                    description: Writable template attributes — shape depends on `target_type`.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_template/properties/name'
-                      color_id:
-                        $ref: '#/components/schemas/resource_template/properties/color_id'
+                      model_attributes:
+                        $ref: '#/components/schemas/resource_template/properties/model_attributes'
+                      copy_attributes:
+                        $ref: '#/components/schemas/resource_template/properties/copy_attributes'
                       target_id:
                         $ref: '#/components/schemas/resource_template/properties/target_id'
-                      created_at:
-                        $ref: '#/components/schemas/resource_template/properties/created_at'
-                      deleted_at:
-                        $ref: '#/components/schemas/resource_template/properties/deleted_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_template/properties/updated_at'
                       description:
                         $ref: '#/components/schemas/resource_template/properties/description'
                       target_type:
                         $ref: '#/components/schemas/resource_template/properties/target_type'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      page:
-                        $ref: '#/components/schemas/_single_relationship'
-                      task:
-                        $ref: '#/components/schemas/_single_relationship'
-                      filter:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Successful response containing the requested template.
-    collection_template:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      name:
+                        $ref: '#/components/schemas/resource_template/properties/name'
+                    example:
+                      name: New project template
+                      description: Used for kicking off enterprise migration projects.
+                      target_type: project
+                      model_attributes:
+                        client_id: 412
+                        project_manager_id: 13
+                        project_type_id: 2
+                        workflow_id: 1
+                example:
+                  type: templates
+                  attributes:
+                    name: New project template
+                    description: Used for kicking off enterprise migration projects.
+                    target_type: project
+                    model_attributes:
+                      client_id: 412
+                      project_manager_id: 13
+                      project_type_id: 2
+                      workflow_id: 1
+                      project_color_id: 5
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_template/properties/name'
-                        color_id:
-                          $ref: '#/components/schemas/resource_template/properties/color_id'
-                        target_id:
-                          $ref: '#/components/schemas/resource_template/properties/target_id'
-                        created_at:
-                          $ref: '#/components/schemas/resource_template/properties/created_at'
-                        deleted_at:
-                          $ref: '#/components/schemas/resource_template/properties/deleted_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_template/properties/updated_at'
-                        description:
-                          $ref: '#/components/schemas/resource_template/properties/description'
-                        target_type:
-                          $ref: '#/components/schemas/resource_template/properties/target_type'
-                    relationships:
-                      type: object
-                      properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        page:
-                          $ref: '#/components/schemas/_single_relationship'
-                        task:
-                          $ref: '#/components/schemas/_single_relationship'
-                        filter:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Successful response containing a paginated list of templates.
+                type: templates
+                attributes:
+                  name: New project template
+                  description: Used for kicking off enterprise migration projects.
+                  target_type: project
+                  model_attributes:
+                    client_id: 412
+                    project_manager_id: 13
+                    project_type_id: 2
+                    workflow_id: 1
+      description: JSON:API payload for creating or updating a template. `attributes.target_type` discriminates which `model_attributes` keys are required.

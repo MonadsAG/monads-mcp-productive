@@ -5,13 +5,6 @@ info:
 description: Project preferences link a person to a project and hold that person's personal settings for it — preferred task layout, whether they auto-watch new tasks, and free-form view preferences. There is at most one record per person per project.
 x-filters:
   project_preference:
-    person_id:
-      description: Filter by the person the preference belongs to.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     project_id:
       description: Filter by the project the preference applies to.
       operators:
@@ -26,12 +19,25 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    person_id:
+      description: Filter by the person the preference belongs to.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/project_preferences:
     get:
       tags:
         - Project Preferences
       summary: Get project preferences
+      operationId: project_preferences-index
+      description: Returns a paginated list of project preferences, limited to projects the current user can see. Scope the list with `filter[project_id]` or `filter[person_id]`.
+      parameters:
+        - $ref: '#/components/parameters/sort_project_preference'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_project_preference'
       responses:
         '200':
           $ref: '#/components/responses/collection_project_preference'
@@ -43,16 +49,16 @@ paths:
               schema:
                 type: string
           description: Forbidden
-      parameters:
-        - $ref: '#/components/parameters/sort_project_preference'
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_project_preference'
-      operationId: project_preferences-index
-      description: Returns a paginated list of project preferences, limited to projects the current user can see. Scope the list with `filter[project_id]` or `filter[person_id]`.
     post:
       tags:
         - Project Preferences
       summary: Create a project preference
+      operationId: project_preferences-create
+      description: Creates a project preference, assigning a person to a project. `project_id` and `person_id` are required and must be unique together.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/project_preference'
       responses:
         '201':
           $ref: '#/components/responses/single_project_preference'
@@ -72,17 +78,21 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity — a preference already exists for this person and project, a required attribute is missing, or the person is a placeholder.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: project_preferences-create
-      requestBody:
-        $ref: '#/components/requestBodies/project_preference'
-      description: Creates a project preference, assigning a person to a project. `project_id` and `person_id` are required and must be unique together.
   /api/v2/project_preferences/{id}:
     get:
       tags:
         - Project Preferences
       summary: Get a project preference
+      operationId: project_preferences-show
+      description: Returns a single project preference.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the project preference to fetch.
       responses:
         '200':
           $ref: '#/components/responses/single_project_preference'
@@ -94,6 +104,12 @@ paths:
               schema:
                 type: string
           description: Forbidden — the current user does not have access to the project this preference belongs to.
+    patch:
+      tags:
+        - Project Preferences
+      summary: Update a project preference
+      operationId: project_preferences-update
+      description: Updates a project preference — task layout, watch state or stored view preferences. Pass `subscribe` or `unsubscribe` to also change the person's task subscriptions in the project.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -101,13 +117,9 @@ paths:
           schema:
             type: string
           required: true
-          description: The ID of the project preference to fetch.
-      operationId: project_preferences-show
-      description: Returns a single project preference.
-    patch:
-      tags:
-        - Project Preferences
-      summary: Update a project preference
+          description: The ID of the project preference to update.
+      requestBody:
+        $ref: '#/components/requestBodies/project_preference'
       responses:
         '200':
           $ref: '#/components/responses/single_project_preference'
@@ -127,22 +139,20 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity — the requested person and project combination already exists, or the person is a placeholder.
+    delete:
+      tags:
+        - Project Preferences
+      summary: Delete a project preference
+      operationId: project_preferences-destroy
+      description: Deletes a project preference, removing the person's assignment to the project.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
-          description: The ID of the project preference to update.
-      operationId: project_preferences-update
-      requestBody:
-        $ref: '#/components/requestBodies/project_preference'
-      description: Updates a project preference — task layout, watch state or stored view preferences. Pass `subscribe` or `unsubscribe` to also change the person's task subscriptions in the project.
-    delete:
-      tags:
-        - Project Preferences
-      summary: Delete a project preference
+          description: The ID of the project preference to delete.
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '204':
           description: No Content
@@ -154,16 +164,6 @@ paths:
               schema:
                 type: string
           description: Forbidden — the current user does not have access to the project this preference belongs to.
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the project preference to delete.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: project_preferences-destroy
-      description: Deletes a project preference, removing the person's assignment to the project.
 components:
   parameters:
     header_organization:
@@ -194,49 +194,341 @@ components:
       explode: false
       required: false
       description: Sort order for project preference list results. Accepts one or more field names, comma-separated; prefix with `-` for descending.
-  requestBodies:
-    project_preference:
+  responses:
+    single_project_preference:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single project preference record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The project preference resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Project preference attributes.
                     properties:
                       watched:
                         $ref: '#/components/schemas/resource_project_preference/properties/watched'
-                      person_id:
-                        $ref: '#/components/schemas/resource_project_preference/properties/person_id'
-                      subscribe:
-                        $ref: '#/components/schemas/resource_project_preference/properties/subscribe'
-                      project_id:
-                        $ref: '#/components/schemas/resource_project_preference/properties/project_id'
                       preferences:
                         $ref: '#/components/schemas/resource_project_preference/properties/preferences'
-                      unsubscribe:
-                        $ref: '#/components/schemas/resource_project_preference/properties/unsubscribe'
+                      created_at:
+                        $ref: '#/components/schemas/resource_project_preference/properties/created_at'
                       tasks_layout_id:
                         $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
-      description: Request body for creating or updating a project preference.
+                    example:
+                      tasks_layout_id: 104
+                      created_at: '2026-01-20T10:00:00.000+00:00'
+                      preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                      watched: false
+                  relationships:
+                    type: object
+                    description: Project preference relationships.
+                    properties:
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      person:
+                        data:
+                          type: people
+                          id: '12'
+                      project:
+                        data:
+                          type: projects
+                          id: '6899'
+                example:
+                  id: '32234'
+                  type: project_preferences
+                  attributes:
+                    tasks_layout_id: 104
+                    created_at: '2026-01-20T10:00:00.000+00:00'
+                    preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                    watched: false
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    id: '12'
+                    type: people
+                    attributes:
+                      first_name: Ana
+                      last_name: Horvat
+                      email: ana.horvat@example.com
+                description: Sideloaded related resources.
+                example:
+                  - id: '12'
+                    type: people
+                    attributes:
+                      first_name: Ana
+                      last_name: Horvat
+                      email: ana.horvat@example.com
+            example:
+              data:
+                id: '32234'
+                type: project_preferences
+                attributes:
+                  tasks_layout_id: 104
+                  created_at: '2026-01-20T10:00:00.000+00:00'
+                  preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                  watched: false
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+              included: []
+      description: A single project preference.
+    collection_project_preference:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of project preference records in JSON:API format.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    id: '12'
+                    type: people
+                    attributes:
+                      first_name: Ana
+                      last_name: Horvat
+                      email: ana.horvat@example.com
+                description: Sideloaded related resources.
+                example:
+                  - id: '12'
+                    type: people
+                    attributes:
+                      first_name: Ana
+                      last_name: Horvat
+                      email: ana.horvat@example.com
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A project preference resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Project preference attributes.
+                      properties:
+                        tasks_layout_id:
+                          $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
+                        preferences:
+                          $ref: '#/components/schemas/resource_project_preference/properties/preferences'
+                        watched:
+                          $ref: '#/components/schemas/resource_project_preference/properties/watched'
+                        created_at:
+                          $ref: '#/components/schemas/resource_project_preference/properties/created_at'
+                      example:
+                        tasks_layout_id: 104
+                        created_at: '2026-01-20T10:00:00.000+00:00'
+                        preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                        watched: false
+                    relationships:
+                      type: object
+                      description: Project preference relationships.
+                      properties:
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        person:
+                          data:
+                            type: people
+                            id: '12'
+                        project:
+                          data:
+                            type: projects
+                            id: '6899'
+                  example:
+                    id: '32234'
+                    type: project_preferences
+                    attributes:
+                      tasks_layout_id: 104
+                      created_at: '2026-01-20T10:00:00.000+00:00'
+                      preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                      watched: false
+                    relationships:
+                      person:
+                        data:
+                          type: people
+                          id: '12'
+                      project:
+                        data:
+                          type: projects
+                          id: '6899'
+                description: Array of project preference resource objects.
+                example:
+                  - id: '32234'
+                    type: project_preferences
+                    attributes:
+                      tasks_layout_id: 104
+                      created_at: '2026-01-20T10:00:00.000+00:00'
+                      preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                      watched: false
+                    relationships:
+                      person:
+                        data:
+                          type: people
+                          id: '12'
+                      project:
+                        data:
+                          type: projects
+                          id: '6899'
+            example:
+              data:
+                - id: '32234'
+                  type: project_preferences
+                  attributes:
+                    tasks_layout_id: 104
+                    created_at: '2026-01-20T10:00:00.000+00:00'
+                    preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                    watched: false
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Paginated list of project preferences.
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_project_preference:
       type: object
       title: Project preference Resource
+      description: A person's assignment to a project together with their personal preferences for it — task layout, watch state and free-form view settings.
       properties:
-        project_id:
-          type: integer
-          title: Project Id
-          description: ID of the project this preference applies to.
-          example: 6899
-        tasks_layout_id:
-          type: integer
-          title: Tasks Layout Id
-          description: ID of the task layout this person uses when viewing the project's tasks.
-          example: 104
         project:
           title: Project
           description: The project this preference applies to.
@@ -287,7 +579,16 @@ components:
           title: Subscribe
           description: Write-only trigger — when set, subscribes the person to all existing non-private tasks in the project.
           example: true
-      description: A person's assignment to a project together with their personal preferences for it — task layout, watch state and free-form view settings.
+        tasks_layout_id:
+          type: integer
+          title: Tasks Layout Id
+          description: ID of the task layout this person uses when viewing the project's tasks.
+          example: 104
+        project_id:
+          type: integer
+          title: Project Id
+          description: ID of the project this preference applies to.
+          example: 6899
       example:
         id: 32234
         tasks_layout_id: 104
@@ -296,168 +597,54 @@ components:
         watched: false
         person_id: 12
         project_id: 6899
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_project_preference:
+  requestBodies:
+    project_preference:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API document wrapping the project preference data.
             properties:
               data:
                 type: object
+                description: The project preference resource data object.
                 properties:
                   attributes:
                     type: object
+                    description: Attributes of the project preference to create or update.
                     properties:
-                      watched:
-                        $ref: '#/components/schemas/resource_project_preference/properties/watched'
-                      created_at:
-                        $ref: '#/components/schemas/resource_project_preference/properties/created_at'
-                      preferences:
-                        $ref: '#/components/schemas/resource_project_preference/properties/preferences'
+                      unsubscribe:
+                        $ref: '#/components/schemas/resource_project_preference/properties/unsubscribe'
                       tasks_layout_id:
                         $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
-                  relationships:
-                    type: object
-                    properties:
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: A single project preference.
-    collection_project_preference:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      person_id:
+                        $ref: '#/components/schemas/resource_project_preference/properties/person_id'
+                      subscribe:
+                        $ref: '#/components/schemas/resource_project_preference/properties/subscribe'
+                      watched:
+                        $ref: '#/components/schemas/resource_project_preference/properties/watched'
+                      preferences:
+                        $ref: '#/components/schemas/resource_project_preference/properties/preferences'
+                      project_id:
+                        $ref: '#/components/schemas/resource_project_preference/properties/project_id'
+                    example:
+                      person_id: 12
+                      project_id: 6899
+                      tasks_layout_id: 104
+                      watched: true
+                example:
+                  type: project_preferences
+                  attributes:
+                    person_id: 12
+                    project_id: 6899
+                    tasks_layout_id: 104
+                    watched: true
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        watched:
-                          $ref: '#/components/schemas/resource_project_preference/properties/watched'
-                        created_at:
-                          $ref: '#/components/schemas/resource_project_preference/properties/created_at'
-                        preferences:
-                          $ref: '#/components/schemas/resource_project_preference/properties/preferences'
-                        tasks_layout_id:
-                          $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
-                    relationships:
-                      type: object
-                      properties:
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Paginated list of project preferences.
+                type: project_preferences
+                attributes:
+                  person_id: 12
+                  project_id: 6899
+                  tasks_layout_id: 104
+                  watched: true
+      description: Request body for creating or updating a project preference.

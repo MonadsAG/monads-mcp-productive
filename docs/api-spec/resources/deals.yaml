@@ -11,13 +11,6 @@ description: |-
   For more details on how to work with custom fields please refer to [Working with custom fields](https://developer.productive.io/working_with_custom_fields.html#working_with_custom_fields) guide.
 x-filters:
   deal:
-    cost:
-      description: Filter by total cost (work cost plus expenses) amount range.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     status_id:
       description: Filter by pipeline stage.
       operators:
@@ -797,6 +790,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    cost:
+      description: Filter by total cost (work cost plus expenses) amount range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     worked_time:
       description: Filter by total worked time amount range.
       operators:
@@ -817,9 +817,8 @@ paths:
       tags:
         - Deals
       summary: Closes a deal
-      responses:
-        '200':
-          $ref: '#/components/responses/single_deal'
+      operationId: deals-close-close
+      description: Close a deal.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -828,13 +827,20 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: deals-close-close
-      description: Close a deal.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deal'
   /api/v2/deals/copy:
     post:
       tags:
         - Deals
       summary: Copies a deal
+      description: Create a copy of an existing deal.
+      operationId: deals-copy-copy
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/deal_bulk_copy'
       responses:
         '200':
           $ref: '#/components/responses/single_deal'
@@ -854,30 +860,30 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      description: Create a copy of an existing deal.
-      operationId: deals-copy-copy
-      requestBody:
-        $ref: '#/components/requestBodies/deal_bulk_copy'
   /api/v2/deals:
     get:
       tags:
         - Deals
       summary: Get deals
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_deal'
+      operationId: deals-index
+      description: List deals with optional filters. Returns paginated deal records the caller has access to.
       parameters:
         - $ref: '#/components/parameters/filter_deal'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_deal'
-      operationId: deals-index
-      description: List deals with optional filters. Returns paginated deal records the caller has access to.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_deal'
     post:
       tags:
         - Deals
       summary: Create a deal
+      operationId: deals-create
+      description: Create a new deal.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/deal'
       responses:
         '201':
           $ref: '#/components/responses/single_deal'
@@ -889,17 +895,15 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deals-create
-      requestBody:
-        $ref: '#/components/requestBodies/deal'
-      description: Create a new deal.
   /api/v2/deals/create_from_origin:
     post:
       tags:
         - Deals
       summary: Creates a budget from origin deal
+      operationId: deals-create_from_origin-create_from_origin
+      description: Create a new deal from an origin deal.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_deal'
@@ -919,18 +923,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deals-create_from_origin-create_from_origin
-      description: Create a new deal from an origin deal.
   /api/v2/deals/{id}:
     get:
       tags:
         - Deals
       summary: Gets a deal
-      responses:
-        '200':
-          $ref: '#/components/responses/single_deal'
+      operationId: deals-show
+      description: Retrieve a single deal by ID.
       parameters:
         - in: path
           name: id
@@ -939,12 +938,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: deals-show
-      description: Retrieve a single deal by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deal'
     patch:
       tags:
         - Deals
       summary: Update a deal
+      operationId: deals-update
+      description: Update a deal's attributes or relationships.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/deal'
       responses:
         '200':
           $ref: '#/components/responses/single_deal'
@@ -956,25 +968,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: deals-update
-      requestBody:
-        $ref: '#/components/requestBodies/deal'
-      description: Update a deal's attributes or relationships.
     delete:
       tags:
         - Deals
       summary: Deletes a deal
-      responses:
-        '204':
-          description: No Content
+      operationId: deals-destroy
+      description: Delete a deal.
       parameters:
         - in: path
           name: id
@@ -983,16 +982,16 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: deals-destroy
-      description: Delete a deal.
+      responses:
+        '204':
+          description: No Content
   /api/v2/deals/{id}/open:
     patch:
       tags:
         - Deals
       summary: Opens a deal
-      responses:
-        '200':
-          $ref: '#/components/responses/single_deal'
+      operationId: deals-open-open
+      description: Reopen a closed deal.
       parameters:
         - in: path
           name: id
@@ -1001,905 +1000,787 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: deals-open-open
-      description: Reopen a closed deal.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deal'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_deal:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - billable_time
-            - -billable_time
-            - budget_status
-            - -budget_status
-            - budget_total
-            - -budget_total
-            - budget_used
-            - -budget_used
-            - budget_warning
-            - -budget_warning
-            - budgeted_time
-            - -budgeted_time
-            - budgets_first
-            - -budgets_first
-            - client_access
-            - -client_access
-            - closed_at
-            - -closed_at
-            - company_name
-            - -company_name
-            - contact_name
-            - -contact_name
-            - cost
-            - -cost
-            - created_at
-            - -created_at
-            - creator_name
-            - -creator_name
-            - custom_fields
-            - -custom_fields
-            - date
-            - -date
-            - deal_number
-            - -deal_number
-            - deal_status
-            - -deal_status
-            - deals_first
-            - -deals_first
-            - designated_approver
-            - -designated_approver
-            - end_date
-            - -end_date
-            - estimated_time
-            - -estimated_time
-            - expense
-            - -expense
-            - expense_approval
-            - -expense_approval
-            - invoiced
-            - -invoiced
-            - last_activity_at
-            - -last_activity_at
-            - name
-            - -name
-            - number
-            - -number
-            - pending_invoicing
-            - -pending_invoicing
-            - probability
-            - -probability
-            - profit
-            - -profit
-            - profit_margin
-            - -profit_margin
-            - project_name
-            - -project_name
-            - projected_revenue
-            - -projected_revenue
-            - purchase_order_number
-            - -purchase_order_number
-            - responsible
-            - -responsible
-            - responsible_name
-            - -responsible_name
-            - revenue
-            - -revenue
-            - sales_status_id
-            - -sales_status_id
-            - services_revenue
-            - -services_revenue
-            - stage_status
-            - -stage_status
-            - suffix
-            - -suffix
-            - time_approval
-            - -time_approval
-            - time_to_close
-            - -time_to_close
-            - todo_due_date
-            - -todo_due_date
-            - worked_time
-            - -worked_time
-          type: string
-        title: Sort deal
-      explode: false
-      required: false
-      description: Sort deal
-    filter_deal:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.deal at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_deal:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single deal record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A deal resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: A deal resource object.
                 properties:
-                  attributes:
-                    type: object
-                    properties:
-                      cost:
-                        $ref: '#/components/schemas/resource_deal/properties/cost'
-                      date:
-                        $ref: '#/components/schemas/resource_deal/properties/date'
-                      name:
-                        $ref: '#/components/schemas/resource_deal/properties/name'
-                      note:
-                        $ref: '#/components/schemas/resource_deal/properties/note'
-                      budget:
-                        $ref: '#/components/schemas/resource_deal/properties/budget'
-                      footer:
-                        $ref: '#/components/schemas/resource_deal/properties/footer'
-                      number:
-                        $ref: '#/components/schemas/resource_deal/properties/number'
-                      profit:
-                        $ref: '#/components/schemas/resource_deal/properties/profit'
-                      suffix:
-                        $ref: '#/components/schemas/resource_deal/properties/suffix'
-                      expense:
-                        $ref: '#/components/schemas/resource_deal/properties/expense'
-                      revenue:
-                        $ref: '#/components/schemas/resource_deal/properties/revenue'
-                      color_id:
-                        $ref: '#/components/schemas/resource_deal/properties/color_id'
-                      currency:
-                        $ref: '#/components/schemas/resource_deal/properties/currency'
-                      discount:
-                        $ref: '#/components/schemas/resource_deal/properties/discount'
-                      end_date:
-                        $ref: '#/components/schemas/resource_deal/properties/end_date'
-                      invoiced:
-                        $ref: '#/components/schemas/resource_deal/properties/invoiced'
-                      position:
-                        $ref: '#/components/schemas/resource_deal/properties/position'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_deal/properties/tag_list'
-                      closed_at:
-                        $ref: '#/components/schemas/resource_deal/properties/closed_at'
-                      email_key:
-                        $ref: '#/components/schemas/resource_deal/properties/email_key'
-                      created_at:
-                        $ref: '#/components/schemas/resource_deal/properties/created_at'
-                      deal_value:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value'
-                      deleted_at:
-                        $ref: '#/components/schemas/resource_deal/properties/deleted_at'
-                      todo_count:
-                        $ref: '#/components/schemas/resource_deal/properties/todo_count'
-                      budget_used:
-                        $ref: '#/components/schemas/resource_deal/properties/budget_used'
-                      deal_number:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_number'
-                      external_id:
-                        $ref: '#/components/schemas/resource_deal/properties/external_id'
-                      probability:
-                        $ref: '#/components/schemas/resource_deal/properties/probability'
-                      sample_data:
-                        $ref: '#/components/schemas/resource_deal/properties/sample_data'
-                      worked_time:
-                        $ref: '#/components/schemas/resource_deal/properties/worked_time'
-                      budget_total:
-                        $ref: '#/components/schemas/resource_deal/properties/budget_total'
-                      cost_default:
-                        $ref: '#/components/schemas/resource_deal/properties/cost_default'
-                      deal_type_id:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_type_id'
-                      delivered_on:
-                        $ref: '#/components/schemas/resource_deal/properties/delivered_on'
-                      lost_comment:
-                        $ref: '#/components/schemas/resource_deal/properties/lost_comment'
-                      billable_time:
-                        $ref: '#/components/schemas/resource_deal/properties/billable_time'
-                      budgeted_time:
-                        $ref: '#/components/schemas/resource_deal/properties/budgeted_time'
-                      client_access:
-                        $ref: '#/components/schemas/resource_deal/properties/client_access'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_deal/properties/custom_fields'
-                      editor_config:
-                        $ref: '#/components/schemas/resource_deal/properties/editor_config'
-                      exchange_date:
-                        $ref: '#/components/schemas/resource_deal/properties/exchange_date'
-                      exchange_rate:
-                        $ref: '#/components/schemas/resource_deal/properties/exchange_rate'
-                      external_sync:
-                        $ref: '#/components/schemas/resource_deal/properties/external_sync'
-                      profit_margin:
-                        $ref: '#/components/schemas/resource_deal/properties/profit_margin'
-                      proposal_note:
-                        $ref: '#/components/schemas/resource_deal/properties/proposal_note'
-                      time_approval:
-                        $ref: '#/components/schemas/resource_deal/properties/time_approval'
-                      time_to_close:
-                        $ref: '#/components/schemas/resource_deal/properties/time_to_close'
-                      todo_due_date:
-                        $ref: '#/components/schemas/resource_deal/properties/todo_due_date'
-                      access_to_deal:
-                        $ref: '#/components/schemas/resource_deal/properties/access_to_deal'
-                      budget_warning:
-                        $ref: '#/components/schemas/resource_deal/properties/budget_warning'
-                      draft_invoiced:
-                        $ref: '#/components/schemas/resource_deal/properties/draft_invoiced'
-                      estimated_time:
-                        $ref: '#/components/schemas/resource_deal/properties/estimated_time'
-                      origin_deal_id:
-                        $ref: '#/components/schemas/resource_deal/properties/origin_deal_id'
-                      profit_default:
-                        $ref: '#/components/schemas/resource_deal/properties/profit_default'
-                      amount_credited:
-                        $ref: '#/components/schemas/resource_deal/properties/amount_credited'
-                      cost_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/cost_normalized'
-                      expense_default:
-                        $ref: '#/components/schemas/resource_deal/properties/expense_default'
-                      man_day_minutes:
-                        $ref: '#/components/schemas/resource_deal/properties/man_day_minutes'
-                      proposal_footer:
-                        $ref: '#/components/schemas/resource_deal/properties/proposal_footer'
-                      revenue_default:
-                        $ref: '#/components/schemas/resource_deal/properties/revenue_default'
-                      sales_closed_at:
-                        $ref: '#/components/schemas/resource_deal/properties/sales_closed_at'
-                      sales_closed_on:
-                        $ref: '#/components/schemas/resource_deal/properties/sales_closed_on'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_deal/properties/currency_default'
-                      deal_value_total:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value_total'
-                      expense_approval:
-                        $ref: '#/components/schemas/resource_deal/properties/expense_approval'
-                      invoiced_default:
-                        $ref: '#/components/schemas/resource_deal/properties/invoiced_default'
-                      last_activity_at:
-                        $ref: '#/components/schemas/resource_deal/properties/last_activity_at'
-                      services_revenue:
-                        $ref: '#/components/schemas/resource_deal/properties/services_revenue'
-                      tracking_type_id:
-                        $ref: '#/components/schemas/resource_deal/properties/tracking_type_id'
-                      connection_status:
-                        $ref: '#/components/schemas/resource_deal/properties/connection_status'
-                      deal_value_source:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value_source'
-                      manually_invoiced:
-                        $ref: '#/components/schemas/resource_deal/properties/manually_invoiced'
-                      note_interpolated:
-                        $ref: '#/components/schemas/resource_deal/properties/note_interpolated'
-                      pending_invoicing:
-                        $ref: '#/components/schemas/resource_deal/properties/pending_invoicing'
-                      profit_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/profit_normalized'
-                      projected_revenue:
-                        $ref: '#/components/schemas/resource_deal/properties/projected_revenue'
-                      retainer_interval:
-                        $ref: '#/components/schemas/resource_deal/properties/retainer_interval'
-                      days_since_created:
-                        $ref: '#/components/schemas/resource_deal/properties/days_since_created'
-                      expense_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/expense_normalized'
-                      revenue_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/revenue_normalized'
-                      rounding_method_id:
-                        $ref: '#/components/schemas/resource_deal/properties/rounding_method_id'
-                      budget_used_default:
-                        $ref: '#/components/schemas/resource_deal/properties/budget_used_default'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/currency_normalized'
-                      footer_interpolated:
-                        $ref: '#/components/schemas/resource_deal/properties/footer_interpolated'
-                      invoiced_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/invoiced_normalized'
-                      budget_total_default:
-                        $ref: '#/components/schemas/resource_deal/properties/budget_total_default'
-                      previous_probability:
-                        $ref: '#/components/schemas/resource_deal/properties/previous_probability'
-                      rounding_interval_id:
-                        $ref: '#/components/schemas/resource_deal/properties/rounding_interval_id'
-                      days_in_current_stage:
-                        $ref: '#/components/schemas/resource_deal/properties/days_in_current_stage'
-                      deal_value_per_period:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period'
-                      profit_margin_default:
-                        $ref: '#/components/schemas/resource_deal/properties/profit_margin_default'
-                      purchase_order_number:
-                        $ref: '#/components/schemas/resource_deal/properties/purchase_order_number'
-                      budget_used_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/budget_used_normalized'
-                      draft_invoiced_default:
-                        $ref: '#/components/schemas/resource_deal/properties/draft_invoiced_default'
-                      amount_credited_default:
-                        $ref: '#/components/schemas/resource_deal/properties/amount_credited_default'
-                      budget_total_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/budget_total_normalized'
-                      retainer_interval_count:
-                        $ref: '#/components/schemas/resource_deal/properties/retainer_interval_count'
-                      sales_status_updated_at:
-                        $ref: '#/components/schemas/resource_deal/properties/sales_status_updated_at'
-                      time_entry_requirements:
-                        $ref: '#/components/schemas/resource_deal/properties/time_entry_requirements'
-                      days_since_last_activity:
-                        $ref: '#/components/schemas/resource_deal/properties/days_since_last_activity'
-                      deal_value_total_default:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value_total_default'
-                      profit_margin_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/profit_margin_normalized'
-                      retainer_deal_value_type:
-                        $ref: '#/components/schemas/resource_deal/properties/retainer_deal_value_type'
-                      services_revenue_default:
-                        $ref: '#/components/schemas/resource_deal/properties/services_revenue_default'
-                      draft_invoiced_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/draft_invoiced_normalized'
-                      manually_invoiced_default:
-                        $ref: '#/components/schemas/resource_deal/properties/manually_invoiced_default'
-                      pending_invoicing_default:
-                        $ref: '#/components/schemas/resource_deal/properties/pending_invoicing_default'
-                      projected_revenue_default:
-                        $ref: '#/components/schemas/resource_deal/properties/projected_revenue_default'
-                      revenue_distribution_type:
-                        $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_type'
-                      amount_credited_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/amount_credited_normalized'
-                      manual_invoicing_status_id:
-                        $ref: '#/components/schemas/resource_deal/properties/manual_invoicing_status_id'
-                      proposal_note_interpolated:
-                        $ref: '#/components/schemas/resource_deal/properties/proposal_note_interpolated'
-                      deal_value_total_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value_total_normalized'
-                      revenue_distribution_method:
-                        $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_method'
-                      services_revenue_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/services_revenue_normalized'
-                      manually_invoiced_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/manually_invoiced_normalized'
-                      pending_invoicing_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/pending_invoicing_normalized'
-                      projected_revenue_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/projected_revenue_normalized'
-                      proposal_footer_interpolated:
-                        $ref: '#/components/schemas/resource_deal/properties/proposal_footer_interpolated'
-                      deal_value_per_period_default:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period_default'
-                      validate_expense_when_closing:
-                        $ref: '#/components/schemas/resource_deal/properties/validate_expense_when_closing'
-                      deal_value_per_period_normalized:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period_normalized'
-                      service_type_restricted_tracking:
-                        $ref: '#/components/schemas/resource_deal/properties/service_type_restricted_tracking'
                   relationships:
                     type: object
+                    description: Deal relationships.
                     properties:
+                      responsible:
+                        $ref: '#/components/schemas/_single_relationship'
+                      automatic_invoicing_rule:
+                        $ref: '#/components/schemas/_single_relationship'
                       import:
                         $ref: '#/components/schemas/_single_relationship'
-                      company:
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      custom_field_attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      template:
                         $ref: '#/components/schemas/_single_relationship'
-                      contact:
+                      expense_approval_workflow:
                         $ref: '#/components/schemas/_single_relationship'
+                      contacts:
+                        $ref: '#/components/schemas/_collection_relationship'
                       creator:
                         $ref: '#/components/schemas/_single_relationship'
                       project:
                         $ref: '#/components/schemas/_single_relationship'
-                      contacts:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      contract:
-                        $ref: '#/components/schemas/_single_relationship'
-                      pipeline:
-                        $ref: '#/components/schemas/_single_relationship'
-                      tax_rate:
-                        $ref: '#/components/schemas/_single_relationship'
-                      template:
-                        $ref: '#/components/schemas/_single_relationship'
-                      next_todo:
-                        $ref: '#/components/schemas/_single_relationship'
-                      subsidiary:
-                        $ref: '#/components/schemas/_single_relationship'
-                      deal_status:
-                        $ref: '#/components/schemas/_single_relationship'
-                      lost_reason:
-                        $ref: '#/components/schemas/_single_relationship'
                       origin_deal:
                         $ref: '#/components/schemas/_single_relationship'
-                      responsible:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      document_type:
-                        $ref: '#/components/schemas/_single_relationship'
-                      primary_contact:
+                      contract:
                         $ref: '#/components/schemas/_single_relationship'
                       invoice_template:
                         $ref: '#/components/schemas/_single_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      designated_approver:
+                      subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      pipeline:
+                        $ref: '#/components/schemas/_single_relationship'
+                      primary_contact:
                         $ref: '#/components/schemas/_single_relationship'
                       proposal_document_type:
                         $ref: '#/components/schemas/_single_relationship'
-                      time_approval_workflow:
+                      deal_status:
                         $ref: '#/components/schemas/_single_relationship'
-                      automatic_invoicing_rule:
+                      company:
                         $ref: '#/components/schemas/_single_relationship'
-                      custom_field_attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      expense_approval_workflow:
+                      document_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      tax_rate:
                         $ref: '#/components/schemas/_single_relationship'
                       approval_policy_assignment:
                         $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+                      next_todo:
+                        $ref: '#/components/schemas/_single_relationship'
+                      time_approval_workflow:
+                        $ref: '#/components/schemas/_single_relationship'
+                      contact:
+                        $ref: '#/components/schemas/_single_relationship'
+                      lost_reason:
+                        $ref: '#/components/schemas/_single_relationship'
+                      designated_approver:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                  attributes:
+                    type: object
+                    description: Deal attributes.
+                    properties:
+                      cost:
+                        $ref: '#/components/schemas/resource_deal/properties/cost'
+                      deal_type_id:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_type_id'
+                      rounding_interval_id:
+                        $ref: '#/components/schemas/resource_deal/properties/rounding_interval_id'
+                      budget_total_default:
+                        $ref: '#/components/schemas/resource_deal/properties/budget_total_default'
+                      budget_warning:
+                        $ref: '#/components/schemas/resource_deal/properties/budget_warning'
+                      date:
+                        $ref: '#/components/schemas/resource_deal/properties/date'
+                      invoiced:
+                        $ref: '#/components/schemas/resource_deal/properties/invoiced'
+                      profit_margin_default:
+                        $ref: '#/components/schemas/resource_deal/properties/profit_margin_default'
+                      expense_default:
+                        $ref: '#/components/schemas/resource_deal/properties/expense_default'
+                      deal_value_per_period_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period_normalized'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_deal/properties/tag_list'
+                      projected_revenue_default:
+                        $ref: '#/components/schemas/resource_deal/properties/projected_revenue_default'
+                      footer:
+                        $ref: '#/components/schemas/resource_deal/properties/footer'
+                      deal_value_per_period:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period'
+                      tracking_type_id:
+                        $ref: '#/components/schemas/resource_deal/properties/tracking_type_id'
+                      proposal_note:
+                        $ref: '#/components/schemas/resource_deal/properties/proposal_note'
+                      deal_value_total_default:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value_total_default'
+                      amount_credited:
+                        $ref: '#/components/schemas/resource_deal/properties/amount_credited'
+                      manual_invoicing_status_id:
+                        $ref: '#/components/schemas/resource_deal/properties/manual_invoicing_status_id'
+                      end_date:
+                        $ref: '#/components/schemas/resource_deal/properties/end_date'
+                      budget_total_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/budget_total_normalized'
+                      position:
+                        $ref: '#/components/schemas/resource_deal/properties/position'
+                      draft_invoiced_default:
+                        $ref: '#/components/schemas/resource_deal/properties/draft_invoiced_default'
+                      time_to_close:
+                        $ref: '#/components/schemas/resource_deal/properties/time_to_close'
+                      pending_invoicing_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/pending_invoicing_normalized'
+                      profit:
+                        $ref: '#/components/schemas/resource_deal/properties/profit'
+                      pending_invoicing_default:
+                        $ref: '#/components/schemas/resource_deal/properties/pending_invoicing_default'
+                      services_revenue:
+                        $ref: '#/components/schemas/resource_deal/properties/services_revenue'
+                      sales_closed_at:
+                        $ref: '#/components/schemas/resource_deal/properties/sales_closed_at'
+                      worked_time:
+                        $ref: '#/components/schemas/resource_deal/properties/worked_time'
+                      editor_config:
+                        $ref: '#/components/schemas/resource_deal/properties/editor_config'
+                      rounding_method_id:
+                        $ref: '#/components/schemas/resource_deal/properties/rounding_method_id'
+                      deal_value_per_period_default:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period_default'
+                      closed_at:
+                        $ref: '#/components/schemas/resource_deal/properties/closed_at'
+                      access_to_deal:
+                        $ref: '#/components/schemas/resource_deal/properties/access_to_deal'
+                      proposal_footer:
+                        $ref: '#/components/schemas/resource_deal/properties/proposal_footer'
+                      client_access:
+                        $ref: '#/components/schemas/resource_deal/properties/client_access'
+                      amount_credited_default:
+                        $ref: '#/components/schemas/resource_deal/properties/amount_credited_default'
+                      profit_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/profit_normalized'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_deal/properties/currency_default'
+                      todo_count:
+                        $ref: '#/components/schemas/resource_deal/properties/todo_count'
+                      note_interpolated:
+                        $ref: '#/components/schemas/resource_deal/properties/note_interpolated'
+                      delivered_on:
+                        $ref: '#/components/schemas/resource_deal/properties/delivered_on'
+                      footer_interpolated:
+                        $ref: '#/components/schemas/resource_deal/properties/footer_interpolated'
+                      revenue_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/revenue_normalized'
+                      pending_invoicing:
+                        $ref: '#/components/schemas/resource_deal/properties/pending_invoicing'
+                      manually_invoiced_default:
+                        $ref: '#/components/schemas/resource_deal/properties/manually_invoiced_default'
+                      deal_value_source:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value_source'
+                      deal_number:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_number'
+                      cost_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/cost_normalized'
+                      time_entry_requirements:
+                        $ref: '#/components/schemas/resource_deal/properties/time_entry_requirements'
+                      manually_invoiced:
+                        $ref: '#/components/schemas/resource_deal/properties/manually_invoiced'
+                      created_at:
+                        $ref: '#/components/schemas/resource_deal/properties/created_at'
+                      deal_value_total:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value_total'
+                      manually_invoiced_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/manually_invoiced_normalized'
+                      note:
+                        $ref: '#/components/schemas/resource_deal/properties/note'
+                      origin_deal_id:
+                        $ref: '#/components/schemas/resource_deal/properties/origin_deal_id'
+                      invoiced_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/invoiced_normalized'
+                      expense_approval:
+                        $ref: '#/components/schemas/resource_deal/properties/expense_approval'
+                      budgeted_time:
+                        $ref: '#/components/schemas/resource_deal/properties/budgeted_time'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_deal/properties/last_activity_at'
+                      service_type_restricted_tracking:
+                        $ref: '#/components/schemas/resource_deal/properties/service_type_restricted_tracking'
+                      exchange_date:
+                        $ref: '#/components/schemas/resource_deal/properties/exchange_date'
+                      color_id:
+                        $ref: '#/components/schemas/resource_deal/properties/color_id'
+                      budget_used_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/budget_used_normalized'
+                      suffix:
+                        $ref: '#/components/schemas/resource_deal/properties/suffix'
+                      proposal_footer_interpolated:
+                        $ref: '#/components/schemas/resource_deal/properties/proposal_footer_interpolated'
+                      validate_expense_when_closing:
+                        $ref: '#/components/schemas/resource_deal/properties/validate_expense_when_closing'
+                      currency:
+                        $ref: '#/components/schemas/resource_deal/properties/currency'
+                      retainer_deal_value_type:
+                        $ref: '#/components/schemas/resource_deal/properties/retainer_deal_value_type'
+                      billable_time:
+                        $ref: '#/components/schemas/resource_deal/properties/billable_time'
+                      connection_status:
+                        $ref: '#/components/schemas/resource_deal/properties/connection_status'
+                      draft_invoiced_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/draft_invoiced_normalized'
+                      external_sync:
+                        $ref: '#/components/schemas/resource_deal/properties/external_sync'
+                      expense:
+                        $ref: '#/components/schemas/resource_deal/properties/expense'
+                      days_in_current_stage:
+                        $ref: '#/components/schemas/resource_deal/properties/days_in_current_stage'
+                      exchange_rate:
+                        $ref: '#/components/schemas/resource_deal/properties/exchange_rate'
+                      budget:
+                        $ref: '#/components/schemas/resource_deal/properties/budget'
+                      deal_value:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value'
+                      services_revenue_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/services_revenue_normalized'
+                      revenue_distribution_type:
+                        $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_type'
+                      sample_data:
+                        $ref: '#/components/schemas/resource_deal/properties/sample_data'
+                      external_id:
+                        $ref: '#/components/schemas/resource_deal/properties/external_id'
+                      cost_default:
+                        $ref: '#/components/schemas/resource_deal/properties/cost_default'
+                      services_revenue_default:
+                        $ref: '#/components/schemas/resource_deal/properties/services_revenue_default'
+                      estimated_time:
+                        $ref: '#/components/schemas/resource_deal/properties/estimated_time'
+                      budget_used_default:
+                        $ref: '#/components/schemas/resource_deal/properties/budget_used_default'
+                      budget_used:
+                        $ref: '#/components/schemas/resource_deal/properties/budget_used'
+                      deleted_at:
+                        $ref: '#/components/schemas/resource_deal/properties/deleted_at'
+                      man_day_minutes:
+                        $ref: '#/components/schemas/resource_deal/properties/man_day_minutes'
+                      todo_due_date:
+                        $ref: '#/components/schemas/resource_deal/properties/todo_due_date'
+                      revenue_distribution_method:
+                        $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_method'
+                      profit_default:
+                        $ref: '#/components/schemas/resource_deal/properties/profit_default'
+                      days_since_last_activity:
+                        $ref: '#/components/schemas/resource_deal/properties/days_since_last_activity'
+                      deal_value_total_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value_total_normalized'
+                      lost_comment:
+                        $ref: '#/components/schemas/resource_deal/properties/lost_comment'
+                      expense_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/expense_normalized'
+                      previous_probability:
+                        $ref: '#/components/schemas/resource_deal/properties/previous_probability'
+                      budget_total:
+                        $ref: '#/components/schemas/resource_deal/properties/budget_total'
+                      time_approval:
+                        $ref: '#/components/schemas/resource_deal/properties/time_approval'
+                      revenue:
+                        $ref: '#/components/schemas/resource_deal/properties/revenue'
+                      retainer_interval_count:
+                        $ref: '#/components/schemas/resource_deal/properties/retainer_interval_count'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_deal/properties/custom_fields'
+                      purchase_order_number:
+                        $ref: '#/components/schemas/resource_deal/properties/purchase_order_number'
+                      name:
+                        $ref: '#/components/schemas/resource_deal/properties/name'
+                      draft_invoiced:
+                        $ref: '#/components/schemas/resource_deal/properties/draft_invoiced'
+                      email_key:
+                        $ref: '#/components/schemas/resource_deal/properties/email_key'
+                      projected_revenue_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/projected_revenue_normalized'
+                      profit_margin:
+                        $ref: '#/components/schemas/resource_deal/properties/profit_margin'
+                      proposal_note_interpolated:
+                        $ref: '#/components/schemas/resource_deal/properties/proposal_note_interpolated'
+                      discount:
+                        $ref: '#/components/schemas/resource_deal/properties/discount'
+                      sales_status_updated_at:
+                        $ref: '#/components/schemas/resource_deal/properties/sales_status_updated_at'
+                      sales_closed_on:
+                        $ref: '#/components/schemas/resource_deal/properties/sales_closed_on'
+                      revenue_default:
+                        $ref: '#/components/schemas/resource_deal/properties/revenue_default'
+                      amount_credited_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/amount_credited_normalized'
+                      probability:
+                        $ref: '#/components/schemas/resource_deal/properties/probability'
+                      days_since_created:
+                        $ref: '#/components/schemas/resource_deal/properties/days_since_created'
+                      projected_revenue:
+                        $ref: '#/components/schemas/resource_deal/properties/projected_revenue'
+                      invoiced_default:
+                        $ref: '#/components/schemas/resource_deal/properties/invoiced_default'
+                      retainer_interval:
+                        $ref: '#/components/schemas/resource_deal/properties/retainer_interval'
+                      number:
+                        $ref: '#/components/schemas/resource_deal/properties/number'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/currency_normalized'
+                      profit_margin_normalized:
+                        $ref: '#/components/schemas/resource_deal/properties/profit_margin_normalized'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '89'
+                type: deals
+                attributes:
+                  name: Website Redesign Project
+                  number: DEAL-089
+                  status_id: 1
+                  date: '2026-01-15'
+                  end_date: '2026-06-30'
+                  closed_at: null
+                  lost_at: null
+                  created_at: '2026-01-15T10:00:00.000+00:00'
+                  updated_at: '2026-03-01T09:00:00.000+00:00'
+                  last_activity_at: '2026-03-01T09:00:00.000+00:00'
+                  tag_list: []
+                  custom_fields: null
+                  description: Redesigning the company website with new branding
+                  is_budget: false
+                  currency: USD
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  pipeline:
+                    data:
+                      type: pipelines
+                      id: '1'
+                  deal_status:
+                    data:
+                      type: deal_statuses
+                      id: '5'
+              included: []
       description: Single deal
     collection_deal:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of deal records in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: array
                 items:
                   type: object
+                  description: A deal resource object.
                   properties:
-                    attributes:
-                      type: object
-                      properties:
-                        cost:
-                          $ref: '#/components/schemas/resource_deal/properties/cost'
-                        date:
-                          $ref: '#/components/schemas/resource_deal/properties/date'
-                        name:
-                          $ref: '#/components/schemas/resource_deal/properties/name'
-                        note:
-                          $ref: '#/components/schemas/resource_deal/properties/note'
-                        budget:
-                          $ref: '#/components/schemas/resource_deal/properties/budget'
-                        footer:
-                          $ref: '#/components/schemas/resource_deal/properties/footer'
-                        number:
-                          $ref: '#/components/schemas/resource_deal/properties/number'
-                        profit:
-                          $ref: '#/components/schemas/resource_deal/properties/profit'
-                        suffix:
-                          $ref: '#/components/schemas/resource_deal/properties/suffix'
-                        expense:
-                          $ref: '#/components/schemas/resource_deal/properties/expense'
-                        revenue:
-                          $ref: '#/components/schemas/resource_deal/properties/revenue'
-                        color_id:
-                          $ref: '#/components/schemas/resource_deal/properties/color_id'
-                        currency:
-                          $ref: '#/components/schemas/resource_deal/properties/currency'
-                        discount:
-                          $ref: '#/components/schemas/resource_deal/properties/discount'
-                        end_date:
-                          $ref: '#/components/schemas/resource_deal/properties/end_date'
-                        invoiced:
-                          $ref: '#/components/schemas/resource_deal/properties/invoiced'
-                        position:
-                          $ref: '#/components/schemas/resource_deal/properties/position'
-                        tag_list:
-                          $ref: '#/components/schemas/resource_deal/properties/tag_list'
-                        closed_at:
-                          $ref: '#/components/schemas/resource_deal/properties/closed_at'
-                        email_key:
-                          $ref: '#/components/schemas/resource_deal/properties/email_key'
-                        created_at:
-                          $ref: '#/components/schemas/resource_deal/properties/created_at'
-                        deal_value:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_value'
-                        deleted_at:
-                          $ref: '#/components/schemas/resource_deal/properties/deleted_at'
-                        todo_count:
-                          $ref: '#/components/schemas/resource_deal/properties/todo_count'
-                        budget_used:
-                          $ref: '#/components/schemas/resource_deal/properties/budget_used'
-                        deal_number:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_number'
-                        external_id:
-                          $ref: '#/components/schemas/resource_deal/properties/external_id'
-                        probability:
-                          $ref: '#/components/schemas/resource_deal/properties/probability'
-                        sample_data:
-                          $ref: '#/components/schemas/resource_deal/properties/sample_data'
-                        worked_time:
-                          $ref: '#/components/schemas/resource_deal/properties/worked_time'
-                        budget_total:
-                          $ref: '#/components/schemas/resource_deal/properties/budget_total'
-                        cost_default:
-                          $ref: '#/components/schemas/resource_deal/properties/cost_default'
-                        deal_type_id:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_type_id'
-                        delivered_on:
-                          $ref: '#/components/schemas/resource_deal/properties/delivered_on'
-                        lost_comment:
-                          $ref: '#/components/schemas/resource_deal/properties/lost_comment'
-                        billable_time:
-                          $ref: '#/components/schemas/resource_deal/properties/billable_time'
-                        budgeted_time:
-                          $ref: '#/components/schemas/resource_deal/properties/budgeted_time'
-                        client_access:
-                          $ref: '#/components/schemas/resource_deal/properties/client_access'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_deal/properties/custom_fields'
-                        editor_config:
-                          $ref: '#/components/schemas/resource_deal/properties/editor_config'
-                        exchange_date:
-                          $ref: '#/components/schemas/resource_deal/properties/exchange_date'
-                        exchange_rate:
-                          $ref: '#/components/schemas/resource_deal/properties/exchange_rate'
-                        external_sync:
-                          $ref: '#/components/schemas/resource_deal/properties/external_sync'
-                        profit_margin:
-                          $ref: '#/components/schemas/resource_deal/properties/profit_margin'
-                        proposal_note:
-                          $ref: '#/components/schemas/resource_deal/properties/proposal_note'
-                        time_approval:
-                          $ref: '#/components/schemas/resource_deal/properties/time_approval'
-                        time_to_close:
-                          $ref: '#/components/schemas/resource_deal/properties/time_to_close'
-                        todo_due_date:
-                          $ref: '#/components/schemas/resource_deal/properties/todo_due_date'
-                        access_to_deal:
-                          $ref: '#/components/schemas/resource_deal/properties/access_to_deal'
-                        budget_warning:
-                          $ref: '#/components/schemas/resource_deal/properties/budget_warning'
-                        draft_invoiced:
-                          $ref: '#/components/schemas/resource_deal/properties/draft_invoiced'
-                        estimated_time:
-                          $ref: '#/components/schemas/resource_deal/properties/estimated_time'
-                        origin_deal_id:
-                          $ref: '#/components/schemas/resource_deal/properties/origin_deal_id'
-                        profit_default:
-                          $ref: '#/components/schemas/resource_deal/properties/profit_default'
-                        amount_credited:
-                          $ref: '#/components/schemas/resource_deal/properties/amount_credited'
-                        cost_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/cost_normalized'
-                        expense_default:
-                          $ref: '#/components/schemas/resource_deal/properties/expense_default'
-                        man_day_minutes:
-                          $ref: '#/components/schemas/resource_deal/properties/man_day_minutes'
-                        proposal_footer:
-                          $ref: '#/components/schemas/resource_deal/properties/proposal_footer'
-                        revenue_default:
-                          $ref: '#/components/schemas/resource_deal/properties/revenue_default'
-                        sales_closed_at:
-                          $ref: '#/components/schemas/resource_deal/properties/sales_closed_at'
-                        sales_closed_on:
-                          $ref: '#/components/schemas/resource_deal/properties/sales_closed_on'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_deal/properties/currency_default'
-                        deal_value_total:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_value_total'
-                        expense_approval:
-                          $ref: '#/components/schemas/resource_deal/properties/expense_approval'
-                        invoiced_default:
-                          $ref: '#/components/schemas/resource_deal/properties/invoiced_default'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_deal/properties/last_activity_at'
-                        services_revenue:
-                          $ref: '#/components/schemas/resource_deal/properties/services_revenue'
-                        tracking_type_id:
-                          $ref: '#/components/schemas/resource_deal/properties/tracking_type_id'
-                        connection_status:
-                          $ref: '#/components/schemas/resource_deal/properties/connection_status'
-                        deal_value_source:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_value_source'
-                        manually_invoiced:
-                          $ref: '#/components/schemas/resource_deal/properties/manually_invoiced'
-                        note_interpolated:
-                          $ref: '#/components/schemas/resource_deal/properties/note_interpolated'
-                        pending_invoicing:
-                          $ref: '#/components/schemas/resource_deal/properties/pending_invoicing'
-                        profit_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/profit_normalized'
-                        projected_revenue:
-                          $ref: '#/components/schemas/resource_deal/properties/projected_revenue'
-                        retainer_interval:
-                          $ref: '#/components/schemas/resource_deal/properties/retainer_interval'
-                        days_since_created:
-                          $ref: '#/components/schemas/resource_deal/properties/days_since_created'
-                        expense_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/expense_normalized'
-                        revenue_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/revenue_normalized'
-                        rounding_method_id:
-                          $ref: '#/components/schemas/resource_deal/properties/rounding_method_id'
-                        budget_used_default:
-                          $ref: '#/components/schemas/resource_deal/properties/budget_used_default'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/currency_normalized'
-                        footer_interpolated:
-                          $ref: '#/components/schemas/resource_deal/properties/footer_interpolated'
-                        invoiced_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/invoiced_normalized'
-                        budget_total_default:
-                          $ref: '#/components/schemas/resource_deal/properties/budget_total_default'
-                        previous_probability:
-                          $ref: '#/components/schemas/resource_deal/properties/previous_probability'
-                        rounding_interval_id:
-                          $ref: '#/components/schemas/resource_deal/properties/rounding_interval_id'
-                        days_in_current_stage:
-                          $ref: '#/components/schemas/resource_deal/properties/days_in_current_stage'
-                        deal_value_per_period:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period'
-                        profit_margin_default:
-                          $ref: '#/components/schemas/resource_deal/properties/profit_margin_default'
-                        purchase_order_number:
-                          $ref: '#/components/schemas/resource_deal/properties/purchase_order_number'
-                        budget_used_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/budget_used_normalized'
-                        draft_invoiced_default:
-                          $ref: '#/components/schemas/resource_deal/properties/draft_invoiced_default'
-                        amount_credited_default:
-                          $ref: '#/components/schemas/resource_deal/properties/amount_credited_default'
-                        budget_total_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/budget_total_normalized'
-                        retainer_interval_count:
-                          $ref: '#/components/schemas/resource_deal/properties/retainer_interval_count'
-                        sales_status_updated_at:
-                          $ref: '#/components/schemas/resource_deal/properties/sales_status_updated_at'
-                        time_entry_requirements:
-                          $ref: '#/components/schemas/resource_deal/properties/time_entry_requirements'
-                        days_since_last_activity:
-                          $ref: '#/components/schemas/resource_deal/properties/days_since_last_activity'
-                        deal_value_total_default:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_value_total_default'
-                        profit_margin_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/profit_margin_normalized'
-                        retainer_deal_value_type:
-                          $ref: '#/components/schemas/resource_deal/properties/retainer_deal_value_type'
-                        services_revenue_default:
-                          $ref: '#/components/schemas/resource_deal/properties/services_revenue_default'
-                        draft_invoiced_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/draft_invoiced_normalized'
-                        manually_invoiced_default:
-                          $ref: '#/components/schemas/resource_deal/properties/manually_invoiced_default'
-                        pending_invoicing_default:
-                          $ref: '#/components/schemas/resource_deal/properties/pending_invoicing_default'
-                        projected_revenue_default:
-                          $ref: '#/components/schemas/resource_deal/properties/projected_revenue_default'
-                        revenue_distribution_type:
-                          $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_type'
-                        amount_credited_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/amount_credited_normalized'
-                        manual_invoicing_status_id:
-                          $ref: '#/components/schemas/resource_deal/properties/manual_invoicing_status_id'
-                        proposal_note_interpolated:
-                          $ref: '#/components/schemas/resource_deal/properties/proposal_note_interpolated'
-                        deal_value_total_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_value_total_normalized'
-                        revenue_distribution_method:
-                          $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_method'
-                        services_revenue_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/services_revenue_normalized'
-                        manually_invoiced_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/manually_invoiced_normalized'
-                        pending_invoicing_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/pending_invoicing_normalized'
-                        projected_revenue_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/projected_revenue_normalized'
-                        proposal_footer_interpolated:
-                          $ref: '#/components/schemas/resource_deal/properties/proposal_footer_interpolated'
-                        deal_value_per_period_default:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period_default'
-                        validate_expense_when_closing:
-                          $ref: '#/components/schemas/resource_deal/properties/validate_expense_when_closing'
-                        deal_value_per_period_normalized:
-                          $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period_normalized'
-                        service_type_restricted_tracking:
-                          $ref: '#/components/schemas/resource_deal/properties/service_type_restricted_tracking'
                     relationships:
                       type: object
+                      description: Deal relationships.
                       properties:
-                        import:
+                        proposal_document_type:
                           $ref: '#/components/schemas/_single_relationship'
-                        company:
+                        invoice_template:
                           $ref: '#/components/schemas/_single_relationship'
-                        contact:
+                        document_type:
                           $ref: '#/components/schemas/_single_relationship'
-                        creator:
+                        organization:
                           $ref: '#/components/schemas/_single_relationship'
-                        project:
+                        time_approval_workflow:
                           $ref: '#/components/schemas/_single_relationship'
                         contacts:
                           $ref: '#/components/schemas/_collection_relationship'
+                        subsidiary:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        origin_deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        template:
+                          $ref: '#/components/schemas/_single_relationship'
+                        automatic_invoicing_rule:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal_status:
+                          $ref: '#/components/schemas/_single_relationship'
+                        approval_policy_assignment:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        responsible:
+                          $ref: '#/components/schemas/_single_relationship'
+                        import:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        company:
+                          $ref: '#/components/schemas/_single_relationship'
+                        next_todo:
+                          $ref: '#/components/schemas/_single_relationship'
+                        expense_approval_workflow:
+                          $ref: '#/components/schemas/_single_relationship'
+                        lost_reason:
+                          $ref: '#/components/schemas/_single_relationship'
+                        designated_approver:
+                          $ref: '#/components/schemas/_single_relationship'
+                        tax_rate:
+                          $ref: '#/components/schemas/_single_relationship'
+                        primary_contact:
+                          $ref: '#/components/schemas/_single_relationship'
                         contract:
                           $ref: '#/components/schemas/_single_relationship'
                         pipeline:
                           $ref: '#/components/schemas/_single_relationship'
-                        tax_rate:
+                        contact:
                           $ref: '#/components/schemas/_single_relationship'
-                        template:
-                          $ref: '#/components/schemas/_single_relationship'
-                        next_todo:
-                          $ref: '#/components/schemas/_single_relationship'
-                        subsidiary:
-                          $ref: '#/components/schemas/_single_relationship'
-                        deal_status:
-                          $ref: '#/components/schemas/_single_relationship'
-                        lost_reason:
-                          $ref: '#/components/schemas/_single_relationship'
-                        origin_deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        responsible:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        document_type:
-                          $ref: '#/components/schemas/_single_relationship'
-                        primary_contact:
-                          $ref: '#/components/schemas/_single_relationship'
-                        invoice_template:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        designated_approver:
-                          $ref: '#/components/schemas/_single_relationship'
-                        proposal_document_type:
-                          $ref: '#/components/schemas/_single_relationship'
-                        time_approval_workflow:
-                          $ref: '#/components/schemas/_single_relationship'
-                        automatic_invoicing_rule:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        expense_approval_workflow:
-                          $ref: '#/components/schemas/_single_relationship'
-                        approval_policy_assignment:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Deal attributes.
+                      properties:
+                        retainer_interval_count:
+                          $ref: '#/components/schemas/resource_deal/properties/retainer_interval_count'
+                        email_key:
+                          $ref: '#/components/schemas/resource_deal/properties/email_key'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/currency_normalized'
+                        estimated_time:
+                          $ref: '#/components/schemas/resource_deal/properties/estimated_time'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_deal/properties/custom_fields'
+                        expense_approval:
+                          $ref: '#/components/schemas/resource_deal/properties/expense_approval'
+                        date:
+                          $ref: '#/components/schemas/resource_deal/properties/date'
+                        invoiced_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/invoiced_normalized'
+                        budget:
+                          $ref: '#/components/schemas/resource_deal/properties/budget'
+                        expense_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/expense_normalized'
+                        manually_invoiced_default:
+                          $ref: '#/components/schemas/resource_deal/properties/manually_invoiced_default'
+                        profit_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/profit_normalized'
+                        sales_closed_on:
+                          $ref: '#/components/schemas/resource_deal/properties/sales_closed_on'
+                        projected_revenue_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/projected_revenue_normalized'
+                        todo_due_date:
+                          $ref: '#/components/schemas/resource_deal/properties/todo_due_date'
+                        proposal_note:
+                          $ref: '#/components/schemas/resource_deal/properties/proposal_note'
+                        position:
+                          $ref: '#/components/schemas/resource_deal/properties/position'
+                        validate_expense_when_closing:
+                          $ref: '#/components/schemas/resource_deal/properties/validate_expense_when_closing'
+                        manually_invoiced_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/manually_invoiced_normalized'
+                        profit_margin:
+                          $ref: '#/components/schemas/resource_deal/properties/profit_margin'
+                        deal_value_total:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_value_total'
+                        retainer_deal_value_type:
+                          $ref: '#/components/schemas/resource_deal/properties/retainer_deal_value_type'
+                        sales_closed_at:
+                          $ref: '#/components/schemas/resource_deal/properties/sales_closed_at'
+                        revenue_distribution_method:
+                          $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_method'
+                        budget_used_default:
+                          $ref: '#/components/schemas/resource_deal/properties/budget_used_default'
+                        closed_at:
+                          $ref: '#/components/schemas/resource_deal/properties/closed_at'
+                        budget_used_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/budget_used_normalized'
+                        discount:
+                          $ref: '#/components/schemas/resource_deal/properties/discount'
+                        pending_invoicing:
+                          $ref: '#/components/schemas/resource_deal/properties/pending_invoicing'
+                        amount_credited_default:
+                          $ref: '#/components/schemas/resource_deal/properties/amount_credited_default'
+                        revenue_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/revenue_normalized'
+                        billable_time:
+                          $ref: '#/components/schemas/resource_deal/properties/billable_time'
+                        profit_margin_default:
+                          $ref: '#/components/schemas/resource_deal/properties/profit_margin_default'
+                        connection_status:
+                          $ref: '#/components/schemas/resource_deal/properties/connection_status'
+                        cost_default:
+                          $ref: '#/components/schemas/resource_deal/properties/cost_default'
+                        rounding_interval_id:
+                          $ref: '#/components/schemas/resource_deal/properties/rounding_interval_id'
+                        deal_value_source:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_value_source'
+                        editor_config:
+                          $ref: '#/components/schemas/resource_deal/properties/editor_config'
+                        origin_deal_id:
+                          $ref: '#/components/schemas/resource_deal/properties/origin_deal_id'
+                        draft_invoiced_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/draft_invoiced_normalized'
+                        suffix:
+                          $ref: '#/components/schemas/resource_deal/properties/suffix'
+                        sample_data:
+                          $ref: '#/components/schemas/resource_deal/properties/sample_data'
+                        external_id:
+                          $ref: '#/components/schemas/resource_deal/properties/external_id'
+                        deal_value_total_default:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_value_total_default'
+                        amount_credited_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/amount_credited_normalized'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_deal/properties/currency_default'
+                        proposal_footer:
+                          $ref: '#/components/schemas/resource_deal/properties/proposal_footer'
+                        services_revenue_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/services_revenue_normalized'
+                        services_revenue:
+                          $ref: '#/components/schemas/resource_deal/properties/services_revenue'
+                        retainer_interval:
+                          $ref: '#/components/schemas/resource_deal/properties/retainer_interval'
+                        lost_comment:
+                          $ref: '#/components/schemas/resource_deal/properties/lost_comment'
+                        revenue_default:
+                          $ref: '#/components/schemas/resource_deal/properties/revenue_default'
+                        tag_list:
+                          $ref: '#/components/schemas/resource_deal/properties/tag_list'
+                        pending_invoicing_default:
+                          $ref: '#/components/schemas/resource_deal/properties/pending_invoicing_default'
+                        services_revenue_default:
+                          $ref: '#/components/schemas/resource_deal/properties/services_revenue_default'
+                        access_to_deal:
+                          $ref: '#/components/schemas/resource_deal/properties/access_to_deal'
+                        invoiced:
+                          $ref: '#/components/schemas/resource_deal/properties/invoiced'
+                        exchange_rate:
+                          $ref: '#/components/schemas/resource_deal/properties/exchange_rate'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_deal/properties/last_activity_at'
+                        created_at:
+                          $ref: '#/components/schemas/resource_deal/properties/created_at'
+                        deal_value:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_value'
+                        deal_value_per_period_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period_normalized'
+                        projected_revenue:
+                          $ref: '#/components/schemas/resource_deal/properties/projected_revenue'
+                        budget_total:
+                          $ref: '#/components/schemas/resource_deal/properties/budget_total'
+                        footer:
+                          $ref: '#/components/schemas/resource_deal/properties/footer'
+                        invoiced_default:
+                          $ref: '#/components/schemas/resource_deal/properties/invoiced_default'
+                        draft_invoiced_default:
+                          $ref: '#/components/schemas/resource_deal/properties/draft_invoiced_default'
+                        purchase_order_number:
+                          $ref: '#/components/schemas/resource_deal/properties/purchase_order_number'
+                        budget_total_default:
+                          $ref: '#/components/schemas/resource_deal/properties/budget_total_default'
+                        amount_credited:
+                          $ref: '#/components/schemas/resource_deal/properties/amount_credited'
+                        name:
+                          $ref: '#/components/schemas/resource_deal/properties/name'
+                        budget_total_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/budget_total_normalized'
+                        time_entry_requirements:
+                          $ref: '#/components/schemas/resource_deal/properties/time_entry_requirements'
+                        cost_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/cost_normalized'
+                        draft_invoiced:
+                          $ref: '#/components/schemas/resource_deal/properties/draft_invoiced'
+                        manual_invoicing_status_id:
+                          $ref: '#/components/schemas/resource_deal/properties/manual_invoicing_status_id'
+                        sales_status_updated_at:
+                          $ref: '#/components/schemas/resource_deal/properties/sales_status_updated_at'
+                        budget_used:
+                          $ref: '#/components/schemas/resource_deal/properties/budget_used'
+                        end_date:
+                          $ref: '#/components/schemas/resource_deal/properties/end_date'
+                        deleted_at:
+                          $ref: '#/components/schemas/resource_deal/properties/deleted_at'
+                        profit_default:
+                          $ref: '#/components/schemas/resource_deal/properties/profit_default'
+                        currency:
+                          $ref: '#/components/schemas/resource_deal/properties/currency'
+                        revenue:
+                          $ref: '#/components/schemas/resource_deal/properties/revenue'
+                        profit_margin_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/profit_margin_normalized'
+                        cost:
+                          $ref: '#/components/schemas/resource_deal/properties/cost'
+                        revenue_distribution_type:
+                          $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_type'
+                        proposal_note_interpolated:
+                          $ref: '#/components/schemas/resource_deal/properties/proposal_note_interpolated'
+                        footer_interpolated:
+                          $ref: '#/components/schemas/resource_deal/properties/footer_interpolated'
+                        pending_invoicing_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/pending_invoicing_normalized'
+                        man_day_minutes:
+                          $ref: '#/components/schemas/resource_deal/properties/man_day_minutes'
+                        todo_count:
+                          $ref: '#/components/schemas/resource_deal/properties/todo_count'
+                        delivered_on:
+                          $ref: '#/components/schemas/resource_deal/properties/delivered_on'
+                        probability:
+                          $ref: '#/components/schemas/resource_deal/properties/probability'
+                        profit:
+                          $ref: '#/components/schemas/resource_deal/properties/profit'
+                        days_since_created:
+                          $ref: '#/components/schemas/resource_deal/properties/days_since_created'
+                        color_id:
+                          $ref: '#/components/schemas/resource_deal/properties/color_id'
+                        client_access:
+                          $ref: '#/components/schemas/resource_deal/properties/client_access'
+                        exchange_date:
+                          $ref: '#/components/schemas/resource_deal/properties/exchange_date'
+                        tracking_type_id:
+                          $ref: '#/components/schemas/resource_deal/properties/tracking_type_id'
+                        expense:
+                          $ref: '#/components/schemas/resource_deal/properties/expense'
+                        number:
+                          $ref: '#/components/schemas/resource_deal/properties/number'
+                        note:
+                          $ref: '#/components/schemas/resource_deal/properties/note'
+                        external_sync:
+                          $ref: '#/components/schemas/resource_deal/properties/external_sync'
+                        service_type_restricted_tracking:
+                          $ref: '#/components/schemas/resource_deal/properties/service_type_restricted_tracking'
+                        deal_value_per_period:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period'
+                        deal_value_per_period_default:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_value_per_period_default'
+                        worked_time:
+                          $ref: '#/components/schemas/resource_deal/properties/worked_time'
+                        deal_value_total_normalized:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_value_total_normalized'
+                        budgeted_time:
+                          $ref: '#/components/schemas/resource_deal/properties/budgeted_time'
+                        note_interpolated:
+                          $ref: '#/components/schemas/resource_deal/properties/note_interpolated'
+                        proposal_footer_interpolated:
+                          $ref: '#/components/schemas/resource_deal/properties/proposal_footer_interpolated'
+                        projected_revenue_default:
+                          $ref: '#/components/schemas/resource_deal/properties/projected_revenue_default'
+                        deal_type_id:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_type_id'
+                        time_to_close:
+                          $ref: '#/components/schemas/resource_deal/properties/time_to_close'
+                        rounding_method_id:
+                          $ref: '#/components/schemas/resource_deal/properties/rounding_method_id'
+                        previous_probability:
+                          $ref: '#/components/schemas/resource_deal/properties/previous_probability'
+                        time_approval:
+                          $ref: '#/components/schemas/resource_deal/properties/time_approval'
+                        deal_number:
+                          $ref: '#/components/schemas/resource_deal/properties/deal_number'
+                        expense_default:
+                          $ref: '#/components/schemas/resource_deal/properties/expense_default'
+                        days_in_current_stage:
+                          $ref: '#/components/schemas/resource_deal/properties/days_in_current_stage'
+                        days_since_last_activity:
+                          $ref: '#/components/schemas/resource_deal/properties/days_since_last_activity'
+                        manually_invoiced:
+                          $ref: '#/components/schemas/resource_deal/properties/manually_invoiced'
+                        budget_warning:
+                          $ref: '#/components/schemas/resource_deal/properties/budget_warning'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: A deal resource object.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A deal resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '89'
+                  type: deals
+                  attributes:
+                    name: Website Redesign Project
+                    number: DEAL-089
+                    status_id: 1
+                    date: '2026-01-15'
+                    end_date: '2026-06-30'
+                    closed_at: null
+                    lost_at: null
+                    created_at: '2026-01-15T10:00:00.000+00:00'
+                    updated_at: '2026-03-01T09:00:00.000+00:00'
+                    last_activity_at: '2026-03-01T09:00:00.000+00:00'
+                    tag_list: []
+                    custom_fields: null
+                    description: Redesigning the company website with new branding
+                    is_budget: false
+                    currency: USD
+                  relationships:
+                    company:
+                      data:
+                        type: companies
+                        id: '65111'
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    pipeline:
+                      data:
+                        type: pipelines
+                        id: '1'
+                    deal_status:
+                      data:
+                        type: deal_statuses
+                        id: '5'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection deal
   schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
     resource_deal:
       type: object
       title: Deal Resource
+      description: A deal or budget representing a sales opportunity or production budget, with services, financials, and pipeline tracking.
       properties:
+        contact_name:
+          title: Contact Name
+          description: Name of the client contact person.
+          example:
+            eq: value
         designated_approver_id:
           type: integer
           title: Designated Approver
@@ -1952,11 +1833,6 @@ components:
         approval_policy_assignment:
           title: Approval Policy Assignment
           description: The approval policy governing this deal.
-          example:
-            eq: value
-        contact_name:
-          title: Contact Name
-          description: Name of the client contact person.
           example:
             eq: value
         budget_status:
@@ -2175,12 +2051,6 @@ components:
           description: Descriptive name for the deal.
           example:
             eq: value
-        document_type_id:
-          type: integer
-          title: Document Type
-          description: ID of the PDF template for deal documents.
-          example:
-            - 123
         proposal_document_type_id:
           type: integer
           title: Proposal Document Type
@@ -2473,6 +2343,8 @@ components:
           description: Amount marked as manually invoiced outside Productive (organization default currency).
           example:
             eq: value
+        contacts:
+          title: Contacts
         pending_invoicing_default:
           title: Pending Invoicing Default
           description: Amount ready to invoice but not yet invoiced (organization default currency).
@@ -2795,6 +2667,8 @@ components:
           description: Deal footer with template variables resolved.
           example:
             eq: value
+        contact_ids:
+          title: Contact Ids
         forecasted_budget_usage:
           type: number
           title: Forecasted Budget Usage
@@ -3249,6 +3123,12 @@ components:
           description: Total expense costs on this deal (normalized currency).
           example:
             eq: value
+        document_type_id:
+          type: integer
+          title: Document Type
+          description: ID of the PDF template for deal documents.
+          example:
+            - 123
         query:
           type: string
           title: Query
@@ -3277,7 +3157,6 @@ components:
           description: The client company this deal is for.
           example:
             eq: value
-      description: A deal or budget representing a sales opportunity or production budget, with services, financials, and pipeline tracking.
       example:
         id: '89'
         type: deals
@@ -3314,128 +3193,398 @@ components:
             data:
               type: deal_statuses
               id: '5'
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_deal:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - billable_time
+            - -billable_time
+            - budget_status
+            - -budget_status
+            - budget_total
+            - -budget_total
+            - budget_used
+            - -budget_used
+            - budget_warning
+            - -budget_warning
+            - budgeted_time
+            - -budgeted_time
+            - budgets_first
+            - -budgets_first
+            - client_access
+            - -client_access
+            - closed_at
+            - -closed_at
+            - company_name
+            - -company_name
+            - contact_name
+            - -contact_name
+            - cost
+            - -cost
+            - created_at
+            - -created_at
+            - creator_name
+            - -creator_name
+            - custom_fields
+            - -custom_fields
+            - date
+            - -date
+            - deal_number
+            - -deal_number
+            - deal_status
+            - -deal_status
+            - deals_first
+            - -deals_first
+            - designated_approver
+            - -designated_approver
+            - end_date
+            - -end_date
+            - estimated_time
+            - -estimated_time
+            - expense
+            - -expense
+            - expense_approval
+            - -expense_approval
+            - invoiced
+            - -invoiced
+            - last_activity_at
+            - -last_activity_at
+            - name
+            - -name
+            - number
+            - -number
+            - pending_invoicing
+            - -pending_invoicing
+            - probability
+            - -probability
+            - profit
+            - -profit
+            - profit_margin
+            - -profit_margin
+            - project_name
+            - -project_name
+            - projected_revenue
+            - -projected_revenue
+            - purchase_order_number
+            - -purchase_order_number
+            - responsible
+            - -responsible
+            - responsible_name
+            - -responsible_name
+            - revenue
+            - -revenue
+            - sales_status_id
+            - -sales_status_id
+            - services_revenue
+            - -services_revenue
+            - stage_status
+            - -stage_status
+            - suffix
+            - -suffix
+            - time_approval
+            - -time_approval
+            - time_to_close
+            - -time_to_close
+            - todo_due_date
+            - -todo_due_date
+            - worked_time
+            - -worked_time
+          type: string
+        title: Sort deal
+      explode: false
+      required: false
+      description: Sort deal
+    filter_deal:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.deal at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     deal:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single deal record in JSON:API format.
             properties:
               data:
                 type: object
+                description: A deal resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - responsible_id
-                      - deal_type_id
-                      - date
+                    description: Deal attributes.
                     properties:
-                      date:
-                        $ref: '#/components/schemas/resource_deal/properties/date'
-                      name:
-                        $ref: '#/components/schemas/resource_deal/properties/name'
-                      note:
-                        $ref: '#/components/schemas/resource_deal/properties/note'
-                      budget:
-                        $ref: '#/components/schemas/resource_deal/properties/budget'
-                      color_id:
-                        $ref: '#/components/schemas/resource_deal/properties/color_id'
-                      currency:
-                        $ref: '#/components/schemas/resource_deal/properties/currency'
-                      end_date:
-                        $ref: '#/components/schemas/resource_deal/properties/end_date'
-                      position:
-                        $ref: '#/components/schemas/resource_deal/properties/position'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_deal/properties/tag_list'
-                      company_id:
-                        $ref: '#/components/schemas/resource_deal/properties/company_id'
-                      contact_id:
-                        $ref: '#/components/schemas/resource_deal/properties/contact_id'
-                      deal_value:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value'
-                      project_id:
-                        $ref: '#/components/schemas/resource_deal/properties/project_id'
+                      responsible_id:
+                        $ref: '#/components/schemas/resource_deal/properties/responsible_id'
                       contact_ids:
                         $ref: '#/components/schemas/resource_deal/properties/contact_ids'
-                      probability:
-                        $ref: '#/components/schemas/resource_deal/properties/probability'
-                      tax_rate_id:
-                        $ref: '#/components/schemas/resource_deal/properties/tax_rate_id'
-                      deal_type_id:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_type_id'
-                      delivered_on:
-                        $ref: '#/components/schemas/resource_deal/properties/delivered_on'
-                      lost_comment:
-                        $ref: '#/components/schemas/resource_deal/properties/lost_comment'
-                      client_access:
-                        $ref: '#/components/schemas/resource_deal/properties/client_access'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_deal/properties/custom_fields'
-                      editor_config:
-                        $ref: '#/components/schemas/resource_deal/properties/editor_config'
+                      note:
+                        $ref: '#/components/schemas/resource_deal/properties/note'
+                      purchase_order_number:
+                        $ref: '#/components/schemas/resource_deal/properties/purchase_order_number'
+                      position:
+                        $ref: '#/components/schemas/resource_deal/properties/position'
                       proposal_note:
                         $ref: '#/components/schemas/resource_deal/properties/proposal_note'
                       subsidiary_id:
                         $ref: '#/components/schemas/resource_deal/properties/subsidiary_id'
                       time_approval:
                         $ref: '#/components/schemas/resource_deal/properties/time_approval'
-                      budget_warning:
-                        $ref: '#/components/schemas/resource_deal/properties/budget_warning'
                       deal_status_id:
                         $ref: '#/components/schemas/resource_deal/properties/deal_status_id'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_deal/properties/tag_list'
                       lost_reason_id:
                         $ref: '#/components/schemas/resource_deal/properties/lost_reason_id'
-                      origin_deal_id:
-                        $ref: '#/components/schemas/resource_deal/properties/origin_deal_id'
-                      responsible_id:
-                        $ref: '#/components/schemas/resource_deal/properties/responsible_id'
-                      subscriber_ids:
-                        $ref: '#/components/schemas/resource_deal/properties/subscriber_ids'
+                      deal_type_id:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_type_id'
+                      name:
+                        $ref: '#/components/schemas/resource_deal/properties/name'
+                      rounding_interval_id:
+                        $ref: '#/components/schemas/resource_deal/properties/rounding_interval_id'
+                      tax_rate_id:
+                        $ref: '#/components/schemas/resource_deal/properties/tax_rate_id'
+                      retainer_interval_count:
+                        $ref: '#/components/schemas/resource_deal/properties/retainer_interval_count'
+                      proposal_document_type_id:
+                        $ref: '#/components/schemas/resource_deal/properties/proposal_document_type_id'
+                      rounding_method_id:
+                        $ref: '#/components/schemas/resource_deal/properties/rounding_method_id'
+                      budget_warning:
+                        $ref: '#/components/schemas/resource_deal/properties/budget_warning'
+                      end_date:
+                        $ref: '#/components/schemas/resource_deal/properties/end_date'
+                      designated_approver_id:
+                        $ref: '#/components/schemas/resource_deal/properties/designated_approver_id'
+                      deal_value:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value'
+                      date:
+                        $ref: '#/components/schemas/resource_deal/properties/date'
                       man_day_minutes:
                         $ref: '#/components/schemas/resource_deal/properties/man_day_minutes'
                       sales_closed_on:
                         $ref: '#/components/schemas/resource_deal/properties/sales_closed_on'
+                      time_entry_requirements:
+                        $ref: '#/components/schemas/resource_deal/properties/time_entry_requirements'
+                      budget:
+                        $ref: '#/components/schemas/resource_deal/properties/budget'
+                      company_id:
+                        $ref: '#/components/schemas/resource_deal/properties/company_id'
+                      origin_deal_id:
+                        $ref: '#/components/schemas/resource_deal/properties/origin_deal_id'
+                      editor_config:
+                        $ref: '#/components/schemas/resource_deal/properties/editor_config'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_deal/properties/custom_fields'
+                      probability:
+                        $ref: '#/components/schemas/resource_deal/properties/probability'
+                      client_access:
+                        $ref: '#/components/schemas/resource_deal/properties/client_access'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_deal/properties/subscriber_ids'
                       document_type_id:
                         $ref: '#/components/schemas/resource_deal/properties/document_type_id'
                       expense_approval:
                         $ref: '#/components/schemas/resource_deal/properties/expense_approval'
-                      tracking_type_id:
-                        $ref: '#/components/schemas/resource_deal/properties/tracking_type_id'
-                      deal_value_source:
-                        $ref: '#/components/schemas/resource_deal/properties/deal_value_source'
-                      retainer_interval:
-                        $ref: '#/components/schemas/resource_deal/properties/retainer_interval'
-                      rounding_method_id:
-                        $ref: '#/components/schemas/resource_deal/properties/rounding_method_id'
-                      rounding_interval_id:
-                        $ref: '#/components/schemas/resource_deal/properties/rounding_interval_id'
-                      purchase_order_number:
-                        $ref: '#/components/schemas/resource_deal/properties/purchase_order_number'
-                      designated_approver_id:
-                        $ref: '#/components/schemas/resource_deal/properties/designated_approver_id'
-                      destroy_future_bookings:
-                        $ref: '#/components/schemas/resource_deal/properties/destroy_future_bookings'
-                      retainer_interval_count:
-                        $ref: '#/components/schemas/resource_deal/properties/retainer_interval_count'
-                      time_entry_requirements:
-                        $ref: '#/components/schemas/resource_deal/properties/time_entry_requirements'
+                      currency:
+                        $ref: '#/components/schemas/resource_deal/properties/currency'
                       retainer_deal_value_type:
                         $ref: '#/components/schemas/resource_deal/properties/retainer_deal_value_type'
-                      proposal_document_type_id:
-                        $ref: '#/components/schemas/resource_deal/properties/proposal_document_type_id'
-                      revenue_distribution_type:
-                        $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_type'
                       manual_invoicing_status_id:
                         $ref: '#/components/schemas/resource_deal/properties/manual_invoicing_status_id'
-                      revenue_distribution_method:
-                        $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_method'
                       validate_expense_when_closing:
                         $ref: '#/components/schemas/resource_deal/properties/validate_expense_when_closing'
+                      delivered_on:
+                        $ref: '#/components/schemas/resource_deal/properties/delivered_on'
+                      contact_id:
+                        $ref: '#/components/schemas/resource_deal/properties/contact_id'
+                      color_id:
+                        $ref: '#/components/schemas/resource_deal/properties/color_id'
+                      destroy_future_bookings:
+                        $ref: '#/components/schemas/resource_deal/properties/destroy_future_bookings'
+                      revenue_distribution_type:
+                        $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_type'
                       service_type_restricted_tracking:
                         $ref: '#/components/schemas/resource_deal/properties/service_type_restricted_tracking'
+                      revenue_distribution_method:
+                        $ref: '#/components/schemas/resource_deal/properties/revenue_distribution_method'
+                      retainer_interval:
+                        $ref: '#/components/schemas/resource_deal/properties/retainer_interval'
+                      project_id:
+                        $ref: '#/components/schemas/resource_deal/properties/project_id'
+                      deal_value_source:
+                        $ref: '#/components/schemas/resource_deal/properties/deal_value_source'
+                      tracking_type_id:
+                        $ref: '#/components/schemas/resource_deal/properties/tracking_type_id'
+                      lost_comment:
+                        $ref: '#/components/schemas/resource_deal/properties/lost_comment'
+                    required:
+                      - name
+                      - responsible_id
+                      - deal_type_id
+                      - date
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: deals
+                attributes:
+                  name: Website Redesign Project
+                  date: '2026-01-15'
+                  end_date: '2026-06-30'
+                  description: Full redesign of the company website
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  pipeline:
+                    data:
+                      type: pipelines
+                      id: '1'
       description: Request body for creating or updating a deal.
     deal_bulk_copy:
       content:
@@ -3447,9 +3596,6 @@ components:
                 type: array
                 items:
                   type: object
-                  required:
-                    - type
-                    - attributes
                   properties:
                     type:
                       enum:
@@ -3457,44 +3603,47 @@ components:
                       type: string
                     attributes:
                       type: object
-                      required:
-                        - name
-                        - template_id
                       properties:
-                        date:
-                          $ref: '#/components/schemas/resource_deal/properties/date'
                         name:
                           $ref: '#/components/schemas/resource_deal/properties/name'
-                        color_id:
-                          $ref: '#/components/schemas/resource_deal/properties/color_id'
-                        currency:
-                          $ref: '#/components/schemas/resource_deal/properties/currency'
-                        end_date:
-                          $ref: '#/components/schemas/resource_deal/properties/end_date'
-                        tag_list:
-                          $ref: '#/components/schemas/resource_deal/properties/tag_list'
-                        company_id:
-                          $ref: '#/components/schemas/resource_deal/properties/company_id'
                         project_id:
                           $ref: '#/components/schemas/resource_deal/properties/project_id'
+                        next_occurrence_on:
+                          $ref: '#/components/schemas/resource_deal/properties/next_occurrence_on'
+                        editor_config:
+                          $ref: '#/components/schemas/resource_deal/properties/editor_config'
+                        document_type_id:
+                          $ref: '#/components/schemas/resource_deal/properties/document_type_id'
+                        color_id:
+                          $ref: '#/components/schemas/resource_deal/properties/color_id'
+                        tag_list:
+                          $ref: '#/components/schemas/resource_deal/properties/tag_list'
                         template_id:
                           type: integer
                           description: ID of the source deal being copied.
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_deal/properties/custom_fields'
-                        editor_config:
-                          $ref: '#/components/schemas/resource_deal/properties/editor_config'
                         subsidiary_id:
                           $ref: '#/components/schemas/resource_deal/properties/subsidiary_id'
+                        company_id:
+                          $ref: '#/components/schemas/resource_deal/properties/company_id'
+                        date:
+                          $ref: '#/components/schemas/resource_deal/properties/date'
+                        end_date:
+                          $ref: '#/components/schemas/resource_deal/properties/end_date'
                         deal_status_id:
                           $ref: '#/components/schemas/resource_deal/properties/deal_status_id'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_deal/properties/custom_fields'
                         make_recurring:
                           type: boolean
                           description: When true, copies the deal as a recurring one and requires `next_occurrence_on`.
                         responsible_id:
                           $ref: '#/components/schemas/resource_deal/properties/responsible_id'
-                        document_type_id:
-                          $ref: '#/components/schemas/resource_deal/properties/document_type_id'
-                        next_occurrence_on:
-                          $ref: '#/components/schemas/resource_deal/properties/next_occurrence_on'
+                        currency:
+                          $ref: '#/components/schemas/resource_deal/properties/currency'
+                      required:
+                        - name
+                        - template_id
+                  required:
+                    - type
+                    - attributes
                 maxItems: 100

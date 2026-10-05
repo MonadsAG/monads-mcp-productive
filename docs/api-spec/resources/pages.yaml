@@ -22,6 +22,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     status:
       description: Filter by page status (used in search context).
       operators:
@@ -90,13 +97,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     full_query:
       description: Full-text search across all fields of a page, including title and body content.
       operators:
@@ -145,6 +145,16 @@ paths:
       tags:
         - Pages
       summary: Converts a subpage into a doc
+      operationId: pages-convert-to-doc-convert-to-doc
+      description: 'Promotes a subpage into a standalone doc: it is detached from its parent, keeps the project of the doc it came from, gets its own `public_uuid`, and its subpages move with it. The caller gets full access and the original doc''s person memberships are copied over. No request body.'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The numeric ID of the page.
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -156,21 +166,17 @@ paths:
               schema:
                 type: string
           description: Conflict
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The numeric ID of the page.
-      operationId: pages-convert-to-doc-convert-to-doc
-      description: 'Promotes a subpage into a standalone doc: it is detached from its parent, keeps the project of the doc it came from, gets its own `public_uuid`, and its subpages move with it. The caller gets full access and the original doc''s person memberships are copied over. No request body.'
   /api/v2/pages/copy:
     post:
       tags:
         - Pages
       summary: Copies a page
+      operationId: pages-copy-copy
+      description: Creates a copy of a page together with its subpages. `template_id` is the ID of the source page. `title` is optional and defaults to `Copy of <source title>`. When copying a doc, pass `project_id` to place the copy in a project; a subpage copy stays next to the source and takes no `project_id`. Template docs cannot be copied this way — use [`apply_template_as_doc`](openapi:operation:pages-template-apply-template-as-doc).
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/page_copy'
       responses:
         '201':
           $ref: '#/components/responses/single_page'
@@ -182,20 +188,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: pages-copy-copy
-      requestBody:
-        $ref: '#/components/requestBodies/page_copy'
-      description: Creates a copy of a page together with its subpages. `template_id` is the ID of the source page. `title` is optional and defaults to `Copy of <source title>`. When copying a doc, pass `project_id` to place the copy in a project; a subpage copy stays next to the source and takes no `project_id`. Template docs cannot be copied this way — use [`apply_template_as_doc`](openapi:operation:pages-template-apply-template-as-doc).
   /api/v2/pages/{id}:
     get:
       tags:
         - Pages
       summary: Gets a page
-      responses:
-        '200':
-          $ref: '#/components/responses/single_page'
+      operationId: pages-show
+      description: 'Returns a single page: its ProseMirror `body`, place in the hierarchy (`root_page`, `parent_page`), attachments and sharing state (`public_access`, `public_uuid`).'
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -204,12 +203,23 @@ paths:
             type: string
           required: true
           description: The ID of the page to retrieve.
-      operationId: pages-show
-      description: 'Returns a single page: its ProseMirror `body`, place in the hierarchy (`root_page`, `parent_page`), attachments and sharing state (`public_access`, `public_uuid`).'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_page'
     delete:
       tags:
         - Pages
       summary: Deletes a page
+      operationId: pages-destroy
+      description: Deletes a page together with all of its subpages. Template docs cannot be deleted (`409`).
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the page to delete.
       responses:
         '204':
           description: No Content
@@ -221,6 +231,27 @@ paths:
               schema:
                 type: string
           description: Conflict
+  /api/v2/pages:
+    get:
+      tags:
+        - Pages
+      summary: Get pages
+      operationId: pages-index
+      description: Returns a paginated list of pages — docs (root pages) and their subpages alike. Scope the list with `filter[project_id]` (pages of a project), `filter[root_page_id]` (every page inside one doc) or `filter[parent_page_id]` (direct children of a page). `filter[query]` matches page titles, `filter[full_query]` searches titles and body content; `filter[creator_id]`, `filter[subscriber_id]`, `filter[edited_at]` and `filter[last_activity_at]` narrow the result further. Pass `filter[template]` to list only template docs.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_page'
+        - $ref: '#/components/parameters/sort_page'
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_page'
+  /api/v2/pages/{id}/move:
+    patch:
+      tags:
+        - Pages
+      summary: Moves a page
+      operationId: pages-move-move
+      description: Moves a page and its subpages under another page. `target_doc_id` is the ID of the destination page; the moved page becomes its last child and joins the destination's doc. Requires write access on the destination; published docs cannot be moved. When a doc is moved it stops being a doc — its memberships and project link are dropped and access follows the destination.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -228,28 +259,9 @@ paths:
           schema:
             type: string
           required: true
-          description: The ID of the page to delete.
-      operationId: pages-destroy
-      description: Deletes a page together with all of its subpages. Template docs cannot be deleted (`409`).
-  /api/v2/pages:
-    get:
-      tags:
-        - Pages
-      summary: Get pages
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_page'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_page'
-        - $ref: '#/components/parameters/sort_page'
-      operationId: pages-index
-      description: Returns a paginated list of pages — docs (root pages) and their subpages alike. Scope the list with `filter[project_id]` (pages of a project), `filter[root_page_id]` (every page inside one doc) or `filter[parent_page_id]` (direct children of a page). `filter[query]` matches page titles, `filter[full_query]` searches titles and body content; `filter[creator_id]`, `filter[subscriber_id]`, `filter[edited_at]` and `filter[last_activity_at]` narrow the result further. Pass `filter[template]` to list only template docs.
-  /api/v2/pages/{id}/move:
-    patch:
-      tags:
-        - Pages
-      summary: Moves a page
+          description: The ID of the page to move.
+      requestBody:
+        $ref: '#/components/requestBodies/page_move'
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -277,23 +289,26 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the page to move.
-      operationId: pages-move-move
-      requestBody:
-        $ref: '#/components/requestBodies/page_move'
-      description: Moves a page and its subpages under another page. `target_doc_id` is the ID of the destination page; the moved page becomes its last child and joins the destination's doc. Requires write access on the destination; published docs cannot be moved. When a doc is moved it stops being a doc — its memberships and project link are dropped and access follows the destination.
   /api/v2/pages/{id}/append_html:
     patch:
       tags:
         - Pages
       summary: Append HTML to a page body
+      operationId: pages-proxy-append-html
+      description: |-
+        Append HTML to the end of a page's body. The HTML is converted to the page's rich-text representation and applied through the docs-realtime collaboration service so concurrent editors see the change immediately.
+
+        The request body is a plain JSON object `{"html": "…"}`, not a JSON:API document; an empty `html` returns `422`.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the page to append HTML content to.
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/page_html_body'
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -321,26 +336,26 @@ paths:
               schema:
                 type: string
           description: Bad Gateway — the docs-realtime service returned an error or could not be reached.
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the page to append HTML content to.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: pages-proxy-append-html
-      requestBody:
-        $ref: '#/components/requestBodies/page_html_body'
-      description: |-
-        Append HTML to the end of a page's body. The HTML is converted to the page's rich-text representation and applied through the docs-realtime collaboration service so concurrent editors see the change immediately.
-
-        The request body is a plain JSON object `{"html": "…"}`, not a JSON:API document; an empty `html` returns `422`.
   /api/v2/pages/{id}/append_markdown:
     patch:
       tags:
         - Pages
       summary: Append markdown to a page body
+      operationId: pages-proxy-append-markdown
+      description: |-
+        Append markdown to the end of a page's body. The markdown is converted to the page's rich-text representation and applied through the docs-realtime collaboration service so concurrent editors see the change immediately.
+
+        The request body is a plain JSON object `{"markdown": "…"}`, not a JSON:API document; an empty `markdown` returns `422`.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the page to append markdown content to.
+      requestBody:
+        $ref: '#/components/requestBodies/page_markdown_body'
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -368,26 +383,17 @@ paths:
               schema:
                 type: string
           description: Bad Gateway — the docs-realtime service returned an error or could not be reached.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the page to append markdown content to.
-      operationId: pages-proxy-append-markdown
-      requestBody:
-        $ref: '#/components/requestBodies/page_markdown_body'
-      description: |-
-        Append markdown to the end of a page's body. The markdown is converted to the page's rich-text representation and applied through the docs-realtime collaboration service so concurrent editors see the change immediately.
-
-        The request body is a plain JSON object `{"markdown": "…"}`, not a JSON:API document; an empty `markdown` returns `422`.
   /api/v2/pages/create_with_markdown:
     post:
       tags:
         - Pages
       summary: Create a page with markdown body
+      operationId: pages-proxy-create-with-markdown
+      description: Create a new page from a markdown body. The markdown is converted to the page's rich-text representation server-side and the page is then created with all standard page attributes (title, icon, parent, project, custom fields, etc.).
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/page_create_with_markdown'
       responses:
         '201':
           $ref: '#/components/responses/single_page'
@@ -415,17 +421,26 @@ paths:
               schema:
                 type: string
           description: Bad Gateway — the docs-realtime service returned an error or could not be reached while processing the markdown body.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: pages-proxy-create-with-markdown
-      requestBody:
-        $ref: '#/components/requestBodies/page_create_with_markdown'
-      description: Create a new page from a markdown body. The markdown is converted to the page's rich-text representation server-side and the page is then created with all standard page attributes (title, icon, parent, project, custom fields, etc.).
   /api/v2/pages/{id}/replace_body_with_html:
     patch:
       tags:
         - Pages
       summary: Replace a page body with HTML
+      operationId: pages-proxy-replace-body-with-html
+      description: |-
+        Replace a page's entire body with the supplied HTML. The HTML is converted to the page's rich-text representation and applied through the docs-realtime collaboration service so concurrent editors see the change immediately.
+
+        The request body is a plain JSON object `{"html": "…"}`, not a JSON:API document; an empty `html` returns `422`.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the page whose body will be replaced.
+      requestBody:
+        $ref: '#/components/requestBodies/page_html_body'
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -453,26 +468,26 @@ paths:
               schema:
                 type: string
           description: Bad Gateway — the docs-realtime service returned an error or could not be reached.
+  /api/v2/pages/{id}/replace_body_with_markdown:
+    patch:
+      tags:
+        - Pages
+      summary: Replace a page body with markdown
+      operationId: pages-proxy-replace-body-with-markdown
+      description: |-
+        Replace a page's entire body with the supplied markdown. The markdown is converted to the page's rich-text representation and applied through the docs-realtime collaboration service so concurrent editors see the change immediately.
+
+        The request body is a plain JSON object `{"markdown": "…"}`, not a JSON:API document; an empty `markdown` returns `422`.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the page whose body will be replaced.
-      operationId: pages-proxy-replace-body-with-html
+        - $ref: '#/components/parameters/header_organization'
       requestBody:
-        $ref: '#/components/requestBodies/page_html_body'
-      description: |-
-        Replace a page's entire body with the supplied HTML. The HTML is converted to the page's rich-text representation and applied through the docs-realtime collaboration service so concurrent editors see the change immediately.
-
-        The request body is a plain JSON object `{"html": "…"}`, not a JSON:API document; an empty `html` returns `422`.
-  /api/v2/pages/{id}/replace_body_with_markdown:
-    patch:
-      tags:
-        - Pages
-      summary: Replace a page body with markdown
+        $ref: '#/components/requestBodies/page_markdown_body'
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -500,26 +515,21 @@ paths:
               schema:
                 type: string
           description: Bad Gateway — the docs-realtime service returned an error or could not be reached.
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the page whose body will be replaced.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: pages-proxy-replace-body-with-markdown
-      requestBody:
-        $ref: '#/components/requestBodies/page_markdown_body'
-      description: |-
-        Replace a page's entire body with the supplied markdown. The markdown is converted to the page's rich-text representation and applied through the docs-realtime collaboration service so concurrent editors see the change immediately.
-
-        The request body is a plain JSON object `{"markdown": "…"}`, not a JSON:API document; an empty `markdown` returns `422`.
   /api/v2/pages/{id}/publish:
     patch:
       tags:
         - Pages
       summary: Publishes a page
+      operationId: pages-publish-publish
+      description: 'Publishes a doc: sets `public_access` to `true` so anyone with the link can read it without authentication through [`GET /public/pages/{uuid}`](openapi:operation:public-pages-show), using the doc''s `public_uuid`. Only docs can be published — subpages are covered by their doc. Template docs cannot be published. No request body.'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the page to publish.
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -531,21 +541,17 @@ paths:
               schema:
                 type: string
           description: Conflict
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the page to publish.
-      operationId: pages-publish-publish
-      description: 'Publishes a doc: sets `public_access` to `true` so anyone with the link can read it without authentication through [`GET /public/pages/{uuid}`](openapi:operation:public-pages-show), using the doc''s `public_uuid`. Only docs can be published — subpages are covered by their doc. Template docs cannot be published. No request body.'
   /api/v2/pages/apply_template_as_doc:
     post:
       tags:
         - Pages
       summary: Creates a doc from a template
+      operationId: pages-template-apply-template-as-doc
+      description: Creates a new doc from a template doc. `template_id` is the page ID of that template doc. Pass `project_id` to create the doc inside a project, or omit it for a standalone doc under *My organization*.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/page_apply_template_as_doc'
       responses:
         '201':
           $ref: '#/components/responses/single_page'
@@ -557,17 +563,23 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: pages-template-apply-template-as-doc
-      requestBody:
-        $ref: '#/components/requestBodies/page_apply_template_as_doc'
-      description: Creates a new doc from a template doc. `template_id` is the page ID of that template doc. Pass `project_id` to create the doc inside a project, or omit it for a standalone doc under *My organization*.
   /api/v2/pages/{id}/apply_template_as_target:
     patch:
       tags:
         - Pages
       summary: Applies a template onto a page
+      operationId: pages-template-apply-template-as-target
+      description: 'Applies a template doc onto an existing page: the page takes the template''s title and receives copies of the template''s subpages, attachments and mentions — template subpages are placed before the page''s existing ones. The page''s own body is kept. `template_id` is the page ID of the template doc.'
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The numeric ID of the page.
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/page_apply_template'
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -587,23 +599,23 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The numeric ID of the page.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: pages-template-apply-template-as-target
-      requestBody:
-        $ref: '#/components/requestBodies/page_apply_template'
-      description: 'Applies a template doc onto an existing page: the page takes the template''s title and receives copies of the template''s subpages, attachments and mentions — template subpages are placed before the page''s existing ones. The page''s own body is kept. `template_id` is the page ID of the template doc.'
   /api/v2/pages/{id}/apply_template_on_parent:
     patch:
       tags:
         - Pages
       summary: Creates a subpage from a template
+      operationId: pages-template-apply-template-on-parent
+      description: 'Creates a new subpage under page `{id}` from a template doc: the template''s title, body, subpages, attachments and mentions are copied into a new page appended as the last child. Returns the new subpage, not the parent. `template_id` is the page ID of the template doc.'
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The numeric ID of the page.
+      requestBody:
+        $ref: '#/components/requestBodies/page_apply_template'
       responses:
         '200':
           $ref: '#/components/responses/single_page'
@@ -623,34 +635,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The numeric ID of the page.
-      operationId: pages-template-apply-template-on-parent
-      requestBody:
-        $ref: '#/components/requestBodies/page_apply_template'
-      description: 'Creates a new subpage under page `{id}` from a template doc: the template''s title, body, subpages, attachments and mentions are copied into a new page appended as the last child. Returns the new subpage, not the parent. `template_id` is the page ID of the template doc.'
   /api/v2/pages/{id}/unpublish:
     patch:
       tags:
         - Pages
       summary: Unpublishes a page
-      responses:
-        '200':
-          $ref: '#/components/responses/single_page'
-        '409':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Conflict
+      operationId: pages-unpublish-unpublish
+      description: 'Unpublishes a doc: sets `public_access` to `false`, so the public link stops resolving. Only docs can be unpublished — subpages are covered by their doc. No request body.'
       parameters:
         - in: path
           name: id
@@ -659,19 +650,25 @@ paths:
           required: true
           description: The ID of the page to unpublish.
         - $ref: '#/components/parameters/header_organization'
-      operationId: pages-unpublish-unpublish
-      description: 'Unpublishes a doc: sets `public_access` to `false`, so the public link stops resolving. Only docs can be unpublished — subpages are covered by their doc. No request body.'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_page'
+        '409':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Conflict
   /api/v2/public/pages/{uuid}:
     get:
       tags:
         - Pages
       summary: Gets a public doc
       security: []
-      responses:
-        '200':
-          $ref: '#/components/responses/single_public_page'
-        '404':
-          description: Not Found
+      operationId: public-pages-show
+      description: Returns a published doc. The response carries a reduced attribute set and includes the doc's `child_pages`, ordered by position.
       parameters:
         - in: path
           name: uuid
@@ -679,8 +676,11 @@ paths:
             type: string
           required: true
           description: The public UUID of the doc (`public_uuid`).
-      operationId: public-pages-show
-      description: Returns a published doc. The response carries a reduced attribute set and includes the doc's `child_pages`, ordered by position.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_public_page'
+        '404':
+          description: Not Found
 components:
   responses:
     single_public_page:
@@ -688,236 +688,375 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API document with the public doc.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The public doc resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Attributes exposed on a public doc.
                     properties:
-                      body:
-                        $ref: '#/components/schemas/resource_page/properties/body'
-                      title:
-                        $ref: '#/components/schemas/resource_page/properties/title'
                       icon_id:
                         $ref: '#/components/schemas/resource_page/properties/icon_id'
+                      title:
+                        $ref: '#/components/schemas/resource_page/properties/title'
                       position:
                         $ref: '#/components/schemas/resource_page/properties/position'
-                      preferences:
-                        $ref: '#/components/schemas/resource_page/properties/preferences'
-                      public_uuid:
-                        $ref: '#/components/schemas/resource_page/properties/public_uuid'
                       cover_image_url:
                         $ref: '#/components/schemas/resource_page/properties/cover_image_url'
+                      public_uuid:
+                        $ref: '#/components/schemas/resource_page/properties/public_uuid'
+                      preferences:
+                        $ref: '#/components/schemas/resource_page/properties/preferences'
+                      body:
+                        $ref: '#/components/schemas/resource_page/properties/body'
                       cover_image_meta:
                         $ref: '#/components/schemas/resource_page/properties/cover_image_meta'
+                    example:
+                      title: Onboarding guide
+                      body: '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Welcome to the onboarding guide."}]}]}'
+                      cover_image_meta: null
+                      cover_image_url: null
+                      icon_id: book
+                      position: null
+                      preferences: {}
+                      public_uuid: 3fa85f64-5717-4562-b3fc-2c963f66afa6
                   relationships:
                     type: object
+                    description: Relationships exposed on a public doc.
                     properties:
                       child_pages:
                         $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                    example:
+                      child_pages:
+                        data:
+                          - type: pages
+                            id: '48214'
+                example:
+                  id: '48213'
+                  type: pages
+                  attributes:
+                    title: Onboarding guide
+                    body: '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Welcome to the onboarding guide."}]}]}'
+                    cover_image_meta: null
+                    cover_image_url: null
+                    icon_id: book
+                    position: null
+                    preferences: {}
+                    public_uuid: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                  relationships:
+                    child_pages:
+                      data:
+                        - type: pages
+                          id: '48214'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A subpage of the public doc.
+                  example:
+                    id: '48214'
+                    type: pages
+                    attributes:
+                      title: Week one
+                      body: '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Welcome to the onboarding guide."}]}]}'
+                      cover_image_meta: null
+                      cover_image_url: null
+                      icon_id: null
+                      parent_page_id: 48213
+                      position: 1
+                      preferences: {}
+                      root_page_id: 48213
+                description: Included resources — the doc's subpages.
+                example:
+                  - id: '48214'
+                    type: pages
+                    attributes:
+                      title: Week one
+                      body: '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Welcome to the onboarding guide."}]}]}'
+                      cover_image_meta: null
+                      cover_image_url: null
+                      icon_id: null
+                      parent_page_id: 48213
+                      position: 1
+                      preferences: {}
+                      root_page_id: 48213
+            example:
+              data:
+                id: '48213'
+                type: pages
+                attributes:
+                  title: Onboarding guide
+                  body: '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Welcome to the onboarding guide."}]}]}'
+                  cover_image_meta: null
+                  cover_image_url: null
+                  icon_id: book
+                  position: null
+                  preferences: {}
+                  public_uuid: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+                relationships:
+                  child_pages:
+                    data:
+                      - type: pages
+                        id: '48214'
+              included:
+                - id: '48214'
+                  type: pages
+                  attributes:
+                    title: Week one
+                    body: '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Welcome to the onboarding guide."}]}]}'
+                    cover_image_meta: null
+                    cover_image_url: null
+                    icon_id: null
+                    parent_page_id: 48213
+                    position: 1
+                    preferences: {}
+                    root_page_id: 48213
+              meta: {}
       description: 'A published doc as seen without authentication: a reduced attribute set plus its `child_pages`.'
     single_page:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single page record in JSON:API format.
             properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      body:
-                        $ref: '#/components/schemas/resource_page/properties/body'
-                      title:
-                        $ref: '#/components/schemas/resource_page/properties/title'
-                      public:
-                        $ref: '#/components/schemas/resource_page/properties/public'
-                      icon_id:
-                        $ref: '#/components/schemas/resource_page/properties/icon_id'
-                      position:
-                        $ref: '#/components/schemas/resource_page/properties/position'
-                      edited_at:
-                        $ref: '#/components/schemas/resource_page/properties/edited_at'
-                      created_at:
-                        $ref: '#/components/schemas/resource_page/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_page/properties/updated_at'
-                      preferences:
-                        $ref: '#/components/schemas/resource_page/properties/preferences'
-                      public_uuid:
-                        $ref: '#/components/schemas/resource_page/properties/public_uuid'
-                      root_page_id:
-                        $ref: '#/components/schemas/resource_page/properties/root_page_id'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_page/properties/custom_fields'
-                      public_access:
-                        $ref: '#/components/schemas/resource_page/properties/public_access'
-                      parent_page_id:
-                        $ref: '#/components/schemas/resource_page/properties/parent_page_id'
-                      version_number:
-                        $ref: '#/components/schemas/resource_page/properties/version_number'
-                      cover_image_url:
-                        $ref: '#/components/schemas/resource_page/properties/cover_image_url'
-                      cover_image_meta:
-                        $ref: '#/components/schemas/resource_page/properties/cover_image_meta'
-                      last_activity_at:
-                        $ref: '#/components/schemas/resource_page/properties/last_activity_at'
-                  relationships:
-                    type: object
-                    properties:
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      updater:
-                        $ref: '#/components/schemas/_single_relationship'
-                      root_page:
-                        $ref: '#/components/schemas/_single_relationship'
-                      attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      parent_page:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      template_object:
-                        $ref: '#/components/schemas/_single_relationship'
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: object
+                description: The JSON:API data object for the returned page resource.
+                properties:
+                  relationships:
+                    type: object
+                    description: Page relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      template_object:
+                        $ref: '#/components/schemas/_single_relationship'
+                      attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      root_page:
+                        $ref: '#/components/schemas/_single_relationship'
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                      parent_page:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                  attributes:
+                    type: object
+                    description: Page attributes.
+                    properties:
+                      public:
+                        $ref: '#/components/schemas/resource_page/properties/public'
+                      position:
+                        $ref: '#/components/schemas/resource_page/properties/position'
+                      public_uuid:
+                        $ref: '#/components/schemas/resource_page/properties/public_uuid'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_page/properties/icon_id'
+                      edited_at:
+                        $ref: '#/components/schemas/resource_page/properties/edited_at'
+                      body:
+                        $ref: '#/components/schemas/resource_page/properties/body'
+                      root_page_id:
+                        $ref: '#/components/schemas/resource_page/properties/root_page_id'
+                      public_access:
+                        $ref: '#/components/schemas/resource_page/properties/public_access'
+                      parent_page_id:
+                        $ref: '#/components/schemas/resource_page/properties/parent_page_id'
+                      preferences:
+                        $ref: '#/components/schemas/resource_page/properties/preferences'
+                      cover_image_url:
+                        $ref: '#/components/schemas/resource_page/properties/cover_image_url'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_page/properties/custom_fields'
+                      created_at:
+                        $ref: '#/components/schemas/resource_page/properties/created_at'
+                      title:
+                        $ref: '#/components/schemas/resource_page/properties/title'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_page/properties/updated_at'
+                      version_number:
+                        $ref: '#/components/schemas/resource_page/properties/version_number'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_page/properties/last_activity_at'
+                      cover_image_meta:
+                        $ref: '#/components/schemas/resource_page/properties/cover_image_meta'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '78'
+                type: pages
+                attributes:
+                  title: Architecture Overview
+                  note: System architecture documentation for the authentication service
+                  created_at: '2026-01-20T10:00:00.000+00:00'
+                  updated_at: '2026-03-10T15:00:00.000+00:00'
+                  last_activity_at: '2026-03-10T15:00:00.000+00:00'
+                  position: 1
+                  archived_at: null
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+                  creator:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
       description: Single page
     collection_page:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of page (doc) records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A page resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Page attributes.
                       properties:
-                        body:
-                          $ref: '#/components/schemas/resource_page/properties/body'
-                        title:
-                          $ref: '#/components/schemas/resource_page/properties/title'
-                        public:
-                          $ref: '#/components/schemas/resource_page/properties/public'
-                        icon_id:
-                          $ref: '#/components/schemas/resource_page/properties/icon_id'
                         position:
                           $ref: '#/components/schemas/resource_page/properties/position'
-                        edited_at:
-                          $ref: '#/components/schemas/resource_page/properties/edited_at'
-                        created_at:
-                          $ref: '#/components/schemas/resource_page/properties/created_at'
                         updated_at:
                           $ref: '#/components/schemas/resource_page/properties/updated_at'
-                        preferences:
-                          $ref: '#/components/schemas/resource_page/properties/preferences'
+                        created_at:
+                          $ref: '#/components/schemas/resource_page/properties/created_at'
+                        edited_at:
+                          $ref: '#/components/schemas/resource_page/properties/edited_at'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_page/properties/last_activity_at'
                         public_uuid:
                           $ref: '#/components/schemas/resource_page/properties/public_uuid'
                         root_page_id:
                           $ref: '#/components/schemas/resource_page/properties/root_page_id'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_page/properties/custom_fields'
-                        public_access:
-                          $ref: '#/components/schemas/resource_page/properties/public_access'
                         parent_page_id:
                           $ref: '#/components/schemas/resource_page/properties/parent_page_id'
-                        version_number:
-                          $ref: '#/components/schemas/resource_page/properties/version_number'
-                        cover_image_url:
-                          $ref: '#/components/schemas/resource_page/properties/cover_image_url'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_page/properties/custom_fields'
                         cover_image_meta:
                           $ref: '#/components/schemas/resource_page/properties/cover_image_meta'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_page/properties/last_activity_at'
+                        version_number:
+                          $ref: '#/components/schemas/resource_page/properties/version_number'
+                        title:
+                          $ref: '#/components/schemas/resource_page/properties/title'
+                        preferences:
+                          $ref: '#/components/schemas/resource_page/properties/preferences'
+                        cover_image_url:
+                          $ref: '#/components/schemas/resource_page/properties/cover_image_url'
+                        body:
+                          $ref: '#/components/schemas/resource_page/properties/body'
+                        public_access:
+                          $ref: '#/components/schemas/resource_page/properties/public_access'
+                        icon_id:
+                          $ref: '#/components/schemas/resource_page/properties/icon_id'
+                        public:
+                          $ref: '#/components/schemas/resource_page/properties/public'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Page relationships.
                       properties:
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        updater:
-                          $ref: '#/components/schemas/_single_relationship'
                         root_page:
                           $ref: '#/components/schemas/_single_relationship'
-                        attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
                         parent_page:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
                           $ref: '#/components/schemas/_single_relationship'
                         template_object:
                           $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of page resource objects.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '78'
+                  type: pages
+                  attributes:
+                    title: Architecture Overview
+                    note: System architecture documentation for the authentication service
+                    created_at: '2026-01-20T10:00:00.000+00:00'
+                    updated_at: '2026-03-10T15:00:00.000+00:00'
+                    last_activity_at: '2026-03-10T15:00:00.000+00:00'
+                    position: 1
+                    archived_at: null
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+                    creator:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection page
   schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _collection_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
           properties:
             data:
               type: array
@@ -927,7 +1066,6 @@ components:
               example:
                 - type: tasks
                   id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
           example:
             data:
               - type: tasks
@@ -940,6 +1078,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -949,16 +1088,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -966,33 +1106,16 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
     resource_page:
       type: object
       title: Page Resource
+      description: A rich text document page. Root pages are standalone Docs with sharing settings; child pages form a hierarchy within a Doc.
       properties:
-        person_type:
-          type: integer
-          title: Person Type
-          description: Indicates the membership context of the current user (e.g. member or guest).
-          example:
-            eq: active
-        creator:
-          title: Creator
-          description: The person who created this page.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this page belongs to.
-          example:
-            eq: value
         template_object:
           title: Template Object
           description: The template this page was created from, if any.
@@ -1033,13 +1156,6 @@ components:
           title: Target Doc
           description: ID of the destination page for `PATCH /pages/{id}/move`; the moved page becomes its last child.
           example: 48901
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when the page record was last updated.
-          example:
-            gt: '2026-01-01'
         public:
           title: Public
           description: Whether this page is publicly accessible via a shared link.
@@ -1243,7 +1359,29 @@ components:
           description: ID of the person who created this page.
           example:
             - 123
-      description: A rich text document page. Root pages are standalone Docs with sharing settings; child pages form a hierarchy within a Doc.
+        person_type:
+          type: integer
+          title: Person Type
+          description: Indicates the membership context of the current user (e.g. member or guest).
+          example:
+            eq: active
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when the page record was last updated.
+          example:
+            gt: '2026-01-01'
+        creator:
+          title: Creator
+          description: The person who created this page.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this page belongs to.
+          example:
+            eq: value
       example:
         id: '78'
         type: pages
@@ -1264,15 +1402,57 @@ components:
             data:
               type: people
               id: '12'
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -1336,134 +1516,273 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API document wrapping the template attributes.
             properties:
               data:
                 type: object
+                description: The page resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - template_id
+                    description: Template application attributes.
                     properties:
                       template_id:
                         $ref: '#/components/schemas/resource_page/properties/template_id'
+                    required:
+                      - template_id
+                    example:
+                      template_id: 47710
+                example:
+                  type: pages
+                  attributes:
+                    template_id: 47710
+            example:
+              data:
+                type: pages
+                attributes:
+                  template_id: 47710
       description: Request body for applying a doc template onto an existing page or under a parent page.
     page_apply_template_as_doc:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API document wrapping the template attributes.
             properties:
               data:
                 type: object
+                description: The page resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - template_id
+                    description: Template application attributes.
                     properties:
                       project_id:
                         $ref: '#/components/schemas/resource_page/properties/project_id'
                       template_id:
                         $ref: '#/components/schemas/resource_page/properties/template_id'
+                    required:
+                      - template_id
+                    example:
+                      template_id: 47710
+                      project_id: 31002
+                example:
+                  type: pages
+                  attributes:
+                    template_id: 47710
+                    project_id: 31002
+            example:
+              data:
+                type: pages
+                attributes:
+                  template_id: 47710
+                  project_id: 31002
       description: Request body for creating a doc from a doc template.
     page_markdown_body:
       content:
         application/vnd.api+json:
           schema:
             type: object
-            required:
-              - markdown
+            description: Plain JSON object (not a JSON:API document) carrying the `markdown` string.
             properties:
               markdown:
                 type: string
                 title: Markdown
+                description: Markdown content that is converted to the page's rich-text representation before being persisted.
+                example: |-
+                  ## Notes
+
+                  Kickoff summary with **decisions**.
+            required:
+              - markdown
+            example:
+              markdown: |-
+                ## Notes
+
+                Kickoff summary with **decisions**.
       description: Markdown content to apply to a page body. Used by the append-markdown and replace-body-with-markdown endpoints.
     page_html_body:
       content:
         application/vnd.api+json:
           schema:
             type: object
-            required:
-              - html
+            description: Plain JSON object (not a JSON:API document) carrying the `html` string.
             properties:
               html:
                 type: string
                 title: Html
+                description: HTML content that is converted to the page's rich-text representation before being persisted.
+                example: <h2>Notes</h2><p>Kickoff summary with <strong>decisions</strong>.</p>
+            required:
+              - html
+            example:
+              html: <h2>Notes</h2><p>Kickoff summary with <strong>decisions</strong>.</p>
       description: HTML content to apply to a page body. Used by the append-html and replace-body-with-html endpoints.
     page_create_with_markdown:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API document wrapping the page data.
             properties:
               data:
                 type: object
+                description: The page resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - markdown
+                    description: Attributes of the page to create. `markdown` is required; the rest are the standard page attributes.
                     properties:
-                      title:
-                        $ref: '#/components/schemas/resource_page/properties/title'
+                      attachment_ids:
+                        $ref: '#/components/schemas/resource_page/properties/attachment_ids'
                       icon_id:
                         $ref: '#/components/schemas/resource_page/properties/icon_id'
+                      preferences:
+                        $ref: '#/components/schemas/resource_page/properties/preferences'
                       markdown:
                         type: string
                         title: Markdown
+                        description: Markdown source that is converted to the page's rich-text body. Required.
+                        example: |-
+                          ## Notes
+
+                          This is a paragraph with **bold** text and a [link](https://productive.io).
+
+                          - bullet one
+                          - bullet two
+                      title:
+                        $ref: '#/components/schemas/resource_page/properties/title'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_page/properties/custom_fields'
+                      parent_page_id:
+                        $ref: '#/components/schemas/resource_page/properties/parent_page_id'
                       position:
                         $ref: '#/components/schemas/resource_page/properties/position'
                       project_id:
                         $ref: '#/components/schemas/resource_page/properties/project_id'
-                      preferences:
-                        $ref: '#/components/schemas/resource_page/properties/preferences'
                       root_page_id:
                         $ref: '#/components/schemas/resource_page/properties/root_page_id'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_page/properties/custom_fields'
-                      attachment_ids:
-                        $ref: '#/components/schemas/resource_page/properties/attachment_ids'
-                      parent_page_id:
-                        $ref: '#/components/schemas/resource_page/properties/parent_page_id'
                       cover_image_url:
                         $ref: '#/components/schemas/resource_page/properties/cover_image_url'
+                    required:
+                      - markdown
+                    example:
+                      title: Project Notes
+                      markdown: |-
+                        ## Notes
+
+                        This is a paragraph with **bold** text and a [link](https://productive.io).
+
+                        - bullet one
+                        - bullet two
+                      project_id: 5
+                      icon_id: null
+                      parent_page_id: null
+                      position: 1
+                      public_access: false
+                example:
+                  type: pages
+                  attributes:
+                    title: Project Notes
+                    markdown: |-
+                      ## Notes
+
+                      This is a paragraph with **bold** text and a [link](https://productive.io).
+
+                      - bullet one
+                      - bullet two
+                    project_id: 5
+                    icon_id: null
+                    parent_page_id: null
+                    position: 1
+                    public_access: false
+            example:
+              data:
+                type: pages
+                attributes:
+                  title: Project Notes
+                  markdown: |-
+                    ## Notes
+
+                    This is a paragraph with **bold** text and a [link](https://productive.io).
+
+                    - bullet one
+                    - bullet two
+                  project_id: 5
+                  icon_id: null
+                  parent_page_id: null
+                  position: 1
+                  public_access: false
       description: Request body for creating a new page from markdown. The `markdown` attribute is required and is converted server-side to the page's rich-text body. All standard page attributes (title, icon, parent, project, custom fields, etc.) can be set in the same request.
     page_move:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API document wrapping the move attributes.
             properties:
               data:
                 type: object
+                description: The page resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - target_doc_id
+                    description: Attributes controlling the move.
                     properties:
                       target_doc_id:
                         $ref: '#/components/schemas/resource_page/properties/target_doc_id'
+                    required:
+                      - target_doc_id
+                    example:
+                      target_doc_id: 48901
+                example:
+                  type: pages
+                  attributes:
+                    target_doc_id: 48901
+            example:
+              data:
+                type: pages
+                attributes:
+                  target_doc_id: 48901
       description: Request body for moving a page under another page.
     page_copy:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API document wrapping the copy attributes.
             properties:
               data:
                 type: object
+                description: The page resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - template_id
+                    description: Attributes controlling the copy.
                     properties:
-                      title:
-                        $ref: '#/components/schemas/resource_page/properties/title'
-                      project_id:
-                        $ref: '#/components/schemas/resource_page/properties/project_id'
                       template_id:
                         $ref: '#/components/schemas/resource_page/properties/template_id'
+                      project_id:
+                        $ref: '#/components/schemas/resource_page/properties/project_id'
+                      title:
+                        $ref: '#/components/schemas/resource_page/properties/title'
+                    required:
+                      - template_id
+                    example:
+                      template_id: 48213
+                      title: Onboarding checklist (copy)
+                      project_id: 31002
+                example:
+                  type: pages
+                  attributes:
+                    template_id: 48213
+                    title: Onboarding checklist (copy)
+                    project_id: 31002
+            example:
+              data:
+                type: pages
+                attributes:
+                  template_id: 48213
+                  title: Onboarding checklist (copy)
+                  project_id: 31002
       description: Request body for copying a page. `template_id` (the source page) is required; `title` and `project_id` are optional.

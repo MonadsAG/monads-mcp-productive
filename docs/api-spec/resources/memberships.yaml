@@ -275,19 +275,25 @@ paths:
       tags:
         - Memberships
       summary: Get memberships
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_membership'
+      operationId: memberships-index
+      description: List memberships.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_membership'
         - $ref: '#/components/parameters/filter_membership'
-      operationId: memberships-index
-      description: List memberships.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_membership'
     post:
       tags:
         - Memberships
       summary: Create a membership
+      operationId: memberships-create
+      description: Create a new membership.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/membership'
       responses:
         '201':
           $ref: '#/components/responses/single_membership'
@@ -307,20 +313,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: memberships-create
-      requestBody:
-        $ref: '#/components/requestBodies/membership'
-      description: Create a new membership.
   /api/v2/memberships/{id}:
     get:
       tags:
         - Memberships
       summary: Gets a membership
-      responses:
-        '200':
-          $ref: '#/components/responses/single_membership'
+      operationId: memberships-show
+      description: Retrieve a single membership.
       parameters:
         - in: path
           name: id
@@ -329,12 +328,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: memberships-show
-      description: Retrieve a single membership.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_membership'
     patch:
       tags:
         - Memberships
       summary: Update a membership
+      operationId: memberships-update
+      description: Update a membership.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/membership'
       responses:
         '200':
           $ref: '#/components/responses/single_membership'
@@ -346,25 +358,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: memberships-update
-      requestBody:
-        $ref: '#/components/requestBodies/membership'
-      description: Update a membership.
     delete:
       tags:
         - Memberships
       summary: Deletes a membership
-      responses:
-        '204':
-          description: No Content
+      operationId: memberships-destroy
+      description: Delete a membership.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -373,8 +372,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: memberships-destroy
-      description: Delete a membership.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -405,48 +405,244 @@ components:
       explode: false
       required: false
       description: Sort membership
-  requestBodies:
-    membership:
+  responses:
+    single_membership:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single membership record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned membership resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Membership relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      team:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      survey:
+                        $ref: '#/components/schemas/_single_relationship'
+                      agent:
+                        $ref: '#/components/schemas/_single_relationship'
+                      dashboard:
+                        $ref: '#/components/schemas/_single_relationship'
+                      filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      page:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Membership attributes.
                     properties:
-                      deal_id:
-                        $ref: '#/components/schemas/resource_membership/properties/deal_id'
-                      page_id:
-                        $ref: '#/components/schemas/resource_membership/properties/page_id'
-                      agent_id:
-                        $ref: '#/components/schemas/resource_membership/properties/agent_id'
-                      pulse_id:
-                        $ref: '#/components/schemas/resource_membership/properties/pulse_id'
-                      filter_id:
-                        $ref: '#/components/schemas/resource_membership/properties/filter_id'
-                      survey_id:
-                        $ref: '#/components/schemas/resource_membership/properties/survey_id'
-                      meeting_id:
-                        $ref: '#/components/schemas/resource_membership/properties/meeting_id'
-                      project_id:
-                        $ref: '#/components/schemas/resource_membership/properties/project_id'
-                      dashboard_id:
-                        $ref: '#/components/schemas/resource_membership/properties/dashboard_id'
-      description: Request body for creating or updating a membership. Specify the person or team, the target resource (project, deal, page, dashboard, filter, or survey), and the access type. Use type_id to set the permission level.
+                      type_id:
+                        $ref: '#/components/schemas/resource_membership/properties/type_id'
+                      options:
+                        $ref: '#/components/schemas/resource_membership/properties/options'
+                      target_type:
+                        $ref: '#/components/schemas/resource_membership/properties/target_type'
+                      access_type_id:
+                        $ref: '#/components/schemas/resource_membership/properties/access_type_id'
+                      dynamic_group_id:
+                        $ref: '#/components/schemas/resource_membership/properties/dynamic_group_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '7654'
+                type: memberships
+                attributes:
+                  access_type_id: 1
+                  dynamic_group_id: null
+                  options: {}
+                  target_type: project
+                  type_id: 1
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+                  team:
+                    data: null
+              included: []
+      description: Single membership
+    collection_membership:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of membership records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A membership resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Membership relationships.
+                      properties:
+                        dashboard:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        team:
+                          $ref: '#/components/schemas/_single_relationship'
+                        survey:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        page:
+                          $ref: '#/components/schemas/_single_relationship'
+                        filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        agent:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Membership attributes.
+                      properties:
+                        target_type:
+                          $ref: '#/components/schemas/resource_membership/properties/target_type'
+                        options:
+                          $ref: '#/components/schemas/resource_membership/properties/options'
+                        dynamic_group_id:
+                          $ref: '#/components/schemas/resource_membership/properties/dynamic_group_id'
+                        access_type_id:
+                          $ref: '#/components/schemas/resource_membership/properties/access_type_id'
+                        type_id:
+                          $ref: '#/components/schemas/resource_membership/properties/type_id'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of membership resource objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '7654'
+                  type: memberships
+                  attributes:
+                    access_type_id: 1
+                    dynamic_group_id: null
+                    options: {}
+                    target_type: project
+                    type_id: 1
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+                    team:
+                      data: null
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection membership
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_membership:
       type: object
       title: Membership Resource
+      description: Access control record granting a person or team access to a project, deal, page, dashboard, filter, survey, or agent. Defines the access level (type_id) and optional restrictions (options). Memberships drive visibility and edit permissions for shared resources.
       properties:
-        deal:
-          title: Deal
-          description: The deal this membership grants access to, if the target is a deal.
-          example:
-            eq: value
         agent:
           title: Agent
           description: The AI agent associated with this membership, if the member is an agent rather than a person.
@@ -625,7 +821,11 @@ components:
           description: Additional options and settings for this membership.
           example:
             eq: value
-      description: Access control record granting a person or team access to a project, deal, page, dashboard, filter, survey, or agent. Defines the access level (type_id) and optional restrictions (options). Memberships drive visibility and edit permissions for shared resources.
+        deal:
+          title: Deal
+          description: The deal this membership grants access to, if the target is a deal.
+          example:
+            eq: value
       example:
         id: '7654'
         type: memberships
@@ -646,57 +846,15 @@ components:
               id: '6899'
           team:
             data: null
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -709,6 +867,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -718,16 +877,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -735,115 +895,61 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
-  responses:
-    single_membership:
+  requestBodies:
+    membership:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a membership.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the membership resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Membership attributes.
                     properties:
-                      options:
-                        $ref: '#/components/schemas/resource_membership/properties/options'
-                      type_id:
-                        $ref: '#/components/schemas/resource_membership/properties/type_id'
-                      target_type:
-                        $ref: '#/components/schemas/resource_membership/properties/target_type'
-                      access_type_id:
-                        $ref: '#/components/schemas/resource_membership/properties/access_type_id'
-                      dynamic_group_id:
-                        $ref: '#/components/schemas/resource_membership/properties/dynamic_group_id'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      page:
-                        $ref: '#/components/schemas/_single_relationship'
-                      team:
-                        $ref: '#/components/schemas/_single_relationship'
-                      agent:
-                        $ref: '#/components/schemas/_single_relationship'
-                      filter:
-                        $ref: '#/components/schemas/_single_relationship'
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      survey:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      dashboard:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single membership
-    collection_membership:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      agent_id:
+                        $ref: '#/components/schemas/resource_membership/properties/agent_id'
+                      deal_id:
+                        $ref: '#/components/schemas/resource_membership/properties/deal_id'
+                      project_id:
+                        $ref: '#/components/schemas/resource_membership/properties/project_id'
+                      filter_id:
+                        $ref: '#/components/schemas/resource_membership/properties/filter_id'
+                      meeting_id:
+                        $ref: '#/components/schemas/resource_membership/properties/meeting_id'
+                      survey_id:
+                        $ref: '#/components/schemas/resource_membership/properties/survey_id'
+                      pulse_id:
+                        $ref: '#/components/schemas/resource_membership/properties/pulse_id'
+                      page_id:
+                        $ref: '#/components/schemas/resource_membership/properties/page_id'
+                      dashboard_id:
+                        $ref: '#/components/schemas/resource_membership/properties/dashboard_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        options:
-                          $ref: '#/components/schemas/resource_membership/properties/options'
-                        type_id:
-                          $ref: '#/components/schemas/resource_membership/properties/type_id'
-                        target_type:
-                          $ref: '#/components/schemas/resource_membership/properties/target_type'
-                        access_type_id:
-                          $ref: '#/components/schemas/resource_membership/properties/access_type_id'
-                        dynamic_group_id:
-                          $ref: '#/components/schemas/resource_membership/properties/dynamic_group_id'
-                    relationships:
-                      type: object
-                      properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        page:
-                          $ref: '#/components/schemas/_single_relationship'
-                        team:
-                          $ref: '#/components/schemas/_single_relationship'
-                        agent:
-                          $ref: '#/components/schemas/_single_relationship'
-                        filter:
-                          $ref: '#/components/schemas/_single_relationship'
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        survey:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        dashboard:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection membership
+                type: memberships
+                attributes:
+                  access_type_id: 1
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+      description: Request body for creating or updating a membership. Specify the person or team, the target resource (project, deal, page, dashboard, filter, or survey), and the access type. Use type_id to set the permission level.

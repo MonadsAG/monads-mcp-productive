@@ -8,6 +8,13 @@ description: |-
   > Note: For archived projects, only the `name` and `project_manager_id` attributes can be updated. All other attributes will be ignored during update operations.
 x-filters:
   project:
+    template:
+      description: Filter to only return template projects.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     fuzzy_people:
       description: Fuzzy person filter — matches projects by associated people (members or project manager).
       operators:
@@ -24,13 +31,6 @@ x-filters:
         - not_eq
     custom_fields:
       description: Filter by custom field values.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    template:
-      description: Filter to only return template projects.
       operators:
         - contains
         - eq
@@ -236,28 +236,7 @@ paths:
       tags:
         - Projects
       summary: Applies navigation tabs from a template to the project
-      responses:
-        '200':
-          $ref: '#/components/responses/single_project'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Returned when validation fails — for example, when `template_id` references a project that is not a template, or when required attributes are missing.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the project to apply navigation tabs to.
       operationId: projects-apply_navigation_tabs-apply_navigation_tabs
-      requestBody:
-        $ref: '#/components/requestBodies/project_apply_navigation_tabs'
       description: |-
         Copies the navigation tab configuration from an existing project template onto the specified project. Supports preserving the project's current tabs alongside the template's, or replacing them entirely.
 
@@ -272,14 +251,6 @@ paths:
           }
         }
         ```
-  /api/v2/projects/{id}/archive:
-    patch:
-      tags:
-        - Projects
-      summary: Archives a project
-      responses:
-        '200':
-          $ref: '#/components/responses/single_project'
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -287,14 +258,9 @@ paths:
           schema:
             type: string
           required: true
-          description: ID
-      operationId: projects-archive-archive
-      description: Archives a project, hiding it from active project lists. Archiving also pauses the project's recurring budgets, marks its open budgets as delivered, and removes future bookings; tasks and logged time are not affected. Reverse it with [restore](#tag/Projects/operation/projects-restore-restore).
-  /api/v2/projects/{id}/change_workflow:
-    patch:
-      tags:
-        - Projects
-      summary: Changes workflow on project
+          description: The ID of the project to apply navigation tabs to.
+      requestBody:
+        $ref: '#/components/requestBodies/project_apply_navigation_tabs'
       responses:
         '200':
           $ref: '#/components/responses/single_project'
@@ -305,18 +271,31 @@ paths:
             Content-Type:
               schema:
                 type: string
-          description: Unprocessable Entity
+          description: Returned when validation fails — for example, when `template_id` references a project that is not a template, or when required attributes are missing.
+  /api/v2/projects/{id}/archive:
+    patch:
+      tags:
+        - Projects
+      summary: Archives a project
+      operationId: projects-archive-archive
+      description: Archives a project, hiding it from active project lists. Archiving also pauses the project's recurring budgets, marks its open budgets as delivered, and removes future bookings; tasks and logged time are not affected. Reverse it with [restore](#tag/Projects/operation/projects-restore-restore).
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project'
+  /api/v2/projects/{id}/change_workflow:
+    patch:
+      tags:
+        - Projects
+      summary: Changes workflow on project
       operationId: projects-change_workflow-change_workflow
-      requestBody:
-        $ref: '#/components/requestBodies/project_change_workflow'
       description: |-
         Switches the project to a different task workflow, migrating its tasks to the new workflow's statuses according to the `map`.
 
@@ -331,13 +310,18 @@ paths:
           }
         }
         ```
-  /api/v2/projects/copy:
-    post:
-      tags:
-        - Projects
-      summary: Copies a project
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/project_change_workflow'
       responses:
-        '201':
+        '200':
           $ref: '#/components/responses/single_project'
         '422':
           content:
@@ -347,11 +331,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
+  /api/v2/projects/copy:
+    post:
+      tags:
+        - Projects
+      summary: Copies a project
       operationId: projects-copy-copy
-      requestBody:
-        $ref: '#/components/requestBodies/project_copy'
       description: |-
         Creates a new project by copying an existing **source project**. Use `copy_as_template: true` to mark the result as a project template.
 
@@ -469,24 +454,10 @@ paths:
           }
         }
         ```
-  /api/v2/projects:
-    get:
-      tags:
-        - Projects
-      summary: Get projects
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_project'
       parameters:
-        - $ref: '#/components/parameters/filter_project'
         - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_project'
-      operationId: projects-index
-      description: List projects. Returns a paginated collection of projects accessible to the authenticated user. Supports filtering, sorting, and including related resources.
-    post:
-      tags:
-        - Projects
-      summary: Create a project
+      requestBody:
+        $ref: '#/components/requestBodies/project_copy'
       responses:
         '201':
           $ref: '#/components/responses/single_project'
@@ -498,11 +469,25 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
+  /api/v2/projects:
+    get:
+      tags:
+        - Projects
+      summary: Get projects
+      operationId: projects-index
+      description: List projects. Returns a paginated collection of projects accessible to the authenticated user. Supports filtering, sorting, and including related resources.
       parameters:
+        - $ref: '#/components/parameters/filter_project'
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_project'
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_project'
+    post:
+      tags:
+        - Projects
+      summary: Create a project
       operationId: projects-create
-      requestBody:
-        $ref: '#/components/requestBodies/project'
       description: |-
         Create a project. Creates a new project with the given attributes.
 
@@ -524,14 +509,28 @@ paths:
         ```
 
         To duplicate an existing project or create one from a template, use [`/projects/copy`](#tag/Projects/operation/projects-copy-copy) instead.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/project'
+      responses:
+        '201':
+          $ref: '#/components/responses/single_project'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
   /api/v2/projects/{id}:
     get:
       tags:
         - Projects
       summary: Gets a project
-      responses:
-        '200':
-          $ref: '#/components/responses/single_project'
+      operationId: projects-show
+      description: Get a project. Returns a single project by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -540,12 +539,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: projects-show
-      description: Get a project. Returns a single project by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project'
     patch:
       tags:
         - Projects
       summary: Update a project
+      operationId: projects-update
+      description: Updates a project. Only the attributes you include are modified — everything else is left unchanged. To change the project's workflow, use [change_workflow](#tag/Projects/operation/projects-change_workflow-change_workflow) instead of this endpoint.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/project_update'
       responses:
         '200':
           $ref: '#/components/responses/single_project'
@@ -557,25 +569,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: projects-update
-      requestBody:
-        $ref: '#/components/requestBodies/project_update'
-      description: Updates a project. Only the attributes you include are modified — everything else is left unchanged. To change the project's workflow, use [change_workflow](#tag/Projects/operation/projects-change_workflow-change_workflow) instead of this endpoint.
     delete:
       tags:
         - Projects
       summary: Deletes a project
-      responses:
-        '204':
-          description: No Content
+      operationId: projects-destroy
+      description: Delete a project. Permanently deletes a project and all its associated data.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -584,16 +583,16 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: projects-destroy
-      description: Delete a project. Permanently deletes a project and all its associated data.
+      responses:
+        '204':
+          description: No Content
   /api/v2/projects/{id}/restore:
     patch:
       tags:
         - Projects
       summary: Restores a project
-      responses:
-        '200':
-          $ref: '#/components/responses/single_project'
+      operationId: projects-restore-restore
+      description: Restore a project. Restores an archived project back to active status.
       parameters:
         - in: path
           name: id
@@ -602,16 +601,16 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: projects-restore-restore
-      description: Restore a project. Restores an archived project back to active status.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project'
   /api/v2/projects/{id}/subscribe:
     patch:
       tags:
         - Projects
       summary: Subscribes to project
-      responses:
-        '200':
-          $ref: '#/components/responses/single_project'
+      operationId: projects-subscribe-subscribe
+      description: Subscribes the current user to the project's comment thread.
       parameters:
         - in: path
           name: id
@@ -620,16 +619,16 @@ paths:
           required: true
           description: The numeric ID of the project.
         - $ref: '#/components/parameters/header_organization'
-      operationId: projects-subscribe-subscribe
-      description: Subscribes the current user to the project's comment thread.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project'
   /api/v2/projects/{id}/unsubscribe:
     patch:
       tags:
         - Projects
       summary: Unsubscribes from project
-      responses:
-        '200':
-          $ref: '#/components/responses/single_project'
+      operationId: projects-unsubscribe-unsubscribe
+      description: Unsubscribes the current user from the project's comment thread.
       parameters:
         - in: path
           name: id
@@ -638,210 +637,271 @@ paths:
           required: true
           description: The numeric ID of the project.
         - $ref: '#/components/parameters/header_organization'
-      operationId: projects-unsubscribe-unsubscribe
-      description: Unsubscribes the current user from the project's comment thread.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_project:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - company_name
-            - -company_name
-            - created_at
-            - -created_at
-            - custom_fields
-            - -custom_fields
-            - last_activity_at
-            - -last_activity_at
-            - name
-            - -name
-            - number
-            - -number
-            - project_number
-            - -project_number
-          type: string
-        title: Sort project
-      explode: false
-      required: false
-      description: Sort project
-    filter_project:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.project at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_project:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API single-resource response containing a project.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned project resource.
                 properties:
                   attributes:
                     type: object
+                    description: Project attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_project/properties/name'
-                      number:
-                        $ref: '#/components/schemas/resource_project/properties/number'
                       template:
                         $ref: '#/components/schemas/resource_project/properties/template'
-                      created_at:
-                        $ref: '#/components/schemas/resource_project/properties/created_at'
-                      tag_colors:
-                        $ref: '#/components/schemas/resource_project/properties/tag_colors'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_project/properties/archived_at'
-                      preferences:
-                        $ref: '#/components/schemas/resource_project/properties/preferences'
-                      sample_data:
-                        $ref: '#/components/schemas/resource_project/properties/sample_data'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_project/properties/custom_fields'
-                      project_number:
-                        $ref: '#/components/schemas/resource_project/properties/project_number'
                       project_type_id:
                         $ref: '#/components/schemas/resource_project/properties/project_type_id'
+                      name:
+                        $ref: '#/components/schemas/resource_project/properties/name'
+                      sample_data:
+                        $ref: '#/components/schemas/resource_project/properties/sample_data'
                       last_activity_at:
                         $ref: '#/components/schemas/resource_project/properties/last_activity_at'
-                      project_color_id:
-                        $ref: '#/components/schemas/resource_project/properties/project_color_id'
-                      duplication_status:
-                        $ref: '#/components/schemas/resource_project/properties/duplication_status'
-                      page_custom_fields_ids:
-                        $ref: '#/components/schemas/resource_project/properties/page_custom_fields_ids'
-                      task_custom_fields_ids:
-                        $ref: '#/components/schemas/resource_project/properties/task_custom_fields_ids'
+                      tag_colors:
+                        $ref: '#/components/schemas/resource_project/properties/tag_colors'
                       page_custom_fields_positions:
                         $ref: '#/components/schemas/resource_project/properties/page_custom_fields_positions'
+                      page_custom_fields_ids:
+                        $ref: '#/components/schemas/resource_project/properties/page_custom_fields_ids'
+                      number:
+                        $ref: '#/components/schemas/resource_project/properties/number'
                       task_custom_fields_positions:
                         $ref: '#/components/schemas/resource_project/properties/task_custom_fields_positions'
+                      created_at:
+                        $ref: '#/components/schemas/resource_project/properties/created_at'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_project/properties/archived_at'
+                      duplication_status:
+                        $ref: '#/components/schemas/resource_project/properties/duplication_status'
+                      project_number:
+                        $ref: '#/components/schemas/resource_project/properties/project_number'
+                      project_color_id:
+                        $ref: '#/components/schemas/resource_project/properties/project_color_id'
+                      task_custom_fields_ids:
+                        $ref: '#/components/schemas/resource_project/properties/task_custom_fields_ids'
+                      preferences:
+                        $ref: '#/components/schemas/resource_project/properties/preferences'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_project/properties/custom_fields'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Project relationships.
                     properties:
                       import:
                         $ref: '#/components/schemas/_single_relationship'
-                      company:
-                        $ref: '#/components/schemas/_single_relationship'
-                      workflow:
+                      project_manager:
                         $ref: '#/components/schemas/_single_relationship'
                       last_actor:
                         $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project_manager:
+                      custom_field_attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      company:
                         $ref: '#/components/schemas/_single_relationship'
                       template_object:
                         $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
                       custom_field_people:
                         $ref: '#/components/schemas/_collection_relationship'
-                      custom_field_attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
+                      workflow:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                id: '6899'
+                type: projects
+                attributes:
+                  name: Website Redesign
+                  number: '12'
+                  project_number: '12'
+                  project_color_id: 1
+                  preferences: {}
+                  last_activity_at: '2026-03-15T10:30:00.000+00:00'
+                  archived_at: null
+                  created_at: '2026-01-01T09:00:00.000+00:00'
+                  template: false
+                  description: null
+                  custom_fields: null
+                  tag_colors: {}
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+                  project_manager:
+                    data:
+                      type: people
+                      id: '12'
+                  workflow:
+                    data:
+                      type: workflows
+                      id: '75'
+              included: []
       description: Single project
     collection_project:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API collection response containing an array of project resources.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A single project resource object in the collection.
                   properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_project/properties/name'
-                        number:
-                          $ref: '#/components/schemas/resource_project/properties/number'
-                        template:
-                          $ref: '#/components/schemas/resource_project/properties/template'
-                        created_at:
-                          $ref: '#/components/schemas/resource_project/properties/created_at'
-                        tag_colors:
-                          $ref: '#/components/schemas/resource_project/properties/tag_colors'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_project/properties/archived_at'
-                        preferences:
-                          $ref: '#/components/schemas/resource_project/properties/preferences'
-                        sample_data:
-                          $ref: '#/components/schemas/resource_project/properties/sample_data'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_project/properties/custom_fields'
-                        project_number:
-                          $ref: '#/components/schemas/resource_project/properties/project_number'
-                        project_type_id:
-                          $ref: '#/components/schemas/resource_project/properties/project_type_id'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_project/properties/last_activity_at'
-                        project_color_id:
-                          $ref: '#/components/schemas/resource_project/properties/project_color_id'
-                        duplication_status:
-                          $ref: '#/components/schemas/resource_project/properties/duplication_status'
-                        page_custom_fields_ids:
-                          $ref: '#/components/schemas/resource_project/properties/page_custom_fields_ids'
-                        task_custom_fields_ids:
-                          $ref: '#/components/schemas/resource_project/properties/task_custom_fields_ids'
-                        page_custom_fields_positions:
-                          $ref: '#/components/schemas/resource_project/properties/page_custom_fields_positions'
-                        task_custom_fields_positions:
-                          $ref: '#/components/schemas/resource_project/properties/task_custom_fields_positions'
                     relationships:
                       type: object
+                      description: Project relationships.
                       properties:
-                        import:
-                          $ref: '#/components/schemas/_single_relationship'
-                        company:
-                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
                         workflow:
                           $ref: '#/components/schemas/_single_relationship'
-                        last_actor:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        company:
                           $ref: '#/components/schemas/_single_relationship'
                         project_manager:
                           $ref: '#/components/schemas/_single_relationship'
                         template_object:
                           $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        last_actor:
+                          $ref: '#/components/schemas/_single_relationship'
+                        import:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Project attributes.
+                      properties:
+                        created_at:
+                          $ref: '#/components/schemas/resource_project/properties/created_at'
+                        page_custom_fields_ids:
+                          $ref: '#/components/schemas/resource_project/properties/page_custom_fields_ids'
+                        number:
+                          $ref: '#/components/schemas/resource_project/properties/number'
+                        tag_colors:
+                          $ref: '#/components/schemas/resource_project/properties/tag_colors'
+                        project_type_id:
+                          $ref: '#/components/schemas/resource_project/properties/project_type_id'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_project/properties/last_activity_at'
+                        page_custom_fields_positions:
+                          $ref: '#/components/schemas/resource_project/properties/page_custom_fields_positions'
+                        task_custom_fields_ids:
+                          $ref: '#/components/schemas/resource_project/properties/task_custom_fields_ids'
+                        project_color_id:
+                          $ref: '#/components/schemas/resource_project/properties/project_color_id'
+                        template:
+                          $ref: '#/components/schemas/resource_project/properties/template'
+                        project_number:
+                          $ref: '#/components/schemas/resource_project/properties/project_number'
+                        task_custom_fields_positions:
+                          $ref: '#/components/schemas/resource_project/properties/task_custom_fields_positions'
+                        sample_data:
+                          $ref: '#/components/schemas/resource_project/properties/sample_data'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_project/properties/archived_at'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_project/properties/custom_fields'
+                        name:
+                          $ref: '#/components/schemas/resource_project/properties/name'
+                        preferences:
+                          $ref: '#/components/schemas/resource_project/properties/preferences'
+                        duplication_status:
+                          $ref: '#/components/schemas/resource_project/properties/duplication_status'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of project resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource.
+                  example:
+                    eq: value
+                description: Sideloaded related resources (companies, people, workflows, etc.).
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '6899'
+                  type: projects
+                  attributes:
+                    name: Website Redesign
+                    number: '12'
+                    project_number: '12'
+                    project_color_id: 1
+                    preferences: {}
+                    last_activity_at: '2026-03-15T10:30:00.000+00:00'
+                    archived_at: null
+                    created_at: '2026-01-01T09:00:00.000+00:00'
+                    template: false
+                    description: null
+                    custom_fields: null
+                    tag_colors: {}
+                  relationships:
+                    company:
+                      data:
+                        type: companies
+                        id: '65111'
+                    project_manager:
+                      data:
+                        type: people
+                        id: '12'
+                    workflow:
+                      data:
+                        type: workflows
+                        id: '75'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection project
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -874,82 +934,21 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -959,15 +958,71 @@ components:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
     resource_project:
       type: object
       title: Project Resource
+      description: A workspace for tasks, documents, surveys, and budgets. Projects can be billable (client work) or internal (overhead), and provide the organizational structure for team collaboration.
       properties:
-        custom_field_attachments:
-          title: Custom Field Attachments
-          description: File attachments referenced by custom field values on this project.
-          example:
-            gt: '2026-01-01'
         page_custom_fields_positions:
           type: object
           title: Page Custom Fields Positions
@@ -1299,7 +1354,11 @@ components:
           description: Total worked time across all open budgets for this project, in minutes.
           example:
             gt: 0
-      description: A workspace for tasks, documents, surveys, and budgets. Projects can be billable (client work) or internal (overhead), and provide the organizational structure for team collaboration.
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: File attachments referenced by custom field values on this project.
+          example:
+            gt: '2026-01-01'
       example:
         id: '6899'
         type: projects
@@ -1329,6 +1388,50 @@ components:
             data:
               type: workflows
               id: '75'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_project:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - company_name
+            - -company_name
+            - created_at
+            - -created_at
+            - custom_fields
+            - -custom_fields
+            - last_activity_at
+            - -last_activity_at
+            - name
+            - -name
+            - number
+            - -number
+            - project_number
+            - -project_number
+          type: string
+        title: Sort project
+      explode: false
+      required: false
+      description: Sort project
+    filter_project:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.project at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     project_update:
       content:
@@ -1342,105 +1445,245 @@ components:
                   attributes:
                     type: object
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_project/properties/name'
-                      company_id:
-                        $ref: '#/components/schemas/resource_project/properties/company_id'
-                      tag_colors:
-                        $ref: '#/components/schemas/resource_project/properties/tag_colors'
-                      preferences:
-                        $ref: '#/components/schemas/resource_project/properties/preferences'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_project/properties/custom_fields'
-                      project_type_id:
-                        $ref: '#/components/schemas/resource_project/properties/project_type_id'
-                      project_color_id:
-                        $ref: '#/components/schemas/resource_project/properties/project_color_id'
                       project_manager_id:
                         $ref: '#/components/schemas/resource_project/properties/project_manager_id'
-                      page_custom_fields_ids:
-                        $ref: '#/components/schemas/resource_project/properties/page_custom_fields_ids'
+                      preferences:
+                        $ref: '#/components/schemas/resource_project/properties/preferences'
                       task_custom_fields_ids:
                         $ref: '#/components/schemas/resource_project/properties/task_custom_fields_ids'
+                      company_id:
+                        $ref: '#/components/schemas/resource_project/properties/company_id'
+                      page_custom_fields_ids:
+                        $ref: '#/components/schemas/resource_project/properties/page_custom_fields_ids'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_project/properties/custom_fields'
                       page_custom_fields_positions:
                         $ref: '#/components/schemas/resource_project/properties/page_custom_fields_positions'
+                      name:
+                        $ref: '#/components/schemas/resource_project/properties/name'
+                      tag_colors:
+                        $ref: '#/components/schemas/resource_project/properties/tag_colors'
                       task_custom_fields_positions:
                         $ref: '#/components/schemas/resource_project/properties/task_custom_fields_positions'
+                      project_color_id:
+                        $ref: '#/components/schemas/resource_project/properties/project_color_id'
+                      project_type_id:
+                        $ref: '#/components/schemas/resource_project/properties/project_type_id'
     project:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API request payload for a project.
             properties:
               data:
                 type: object
+                description: The project resource data object.
                 properties:
                   attributes:
                     type: object
+                    description: Writable attributes for the project.
+                    properties:
+                      page_custom_fields_positions:
+                        $ref: '#/components/schemas/resource_project/properties/page_custom_fields_positions'
+                      tag_colors:
+                        $ref: '#/components/schemas/resource_project/properties/tag_colors'
+                      task_custom_fields_positions:
+                        $ref: '#/components/schemas/resource_project/properties/task_custom_fields_positions'
+                      page_custom_fields_ids:
+                        $ref: '#/components/schemas/resource_project/properties/page_custom_fields_ids'
+                      project_color_id:
+                        $ref: '#/components/schemas/resource_project/properties/project_color_id'
+                      project_type_id:
+                        $ref: '#/components/schemas/resource_project/properties/project_type_id'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_project/properties/custom_fields'
+                      task_custom_fields_ids:
+                        $ref: '#/components/schemas/resource_project/properties/task_custom_fields_ids'
+                      workflow_id:
+                        $ref: '#/components/schemas/resource_project/properties/workflow_id'
+                      name:
+                        $ref: '#/components/schemas/resource_project/properties/name'
+                      project_manager_id:
+                        $ref: '#/components/schemas/resource_project/properties/project_manager_id'
+                      preferences:
+                        $ref: '#/components/schemas/resource_project/properties/preferences'
+                      company_id:
+                        $ref: '#/components/schemas/resource_project/properties/company_id'
                     required:
                       - name
                       - project_manager_id
                       - project_type_id
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_project/properties/name'
-                      company_id:
-                        $ref: '#/components/schemas/resource_project/properties/company_id'
-                      tag_colors:
-                        $ref: '#/components/schemas/resource_project/properties/tag_colors'
-                      preferences:
-                        $ref: '#/components/schemas/resource_project/properties/preferences'
-                      workflow_id:
-                        $ref: '#/components/schemas/resource_project/properties/workflow_id'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_project/properties/custom_fields'
-                      project_type_id:
-                        $ref: '#/components/schemas/resource_project/properties/project_type_id'
-                      project_color_id:
-                        $ref: '#/components/schemas/resource_project/properties/project_color_id'
-                      project_manager_id:
-                        $ref: '#/components/schemas/resource_project/properties/project_manager_id'
-                      page_custom_fields_ids:
-                        $ref: '#/components/schemas/resource_project/properties/page_custom_fields_ids'
-                      task_custom_fields_ids:
-                        $ref: '#/components/schemas/resource_project/properties/task_custom_fields_ids'
-                      page_custom_fields_positions:
-                        $ref: '#/components/schemas/resource_project/properties/page_custom_fields_positions'
-                      task_custom_fields_positions:
-                        $ref: '#/components/schemas/resource_project/properties/task_custom_fields_positions'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: projects
+                attributes:
+                  name: Website Redesign
+                  description: Full redesign of the company website
+                  project_color_id: 1
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+                  project_manager:
+                    data:
+                      type: people
+                      id: '12'
+                  workflow:
+                    data:
+                      type: workflows
+                      id: '75'
       description: Request body for creating or updating a project.
     project_copy:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API request envelope for the project copy operation.
             properties:
               data:
                 type: object
+                description: The resource object being created. `type` must be `projects`.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - template_id
-                      - project_type_id
+                    description: Attributes describing the new project and controlling what is copied from the source. `name`, `template_id`, and `project_type_id` are required; all other fields are optional.
                     properties:
+                      description:
+                        type: string
+                        description: Optional description for the new project.
+                        example: Marketing campaign — duplicated from Q4 2024 template
+                      copy_as_template:
+                        type: boolean
+                        description: When `true`, mark the new project as a template (creates a linked `Template` record).
+                        example: true
+                      project_color_id:
+                        $ref: '#/components/schemas/resource_project/properties/project_color_id'
+                      template_id:
+                        type: integer
+                        description: Id of the source project to copy. Can be any project — not only templates.
+                        example: 123456
+                      project_manager_id:
+                        $ref: '#/components/schemas/resource_project/properties/project_manager_id'
                       name:
                         $ref: '#/components/schemas/resource_project/properties/name'
                       company_id:
                         $ref: '#/components/schemas/resource_project/properties/company_id'
-                      description:
-                        type: string
-                      template_id:
-                        type: integer
                       project_type_id:
                         $ref: '#/components/schemas/resource_project/properties/project_type_id'
-                      copy_as_template:
-                        type: boolean
-                      project_color_id:
-                        $ref: '#/components/schemas/resource_project/properties/project_color_id'
-                      project_manager_id:
-                        $ref: '#/components/schemas/resource_project/properties/project_manager_id'
+                    required:
+                      - name
+                      - template_id
+                      - project_type_id
+                    example:
+                      name: Q4 marketing campaign template
+                      template_id: 123456
+                      project_type_id: 1
+                      project_manager_id: 42
+                      project_color_id: 5
+                      company_id: 999
+                      copy_as_template: true
+                      copy_memberships: true
+                      copy_boards: true
+                      copy_views: true
+                      copy_custom_fields: true
+                      copy_dashboards: true
+                      copy_task_lists: true
+                      copy_open_tasks: true
+                      copy_closed_tasks: false
+                      copy_task_comments: true
+                      copy_task_subscribers: true
+                      copy_task_attachments: true
+                      copy_task_open_todos: true
+                      copy_task_closed_todos: false
+                      copy_task_open_subtasks: true
+                      copy_task_closed_subtasks: false
+                      copy_task_dependencies: true
+                      copy_task_description: true
+                      copy_assignees: true
+                      copy_tags: true
+                      copy_date: true
+                      copy_repeat: true
+                      copy_estimate: true
+                      copy_notes: true
+                      copy_surveys: true
+                      copy_task_templates: true
+                example:
+                  type: projects
+                  attributes:
+                    name: Q4 marketing campaign template
+                    template_id: 123456
+                    project_type_id: 1
+                    project_manager_id: 42
+                    project_color_id: 5
+                    company_id: 999
+                    copy_as_template: true
+                    copy_memberships: true
+                    copy_boards: true
+                    copy_views: true
+                    copy_custom_fields: true
+                    copy_dashboards: true
+                    copy_task_lists: true
+                    copy_open_tasks: true
+                    copy_closed_tasks: false
+                    copy_task_comments: true
+                    copy_task_subscribers: true
+                    copy_task_attachments: true
+                    copy_task_open_todos: true
+                    copy_task_closed_todos: false
+                    copy_task_open_subtasks: true
+                    copy_task_closed_subtasks: false
+                    copy_task_dependencies: true
+                    copy_task_description: true
+                    copy_assignees: true
+                    copy_tags: true
+                    copy_date: true
+                    copy_repeat: true
+                    copy_estimate: true
+                    copy_notes: true
+                    copy_surveys: true
+                    copy_task_templates: true
+            example:
+              data:
+                type: projects
+                attributes:
+                  name: Q4 marketing campaign template
+                  template_id: 123456
+                  project_type_id: 1
+                  project_manager_id: 42
+                  project_color_id: 5
+                  company_id: 999
+                  copy_as_template: true
+                  copy_memberships: true
+                  copy_boards: true
+                  copy_views: true
+                  copy_custom_fields: true
+                  copy_dashboards: true
+                  copy_task_lists: true
+                  copy_open_tasks: true
+                  copy_closed_tasks: false
+                  copy_task_comments: true
+                  copy_task_subscribers: true
+                  copy_task_attachments: true
+                  copy_task_open_todos: true
+                  copy_task_closed_todos: false
+                  copy_task_open_subtasks: true
+                  copy_task_closed_subtasks: false
+                  copy_task_dependencies: true
+                  copy_task_description: true
+                  copy_assignees: true
+                  copy_tags: true
+                  copy_date: true
+                  copy_repeat: true
+                  copy_estimate: true
+                  copy_notes: true
+                  copy_surveys: true
+                  copy_task_templates: true
       description: 'Request body for copying an existing project. Required attributes: `name`, `template_id`, `project_type_id`. Optional attributes control destination metadata and granular copy behavior — see the operation description for the full copy-flag prerequisite tree.'
     project_change_workflow:
       content:
@@ -1455,20 +1698,51 @@ components:
                     enum:
                       - projects
                     type: string
+                    example: projects
                   attributes:
                     type: object
-                    required:
-                      - workflow_id
-                      - map
                     properties:
+                      workflow_id:
+                        type: integer
+                        title: Workflow ID
+                        description: ID of the workflow to assign to the project. Existing tasks are migrated to statuses in this workflow using the provided `map`.
+                        example: 7
                       map:
                         type: object
                         title: Status Map
                         additionalProperties:
                           type: integer
-                      workflow_id:
-                        type: integer
-                        title: Workflow ID
+                        description: Mapping from each status ID in the project's current workflow to a status ID in the target workflow. Every status in the current workflow must appear as a key, and each value must be a valid status in the target workflow.
+                        example:
+                          '100': 200
+                          '101': 201
+                          '102': 202
+                    required:
+                      - workflow_id
+                      - map
+                    example:
+                      workflow_id: 7
+                      map:
+                        '100': 200
+                        '101': 201
+                        '102': 202
+                example:
+                  type: projects
+                  attributes:
+                    workflow_id: 7
+                    map:
+                      '100': 200
+                      '101': 201
+                      '102': 202
+            example:
+              data:
+                type: projects
+                attributes:
+                  workflow_id: 7
+                  map:
+                    '100': 200
+                    '101': 201
+                    '102': 202
       description: Request body for switching a project to a different workflow. Requires a status mapping so every task in the project can be migrated to a status that exists in the target workflow.
     project_apply_navigation_tabs:
       content:
@@ -1479,20 +1753,39 @@ components:
               data:
                 type: object
                 properties:
-                  type:
-                    enum:
-                      - projects
-                    type: string
                   attributes:
                     type: object
-                    required:
-                      - template_id
-                      - keep_existing_tabs
                     properties:
                       template_id:
                         type: integer
                         title: Template ID
+                        description: ID of the source project template whose navigation tab layout will be copied onto the current project. Must reference an existing project flagged as a template.
+                        example: 42
                       keep_existing_tabs:
                         type: boolean
                         title: Keep Existing Tabs
+                        description: When `true`, the tabs already configured on the target project are preserved alongside the tabs copied from the template. When `false`, the target's tabs are replaced entirely by those of the template.
+                        example: true
+                    required:
+                      - template_id
+                      - keep_existing_tabs
+                    example:
+                      template_id: 42
+                      keep_existing_tabs: true
+                  type:
+                    enum:
+                      - projects
+                    type: string
+                    example: projects
+                example:
+                  type: projects
+                  attributes:
+                    template_id: 42
+                    keep_existing_tabs: true
+            example:
+              data:
+                type: projects
+                attributes:
+                  template_id: 42
+                  keep_existing_tabs: true
       description: Request body for applying navigation tabs to a project using an existing project template as the source layout.

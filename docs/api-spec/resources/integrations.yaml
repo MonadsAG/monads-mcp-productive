@@ -63,6 +63,16 @@ paths:
       tags:
         - Integrations
       summary: Checks if integration is valid
+      operationId: integrations-check-check
+      description: Check the connection status of an integration.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_integration'
@@ -74,20 +84,20 @@ paths:
               schema:
                 type: string
           description: Method Not Allowed
+  /api/v2/integrations/{id}/connect:
+    patch:
+      tags:
+        - Integrations
+      operationId: integrations-connect-connect
+      description: Completes the OAuth connection flow for an integration by exchanging the authorization code for access tokens.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
-          description: ID
-      operationId: integrations-check-check
-      description: Check the connection status of an integration.
-  /api/v2/integrations/{id}/connect:
-    patch:
-      tags:
-        - Integrations
+          description: The numeric ID of the integration.
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_integration'
@@ -99,34 +109,30 @@ paths:
               schema:
                 type: string
           description: The integration could not be connected due to validation errors.
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The numeric ID of the integration.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: integrations-connect-connect
-      description: Completes the OAuth connection flow for an integration by exchanging the authorization code for access tokens.
   /api/v2/integrations:
     get:
       tags:
         - Integrations
       summary: Get integration
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_integration'
+      operationId: integrations-index
+      description: List integrations.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_integration'
         - $ref: '#/components/parameters/sort_integration'
-      operationId: integrations-index
-      description: List integrations.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_integration'
     post:
       tags:
         - Integrations
       summary: Create an integration
+      operationId: integrations-create
+      description: Create a new integration.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/integration'
       responses:
         '201':
           $ref: '#/components/responses/single_integration'
@@ -138,20 +144,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: integrations-create
-      requestBody:
-        $ref: '#/components/requestBodies/integration'
-      description: Create a new integration.
   /api/v2/integrations/{id}:
     get:
       tags:
         - Integrations
       summary: Gets an integration
-      responses:
-        '200':
-          $ref: '#/components/responses/single_integration'
+      operationId: integrations-show
+      description: Retrieve a single integration.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -160,15 +159,15 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: integrations-show
-      description: Retrieve a single integration.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_integration'
     delete:
       tags:
         - Integrations
       summary: Deletes an integration
-      responses:
-        '204':
-          description: No Content
+      operationId: integrations-destroy
+      description: Delete an integration.
       parameters:
         - in: path
           name: id
@@ -177,16 +176,15 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: integrations-destroy
-      description: Delete an integration.
+      responses:
+        '204':
+          description: No Content
   /api/v2/integrations/{id}/sync:
     get:
       tags:
         - Integrations
       summary: Synchronizes an integration
-      responses:
-        '200':
-          $ref: '#/components/responses/single_integration'
+      operationId: integrations-sync-sync
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -194,639 +192,697 @@ paths:
           schema:
             type: string
           required: true
-      operationId: integrations-sync-sync
+      responses:
+        '200':
+          $ref: '#/components/responses/single_integration'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_integration:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - created_at
-            - -created_at
-            - id
-            - -id
-          type: string
-        title: Sort integration
-      explode: false
-      required: false
-      description: Sort integration
-    filter_integration:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.integration at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_integration:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single integration record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned integration resource.
                 properties:
                   attributes:
                     type: object
+                    description: Integration attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_integration/properties/name'
-                      folders:
-                        $ref: '#/components/schemas/resource_integration/properties/folders'
-                      options:
-                        $ref: '#/components/schemas/resource_integration/properties/options'
-                      sso_url:
-                        $ref: '#/components/schemas/resource_integration/properties/sso_url'
-                      realm_id:
-                        $ref: '#/components/schemas/resource_integration/properties/realm_id'
-                      calendars:
-                        $ref: '#/components/schemas/resource_integration/properties/calendars'
-                      client_id:
-                        $ref: '#/components/schemas/resource_integration/properties/client_id'
-                      all_folders:
-                        $ref: '#/components/schemas/resource_integration/properties/all_folders'
-                      request_uri:
-                        $ref: '#/components/schemas/resource_integration/properties/request_uri'
-                      account_code:
-                        $ref: '#/components/schemas/resource_integration/properties/account_code'
-                      connected_at:
-                        $ref: '#/components/schemas/resource_integration/properties/connected_at'
-                      default_item:
-                        $ref: '#/components/schemas/resource_integration/properties/default_item'
-                      item_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/item_mapping'
-                      jira_project:
-                        $ref: '#/components/schemas/resource_integration/properties/jira_project'
-                      redirect_uri:
-                        $ref: '#/components/schemas/resource_integration/properties/redirect_uri'
-                      requested_at:
-                        $ref: '#/components/schemas/resource_integration/properties/requested_at'
-                      sage_country:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_country'
-                      sso_metadata:
-                        $ref: '#/components/schemas/resource_integration/properties/sso_metadata'
-                      exact_country:
-                        $ref: '#/components/schemas/resource_integration/properties/exact_country'
-                      export_number:
-                        $ref: '#/components/schemas/resource_integration/properties/export_number'
-                      import_number:
-                        $ref: '#/components/schemas/resource_integration/properties/import_number'
-                      request_token:
-                        $ref: '#/components/schemas/resource_integration/properties/request_token'
-                      slack_options:
-                        $ref: '#/components/schemas/resource_integration/properties/slack_options'
-                      deactivated_at:
-                        $ref: '#/components/schemas/resource_integration/properties/deactivated_at'
-                      exact_division:
-                        $ref: '#/components/schemas/resource_integration/properties/exact_division'
-                      last_synced_at:
-                        $ref: '#/components/schemas/resource_integration/properties/last_synced_at'
-                      sso_target_url:
-                        $ref: '#/components/schemas/resource_integration/properties/sso_target_url'
-                      xero_reference:
-                        $ref: '#/components/schemas/resource_integration/properties/xero_reference'
-                      default_product:
-                        $ref: '#/components/schemas/resource_integration/properties/default_product'
+                      netsuite_relationship_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_relationship_mapping'
                       exact_divisions:
                         $ref: '#/components/schemas/resource_integration/properties/exact_divisions'
-                      force_sso_login:
-                        $ref: '#/components/schemas/resource_integration/properties/force_sso_login'
-                      payments_import:
-                        $ref: '#/components/schemas/resource_integration/properties/payments_import'
-                      quickbooks_memo:
-                        $ref: '#/components/schemas/resource_integration/properties/quickbooks_memo'
-                      sso_metadata_url:
-                        $ref: '#/components/schemas/resource_integration/properties/sso_metadata_url'
-                      tax_rate_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/tax_rate_mapping'
-                      use_expense_sync:
-                        $ref: '#/components/schemas/resource_integration/properties/use_expense_sync'
-                      exact_division_id:
-                        $ref: '#/components/schemas/resource_integration/properties/exact_division_id'
-                      export_attachment:
-                        $ref: '#/components/schemas/resource_integration/properties/export_attachment'
-                      hubspot_pipelines:
-                        $ref: '#/components/schemas/resource_integration/properties/hubspot_pipelines'
-                      import_attachment:
-                        $ref: '#/components/schemas/resource_integration/properties/import_attachment'
-                      jira_organization:
-                        $ref: '#/components/schemas/resource_integration/properties/jira_organization'
-                      twinfield_offices:
-                        $ref: '#/components/schemas/resource_integration/properties/twinfield_offices'
-                      hubspot_sync_deals:
-                        $ref: '#/components/schemas/resource_integration/properties/hubspot_sync_deals'
-                      sage_business_name:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_business_name'
-                      xero_organizations:
-                        $ref: '#/components/schemas/resource_integration/properties/xero_organizations'
-                      customer_memo_cf_id:
-                        $ref: '#/components/schemas/resource_integration/properties/customer_memo_cf_id'
-                      integration_type_id:
-                        $ref: '#/components/schemas/resource_integration/properties/integration_type_id'
-                      sage_default_ledger:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_default_ledger'
-                      sage_ledger_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_ledger_mapping'
-                      salesforce_stage_id:
-                        $ref: '#/components/schemas/resource_integration/properties/salesforce_stage_id'
-                      use_invoices_export:
-                        $ref: '#/components/schemas/resource_integration/properties/use_invoices_export'
-                      account_code_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/account_code_mapping'
-                      exact_default_ledger:
-                        $ref: '#/components/schemas/resource_integration/properties/exact_default_ledger'
-                      exact_ledger_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/exact_ledger_mapping'
-                      use_companies_export:
-                        $ref: '#/components/schemas/resource_integration/properties/use_companies_export'
-                      use_expenses_in_xero:
-                        $ref: '#/components/schemas/resource_integration/properties/use_expenses_in_xero'
-                      xero_organization_id:
-                        $ref: '#/components/schemas/resource_integration/properties/xero_organization_id'
-                      calendar_write_status:
-                        $ref: '#/components/schemas/resource_integration/properties/calendar_write_status'
-                      exact_default_journal:
-                        $ref: '#/components/schemas/resource_integration/properties/exact_default_journal'
-                      exact_ledger_manually:
-                        $ref: '#/components/schemas/resource_integration/properties/exact_ledger_manually'
-                      netsuite_default_item:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_default_item'
-                      netsuite_item_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_item_mapping'
-                      sage_intacct_entities:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_entities'
-                      bamboo_workplace_field:
-                        $ref: '#/components/schemas/resource_integration/properties/bamboo_workplace_field'
-                      calendar_write_options:
-                        $ref: '#/components/schemas/resource_integration/properties/calendar_write_options'
-                      hubspot_stages_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/hubspot_stages_mapping'
-                      xero_expense_status_id:
-                        $ref: '#/components/schemas/resource_integration/properties/xero_expense_status_id'
-                      xero_invoice_status_id:
-                        $ref: '#/components/schemas/resource_integration/properties/xero_invoice_status_id'
-                      bamboo_enable_time_offs:
-                        $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_time_offs'
-                      economic_export_subject:
-                        $ref: '#/components/schemas/resource_integration/properties/economic_export_subject'
-                      fortnox_account_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/fortnox_account_mapping'
+                      sso_url:
+                        $ref: '#/components/schemas/resource_integration/properties/sso_url'
                       fortnox_article_mapping:
                         $ref: '#/components/schemas/resource_integration/properties/fortnox_article_mapping'
-                      fortnox_default_account:
-                        $ref: '#/components/schemas/resource_integration/properties/fortnox_default_account'
                       fortnox_default_article:
                         $ref: '#/components/schemas/resource_integration/properties/fortnox_default_article'
-                      bamboo_enable_cost_rates:
-                        $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_cost_rates'
-                      bamboo_workplace_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/bamboo_workplace_mapping'
-                      economic_product_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/economic_product_mapping'
-                      netsuite_invoice_form_id:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_form_id'
-                      netsuite_project_form_id:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_project_form_id'
-                      twinfield_default_ledger:
-                        $ref: '#/components/schemas/resource_integration/properties/twinfield_default_ledger'
-                      twinfield_ledger_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/twinfield_ledger_mapping'
-                      xero_internal_note_cf_id:
-                        $ref: '#/components/schemas/resource_integration/properties/xero_internal_note_cf_id'
-                      export_expense_attachment:
-                        $ref: '#/components/schemas/resource_integration/properties/export_expense_attachment'
-                      google_events_write_scope:
-                        $ref: '#/components/schemas/resource_integration/properties/google_events_write_scope'
-                      netsuite_attach_timesheet:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_attach_timesheet'
-                      netsuite_customer_form_id:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_form_id'
-                      sage_intacct_account_code:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_account_code'
-                      twinfield_default_project:
-                        $ref: '#/components/schemas/resource_integration/properties/twinfield_default_project'
-                      twinfield_invoice_destiny:
-                        $ref: '#/components/schemas/resource_integration/properties/twinfield_invoice_destiny'
-                      twinfield_project_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/twinfield_project_mapping'
+                      sage_business_name:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_business_name'
+                      netsuite_default_item:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_default_item'
+                      netsuite_customer_fixed_value_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_fixed_value_mapping'
                       hubspot_default_company_id:
                         $ref: '#/components/schemas/resource_integration/properties/hubspot_default_company_id'
-                      update_invoice_sent_status:
-                        $ref: '#/components/schemas/resource_integration/properties/update_invoice_sent_status'
-                      use_purchase_orders_export:
-                        $ref: '#/components/schemas/resource_integration/properties/use_purchase_orders_export'
+                      integration_type_id:
+                        $ref: '#/components/schemas/resource_integration/properties/integration_type_id'
+                      xero_organization_id:
+                        $ref: '#/components/schemas/resource_integration/properties/xero_organization_id'
+                      twinfield_default_ledger:
+                        $ref: '#/components/schemas/resource_integration/properties/twinfield_default_ledger'
                       bamboo_custom_field_mapping:
                         $ref: '#/components/schemas/resource_integration/properties/bamboo_custom_field_mapping'
                       hubspot_default_template_id:
                         $ref: '#/components/schemas/resource_integration/properties/hubspot_default_template_id'
-                      netsuite_invoice_pdf_source:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_pdf_source'
-                      sage_intacct_export_project:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_export_project'
-                      salesforce_subsidiary_field:
-                        $ref: '#/components/schemas/resource_integration/properties/salesforce_subsidiary_field'
-                      bamboo_default_subsidiary_id:
-                        $ref: '#/components/schemas/resource_integration/properties/bamboo_default_subsidiary_id'
                       expense_account_code_mapping:
                         $ref: '#/components/schemas/resource_integration/properties/expense_account_code_mapping'
-                      export_purchase_order_number:
-                        $ref: '#/components/schemas/resource_integration/properties/export_purchase_order_number'
-                      netsuite_credit_note_form_id:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_credit_note_form_id'
-                      netsuite_sales_order_form_id:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_sales_order_form_id'
-                      hubspot_default_deal_owner_id:
-                        $ref: '#/components/schemas/resource_integration/properties/hubspot_default_deal_owner_id'
-                      hubspot_default_subsidiary_id:
-                        $ref: '#/components/schemas/resource_integration/properties/hubspot_default_subsidiary_id'
-                      netsuite_relationship_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_relationship_mapping'
-                      sage_intacct_project_category:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_project_category'
-                      salesforce_subsidiary_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/salesforce_subsidiary_mapping'
-                      twinfield_cost_center_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/twinfield_cost_center_mapping'
-                      twinfield_default_cost_center:
-                        $ref: '#/components/schemas/resource_integration/properties/twinfield_default_cost_center'
-                      xero_purchase_order_status_id:
-                        $ref: '#/components/schemas/resource_integration/properties/xero_purchase_order_status_id'
-                      netsuite_default_subsidiary_id:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_default_subsidiary_id'
-                      netsuite_invoice_field_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_field_mapping'
-                      netsuite_project_field_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_project_field_mapping'
-                      salesforce_project_template_id:
-                        $ref: '#/components/schemas/resource_integration/properties/salesforce_project_template_id'
-                      bamboo_enable_user_provisioning:
-                        $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_user_provisioning'
-                      netsuite_customer_field_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_field_mapping'
-                      netsuite_line_item_field_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_line_item_field_mapping'
-                      salesforce_default_subsidiary_id:
-                        $ref: '#/components/schemas/resource_integration/properties/salesforce_default_subsidiary_id'
-                      sage_intacct_account_code_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_account_code_mapping'
-                      salesforce_product_family_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/salesforce_product_family_mapping'
-                      xero_default_expense_account_code:
-                        $ref: '#/components/schemas/resource_integration/properties/xero_default_expense_account_code'
-                      netsuite_sales_order_field_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_sales_order_field_mapping'
+                      request_uri:
+                        $ref: '#/components/schemas/resource_integration/properties/request_uri'
+                      twinfield_offices:
+                        $ref: '#/components/schemas/resource_integration/properties/twinfield_offices'
+                      sso_metadata:
+                        $ref: '#/components/schemas/resource_integration/properties/sso_metadata'
+                      item_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/item_mapping'
+                      netsuite_invoice_pdf_source:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_pdf_source'
+                      jira_project:
+                        $ref: '#/components/schemas/resource_integration/properties/jira_project'
                       salesforce_default_service_type_id:
                         $ref: '#/components/schemas/resource_integration/properties/salesforce_default_service_type_id'
+                      tax_rate_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/tax_rate_mapping'
+                      hubspot_stages_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/hubspot_stages_mapping'
+                      economic_product_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/economic_product_mapping'
+                      last_synced_at:
+                        $ref: '#/components/schemas/resource_integration/properties/last_synced_at'
+                      request_token:
+                        $ref: '#/components/schemas/resource_integration/properties/request_token'
+                      import_attachment:
+                        $ref: '#/components/schemas/resource_integration/properties/import_attachment'
+                      salesforce_project_template_id:
+                        $ref: '#/components/schemas/resource_integration/properties/salesforce_project_template_id'
+                      realm_id:
+                        $ref: '#/components/schemas/resource_integration/properties/realm_id'
+                      hubspot_default_deal_owner_id:
+                        $ref: '#/components/schemas/resource_integration/properties/hubspot_default_deal_owner_id'
                       purchase_order_account_code_mapping:
                         $ref: '#/components/schemas/resource_integration/properties/purchase_order_account_code_mapping'
-                      netsuite_invoice_fixed_value_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_fixed_value_mapping'
-                      netsuite_customer_fixed_value_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_fixed_value_mapping'
-                      netsuite_line_item_fixed_value_mapping:
-                        $ref: '#/components/schemas/resource_integration/properties/netsuite_line_item_fixed_value_mapping'
-                      quickbooks_default_expense_account_code:
-                        $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_account_code'
-                      quickbooks_default_expense_payment_type:
-                        $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_payment_type'
+                      connected_at:
+                        $ref: '#/components/schemas/resource_integration/properties/connected_at'
+                      twinfield_default_project:
+                        $ref: '#/components/schemas/resource_integration/properties/twinfield_default_project'
+                      sage_intacct_account_code:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_account_code'
+                      netsuite_item_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_item_mapping'
+                      bamboo_enable_time_offs:
+                        $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_time_offs'
                       xero_default_purchase_order_account_code:
                         $ref: '#/components/schemas/resource_integration/properties/xero_default_purchase_order_account_code'
+                      default_item:
+                        $ref: '#/components/schemas/resource_integration/properties/default_item'
+                      calendar_write_status:
+                        $ref: '#/components/schemas/resource_integration/properties/calendar_write_status'
+                      import_number:
+                        $ref: '#/components/schemas/resource_integration/properties/import_number'
+                      xero_invoice_status_id:
+                        $ref: '#/components/schemas/resource_integration/properties/xero_invoice_status_id'
+                      netsuite_line_item_fixed_value_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_line_item_fixed_value_mapping'
+                      bamboo_default_subsidiary_id:
+                        $ref: '#/components/schemas/resource_integration/properties/bamboo_default_subsidiary_id'
+                      use_companies_export:
+                        $ref: '#/components/schemas/resource_integration/properties/use_companies_export'
+                      salesforce_default_subsidiary_id:
+                        $ref: '#/components/schemas/resource_integration/properties/salesforce_default_subsidiary_id'
+                      salesforce_subsidiary_field:
+                        $ref: '#/components/schemas/resource_integration/properties/salesforce_subsidiary_field'
+                      sage_default_ledger:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_default_ledger'
+                      quickbooks_default_expense_payment_type:
+                        $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_payment_type'
+                      export_purchase_order_number:
+                        $ref: '#/components/schemas/resource_integration/properties/export_purchase_order_number'
+                      deactivated_at:
+                        $ref: '#/components/schemas/resource_integration/properties/deactivated_at'
+                      exact_default_journal:
+                        $ref: '#/components/schemas/resource_integration/properties/exact_default_journal'
+                      xero_purchase_order_status_id:
+                        $ref: '#/components/schemas/resource_integration/properties/xero_purchase_order_status_id'
+                      twinfield_project_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/twinfield_project_mapping'
+                      netsuite_line_item_field_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_line_item_field_mapping'
+                      netsuite_invoice_fixed_value_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_fixed_value_mapping'
+                      default_product:
+                        $ref: '#/components/schemas/resource_integration/properties/default_product'
+                      jira_organization:
+                        $ref: '#/components/schemas/resource_integration/properties/jira_organization'
+                      bamboo_workplace_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/bamboo_workplace_mapping'
+                      redirect_uri:
+                        $ref: '#/components/schemas/resource_integration/properties/redirect_uri'
+                      hubspot_pipelines:
+                        $ref: '#/components/schemas/resource_integration/properties/hubspot_pipelines'
+                      sage_country:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_country'
+                      xero_organizations:
+                        $ref: '#/components/schemas/resource_integration/properties/xero_organizations'
+                      force_sso_login:
+                        $ref: '#/components/schemas/resource_integration/properties/force_sso_login'
+                      netsuite_sales_order_field_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_sales_order_field_mapping'
+                      exact_division_id:
+                        $ref: '#/components/schemas/resource_integration/properties/exact_division_id'
+                      bamboo_workplace_field:
+                        $ref: '#/components/schemas/resource_integration/properties/bamboo_workplace_field'
+                      sage_intacct_account_code_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_account_code_mapping'
+                      export_attachment:
+                        $ref: '#/components/schemas/resource_integration/properties/export_attachment'
+                      exact_division:
+                        $ref: '#/components/schemas/resource_integration/properties/exact_division'
+                      twinfield_cost_center_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/twinfield_cost_center_mapping'
+                      customer_memo_cf_id:
+                        $ref: '#/components/schemas/resource_integration/properties/customer_memo_cf_id'
+                      netsuite_project_form_id:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_project_form_id'
+                      folders:
+                        $ref: '#/components/schemas/resource_integration/properties/folders'
+                      salesforce_subsidiary_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/salesforce_subsidiary_mapping'
+                      client_id:
+                        $ref: '#/components/schemas/resource_integration/properties/client_id'
+                      sso_target_url:
+                        $ref: '#/components/schemas/resource_integration/properties/sso_target_url'
+                      quickbooks_memo:
+                        $ref: '#/components/schemas/resource_integration/properties/quickbooks_memo'
+                      sage_intacct_project_category:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_project_category'
+                      xero_default_expense_account_code:
+                        $ref: '#/components/schemas/resource_integration/properties/xero_default_expense_account_code'
+                      account_code_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/account_code_mapping'
+                      economic_export_subject:
+                        $ref: '#/components/schemas/resource_integration/properties/economic_export_subject'
+                      name:
+                        $ref: '#/components/schemas/resource_integration/properties/name'
+                      xero_internal_note_cf_id:
+                        $ref: '#/components/schemas/resource_integration/properties/xero_internal_note_cf_id'
+                      calendar_write_options:
+                        $ref: '#/components/schemas/resource_integration/properties/calendar_write_options'
+                      exact_ledger_manually:
+                        $ref: '#/components/schemas/resource_integration/properties/exact_ledger_manually'
+                      use_invoices_export:
+                        $ref: '#/components/schemas/resource_integration/properties/use_invoices_export'
+                      calendars:
+                        $ref: '#/components/schemas/resource_integration/properties/calendars'
+                      sso_metadata_url:
+                        $ref: '#/components/schemas/resource_integration/properties/sso_metadata_url'
+                      netsuite_sales_order_form_id:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_sales_order_form_id'
+                      update_invoice_sent_status:
+                        $ref: '#/components/schemas/resource_integration/properties/update_invoice_sent_status'
                       quickbooks_default_expense_bank_account_code:
                         $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_bank_account_code'
+                      bamboo_enable_cost_rates:
+                        $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_cost_rates'
+                      netsuite_customer_form_id:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_form_id'
+                      netsuite_customer_field_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_field_mapping'
+                      netsuite_invoice_form_id:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_form_id'
+                      quickbooks_default_expense_account_code:
+                        $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_account_code'
+                      xero_reference:
+                        $ref: '#/components/schemas/resource_integration/properties/xero_reference'
+                      payments_import:
+                        $ref: '#/components/schemas/resource_integration/properties/payments_import'
+                      netsuite_credit_note_form_id:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_credit_note_form_id'
+                      slack_options:
+                        $ref: '#/components/schemas/resource_integration/properties/slack_options'
+                      use_expense_sync:
+                        $ref: '#/components/schemas/resource_integration/properties/use_expense_sync'
+                      bamboo_enable_user_provisioning:
+                        $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_user_provisioning'
+                      use_expenses_in_xero:
+                        $ref: '#/components/schemas/resource_integration/properties/use_expenses_in_xero'
+                      requested_at:
+                        $ref: '#/components/schemas/resource_integration/properties/requested_at'
+                      twinfield_ledger_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/twinfield_ledger_mapping'
+                      netsuite_default_subsidiary_id:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_default_subsidiary_id'
+                      fortnox_default_account:
+                        $ref: '#/components/schemas/resource_integration/properties/fortnox_default_account'
+                      salesforce_product_family_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/salesforce_product_family_mapping'
+                      xero_expense_status_id:
+                        $ref: '#/components/schemas/resource_integration/properties/xero_expense_status_id'
+                      export_number:
+                        $ref: '#/components/schemas/resource_integration/properties/export_number'
+                      exact_country:
+                        $ref: '#/components/schemas/resource_integration/properties/exact_country'
+                      exact_ledger_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/exact_ledger_mapping'
+                      exact_default_ledger:
+                        $ref: '#/components/schemas/resource_integration/properties/exact_default_ledger'
+                      use_purchase_orders_export:
+                        $ref: '#/components/schemas/resource_integration/properties/use_purchase_orders_export'
+                      netsuite_attach_timesheet:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_attach_timesheet'
+                      netsuite_project_field_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_project_field_mapping'
+                      twinfield_invoice_destiny:
+                        $ref: '#/components/schemas/resource_integration/properties/twinfield_invoice_destiny'
+                      account_code:
+                        $ref: '#/components/schemas/resource_integration/properties/account_code'
+                      sage_intacct_export_project:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_export_project'
+                      fortnox_account_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/fortnox_account_mapping'
+                      all_folders:
+                        $ref: '#/components/schemas/resource_integration/properties/all_folders'
+                      export_expense_attachment:
+                        $ref: '#/components/schemas/resource_integration/properties/export_expense_attachment'
+                      hubspot_sync_deals:
+                        $ref: '#/components/schemas/resource_integration/properties/hubspot_sync_deals'
+                      netsuite_invoice_field_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_field_mapping'
+                      twinfield_default_cost_center:
+                        $ref: '#/components/schemas/resource_integration/properties/twinfield_default_cost_center'
+                      sage_intacct_entities:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_intacct_entities'
+                      salesforce_stage_id:
+                        $ref: '#/components/schemas/resource_integration/properties/salesforce_stage_id'
+                      google_events_write_scope:
+                        $ref: '#/components/schemas/resource_integration/properties/google_events_write_scope'
+                      sage_ledger_mapping:
+                        $ref: '#/components/schemas/resource_integration/properties/sage_ledger_mapping'
+                      hubspot_default_subsidiary_id:
+                        $ref: '#/components/schemas/resource_integration/properties/hubspot_default_subsidiary_id'
+                      options:
+                        $ref: '#/components/schemas/resource_integration/properties/options'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Integration relationships.
                     properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
                       project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      subsidiary:
                         $ref: '#/components/schemas/_single_relationship'
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                id: '11'
+                type: integrations
+                attributes:
+                  name: Xero Accounting
+                  integration_type_id: 2
+                  connected_at: '2026-01-15T10:00:00.000+00:00'
+                  deactivated_at: null
+                  account_code: '200'
+                  export_number: true
+                  payments_import: true
+                  last_synced_at: '2026-03-15T08:00:00.000+00:00'
+                  options: {}
+                relationships:
+                  subsidiary:
+                    data:
+                      type: subsidiaries
+                      id: '2'
+                  creator:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
       description: Single integration
     collection_integration:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of integration records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: An integration resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Integration attributes.
                       properties:
-                        name:
-                          $ref: '#/components/schemas/resource_integration/properties/name'
-                        folders:
-                          $ref: '#/components/schemas/resource_integration/properties/folders'
-                        options:
-                          $ref: '#/components/schemas/resource_integration/properties/options'
-                        sso_url:
-                          $ref: '#/components/schemas/resource_integration/properties/sso_url'
-                        realm_id:
-                          $ref: '#/components/schemas/resource_integration/properties/realm_id'
-                        calendars:
-                          $ref: '#/components/schemas/resource_integration/properties/calendars'
-                        client_id:
-                          $ref: '#/components/schemas/resource_integration/properties/client_id'
-                        all_folders:
-                          $ref: '#/components/schemas/resource_integration/properties/all_folders'
+                        account_code_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/account_code_mapping'
+                        fortnox_default_article:
+                          $ref: '#/components/schemas/resource_integration/properties/fortnox_default_article'
+                        use_invoices_export:
+                          $ref: '#/components/schemas/resource_integration/properties/use_invoices_export'
+                        export_number:
+                          $ref: '#/components/schemas/resource_integration/properties/export_number'
+                        netsuite_credit_note_form_id:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_credit_note_form_id'
+                        economic_export_subject:
+                          $ref: '#/components/schemas/resource_integration/properties/economic_export_subject'
+                        calendar_write_status:
+                          $ref: '#/components/schemas/resource_integration/properties/calendar_write_status'
+                        bamboo_custom_field_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/bamboo_custom_field_mapping'
+                        xero_default_expense_account_code:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_default_expense_account_code'
+                        calendar_write_options:
+                          $ref: '#/components/schemas/resource_integration/properties/calendar_write_options'
+                        xero_organization_id:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_organization_id'
+                        bamboo_enable_user_provisioning:
+                          $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_user_provisioning'
+                        netsuite_item_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_item_mapping'
+                        salesforce_product_family_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/salesforce_product_family_mapping'
+                        xero_expense_status_id:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_expense_status_id'
+                        import_attachment:
+                          $ref: '#/components/schemas/resource_integration/properties/import_attachment'
+                        twinfield_project_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/twinfield_project_mapping'
+                        netsuite_sales_order_form_id:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_sales_order_form_id'
+                        update_invoice_sent_status:
+                          $ref: '#/components/schemas/resource_integration/properties/update_invoice_sent_status'
+                        netsuite_customer_fixed_value_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_fixed_value_mapping'
+                        exact_division:
+                          $ref: '#/components/schemas/resource_integration/properties/exact_division'
+                        netsuite_customer_field_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_field_mapping'
+                        sage_ledger_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_ledger_mapping'
+                        sso_metadata_url:
+                          $ref: '#/components/schemas/resource_integration/properties/sso_metadata_url'
+                        hubspot_default_deal_owner_id:
+                          $ref: '#/components/schemas/resource_integration/properties/hubspot_default_deal_owner_id'
+                        netsuite_default_subsidiary_id:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_default_subsidiary_id'
+                        bamboo_workplace_field:
+                          $ref: '#/components/schemas/resource_integration/properties/bamboo_workplace_field'
+                        export_expense_attachment:
+                          $ref: '#/components/schemas/resource_integration/properties/export_expense_attachment'
+                        jira_organization:
+                          $ref: '#/components/schemas/resource_integration/properties/jira_organization'
                         request_uri:
                           $ref: '#/components/schemas/resource_integration/properties/request_uri'
-                        account_code:
-                          $ref: '#/components/schemas/resource_integration/properties/account_code'
+                        exact_divisions:
+                          $ref: '#/components/schemas/resource_integration/properties/exact_divisions'
+                        quickbooks_memo:
+                          $ref: '#/components/schemas/resource_integration/properties/quickbooks_memo'
+                        twinfield_default_project:
+                          $ref: '#/components/schemas/resource_integration/properties/twinfield_default_project'
+                        google_events_write_scope:
+                          $ref: '#/components/schemas/resource_integration/properties/google_events_write_scope'
+                        netsuite_customer_form_id:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_form_id'
+                        payments_import:
+                          $ref: '#/components/schemas/resource_integration/properties/payments_import'
+                        netsuite_invoice_field_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_field_mapping'
+                        hubspot_sync_deals:
+                          $ref: '#/components/schemas/resource_integration/properties/hubspot_sync_deals'
+                        sage_intacct_export_project:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_export_project'
+                        xero_internal_note_cf_id:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_internal_note_cf_id'
+                        twinfield_cost_center_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/twinfield_cost_center_mapping'
+                        sage_intacct_project_category:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_project_category'
+                        fortnox_default_account:
+                          $ref: '#/components/schemas/resource_integration/properties/fortnox_default_account'
+                        salesforce_default_service_type_id:
+                          $ref: '#/components/schemas/resource_integration/properties/salesforce_default_service_type_id'
+                        use_companies_export:
+                          $ref: '#/components/schemas/resource_integration/properties/use_companies_export'
+                        last_synced_at:
+                          $ref: '#/components/schemas/resource_integration/properties/last_synced_at'
+                        bamboo_enable_cost_rates:
+                          $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_cost_rates'
+                        hubspot_default_company_id:
+                          $ref: '#/components/schemas/resource_integration/properties/hubspot_default_company_id'
+                        request_token:
+                          $ref: '#/components/schemas/resource_integration/properties/request_token'
+                        export_attachment:
+                          $ref: '#/components/schemas/resource_integration/properties/export_attachment'
+                        realm_id:
+                          $ref: '#/components/schemas/resource_integration/properties/realm_id'
+                        netsuite_project_form_id:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_project_form_id'
+                        folders:
+                          $ref: '#/components/schemas/resource_integration/properties/folders'
+                        hubspot_pipelines:
+                          $ref: '#/components/schemas/resource_integration/properties/hubspot_pipelines'
                         connected_at:
                           $ref: '#/components/schemas/resource_integration/properties/connected_at'
+                        options:
+                          $ref: '#/components/schemas/resource_integration/properties/options'
+                        jira_project:
+                          $ref: '#/components/schemas/resource_integration/properties/jira_project'
+                        fortnox_article_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/fortnox_article_mapping'
+                        netsuite_invoice_fixed_value_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_fixed_value_mapping'
+                        bamboo_workplace_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/bamboo_workplace_mapping'
+                        bamboo_enable_time_offs:
+                          $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_time_offs'
+                        account_code:
+                          $ref: '#/components/schemas/resource_integration/properties/account_code'
+                        exact_default_ledger:
+                          $ref: '#/components/schemas/resource_integration/properties/exact_default_ledger'
+                        hubspot_default_subsidiary_id:
+                          $ref: '#/components/schemas/resource_integration/properties/hubspot_default_subsidiary_id'
+                        sage_business_name:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_business_name'
+                        use_expense_sync:
+                          $ref: '#/components/schemas/resource_integration/properties/use_expense_sync'
+                        salesforce_stage_id:
+                          $ref: '#/components/schemas/resource_integration/properties/salesforce_stage_id'
+                        exact_ledger_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/exact_ledger_mapping'
+                        salesforce_project_template_id:
+                          $ref: '#/components/schemas/resource_integration/properties/salesforce_project_template_id'
+                        xero_default_purchase_order_account_code:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_default_purchase_order_account_code'
+                        sage_intacct_entities:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_entities'
+                        deactivated_at:
+                          $ref: '#/components/schemas/resource_integration/properties/deactivated_at'
+                        netsuite_attach_timesheet:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_attach_timesheet'
+                        tax_rate_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/tax_rate_mapping'
+                        netsuite_project_field_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_project_field_mapping'
+                        xero_purchase_order_status_id:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_purchase_order_status_id'
+                        customer_memo_cf_id:
+                          $ref: '#/components/schemas/resource_integration/properties/customer_memo_cf_id'
+                        netsuite_sales_order_field_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_sales_order_field_mapping'
+                        bamboo_default_subsidiary_id:
+                          $ref: '#/components/schemas/resource_integration/properties/bamboo_default_subsidiary_id'
+                        all_folders:
+                          $ref: '#/components/schemas/resource_integration/properties/all_folders'
+                        xero_organizations:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_organizations'
+                        twinfield_default_cost_center:
+                          $ref: '#/components/schemas/resource_integration/properties/twinfield_default_cost_center'
+                        salesforce_subsidiary_field:
+                          $ref: '#/components/schemas/resource_integration/properties/salesforce_subsidiary_field'
+                        hubspot_default_template_id:
+                          $ref: '#/components/schemas/resource_integration/properties/hubspot_default_template_id'
+                        force_sso_login:
+                          $ref: '#/components/schemas/resource_integration/properties/force_sso_login'
+                        netsuite_invoice_pdf_source:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_pdf_source'
+                        fortnox_account_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/fortnox_account_mapping'
+                        slack_options:
+                          $ref: '#/components/schemas/resource_integration/properties/slack_options'
+                        xero_invoice_status_id:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_invoice_status_id'
+                        quickbooks_default_expense_account_code:
+                          $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_account_code'
+                        sso_metadata:
+                          $ref: '#/components/schemas/resource_integration/properties/sso_metadata'
+                        exact_division_id:
+                          $ref: '#/components/schemas/resource_integration/properties/exact_division_id'
+                        sso_url:
+                          $ref: '#/components/schemas/resource_integration/properties/sso_url'
+                        netsuite_line_item_field_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_line_item_field_mapping'
+                        netsuite_default_item:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_default_item'
+                        exact_default_journal:
+                          $ref: '#/components/schemas/resource_integration/properties/exact_default_journal'
+                        quickbooks_default_expense_payment_type:
+                          $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_payment_type'
+                        economic_product_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/economic_product_mapping'
+                        hubspot_stages_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/hubspot_stages_mapping'
+                        twinfield_default_ledger:
+                          $ref: '#/components/schemas/resource_integration/properties/twinfield_default_ledger'
+                        quickbooks_default_expense_bank_account_code:
+                          $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_bank_account_code'
+                        sage_intacct_account_code:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_account_code'
+                        export_purchase_order_number:
+                          $ref: '#/components/schemas/resource_integration/properties/export_purchase_order_number'
+                        purchase_order_account_code_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/purchase_order_account_code_mapping'
+                        sage_intacct_account_code_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_account_code_mapping'
+                        sage_country:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_country'
+                        redirect_uri:
+                          $ref: '#/components/schemas/resource_integration/properties/redirect_uri'
+                        name:
+                          $ref: '#/components/schemas/resource_integration/properties/name'
+                        sso_target_url:
+                          $ref: '#/components/schemas/resource_integration/properties/sso_target_url'
+                        use_purchase_orders_export:
+                          $ref: '#/components/schemas/resource_integration/properties/use_purchase_orders_export'
+                        exact_country:
+                          $ref: '#/components/schemas/resource_integration/properties/exact_country'
+                        client_id:
+                          $ref: '#/components/schemas/resource_integration/properties/client_id'
+                        netsuite_invoice_form_id:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_form_id'
+                        salesforce_subsidiary_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/salesforce_subsidiary_mapping'
                         default_item:
                           $ref: '#/components/schemas/resource_integration/properties/default_item'
                         item_mapping:
                           $ref: '#/components/schemas/resource_integration/properties/item_mapping'
-                        jira_project:
-                          $ref: '#/components/schemas/resource_integration/properties/jira_project'
-                        redirect_uri:
-                          $ref: '#/components/schemas/resource_integration/properties/redirect_uri'
-                        requested_at:
-                          $ref: '#/components/schemas/resource_integration/properties/requested_at'
-                        sage_country:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_country'
-                        sso_metadata:
-                          $ref: '#/components/schemas/resource_integration/properties/sso_metadata'
-                        exact_country:
-                          $ref: '#/components/schemas/resource_integration/properties/exact_country'
-                        export_number:
-                          $ref: '#/components/schemas/resource_integration/properties/export_number'
-                        import_number:
-                          $ref: '#/components/schemas/resource_integration/properties/import_number'
-                        request_token:
-                          $ref: '#/components/schemas/resource_integration/properties/request_token'
-                        slack_options:
-                          $ref: '#/components/schemas/resource_integration/properties/slack_options'
-                        deactivated_at:
-                          $ref: '#/components/schemas/resource_integration/properties/deactivated_at'
-                        exact_division:
-                          $ref: '#/components/schemas/resource_integration/properties/exact_division'
-                        last_synced_at:
-                          $ref: '#/components/schemas/resource_integration/properties/last_synced_at'
-                        sso_target_url:
-                          $ref: '#/components/schemas/resource_integration/properties/sso_target_url'
-                        xero_reference:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_reference'
-                        default_product:
-                          $ref: '#/components/schemas/resource_integration/properties/default_product'
-                        exact_divisions:
-                          $ref: '#/components/schemas/resource_integration/properties/exact_divisions'
-                        force_sso_login:
-                          $ref: '#/components/schemas/resource_integration/properties/force_sso_login'
-                        payments_import:
-                          $ref: '#/components/schemas/resource_integration/properties/payments_import'
-                        quickbooks_memo:
-                          $ref: '#/components/schemas/resource_integration/properties/quickbooks_memo'
-                        sso_metadata_url:
-                          $ref: '#/components/schemas/resource_integration/properties/sso_metadata_url'
-                        tax_rate_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/tax_rate_mapping'
-                        use_expense_sync:
-                          $ref: '#/components/schemas/resource_integration/properties/use_expense_sync'
-                        exact_division_id:
-                          $ref: '#/components/schemas/resource_integration/properties/exact_division_id'
-                        export_attachment:
-                          $ref: '#/components/schemas/resource_integration/properties/export_attachment'
-                        hubspot_pipelines:
-                          $ref: '#/components/schemas/resource_integration/properties/hubspot_pipelines'
-                        import_attachment:
-                          $ref: '#/components/schemas/resource_integration/properties/import_attachment'
-                        jira_organization:
-                          $ref: '#/components/schemas/resource_integration/properties/jira_organization'
-                        twinfield_offices:
-                          $ref: '#/components/schemas/resource_integration/properties/twinfield_offices'
-                        hubspot_sync_deals:
-                          $ref: '#/components/schemas/resource_integration/properties/hubspot_sync_deals'
-                        sage_business_name:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_business_name'
-                        xero_organizations:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_organizations'
-                        customer_memo_cf_id:
-                          $ref: '#/components/schemas/resource_integration/properties/customer_memo_cf_id'
-                        integration_type_id:
-                          $ref: '#/components/schemas/resource_integration/properties/integration_type_id'
-                        sage_default_ledger:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_default_ledger'
-                        sage_ledger_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_ledger_mapping'
-                        salesforce_stage_id:
-                          $ref: '#/components/schemas/resource_integration/properties/salesforce_stage_id'
-                        use_invoices_export:
-                          $ref: '#/components/schemas/resource_integration/properties/use_invoices_export'
-                        account_code_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/account_code_mapping'
-                        exact_default_ledger:
-                          $ref: '#/components/schemas/resource_integration/properties/exact_default_ledger'
-                        exact_ledger_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/exact_ledger_mapping'
-                        use_companies_export:
-                          $ref: '#/components/schemas/resource_integration/properties/use_companies_export'
-                        use_expenses_in_xero:
-                          $ref: '#/components/schemas/resource_integration/properties/use_expenses_in_xero'
-                        xero_organization_id:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_organization_id'
-                        calendar_write_status:
-                          $ref: '#/components/schemas/resource_integration/properties/calendar_write_status'
-                        exact_default_journal:
-                          $ref: '#/components/schemas/resource_integration/properties/exact_default_journal'
-                        exact_ledger_manually:
-                          $ref: '#/components/schemas/resource_integration/properties/exact_ledger_manually'
-                        netsuite_default_item:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_default_item'
-                        netsuite_item_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_item_mapping'
-                        sage_intacct_entities:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_entities'
-                        bamboo_workplace_field:
-                          $ref: '#/components/schemas/resource_integration/properties/bamboo_workplace_field'
-                        calendar_write_options:
-                          $ref: '#/components/schemas/resource_integration/properties/calendar_write_options'
-                        hubspot_stages_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/hubspot_stages_mapping'
-                        xero_expense_status_id:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_expense_status_id'
-                        xero_invoice_status_id:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_invoice_status_id'
-                        bamboo_enable_time_offs:
-                          $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_time_offs'
-                        economic_export_subject:
-                          $ref: '#/components/schemas/resource_integration/properties/economic_export_subject'
-                        fortnox_account_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/fortnox_account_mapping'
-                        fortnox_article_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/fortnox_article_mapping'
-                        fortnox_default_account:
-                          $ref: '#/components/schemas/resource_integration/properties/fortnox_default_account'
-                        fortnox_default_article:
-                          $ref: '#/components/schemas/resource_integration/properties/fortnox_default_article'
-                        bamboo_enable_cost_rates:
-                          $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_cost_rates'
-                        bamboo_workplace_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/bamboo_workplace_mapping'
-                        economic_product_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/economic_product_mapping'
-                        netsuite_invoice_form_id:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_form_id'
-                        netsuite_project_form_id:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_project_form_id'
-                        twinfield_default_ledger:
-                          $ref: '#/components/schemas/resource_integration/properties/twinfield_default_ledger'
-                        twinfield_ledger_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/twinfield_ledger_mapping'
-                        xero_internal_note_cf_id:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_internal_note_cf_id'
-                        export_expense_attachment:
-                          $ref: '#/components/schemas/resource_integration/properties/export_expense_attachment'
-                        google_events_write_scope:
-                          $ref: '#/components/schemas/resource_integration/properties/google_events_write_scope'
-                        netsuite_attach_timesheet:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_attach_timesheet'
-                        netsuite_customer_form_id:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_form_id'
-                        sage_intacct_account_code:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_account_code'
-                        twinfield_default_project:
-                          $ref: '#/components/schemas/resource_integration/properties/twinfield_default_project'
-                        twinfield_invoice_destiny:
-                          $ref: '#/components/schemas/resource_integration/properties/twinfield_invoice_destiny'
-                        twinfield_project_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/twinfield_project_mapping'
-                        hubspot_default_company_id:
-                          $ref: '#/components/schemas/resource_integration/properties/hubspot_default_company_id'
-                        update_invoice_sent_status:
-                          $ref: '#/components/schemas/resource_integration/properties/update_invoice_sent_status'
-                        use_purchase_orders_export:
-                          $ref: '#/components/schemas/resource_integration/properties/use_purchase_orders_export'
-                        bamboo_custom_field_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/bamboo_custom_field_mapping'
-                        hubspot_default_template_id:
-                          $ref: '#/components/schemas/resource_integration/properties/hubspot_default_template_id'
-                        netsuite_invoice_pdf_source:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_pdf_source'
-                        sage_intacct_export_project:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_export_project'
-                        salesforce_subsidiary_field:
-                          $ref: '#/components/schemas/resource_integration/properties/salesforce_subsidiary_field'
-                        bamboo_default_subsidiary_id:
-                          $ref: '#/components/schemas/resource_integration/properties/bamboo_default_subsidiary_id'
                         expense_account_code_mapping:
                           $ref: '#/components/schemas/resource_integration/properties/expense_account_code_mapping'
-                        export_purchase_order_number:
-                          $ref: '#/components/schemas/resource_integration/properties/export_purchase_order_number'
-                        netsuite_credit_note_form_id:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_credit_note_form_id'
-                        netsuite_sales_order_form_id:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_sales_order_form_id'
-                        hubspot_default_deal_owner_id:
-                          $ref: '#/components/schemas/resource_integration/properties/hubspot_default_deal_owner_id'
-                        hubspot_default_subsidiary_id:
-                          $ref: '#/components/schemas/resource_integration/properties/hubspot_default_subsidiary_id'
-                        netsuite_relationship_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_relationship_mapping'
-                        sage_intacct_project_category:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_project_category'
-                        salesforce_subsidiary_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/salesforce_subsidiary_mapping'
-                        twinfield_cost_center_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/twinfield_cost_center_mapping'
-                        twinfield_default_cost_center:
-                          $ref: '#/components/schemas/resource_integration/properties/twinfield_default_cost_center'
-                        xero_purchase_order_status_id:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_purchase_order_status_id'
-                        netsuite_default_subsidiary_id:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_default_subsidiary_id'
-                        netsuite_invoice_field_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_field_mapping'
-                        netsuite_project_field_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_project_field_mapping'
-                        salesforce_project_template_id:
-                          $ref: '#/components/schemas/resource_integration/properties/salesforce_project_template_id'
-                        bamboo_enable_user_provisioning:
-                          $ref: '#/components/schemas/resource_integration/properties/bamboo_enable_user_provisioning'
-                        netsuite_customer_field_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_field_mapping'
-                        netsuite_line_item_field_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_line_item_field_mapping'
-                        salesforce_default_subsidiary_id:
-                          $ref: '#/components/schemas/resource_integration/properties/salesforce_default_subsidiary_id'
-                        sage_intacct_account_code_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/sage_intacct_account_code_mapping'
-                        salesforce_product_family_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/salesforce_product_family_mapping'
-                        xero_default_expense_account_code:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_default_expense_account_code'
-                        netsuite_sales_order_field_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_sales_order_field_mapping'
-                        salesforce_default_service_type_id:
-                          $ref: '#/components/schemas/resource_integration/properties/salesforce_default_service_type_id'
-                        purchase_order_account_code_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/purchase_order_account_code_mapping'
-                        netsuite_invoice_fixed_value_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_invoice_fixed_value_mapping'
-                        netsuite_customer_fixed_value_mapping:
-                          $ref: '#/components/schemas/resource_integration/properties/netsuite_customer_fixed_value_mapping'
+                        requested_at:
+                          $ref: '#/components/schemas/resource_integration/properties/requested_at'
+                        exact_ledger_manually:
+                          $ref: '#/components/schemas/resource_integration/properties/exact_ledger_manually'
+                        use_expenses_in_xero:
+                          $ref: '#/components/schemas/resource_integration/properties/use_expenses_in_xero'
+                        integration_type_id:
+                          $ref: '#/components/schemas/resource_integration/properties/integration_type_id'
                         netsuite_line_item_fixed_value_mapping:
                           $ref: '#/components/schemas/resource_integration/properties/netsuite_line_item_fixed_value_mapping'
-                        quickbooks_default_expense_account_code:
-                          $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_account_code'
-                        quickbooks_default_expense_payment_type:
-                          $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_payment_type'
-                        xero_default_purchase_order_account_code:
-                          $ref: '#/components/schemas/resource_integration/properties/xero_default_purchase_order_account_code'
-                        quickbooks_default_expense_bank_account_code:
-                          $ref: '#/components/schemas/resource_integration/properties/quickbooks_default_expense_bank_account_code'
+                        sage_default_ledger:
+                          $ref: '#/components/schemas/resource_integration/properties/sage_default_ledger'
+                        salesforce_default_subsidiary_id:
+                          $ref: '#/components/schemas/resource_integration/properties/salesforce_default_subsidiary_id'
+                        xero_reference:
+                          $ref: '#/components/schemas/resource_integration/properties/xero_reference'
+                        twinfield_invoice_destiny:
+                          $ref: '#/components/schemas/resource_integration/properties/twinfield_invoice_destiny'
+                        import_number:
+                          $ref: '#/components/schemas/resource_integration/properties/import_number'
+                        default_product:
+                          $ref: '#/components/schemas/resource_integration/properties/default_product'
+                        calendars:
+                          $ref: '#/components/schemas/resource_integration/properties/calendars'
+                        twinfield_ledger_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/twinfield_ledger_mapping'
+                        netsuite_relationship_mapping:
+                          $ref: '#/components/schemas/resource_integration/properties/netsuite_relationship_mapping'
+                        twinfield_offices:
+                          $ref: '#/components/schemas/resource_integration/properties/twinfield_offices'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Integration relationships.
                       properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
                         project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
                           $ref: '#/components/schemas/_single_relationship'
                         subsidiary:
                           $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of integration resource objects.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '11'
+                  type: integrations
+                  attributes:
+                    name: Xero Accounting
+                    integration_type_id: 2
+                    connected_at: '2026-01-15T10:00:00.000+00:00'
+                    deactivated_at: null
+                    account_code: '200'
+                    export_number: true
+                    payments_import: true
+                    last_synced_at: '2026-03-15T08:00:00.000+00:00'
+                    options: {}
+                  relationships:
+                    subsidiary:
+                      data:
+                        type: subsidiaries
+                        id: '2'
+                    creator:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection integration
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -859,7 +915,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
@@ -871,10 +926,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -887,6 +942,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -896,16 +952,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -913,22 +970,16 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
     resource_integration:
       type: object
       title: Integration Resource
+      description: A third-party integration connection (e.g. Jira, Slack, QuickBooks) with sync configuration, field mappings, and authentication settings.
       properties:
-        id:
-          title: Id
-          description: Unique identifier of the integration.
-          example:
-            - 123
         sage_intacct_account_code_mapping:
           title: Sage Intacct Account Code Mapping
           description: Mapping of Productive account types to Sage Intacct account codes.
@@ -1280,11 +1331,6 @@ components:
           description: Default subsidiary ID to assign to deals imported from HubSpot.
           example:
             - 123
-        netsuite_invoice_pdf_source:
-          title: Netsuite Invoice Pdf Source
-          description: The source used to generate the invoice PDF in NetSuite (e.g., NetSuite-generated or Productive-generated).
-          example:
-            eq: value
         sso_metadata_url:
           title: Sso Metadata Url
           description: URL to the identity provider SAML metadata document.
@@ -1636,11 +1682,6 @@ components:
           description: Display name of the integration.
           example:
             eq: value
-        export_attachment:
-          title: Export Attachment
-          description: Whether to attach PDF files when exporting invoices.
-          example:
-            gt: '2026-01-01'
         exact_ledger_mapping:
           title: Exact Ledger Mapping
           description: Mapping of Productive accounts to Exact ledger codes.
@@ -1693,6 +1734,16 @@ components:
           description: Xero organization ID (tenant ID) this integration is connected to.
           example:
             - 123
+        netsuite_invoice_pdf_source:
+          title: Netsuite Invoice Pdf Source
+          description: The source used to generate the invoice PDF in NetSuite (e.g., NetSuite-generated or Productive-generated).
+          example:
+            eq: value
+        export_attachment:
+          title: Export Attachment
+          description: Whether to attach PDF files when exporting invoices.
+          example:
+            gt: '2026-01-01'
         hubspot_default_deal_owner_id:
           type: integer
           title: Hubspot Default Deal Owner
@@ -1710,7 +1761,11 @@ components:
           description: The xero invoice status id.
           example:
             - 123
-      description: A third-party integration connection (e.g. Jira, Slack, QuickBooks) with sync configuration, field mappings, and authentication settings.
+        id:
+          title: Id
+          description: Unique identifier of the integration.
+          example:
+            - 123
       example:
         id: '123'
         type: integrations
@@ -1720,17 +1775,69 @@ components:
           synced_at: '2026-01-15T08:00:00Z'
           settings: {}
         relationships: {}
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_integration:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+            - id
+            - -id
+          type: string
+        title: Sort integration
+      explode: false
+      required: false
+      description: Sort integration
+    filter_integration:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.integration at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     integration:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating an integration.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the integration resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
                     properties: {}
+                    description: Integration attributes.
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: integrations
+                attributes:
+                  name: Xero Accounting
+                  integration_type_id: 2
+                relationships:
+                  subsidiary:
+                    data:
+                      type: subsidiaries
+                      id: '2'
       description: Request body for creating or updating an integration.

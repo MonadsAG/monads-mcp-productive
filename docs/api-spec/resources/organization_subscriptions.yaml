@@ -12,6 +12,16 @@ paths:
       tags:
         - Organization Subscriptions
       summary: Cancels a organization subscription
+      operationId: organization_subscriptions-cancel-cancel
+      description: Cancel an organization subscription.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_organization_subscription'
@@ -23,21 +33,21 @@ paths:
               schema:
                 type: string
           description: Service Unavailable
+  /api/v2/organization_subscriptions/{id}/reactivate:
+    patch:
+      tags:
+        - Organization Subscriptions
+      summary: Reactivates a organization subscription
+      operationId: organization_subscriptions-reactivate-reactivate
+      description: Reactivate a cancelled organization subscription.
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: organization_subscriptions-cancel-cancel
-      description: Cancel an organization subscription.
-  /api/v2/organization_subscriptions/{id}/reactivate:
-    patch:
-      tags:
-        - Organization Subscriptions
-      summary: Reactivates a organization subscription
       responses:
         '200':
           $ref: '#/components/responses/single_organization_subscription'
@@ -57,24 +67,13 @@ paths:
               schema:
                 type: string
           description: Service Unavailable
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: organization_subscriptions-reactivate-reactivate
-      description: Reactivate a cancelled organization subscription.
   /api/v2/organization_subscriptions/{id}/retry_last_payment:
     patch:
       tags:
         - Organization Subscriptions
       summary: Retry last payment for a organization subscription
-      responses:
-        '200':
-          $ref: '#/components/responses/single_organization_subscription'
+      operationId: organization_subscriptions-retry_last_payment-retry_last_payment
+      description: Retry the last failed payment for an organization subscription.
       parameters:
         - in: path
           name: id
@@ -83,16 +82,16 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: organization_subscriptions-retry_last_payment-retry_last_payment
-      description: Retry the last failed payment for an organization subscription.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_organization_subscription'
   /api/v2/organization_subscriptions/{id}:
     get:
       tags:
         - Organization Subscriptions
       summary: Gets a organization subscription
-      responses:
-        '200':
-          $ref: '#/components/responses/single_organization_subscription'
+      operationId: organization_subscriptions-show
+      description: Retrieve a single organization subscription.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -101,12 +100,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: organization_subscriptions-show
-      description: Retrieve a single organization subscription.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_organization_subscription'
     patch:
       tags:
         - Organization Subscriptions
       summary: Update a organization subscription
+      operationId: organization_subscriptions-update
+      description: Update an organization subscription.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/organization_subscription'
       responses:
         '200':
           $ref: '#/components/responses/single_organization_subscription'
@@ -126,57 +138,145 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: organization_subscriptions-update
-      requestBody:
-        $ref: '#/components/requestBodies/organization_subscription'
-      description: Update an organization subscription.
 components:
-  requestBodies:
-    organization_subscription:
+  responses:
+    single_organization_subscription:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single organization_subscription record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned organization_subscription resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Organization subscription relationships.
+                    properties:
+                      billing_group_members:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      billing_group_owner:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Organization subscription attributes.
                     properties:
-                      seats:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/seats'
-                      plan_type:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_type'
-                      plan_cycle:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_cycle'
-                      stripe_token:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/stripe_token'
-                      billing_email:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_email'
-                      product_types:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/product_types'
-                      billing_address:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_address'
                       trial_plan_type:
                         $ref: '#/components/schemas/resource_organization_subscription/properties/trial_plan_type'
-                      trial_product_ids:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_product_ids'
+                      product_types:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/product_types'
+                      trial_plan_active:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_plan_active'
+                      collection_method_id:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/collection_method_id'
+                      contract_seats:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/contract_seats'
+                      grace_period_ends_at:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/grace_period_ends_at'
+                      subscription_ended_at:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/subscription_ended_at'
+                      card_last4:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/card_last4'
+                      subscription_state_id:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/subscription_state_id'
+                      seats_used:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/seats_used'
+                      current_products:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/current_products'
+                      trial_ends_at:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_ends_at'
+                      billing_group_member:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_group_member'
+                      card_brand:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/card_brand'
+                      balance:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/balance'
+                      card_month:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/card_month'
+                      plan_type:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_type'
+                      seats:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/seats'
+                      contract_date:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/contract_date'
+                      trial_plan_ends_at:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_plan_ends_at'
+                      card_year:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/card_year'
                       billing_group_seats:
                         $ref: '#/components/schemas/resource_organization_subscription/properties/billing_group_seats'
-      description: Request body for creating or updating an organization subscription.
+                      payment_method_id:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/payment_method_id'
+                      plan_cycle:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_cycle'
+                      stripe_customer_id:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/stripe_customer_id'
+                      billing_email:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_email'
+                      seats_pending:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/seats_pending'
+                      current_plan:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/current_plan'
+                      trial_product_ids:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_product_ids'
+                      contract_min_seats:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/contract_min_seats'
+                      discount:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/discount'
+                      subscription_started_at:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/subscription_started_at'
+                      plan_price:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_price'
+                      billing_group_admin:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_group_admin'
+                      billing_address:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_address'
+                      next_billing_cycle_at:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/next_billing_cycle_at'
+                      discount_expires_on:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/discount_expires_on'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '1'
+                type: organization_subscriptions
+                attributes:
+                  seats: 25
+                  seats_used: 18
+                  seats_max: 30
+                  trial_ends_on: null
+                  contract_date: '2026-01-01'
+                  contract_end_date: '2026-12-31'
+                  contract_seats: 25
+                  current_plan: business
+                  currency: USD
+              included: []
+      description: Single organization subscription
   schemas:
     resource_organization_subscription:
       type: object
       title: Organization subscription Resource
+      description: The subscription details for an organization's Productive plan, including billing, seats, and plan information.
       properties:
         subscription_started_at:
           type: string
@@ -438,7 +538,6 @@ components:
           description: The billing group owner organization, if this organization is a billing group member.
           example:
             eq: value
-      description: The subscription details for an organization's Productive plan, including billing, seats, and plan information.
       example:
         id: '123'
         type: organization_subscriptions
@@ -448,9 +547,88 @@ components:
           seats: 25
           billing_cycle: annual
         relationships: {}
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -483,91 +661,58 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
+  requestBodies:
+    organization_subscription:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating or updating an organization subscription.
+            properties:
+              data:
+                type: object
+                description: The organization subscription resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Organization subscription attributes.
+                    properties:
+                      trial_plan_type:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_plan_type'
+                      plan_type:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_type'
+                      billing_email:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_email'
+                      product_types:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/product_types'
+                      stripe_token:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/stripe_token'
+                      billing_group_seats:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_group_seats'
+                      trial_product_ids:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_product_ids'
+                      billing_address:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_address'
+                      seats:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/seats'
+                      plan_cycle:
+                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_cycle'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: organization_subscriptions
+                attributes:
+                  seats: 30
+      description: Request body for creating or updating an organization subscription.
   parameters:
     header_organization:
       in: header
@@ -576,105 +721,3 @@ components:
         type: string
       required: true
       description: Organization ID
-  responses:
-    single_organization_subscription:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      seats:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/seats'
-                      balance:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/balance'
-                      discount:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/discount'
-                      card_year:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/card_year'
-                      plan_type:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_type'
-                      card_brand:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/card_brand'
-                      card_last4:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/card_last4'
-                      card_month:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/card_month'
-                      plan_cycle:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_cycle'
-                      plan_price:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/plan_price'
-                      seats_used:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/seats_used'
-                      current_plan:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/current_plan'
-                      billing_email:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_email'
-                      contract_date:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/contract_date'
-                      product_types:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/product_types'
-                      seats_pending:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/seats_pending'
-                      trial_ends_at:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_ends_at'
-                      contract_seats:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/contract_seats'
-                      billing_address:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_address'
-                      trial_plan_type:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_plan_type'
-                      current_products:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/current_products'
-                      payment_method_id:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/payment_method_id'
-                      trial_plan_active:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_plan_active'
-                      trial_product_ids:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_product_ids'
-                      contract_min_seats:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/contract_min_seats'
-                      stripe_customer_id:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/stripe_customer_id'
-                      trial_plan_ends_at:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/trial_plan_ends_at'
-                      billing_group_admin:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_group_admin'
-                      billing_group_seats:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_group_seats'
-                      discount_expires_on:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/discount_expires_on'
-                      billing_group_member:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/billing_group_member'
-                      collection_method_id:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/collection_method_id'
-                      grace_period_ends_at:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/grace_period_ends_at'
-                      next_billing_cycle_at:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/next_billing_cycle_at'
-                      subscription_ended_at:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/subscription_ended_at'
-                      subscription_state_id:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/subscription_state_id'
-                      subscription_started_at:
-                        $ref: '#/components/schemas/resource_organization_subscription/properties/subscription_started_at'
-                  relationships:
-                    type: object
-                    properties:
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      billing_group_owner:
-                        $ref: '#/components/schemas/_single_relationship'
-                      billing_group_members:
-                        $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single organization subscription

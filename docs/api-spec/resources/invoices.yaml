@@ -406,19 +406,25 @@ paths:
       tags:
         - Invoices
       summary: Get invoices
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_invoice'
+      operationId: invoices-index
+      description: List invoices.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_invoice'
         - $ref: '#/components/parameters/sort_invoice'
-      operationId: invoices-index
-      description: List invoices.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_invoice'
     post:
       tags:
         - Invoices
       summary: Create an invoice
+      description: Create a new invoice.
+      operationId: invoices-create
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/invoice'
       responses:
         '201':
           $ref: '#/components/responses/single_invoice'
@@ -430,20 +436,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      description: Create a new invoice.
-      operationId: invoices-create
-      requestBody:
-        $ref: '#/components/requestBodies/invoice'
   /api/v2/invoices/{id}:
     get:
       tags:
         - Invoices
       summary: Gets an invoice
-      responses:
-        '200':
-          $ref: '#/components/responses/single_invoice'
+      operationId: invoices-show
+      description: Retrieve a single invoice.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -452,12 +451,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: invoices-show
-      description: Retrieve a single invoice.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_invoice'
     patch:
       tags:
         - Invoices
       summary: Update an invoice
+      operationId: invoices-update
+      description: Update an invoice.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/invoice'
       responses:
         '200':
           $ref: '#/components/responses/single_invoice'
@@ -469,25 +481,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: invoices-update
-      requestBody:
-        $ref: '#/components/requestBodies/invoice'
-      description: Update an invoice.
     delete:
       tags:
         - Invoices
       summary: Deletes an invoice
-      responses:
-        '204':
-          description: No Content
+      operationId: invoices-destroy
+      description: Delete an invoice.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -496,13 +495,24 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: invoices-destroy
-      description: Delete an invoice.
+      responses:
+        '204':
+          description: No Content
   /api/v2/invoices/{id}/export:
     patch:
       tags:
         - Invoices
       summary: Exports an invoice
+      operationId: invoices-export-export
+      description: Export an invoice to an external accounting system.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_invoice'
@@ -514,21 +524,21 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: invoices-export-export
-      description: Export an invoice to an external accounting system.
   /api/v2/invoices/{id}/export_update:
     patch:
       tags:
         - Invoices
       summary: Updates an exported invoice
+      operationId: invoices-export_update-export_update
+      description: Update the export data on an already-exported invoice.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_invoice'
@@ -540,24 +550,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: invoices-export_update-export_update
-      description: Update the export data on an already-exported invoice.
   /api/v2/invoices/{id}/finalize:
     patch:
       tags:
         - Invoices
       summary: Finalizes an invoice
-      responses:
-        '200':
-          $ref: '#/components/responses/single_invoice'
+      operationId: invoices-finalize-finalize
+      description: Finalize a draft invoice.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -566,54 +565,31 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: invoices-finalize-finalize
-      description: Finalize a draft invoice.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_invoice'
   /api/v2/invoices/{id}/preview:
     get:
       tags:
         - Invoices
       summary: Preview invoice
-      responses:
-        '200':
-          $ref: '#/components/responses/single_invoice'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
       operationId: invoices-preview-preview
       description: |
         The preview endpoint lets you simulate invoice line item generation without persisting any changes. It returns the exact line items and invoice attributions that would be created for a given invoice based on the selected invoicing method and options.
 
         - Builds line items using the same logic as the line items "[generate](openapi:group:line-items)" method
         - Returns data only, does not modify the invoice
-  /api/v2/invoices/{id}/send_einvoice:
-    patch:
-      tags:
-        - Invoices
-      summary: Sends an e-invoice
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_invoice'
-        '403':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Forbidden
         '422':
           content:
             application/vnd.api+json: {}
@@ -622,6 +598,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
+  /api/v2/invoices/{id}/send_einvoice:
+    patch:
+      tags:
+        - Invoices
+      summary: Sends an e-invoice
+      operationId: invoices-send_einvoice
       parameters:
         - in: path
           name: id
@@ -629,14 +611,8 @@ paths:
             type: string
           required: true
         - $ref: '#/components/parameters/header_organization'
-      operationId: invoices-send_einvoice
       requestBody:
         $ref: '#/components/requestBodies/send_einvoice'
-  /api/v2/invoices/{id}/send:
-    patch:
-      tags:
-        - Invoices
-      summary: Sends an invoice
       responses:
         '200':
           $ref: '#/components/responses/single_invoice'
@@ -656,6 +632,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
+  /api/v2/invoices/{id}/send:
+    patch:
+      tags:
+        - Invoices
+      summary: Sends an invoice
+      operationId: invoices-send-send_mail
+      description: Send an invoice to the client.
       parameters:
         - in: path
           name: id
@@ -664,474 +647,577 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: invoices-send-send_mail
-      description: Send an invoice to the client.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_invoice'
+        '403':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Forbidden
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_invoice:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - amount
-            - -amount
-            - amount_credited
-            - -amount_credited
-            - amount_credited_with_tax
-            - -amount_credited_with_tax
-            - amount_paid
-            - -amount_paid
-            - amount_tax
-            - -amount_tax
-            - amount_with_tax
-            - -amount_with_tax
-            - amount_written_off
-            - -amount_written_off
-            - company_name
-            - -company_name
-            - created_at
-            - -created_at
-            - credited
-            - -credited
-            - custom_fields
-            - -custom_fields
-            - deleted_at
-            - -deleted_at
-            - delivery_on
-            - -delivery_on
-            - discount
-            - -discount
-            - invoiced_on
-            - -invoiced_on
-            - last_activity_at
-            - -last_activity_at
-            - number
-            - -number
-            - pay_on
-            - -pay_on
-            - purchase_order_number
-            - -purchase_order_number
-            - sent_on
-            - -sent_on
-            - subject
-            - -subject
-          type: string
-        title: Sort invoice
-      explode: false
-      required: false
-      description: Sort invoice
-    filter_invoice:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.invoice at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_invoice:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API response envelope for a single invoice.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned invoice resource.
                 properties:
-                  attributes:
-                    type: object
-                    properties:
-                      note:
-                        $ref: '#/components/schemas/resource_invoice/properties/note'
-                      amount:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount'
-                      footer:
-                        $ref: '#/components/schemas/resource_invoice/properties/footer'
-                      number:
-                        $ref: '#/components/schemas/resource_invoice/properties/number'
-                      pay_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/pay_on'
-                      paid_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/paid_on'
-                      sent_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/sent_on'
-                      subject:
-                        $ref: '#/components/schemas/resource_invoice/properties/subject'
-                      credited:
-                        $ref: '#/components/schemas/resource_invoice/properties/credited'
-                      currency:
-                        $ref: '#/components/schemas/resource_invoice/properties/currency'
-                      discount:
-                        $ref: '#/components/schemas/resource_invoice/properties/discount'
-                      exported:
-                        $ref: '#/components/schemas/resource_invoice/properties/exported'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_invoice/properties/tag_list'
-                      email_key:
-                        $ref: '#/components/schemas/resource_invoice/properties/email_key'
-                      export_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/export_id'
-                      tax1_name:
-                        $ref: '#/components/schemas/resource_invoice/properties/tax1_name'
-                      tax2_name:
-                        $ref: '#/components/schemas/resource_invoice/properties/tax2_name'
-                      amount_tax:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_tax'
-                      created_at:
-                        $ref: '#/components/schemas/resource_invoice/properties/created_at'
-                      deleted_at:
-                        $ref: '#/components/schemas/resource_invoice/properties/deleted_at'
-                      tax1_value:
-                        $ref: '#/components/schemas/resource_invoice/properties/tax1_value'
-                      tax2_value:
-                        $ref: '#/components/schemas/resource_invoice/properties/tax2_value'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_invoice/properties/updated_at'
-                      amount_paid:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_paid'
-                      delivery_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/delivery_on'
-                      exported_at:
-                        $ref: '#/components/schemas/resource_invoice/properties/exported_at'
-                      invoiced_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/invoiced_on'
-                      sample_data:
-                        $ref: '#/components/schemas/resource_invoice/properties/sample_data'
-                      finalized_at:
-                        $ref: '#/components/schemas/resource_invoice/properties/finalized_at'
-                      finalized_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/finalized_on'
-                      amount_unpaid:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_invoice/properties/custom_fields'
-                      exchange_date:
-                        $ref: '#/components/schemas/resource_invoice/properties/exchange_date'
-                      exchange_rate:
-                        $ref: '#/components/schemas/resource_invoice/properties/exchange_rate'
-                      line_item_tax:
-                        $ref: '#/components/schemas/resource_invoice/properties/line_item_tax'
-                      payment_terms:
-                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms'
-                      amount_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_default'
-                      amount_credited:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited'
-                      amount_with_tax:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax'
-                      invoice_type_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/invoice_type_id'
-                      pay_on_relative:
-                        $ref: '#/components/schemas/resource_invoice/properties/pay_on_relative'
-                      creation_options:
-                        $ref: '#/components/schemas/resource_invoice/properties/creation_options'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/currency_default'
-                      last_activity_at:
-                        $ref: '#/components/schemas/resource_invoice/properties/last_activity_at'
-                      amount_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_normalized'
-                      note_interpolated:
-                        $ref: '#/components/schemas/resource_invoice/properties/note_interpolated'
-                      amount_tax_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_tax_default'
-                      amount_written_off:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_written_off'
-                      export_invoice_url:
-                        $ref: '#/components/schemas/resource_invoice/properties/export_invoice_url'
-                      payment_terms_days:
-                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms_days'
-                      payment_terms_type:
-                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms_type'
-                      amount_paid_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_paid_default'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/currency_normalized'
-                      footer_interpolated:
-                        $ref: '#/components/schemas/resource_invoice/properties/footer_interpolated'
-                      invoice_template_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/invoice_template_id'
-                      bank_account_details:
-                        $ref: '#/components/schemas/resource_invoice/properties/bank_account_details'
-                      company_reference_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/company_reference_id'
-                      amount_tax_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_tax_normalized'
-                      amount_unpaid_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid_default'
-                      purchase_order_number:
-                        $ref: '#/components/schemas/resource_invoice/properties/purchase_order_number'
-                      amount_paid_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_paid_normalized'
-                      amount_credited_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_default'
-                      amount_with_tax_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax_default'
-                      amount_credited_with_tax:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax'
-                      amount_unpaid_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid_normalized'
-                      amount_credited_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_normalized'
-                      amount_with_tax_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax_normalized'
-                      amount_written_off_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_written_off_default'
-                      export_integration_type_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/export_integration_type_id'
-                      amount_written_off_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_written_off_normalized'
-                      amount_credited_with_tax_default:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax_default'
-                      amount_credited_with_tax_normalized:
-                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax_normalized'
                   relationships:
                     type: object
+                    description: Invoice relationships.
                     properties:
-                      issuer:
-                        $ref: '#/components/schemas/_single_relationship'
                       bill_to:
-                        $ref: '#/components/schemas/_single_relationship'
-                      company:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      bill_from:
-                        $ref: '#/components/schemas/_single_relationship'
-                      attachment:
-                        $ref: '#/components/schemas/_single_relationship'
-                      subsidiary:
                         $ref: '#/components/schemas/_single_relationship'
                       bank_account:
                         $ref: '#/components/schemas/_single_relationship'
-                      organization:
+                      issuer:
                         $ref: '#/components/schemas/_single_relationship'
-                      document_type:
+                      company:
                         $ref: '#/components/schemas/_single_relationship'
                       parent_invoice:
                         $ref: '#/components/schemas/_single_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
+                      subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      document_type:
+                        $ref: '#/components/schemas/_single_relationship'
                       invoice_attributions:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      attachment:
+                        $ref: '#/components/schemas/_single_relationship'
+                      bill_from:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_people:
                         $ref: '#/components/schemas/_collection_relationship'
                       custom_field_attachments:
                         $ref: '#/components/schemas/_collection_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      company:
+                        data:
+                          type: companies
+                          id: '89'
+                      subsidiary:
+                        data:
+                          type: subsidiaries
+                          id: '42'
+                      creator:
+                        data:
+                          type: people
+                          id: '78'
+                  attributes:
+                    type: object
+                    description: Attributes of the invoice resource.
+                    properties:
+                      payment_terms_type:
+                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms_type'
+                      footer_interpolated:
+                        $ref: '#/components/schemas/resource_invoice/properties/footer_interpolated'
+                      amount_credited_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_normalized'
+                      subject:
+                        $ref: '#/components/schemas/resource_invoice/properties/subject'
+                      created_at:
+                        $ref: '#/components/schemas/resource_invoice/properties/created_at'
+                      amount_tax:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_tax'
+                      export_integration_type_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/export_integration_type_id'
+                      deleted_at:
+                        $ref: '#/components/schemas/resource_invoice/properties/deleted_at'
+                      amount_written_off_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_written_off_default'
+                      amount_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_default'
+                      amount_written_off:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_written_off'
+                      amount_credited:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited'
+                      creation_options:
+                        $ref: '#/components/schemas/resource_invoice/properties/creation_options'
+                      amount_with_tax_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax_default'
+                      number:
+                        $ref: '#/components/schemas/resource_invoice/properties/number'
+                      footer:
+                        $ref: '#/components/schemas/resource_invoice/properties/footer'
+                      amount_credited_with_tax_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax_default'
+                      tax2_name:
+                        $ref: '#/components/schemas/resource_invoice/properties/tax2_name'
+                      company_reference_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/company_reference_id'
+                      amount_with_tax_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax_normalized'
+                      amount_credited_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_default'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_invoice/properties/custom_fields'
+                      exchange_rate:
+                        $ref: '#/components/schemas/resource_invoice/properties/exchange_rate'
+                      discount:
+                        $ref: '#/components/schemas/resource_invoice/properties/discount'
+                      note:
+                        $ref: '#/components/schemas/resource_invoice/properties/note'
+                      payment_terms:
+                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms'
+                      amount_paid_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_paid_normalized'
+                      credited:
+                        $ref: '#/components/schemas/resource_invoice/properties/credited'
+                      amount_paid:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_paid'
+                      amount_credited_with_tax:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax'
+                      exported:
+                        $ref: '#/components/schemas/resource_invoice/properties/exported'
+                      sent_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/sent_on'
+                      amount:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount'
+                      payment_terms_days:
+                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms_days'
+                      amount_tax_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_tax_default'
+                      pay_on_relative:
+                        $ref: '#/components/schemas/resource_invoice/properties/pay_on_relative'
+                      email_key:
+                        $ref: '#/components/schemas/resource_invoice/properties/email_key'
+                      exported_at:
+                        $ref: '#/components/schemas/resource_invoice/properties/exported_at'
+                      amount_written_off_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_written_off_normalized'
+                      purchase_order_number:
+                        $ref: '#/components/schemas/resource_invoice/properties/purchase_order_number'
+                      invoiced_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/invoiced_on'
+                      amount_unpaid_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid_default'
+                      amount_unpaid:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid'
+                      finalized_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/finalized_on'
+                      sample_data:
+                        $ref: '#/components/schemas/resource_invoice/properties/sample_data'
+                      amount_with_tax:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax'
+                      bank_account_details:
+                        $ref: '#/components/schemas/resource_invoice/properties/bank_account_details'
+                      exchange_date:
+                        $ref: '#/components/schemas/resource_invoice/properties/exchange_date'
+                      amount_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_normalized'
+                      finalized_at:
+                        $ref: '#/components/schemas/resource_invoice/properties/finalized_at'
+                      invoice_type_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/invoice_type_id'
+                      line_item_tax:
+                        $ref: '#/components/schemas/resource_invoice/properties/line_item_tax'
+                      amount_tax_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_tax_normalized'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_invoice/properties/last_activity_at'
+                      currency:
+                        $ref: '#/components/schemas/resource_invoice/properties/currency'
+                      export_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/export_id'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/currency_normalized'
+                      paid_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/paid_on'
+                      tax1_value:
+                        $ref: '#/components/schemas/resource_invoice/properties/tax1_value'
+                      invoice_template_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/invoice_template_id'
+                      export_invoice_url:
+                        $ref: '#/components/schemas/resource_invoice/properties/export_invoice_url'
+                      pay_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/pay_on'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_invoice/properties/tag_list'
+                      tax2_value:
+                        $ref: '#/components/schemas/resource_invoice/properties/tax2_value'
+                      tax1_name:
+                        $ref: '#/components/schemas/resource_invoice/properties/tax1_name'
+                      amount_paid_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_paid_default'
+                      note_interpolated:
+                        $ref: '#/components/schemas/resource_invoice/properties/note_interpolated'
+                      amount_unpaid_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid_normalized'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_invoice/properties/currency_default'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_invoice/properties/updated_at'
+                      amount_credited_with_tax_normalized:
+                        $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax_normalized'
+                      delivery_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/delivery_on'
+                    example:
+                      number: INV-2025-042
+                      subject: Development services - May 2025
+                      invoiced_on: '2025-05-01'
+                      pay_on: '2025-05-31'
+                      paid_on: null
+                      status: 2
+                      currency: EUR
+                      total: '12500.00'
+                      subtotal: '10000.00'
+                      tax_amount: '2500.00'
+                      discount: null
+                      note: null
+                      footer: null
+                      purchase_order_number: PO-2025-003
+                      invoice_type_id: 1
+                      created_at: '2025-05-01T09:00:00.000Z'
+                      updated_at: '2025-05-01T09:00:00.000Z'
+                example:
+                  data:
+                    id: '3456'
+                    type: invoices
+                    attributes:
+                      number: INV-2025-042
+                      subject: Development services - May 2025
+                      invoiced_on: '2025-05-01'
+                      pay_on: '2025-05-31'
+                      paid_on: null
+                      status: 2
+                      currency: EUR
+                      total: '12500.00'
+                      subtotal: '10000.00'
+                      tax_amount: '2500.00'
+                      discount: null
+                      note: null
+                      footer: null
+                      purchase_order_number: PO-2025-003
+                      invoice_type_id: 1
+                      created_at: '2025-05-01T09:00:00.000Z'
+                      updated_at: '2025-05-01T09:00:00.000Z'
+                    relationships:
+                      company:
+                        data:
+                          type: companies
+                          id: '89'
+                      subsidiary:
+                        data:
+                          type: subsidiaries
+                          id: '42'
+                      creator:
+                        data:
+                          type: people
+                          id: '78'
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example: []
+                description: Sideloaded related resources.
+                example: []
+            example:
+              data:
+                id: '234'
+                type: invoices
+                attributes:
+                  number: INV-2026-001
+                  status: draft
+                  due_date: '2026-04-15'
+                  date: '2026-03-15'
+                  created_at: '2026-03-15T09:00:00.000+00:00'
+                  updated_at: '2026-03-15T09:00:00.000+00:00'
+                  total: '12500.00'
+                  subtotal: '11363.64'
+                  tax: '1136.36'
+                  currency: USD
+                  notes: Payment due within 30 days
+                  last_activity_at: '2026-03-15T09:00:00.000+00:00'
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+                  deal:
+                    data:
+                      type: deals
+                      id: '89'
+                  subsidiary:
+                    data: null
+              included: []
       description: Single invoice
     collection_invoice:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API response envelope for a collection of invoices.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: array
                 items:
                   type: object
+                  description: A single invoice resource object within the collection response.
                   properties:
-                    attributes:
-                      type: object
-                      properties:
-                        note:
-                          $ref: '#/components/schemas/resource_invoice/properties/note'
-                        amount:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount'
-                        footer:
-                          $ref: '#/components/schemas/resource_invoice/properties/footer'
-                        number:
-                          $ref: '#/components/schemas/resource_invoice/properties/number'
-                        pay_on:
-                          $ref: '#/components/schemas/resource_invoice/properties/pay_on'
-                        paid_on:
-                          $ref: '#/components/schemas/resource_invoice/properties/paid_on'
-                        sent_on:
-                          $ref: '#/components/schemas/resource_invoice/properties/sent_on'
-                        subject:
-                          $ref: '#/components/schemas/resource_invoice/properties/subject'
-                        credited:
-                          $ref: '#/components/schemas/resource_invoice/properties/credited'
-                        currency:
-                          $ref: '#/components/schemas/resource_invoice/properties/currency'
-                        discount:
-                          $ref: '#/components/schemas/resource_invoice/properties/discount'
-                        exported:
-                          $ref: '#/components/schemas/resource_invoice/properties/exported'
-                        tag_list:
-                          $ref: '#/components/schemas/resource_invoice/properties/tag_list'
-                        email_key:
-                          $ref: '#/components/schemas/resource_invoice/properties/email_key'
-                        export_id:
-                          $ref: '#/components/schemas/resource_invoice/properties/export_id'
-                        tax1_name:
-                          $ref: '#/components/schemas/resource_invoice/properties/tax1_name'
-                        tax2_name:
-                          $ref: '#/components/schemas/resource_invoice/properties/tax2_name'
-                        amount_tax:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_tax'
-                        created_at:
-                          $ref: '#/components/schemas/resource_invoice/properties/created_at'
-                        deleted_at:
-                          $ref: '#/components/schemas/resource_invoice/properties/deleted_at'
-                        tax1_value:
-                          $ref: '#/components/schemas/resource_invoice/properties/tax1_value'
-                        tax2_value:
-                          $ref: '#/components/schemas/resource_invoice/properties/tax2_value'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_invoice/properties/updated_at'
-                        amount_paid:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_paid'
-                        delivery_on:
-                          $ref: '#/components/schemas/resource_invoice/properties/delivery_on'
-                        exported_at:
-                          $ref: '#/components/schemas/resource_invoice/properties/exported_at'
-                        invoiced_on:
-                          $ref: '#/components/schemas/resource_invoice/properties/invoiced_on'
-                        sample_data:
-                          $ref: '#/components/schemas/resource_invoice/properties/sample_data'
-                        finalized_at:
-                          $ref: '#/components/schemas/resource_invoice/properties/finalized_at'
-                        finalized_on:
-                          $ref: '#/components/schemas/resource_invoice/properties/finalized_on'
-                        amount_unpaid:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_invoice/properties/custom_fields'
-                        exchange_date:
-                          $ref: '#/components/schemas/resource_invoice/properties/exchange_date'
-                        exchange_rate:
-                          $ref: '#/components/schemas/resource_invoice/properties/exchange_rate'
-                        line_item_tax:
-                          $ref: '#/components/schemas/resource_invoice/properties/line_item_tax'
-                        payment_terms:
-                          $ref: '#/components/schemas/resource_invoice/properties/payment_terms'
-                        amount_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_default'
-                        amount_credited:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited'
-                        amount_with_tax:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax'
-                        invoice_type_id:
-                          $ref: '#/components/schemas/resource_invoice/properties/invoice_type_id'
-                        pay_on_relative:
-                          $ref: '#/components/schemas/resource_invoice/properties/pay_on_relative'
-                        creation_options:
-                          $ref: '#/components/schemas/resource_invoice/properties/creation_options'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/currency_default'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_invoice/properties/last_activity_at'
-                        amount_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_normalized'
-                        note_interpolated:
-                          $ref: '#/components/schemas/resource_invoice/properties/note_interpolated'
-                        amount_tax_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_tax_default'
-                        amount_written_off:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_written_off'
-                        export_invoice_url:
-                          $ref: '#/components/schemas/resource_invoice/properties/export_invoice_url'
-                        payment_terms_days:
-                          $ref: '#/components/schemas/resource_invoice/properties/payment_terms_days'
-                        payment_terms_type:
-                          $ref: '#/components/schemas/resource_invoice/properties/payment_terms_type'
-                        amount_paid_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_paid_default'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/currency_normalized'
-                        footer_interpolated:
-                          $ref: '#/components/schemas/resource_invoice/properties/footer_interpolated'
-                        invoice_template_id:
-                          $ref: '#/components/schemas/resource_invoice/properties/invoice_template_id'
-                        bank_account_details:
-                          $ref: '#/components/schemas/resource_invoice/properties/bank_account_details'
-                        company_reference_id:
-                          $ref: '#/components/schemas/resource_invoice/properties/company_reference_id'
-                        amount_tax_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_tax_normalized'
-                        amount_unpaid_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid_default'
-                        purchase_order_number:
-                          $ref: '#/components/schemas/resource_invoice/properties/purchase_order_number'
-                        amount_paid_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_paid_normalized'
-                        amount_credited_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_default'
-                        amount_with_tax_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax_default'
-                        amount_credited_with_tax:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax'
-                        amount_unpaid_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid_normalized'
-                        amount_credited_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_normalized'
-                        amount_with_tax_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax_normalized'
-                        amount_written_off_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_written_off_default'
-                        export_integration_type_id:
-                          $ref: '#/components/schemas/resource_invoice/properties/export_integration_type_id'
-                        amount_written_off_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_written_off_normalized'
-                        amount_credited_with_tax_default:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax_default'
-                        amount_credited_with_tax_normalized:
-                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax_normalized'
                     relationships:
                       type: object
+                      description: JSON:API relationship links for this invoice.
                       properties:
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        bank_account:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        company:
+                          $ref: '#/components/schemas/_single_relationship'
+                        bill_from:
+                          $ref: '#/components/schemas/_single_relationship'
+                        invoice_attributions:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        document_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachment:
+                          $ref: '#/components/schemas/_single_relationship'
                         issuer:
                           $ref: '#/components/schemas/_single_relationship'
                         bill_to:
                           $ref: '#/components/schemas/_single_relationship'
-                        company:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        bill_from:
-                          $ref: '#/components/schemas/_single_relationship'
-                        attachment:
-                          $ref: '#/components/schemas/_single_relationship'
                         subsidiary:
-                          $ref: '#/components/schemas/_single_relationship'
-                        bank_account:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        document_type:
                           $ref: '#/components/schemas/_single_relationship'
                         parent_invoice:
                           $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        invoice_attributions:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Attributes of an invoice resource in the collection response.
+                      properties:
+                        amount_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_normalized'
+                        amount_tax_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_tax_normalized'
+                        tax2_name:
+                          $ref: '#/components/schemas/resource_invoice/properties/tax2_name'
+                        amount_written_off_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_written_off_normalized'
+                        footer:
+                          $ref: '#/components/schemas/resource_invoice/properties/footer'
+                        note_interpolated:
+                          $ref: '#/components/schemas/resource_invoice/properties/note_interpolated'
+                        created_at:
+                          $ref: '#/components/schemas/resource_invoice/properties/created_at'
+                        pay_on_relative:
+                          $ref: '#/components/schemas/resource_invoice/properties/pay_on_relative'
+                        company_reference_id:
+                          $ref: '#/components/schemas/resource_invoice/properties/company_reference_id'
+                        purchase_order_number:
+                          $ref: '#/components/schemas/resource_invoice/properties/purchase_order_number'
+                        amount_with_tax_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax_normalized'
+                        email_key:
+                          $ref: '#/components/schemas/resource_invoice/properties/email_key'
+                        subject:
+                          $ref: '#/components/schemas/resource_invoice/properties/subject'
+                        amount_with_tax:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax'
+                        amount_with_tax_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_with_tax_default'
+                        sent_on:
+                          $ref: '#/components/schemas/resource_invoice/properties/sent_on'
+                        amount_credited:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited'
+                        number:
+                          $ref: '#/components/schemas/resource_invoice/properties/number'
+                        export_id:
+                          $ref: '#/components/schemas/resource_invoice/properties/export_id'
+                        pay_on:
+                          $ref: '#/components/schemas/resource_invoice/properties/pay_on'
+                        invoiced_on:
+                          $ref: '#/components/schemas/resource_invoice/properties/invoiced_on'
+                        amount_paid_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_paid_normalized'
+                        sample_data:
+                          $ref: '#/components/schemas/resource_invoice/properties/sample_data'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/currency_default'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_invoice/properties/updated_at'
+                        tax2_value:
+                          $ref: '#/components/schemas/resource_invoice/properties/tax2_value'
+                        amount_credited_with_tax_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax_normalized'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_invoice/properties/last_activity_at'
+                        exchange_date:
+                          $ref: '#/components/schemas/resource_invoice/properties/exchange_date'
+                        creation_options:
+                          $ref: '#/components/schemas/resource_invoice/properties/creation_options'
+                        tax1_value:
+                          $ref: '#/components/schemas/resource_invoice/properties/tax1_value'
+                        currency:
+                          $ref: '#/components/schemas/resource_invoice/properties/currency'
+                        line_item_tax:
+                          $ref: '#/components/schemas/resource_invoice/properties/line_item_tax'
+                        bank_account_details:
+                          $ref: '#/components/schemas/resource_invoice/properties/bank_account_details'
+                        exported:
+                          $ref: '#/components/schemas/resource_invoice/properties/exported'
+                        note:
+                          $ref: '#/components/schemas/resource_invoice/properties/note'
+                        footer_interpolated:
+                          $ref: '#/components/schemas/resource_invoice/properties/footer_interpolated'
+                        amount_paid_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_paid_default'
+                        tax1_name:
+                          $ref: '#/components/schemas/resource_invoice/properties/tax1_name'
+                        amount_unpaid:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid'
+                        discount:
+                          $ref: '#/components/schemas/resource_invoice/properties/discount'
+                        credited:
+                          $ref: '#/components/schemas/resource_invoice/properties/credited'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_invoice/properties/custom_fields'
+                        invoice_type_id:
+                          $ref: '#/components/schemas/resource_invoice/properties/invoice_type_id'
+                        amount_credited_with_tax:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax'
+                        amount_written_off:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_written_off'
+                        finalized_at:
+                          $ref: '#/components/schemas/resource_invoice/properties/finalized_at'
+                        amount_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_default'
+                        amount_unpaid_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid_default'
+                        amount_credited_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_normalized'
+                        exported_at:
+                          $ref: '#/components/schemas/resource_invoice/properties/exported_at'
+                        finalized_on:
+                          $ref: '#/components/schemas/resource_invoice/properties/finalized_on'
+                        invoice_template_id:
+                          $ref: '#/components/schemas/resource_invoice/properties/invoice_template_id'
+                        payment_terms_type:
+                          $ref: '#/components/schemas/resource_invoice/properties/payment_terms_type'
+                        amount:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount'
+                        amount_credited_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_default'
+                        payment_terms:
+                          $ref: '#/components/schemas/resource_invoice/properties/payment_terms'
+                        deleted_at:
+                          $ref: '#/components/schemas/resource_invoice/properties/deleted_at'
+                        amount_credited_with_tax_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_credited_with_tax_default'
+                        amount_paid:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_paid'
+                        exchange_rate:
+                          $ref: '#/components/schemas/resource_invoice/properties/exchange_rate'
+                        amount_unpaid_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_unpaid_normalized'
+                        amount_tax_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_tax_default'
+                        paid_on:
+                          $ref: '#/components/schemas/resource_invoice/properties/paid_on'
+                        amount_tax:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_tax'
+                        delivery_on:
+                          $ref: '#/components/schemas/resource_invoice/properties/delivery_on'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_invoice/properties/currency_normalized'
+                        export_integration_type_id:
+                          $ref: '#/components/schemas/resource_invoice/properties/export_integration_type_id'
+                        amount_written_off_default:
+                          $ref: '#/components/schemas/resource_invoice/properties/amount_written_off_default'
+                        tag_list:
+                          $ref: '#/components/schemas/resource_invoice/properties/tag_list'
+                        payment_terms_days:
+                          $ref: '#/components/schemas/resource_invoice/properties/payment_terms_days'
+                        export_invoice_url:
+                          $ref: '#/components/schemas/resource_invoice/properties/export_invoice_url'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of invoice resource objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '234'
+                  type: invoices
+                  attributes:
+                    number: INV-2026-001
+                    status: draft
+                    due_date: '2026-04-15'
+                    date: '2026-03-15'
+                    created_at: '2026-03-15T09:00:00.000+00:00'
+                    updated_at: '2026-03-15T09:00:00.000+00:00'
+                    total: '12500.00'
+                    subtotal: '11363.64'
+                    tax: '1136.36'
+                    currency: USD
+                    notes: Payment due within 30 days
+                    last_activity_at: '2026-03-15T09:00:00.000+00:00'
+                  relationships:
+                    company:
+                      data:
+                        type: companies
+                        id: '65111'
+                    deal:
+                      data:
+                        type: deals
+                        id: '89'
+                    subsidiary:
+                      data: null
+              included: []
               meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection invoice
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -1164,115 +1250,17 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
     resource_invoice:
       type: object
       title: Invoice Resource
+      description: A billing document issued to a client. Invoices progress through draft, finalized, sent, and paid stages, and contain line items drawn from budget services.
       properties:
-        status:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Status
-          description: Combined status for display purposes.
-          example:
-            eq: active
-        tags:
-          type: string
-          title: Tags
-          description: Tags applied to this invoice.
-          example:
-            eq: value
-        amount_written_off_default:
-          title: Amount Written Off Default
-          description: Amount written off as uncollectible, in the organization default currency.
-          example:
-            gt: 0
         bill_from:
           title: Bill From
           description: The subsidiary contact issuing the invoice.
@@ -1978,11 +1966,31 @@ components:
           description: Amount already paid, in the invoice currency.
           example:
             gt: 0
+        status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Status
+          description: Combined status for display purposes.
+          example:
+            eq: active
+        tags:
+          type: string
+          title: Tags
+          description: Tags applied to this invoice.
+          example:
+            eq: value
         parent_company_id:
           type: integer
           title: Parent Company
           description: ID of the parent company of the client linked to this invoice, used for hierarchical company filtering.
           example: 123
+        amount_written_off_default:
+          title: Amount Written Off Default
+          description: Amount written off as uncollectible, in the organization default currency.
+          example:
+            gt: 0
         finalized_on:
           type: string
           title: Finalized On
@@ -1990,7 +1998,6 @@ components:
           description: Date when the invoice was finalized (locked for editing).
           example:
             eq: value
-      description: A billing document issued to a client. Invoices progress through draft, finalized, sent, and paid stages, and contain line items drawn from budget services.
       example:
         id: '234'
         type: invoices
@@ -2018,6 +2025,156 @@ components:
               id: '89'
           subsidiary:
             data: null
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_invoice:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - amount
+            - -amount
+            - amount_credited
+            - -amount_credited
+            - amount_credited_with_tax
+            - -amount_credited_with_tax
+            - amount_paid
+            - -amount_paid
+            - amount_tax
+            - -amount_tax
+            - amount_with_tax
+            - -amount_with_tax
+            - amount_written_off
+            - -amount_written_off
+            - company_name
+            - -company_name
+            - created_at
+            - -created_at
+            - credited
+            - -credited
+            - custom_fields
+            - -custom_fields
+            - deleted_at
+            - -deleted_at
+            - delivery_on
+            - -delivery_on
+            - discount
+            - -discount
+            - invoiced_on
+            - -invoiced_on
+            - last_activity_at
+            - -last_activity_at
+            - number
+            - -number
+            - pay_on
+            - -pay_on
+            - purchase_order_number
+            - -purchase_order_number
+            - sent_on
+            - -sent_on
+            - subject
+            - -subject
+          type: string
+        title: Sort invoice
+      explode: false
+      required: false
+      description: Sort invoice
+    filter_invoice:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.invoice at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     send_einvoice:
       content:
@@ -2039,91 +2196,129 @@ components:
                           - 5
                         type: integer
                         title: Format
+                        example: 1
                       business_process:
                         type: string
                         title: Business Process
+                        example: urn:fdc:peppol.eu:2017:poacc:billing:01:1.0
+                    example:
+                      format_id: 1
+                example:
+                  type: send_einvoices
+                  attributes:
+                    format_id: 1
+            example:
+              data:
+                type: send_einvoices
+                attributes:
+                  format_id: 1
     invoice:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for an invoice.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the invoice resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Invoice attributes.
+                    properties:
+                      pay_on_relative:
+                        $ref: '#/components/schemas/resource_invoice/properties/pay_on_relative'
+                      purchase_order_number:
+                        $ref: '#/components/schemas/resource_invoice/properties/purchase_order_number'
+                      payment_terms_type:
+                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms_type'
+                      delivery_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/delivery_on'
+                      tax2_value:
+                        $ref: '#/components/schemas/resource_invoice/properties/tax2_value'
+                      document_type_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/document_type_id'
+                      tax1_name:
+                        $ref: '#/components/schemas/resource_invoice/properties/tax1_name'
+                      note:
+                        $ref: '#/components/schemas/resource_invoice/properties/note'
+                      company_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/company_id'
+                      creation_options:
+                        $ref: '#/components/schemas/resource_invoice/properties/creation_options'
+                      invoiced_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/invoiced_on'
+                      number:
+                        $ref: '#/components/schemas/resource_invoice/properties/number'
+                      tax1_value:
+                        $ref: '#/components/schemas/resource_invoice/properties/tax1_value'
+                      currency:
+                        $ref: '#/components/schemas/resource_invoice/properties/currency'
+                      bank_account_details:
+                        $ref: '#/components/schemas/resource_invoice/properties/bank_account_details'
+                      bank_account_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/bank_account_id'
+                      parent_invoice_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/parent_invoice_id'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_invoice/properties/custom_fields'
+                      payment_terms_days:
+                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms_days'
+                      attachment_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/attachment_id'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_invoice/properties/tag_list'
+                      tax2_name:
+                        $ref: '#/components/schemas/resource_invoice/properties/tax2_name'
+                      export_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/export_id'
+                      discount:
+                        $ref: '#/components/schemas/resource_invoice/properties/discount'
+                      issuer_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/issuer_id'
+                      exported:
+                        $ref: '#/components/schemas/resource_invoice/properties/exported'
+                      subject:
+                        $ref: '#/components/schemas/resource_invoice/properties/subject'
+                      export_invoice_url:
+                        $ref: '#/components/schemas/resource_invoice/properties/export_invoice_url'
+                      subsidiary_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/subsidiary_id'
+                      sent_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/sent_on'
+                      invoice_type_id:
+                        $ref: '#/components/schemas/resource_invoice/properties/invoice_type_id'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_invoice/properties/subscriber_ids'
+                      pay_on:
+                        $ref: '#/components/schemas/resource_invoice/properties/pay_on'
                     required:
                       - company_id
                       - currency
                       - invoiced_on
-                    properties:
-                      note:
-                        $ref: '#/components/schemas/resource_invoice/properties/note'
-                      number:
-                        $ref: '#/components/schemas/resource_invoice/properties/number'
-                      pay_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/pay_on'
-                      sent_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/sent_on'
-                      subject:
-                        $ref: '#/components/schemas/resource_invoice/properties/subject'
-                      currency:
-                        $ref: '#/components/schemas/resource_invoice/properties/currency'
-                      discount:
-                        $ref: '#/components/schemas/resource_invoice/properties/discount'
-                      exported:
-                        $ref: '#/components/schemas/resource_invoice/properties/exported'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_invoice/properties/tag_list'
-                      export_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/export_id'
-                      issuer_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/issuer_id'
-                      tax1_name:
-                        $ref: '#/components/schemas/resource_invoice/properties/tax1_name'
-                      tax2_name:
-                        $ref: '#/components/schemas/resource_invoice/properties/tax2_name'
-                      company_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/company_id'
-                      tax1_value:
-                        $ref: '#/components/schemas/resource_invoice/properties/tax1_value'
-                      tax2_value:
-                        $ref: '#/components/schemas/resource_invoice/properties/tax2_value'
-                      delivery_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/delivery_on'
-                      invoiced_on:
-                        $ref: '#/components/schemas/resource_invoice/properties/invoiced_on'
-                      attachment_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/attachment_id'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_invoice/properties/custom_fields'
-                      subsidiary_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/subsidiary_id'
-                      subscriber_ids:
-                        $ref: '#/components/schemas/resource_invoice/properties/subscriber_ids'
-                      bank_account_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/bank_account_id'
-                      invoice_type_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/invoice_type_id'
-                      pay_on_relative:
-                        $ref: '#/components/schemas/resource_invoice/properties/pay_on_relative'
-                      creation_options:
-                        $ref: '#/components/schemas/resource_invoice/properties/creation_options'
-                      document_type_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/document_type_id'
-                      parent_invoice_id:
-                        $ref: '#/components/schemas/resource_invoice/properties/parent_invoice_id'
-                      export_invoice_url:
-                        $ref: '#/components/schemas/resource_invoice/properties/export_invoice_url'
-                      payment_terms_days:
-                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms_days'
-                      payment_terms_type:
-                        $ref: '#/components/schemas/resource_invoice/properties/payment_terms_type'
-                      bank_account_details:
-                        $ref: '#/components/schemas/resource_invoice/properties/bank_account_details'
-                      purchase_order_number:
-                        $ref: '#/components/schemas/resource_invoice/properties/purchase_order_number'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: invoices
+                attributes:
+                  number: INV-2026-001
+                  date: '2026-03-15'
+                  due_date: '2026-04-15'
+                  notes: Payment due within 30 days
+                  currency: USD
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+                  deal:
+                    data:
+                      type: deals
+                      id: '89'
         application/vnd.api+json; ext=bulk:
           schema:
             type: object
@@ -2132,16 +2327,16 @@ components:
                 type: array
                 items:
                   type: object
-                  required:
-                    - type
-                    - attributes
                   properties:
+                    attributes:
+                      type: object
                     type:
                       enum:
                         - invoices
                       type: string
-                    attributes:
-                      type: object
+                  required:
+                    - type
+                    - attributes
                 maxItems: 100
                 description: Array of invoice resource objects, each with the same shape as the singular create payload (`application/vnd.api+json`).
       description: Request body for creating or updating an invoice.

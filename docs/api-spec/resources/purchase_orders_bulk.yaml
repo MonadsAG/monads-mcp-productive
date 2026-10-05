@@ -5,13 +5,6 @@ info:
 description: Bulk update and delete operations on purchase orders.
 x-filters:
   purchase_order:
-    query:
-      description: Free-text search across the purchase order number and quick-search terms.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     project_id:
       description: Filter by the project the parent deal belongs to.
       operators:
@@ -131,34 +124,41 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    query:
+      description: Free-text search across the purchase order number and quick-search terms.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/purchase_orders:
     patch:
       tags:
         - Purchase Orders - Bulk
       summary: Update purchase orders
+      operationId: purchase_orders-update-bulk
+      description: Bulk-updates multiple purchase orders in a single request. Accepts a JSON:API array of partial `purchase_orders` resources keyed by ID.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/purchase_order_bulk_update'
       responses:
         '200':
           $ref: '#/components/responses/collection_purchase_order'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: purchase_orders-update-bulk
-      requestBody:
-        $ref: '#/components/requestBodies/purchase_order_bulk_update'
-      description: Bulk-updates multiple purchase orders in a single request. Accepts a JSON:API array of partial `purchase_orders` resources keyed by ID.
     delete:
       tags:
         - Purchase Orders - Bulk
       summary: Delete purchase orders
+      operationId: purchase_orders-destroy-bulk
+      description: Bulk-deletes purchase orders by ID in a single request.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/purchase_order_bulk_delete'
       responses:
         '204':
           description: Purchase orders deleted successfully. No response body.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: purchase_orders-destroy-bulk
-      requestBody:
-        $ref: '#/components/requestBodies/purchase_order_bulk_delete'
-      description: Bulk-deletes purchase orders by ID in a single request.
 components:
   requestBodies:
     purchase_order_bulk_delete:
@@ -171,16 +171,31 @@ components:
                 type: array
                 items:
                   type: object
-                  required:
-                    - type
-                    - id
                   properties:
-                    id:
-                      $ref: '#/components/schemas/resource_purchase_order/properties/id'
                     type:
                       enum:
                         - purchase_orders
                       type: string
+                      example: purchase_orders
+                    id:
+                      $ref: '#/components/schemas/resource_purchase_order/properties/id'
+                  required:
+                    - type
+                    - id
+                  example:
+                    type: purchase_orders
+                    id: '1234567'
+                example:
+                  - type: purchase_orders
+                    id: '1234567'
+                  - type: purchase_orders
+                    id: '1234568'
+            example:
+              data:
+                - type: purchase_orders
+                  id: '1234567'
+                - type: purchase_orders
+                  id: '1234568'
     purchase_order_bulk_update:
       content:
         application/vnd.api+json; ext=bulk:
@@ -191,9 +206,6 @@ components:
                 type: array
                 items:
                   type: object
-                  required:
-                    - type
-                    - id
                   properties:
                     id:
                       $ref: '#/components/schemas/resource_purchase_order/properties/id'
@@ -201,37 +213,74 @@ components:
                       enum:
                         - purchase_orders
                       type: string
+                      example: purchase_orders
                     attributes:
                       type: object
                       properties:
                         note:
                           $ref: '#/components/schemas/resource_purchase_order/properties/note'
+                        document_type_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/document_type_id'
+                        vendor_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/vendor_id'
+                        subscriber_ids:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/subscriber_ids'
+                        status_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/status_id'
+                        delivery_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/delivery_on'
                         deal_id:
                           $ref: '#/components/schemas/resource_purchase_order/properties/deal_id'
                         sent_on:
                           $ref: '#/components/schemas/resource_purchase_order/properties/sent_on'
-                        subject:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/subject'
-                        currency:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/currency'
-                        issued_on:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/issued_on'
-                        status_id:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/status_id'
-                        vendor_id:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/vendor_id'
-                        delivery_on:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/delivery_on'
                         attachment_id:
                           $ref: '#/components/schemas/resource_purchase_order/properties/attachment_id'
-                        subscriber_ids:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/subscriber_ids'
-                        document_type_id:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/document_type_id'
+                        currency:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/currency'
+                        subject:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/subject'
+                        issued_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/issued_on'
+                      example:
+                        status_id: 2
+                        delivery_on: '2026-05-01'
+                  required:
+                    - type
+                    - id
+                  example:
+                    type: purchase_orders
+                    id: '1234567'
+                    attributes:
+                      status_id: 2
+                      delivery_on: '2026-05-01'
+                example:
+                  - type: purchase_orders
+                    id: '1234567'
+                    attributes:
+                      status_id: 2
+                      delivery_on: '2026-05-01'
+                  - type: purchase_orders
+                    id: '1234568'
+                    attributes:
+                      status_id: 2
+                      sent_on: '2026-04-14'
+            example:
+              data:
+                - type: purchase_orders
+                  id: '1234567'
+                  attributes:
+                    status_id: 2
+                    delivery_on: '2026-05-01'
+                - type: purchase_orders
+                  id: '1234568'
+                  attributes:
+                    status_id: 2
+                    sent_on: '2026-04-14'
   schemas:
     resource_purchase_order:
       type: object
       title: Purchase order Resource
+      description: Vendor procurement document on a budget. Tracks subject, status, issued/delivery/received dates, vendor, amounts, and export status for accounting integration. Line items (expenses) are created from the PO and billed via bills.
       properties:
         footer_interpolated:
           title: Footer Interpolated
@@ -268,11 +317,6 @@ components:
             data:
               type: contact_entries
               id: '78'
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who created this purchase order.
-          example: 345678
         total_received:
           title: Total Received
           description: The total amount received against this purchase order in the purchase order's currency.
@@ -516,13 +560,17 @@ components:
           title: Id
           description: Unique identifier of this purchase order.
           example: 1234567
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who created this purchase order.
+          example: 345678
         received_on:
           type: string
           title: Received On
           format: date-time
           description: Timestamp when this purchase order was received by the vendor, or null if not yet received.
           example: '2026-04-15T10:30:00.000+01:00'
-      description: Vendor procurement document on a budget. Tracks subject, status, issued/delivery/received dates, vendor, amounts, and export status for accounting integration. Line items (expenses) are created from the PO and billed via bills.
       example:
         id: '45'
         type: purchase_orders
@@ -538,9 +586,64 @@ components:
             data:
               type: companies
               id: '65111'
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -573,67 +676,12 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
   parameters:
     header_organization:
       in: header
@@ -648,7 +696,28 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API envelope with `data`, `included`, `meta`, and `links`.
             properties:
+              included:
+                type: array
+                items:
+                  description: Related resources requested via `include` (vendors, deals, creators, document types, bill-to/from, attachments).
+                  example:
+                    type: companies
+                    id: '234567'
+                    attributes:
+                      name: Acme Supplies
+                example:
+                  - type: companies
+                    id: '234567'
+                    attributes:
+                      name: Acme Supplies
+                  - type: deals
+                    id: '456789'
+                    attributes:
+                      name: Q2 Marketing Campaign
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: array
                 items:
@@ -657,94 +726,320 @@ components:
                     attributes:
                       type: object
                       properties:
-                        note:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/note'
-                        footer:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/footer'
-                        number:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/number'
-                        sent_on:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/sent_on'
-                        subject:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/subject'
-                        currency:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/currency'
-                        exported:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/exported'
-                        email_key:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/email_key'
-                        export_id:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/export_id'
-                        issued_on:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/issued_on'
-                        status_id:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/status_id'
-                        created_at:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/created_at'
-                        export_url:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/export_url'
-                        total_cost:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost'
-                        delivery_on:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/delivery_on'
-                        exported_at:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/exported_at'
-                        received_on:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/received_on'
-                        exchange_date:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/exchange_date'
-                        exchange_rate:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/exchange_rate'
-                        total_received:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/total_received'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/currency_default'
-                        note_interpolated:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/note_interpolated'
                         payment_status_id:
                           $ref: '#/components/schemas/resource_purchase_order/properties/payment_status_id'
-                        total_cost_default:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_default'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/currency_normalized'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/currency_default'
                         footer_interpolated:
                           $ref: '#/components/schemas/resource_purchase_order/properties/footer_interpolated'
-                        total_cost_with_tax:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax'
-                        total_cost_normalized:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_normalized'
+                        exchange_date:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/exchange_date'
                         total_received_default:
                           $ref: '#/components/schemas/resource_purchase_order/properties/total_received_default'
-                        total_received_normalized:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/total_received_normalized'
-                        export_integration_type_id:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/export_integration_type_id'
-                        total_cost_with_tax_default:
-                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax_default'
+                        received_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/received_on'
                         total_cost_with_tax_normalized:
                           $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax_normalized'
+                        export_integration_type_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/export_integration_type_id'
+                        total_received:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_received'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/currency_normalized'
+                        issued_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/issued_on'
+                        total_received_normalized:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_received_normalized'
+                        exported:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/exported'
+                        export_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/export_id'
+                        note:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/note'
+                        exported_at:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/exported_at'
+                        exchange_rate:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/exchange_rate'
+                        subject:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/subject'
+                        footer:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/footer'
+                        total_cost_with_tax:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax'
+                        sent_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/sent_on'
+                        total_cost_normalized:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_normalized'
+                        export_url:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/export_url'
+                        currency:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/currency'
+                        status_id:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/status_id'
+                        total_cost_default:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_default'
+                        total_cost_with_tax_default:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost_with_tax_default'
+                        created_at:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/created_at'
+                        email_key:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/email_key'
+                        total_cost:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/total_cost'
+                        note_interpolated:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/note_interpolated'
+                        number:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/number'
+                        delivery_on:
+                          $ref: '#/components/schemas/resource_purchase_order/properties/delivery_on'
+                      example:
+                        subject: Purchase Order PO-2024-017
+                        status_id: 1
+                        issued_on: '2026-04-10'
+                        delivery_on: '2026-04-17'
+                        sent_on: '2026-04-10'
+                        received_on: '2026-04-15T10:30:00.000+01:00'
+                        created_at: '2026-04-01T09:00:00.000+01:00'
+                        number: PO-2024-017
+                        note: Please confirm delivery date for the attached items.
+                        footer: 'Payment terms: net 30.'
+                        note_interpolated: Please confirm delivery date for PO-2024-017.
+                        footer_interpolated: 'Payment terms: net 30.'
+                        email_key: po-7f3c9b2a
+                        payment_status_id: 1
+                        exchange_rate: '1.00000000000000000000'
+                        exchange_date: '2026-04-10'
+                        exported: true
+                        exported_at: '2026-04-12T14:22:00.000+01:00'
+                        export_integration_type_id: 3
+                        export_id: xero-abc123
+                        export_url: https://go.xero.com/PurchaseOrders/Edit/abc123
+                        currency: USD
+                        currency_default: USD
+                        currency_normalized: USD
+                        total_cost: 150000
+                        total_cost_default: 150000
+                        total_cost_normalized: 150000
+                        total_cost_with_tax: 187500
+                        total_cost_with_tax_default: 187500
+                        total_cost_with_tax_normalized: 187500
+                        total_received: 150000
+                        total_received_default: 150000
+                        total_received_normalized: 150000
                     relationships:
                       type: object
                       properties:
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        bill_to:
+                          $ref: '#/components/schemas/_single_relationship'
                         deal:
                           $ref: '#/components/schemas/_single_relationship'
                         vendor:
                           $ref: '#/components/schemas/_single_relationship'
-                        bill_to:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
                         bill_from:
-                          $ref: '#/components/schemas/_single_relationship'
-                        attachment:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
                           $ref: '#/components/schemas/_single_relationship'
                         document_type:
                           $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachment:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        organization:
+                          data:
+                            type: organizations
+                            id: '109'
+                        vendor:
+                          data:
+                            type: companies
+                            id: '234567'
+                        deal:
+                          data:
+                            type: deals
+                            id: '456789'
+                        creator:
+                          data:
+                            type: people
+                            id: '345678'
+                        document_type:
+                          data:
+                            type: document_types
+                            id: '12'
+                        attachment:
+                          data:
+                            type: attachments
+                            id: '89012'
+                        bill_to:
+                          data:
+                            type: contact_entries
+                            id: '78'
+                        bill_from:
+                          data:
+                            type: contact_entries
+                            id: '79'
+                  example:
+                    type: purchase_orders
+                    id: '1234567'
+                    attributes:
+                      subject: Purchase Order PO-2024-017
+                      status_id: 1
+                      issued_on: '2026-04-10'
+                      delivery_on: '2026-04-17'
+                      sent_on: '2026-04-10'
+                      received_on: '2026-04-15T10:30:00.000+01:00'
+                      created_at: '2026-04-01T09:00:00.000+01:00'
+                      number: PO-2024-017
+                      note: Please confirm delivery date for the attached items.
+                      footer: 'Payment terms: net 30.'
+                      note_interpolated: Please confirm delivery date for PO-2024-017.
+                      footer_interpolated: 'Payment terms: net 30.'
+                      email_key: po-7f3c9b2a
+                      payment_status_id: 1
+                      exchange_rate: '1.00000000000000000000'
+                      exchange_date: '2026-04-10'
+                      exported: true
+                      exported_at: '2026-04-12T14:22:00.000+01:00'
+                      export_integration_type_id: 3
+                      export_id: xero-abc123
+                      export_url: https://go.xero.com/PurchaseOrders/Edit/abc123
+                      currency: USD
+                      currency_default: USD
+                      currency_normalized: USD
+                      total_cost: 150000
+                      total_cost_default: 150000
+                      total_cost_normalized: 150000
+                      total_cost_with_tax: 187500
+                      total_cost_with_tax_default: 187500
+                      total_cost_with_tax_normalized: 187500
+                      total_received: 150000
+                      total_received_default: 150000
+                      total_received_normalized: 150000
+                    relationships:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      vendor:
+                        data:
+                          type: companies
+                          id: '234567'
+                      deal:
+                        data:
+                          type: deals
+                          id: '456789'
+                      creator:
+                        data:
+                          type: people
+                          id: '345678'
+                      document_type:
+                        data:
+                          type: document_types
+                          id: '12'
+                      attachment:
+                        data:
+                          type: attachments
+                          id: '89012'
+                      bill_to:
+                        data:
+                          type: contact_entries
+                          id: '78'
+                      bill_from:
+                        data:
+                          type: contact_entries
+                          id: '79'
+                description: Array of `purchase_orders` resource objects.
+                example:
+                  - type: purchase_orders
+                    id: '1234567'
+                    attributes:
+                      subject: Purchase Order PO-2024-017
+                      status_id: 1
+                      issued_on: '2026-04-10'
+                      delivery_on: '2026-04-17'
+                      sent_on: '2026-04-10'
+                      received_on: '2026-04-15T10:30:00.000+01:00'
+                      created_at: '2026-04-01T09:00:00.000+01:00'
+                      number: PO-2024-017
+                      note: Please confirm delivery date for the attached items.
+                      footer: 'Payment terms: net 30.'
+                      note_interpolated: Please confirm delivery date for PO-2024-017.
+                      footer_interpolated: 'Payment terms: net 30.'
+                      email_key: po-7f3c9b2a
+                      payment_status_id: 1
+                      exchange_rate: '1.00000000000000000000'
+                      exchange_date: '2026-04-10'
+                      exported: true
+                      exported_at: '2026-04-12T14:22:00.000+01:00'
+                      export_integration_type_id: 3
+                      export_id: xero-abc123
+                      export_url: https://go.xero.com/PurchaseOrders/Edit/abc123
+                      currency: USD
+                      currency_default: USD
+                      currency_normalized: USD
+                      total_cost: 150000
+                      total_cost_default: 150000
+                      total_cost_normalized: 150000
+                      total_cost_with_tax: 187500
+                      total_cost_with_tax_default: 187500
+                      total_cost_with_tax_normalized: 187500
+                      total_received: 150000
+                      total_received_default: 150000
+                      total_received_normalized: 150000
+                    relationships:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      vendor:
+                        data:
+                          type: companies
+                          id: '234567'
+                      deal:
+                        data:
+                          type: deals
+                          id: '456789'
+                      creator:
+                        data:
+                          type: people
+                          id: '345678'
+                      document_type:
+                        data:
+                          type: document_types
+                          id: '12'
+                      attachment:
+                        data:
+                          type: attachments
+                          id: '89012'
+                      bill_to:
+                        data:
+                          type: contact_entries
+                          id: '78'
+                      bill_from:
+                        data:
+                          type: contact_entries
+                          id: '79'
+            example:
+              data:
+                - id: '45'
+                  type: purchase_orders
+                  attributes:
+                    number: PO-2026-045
+                    status: approved
+                    amount: '25000.00'
+                    currency: USD
+                    date: '2026-02-01'
+                    created_at: '2026-02-01T10:00:00.000+00:00'
+                  relationships:
+                    company:
+                      data:
+                        type: companies
+                        id: '65111'
+              included: []
               meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Paginated list of purchase orders in JSON:API format, with related vendor, deal, creator, document type, bill-to, bill-from, and attachment resources available via `include`.

@@ -167,13 +167,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    deal_id:
-      description: Filter by the deal/budget ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     before:
       description: Filter by time entry end date — only entries with a date before this value are returned.
       operators:
@@ -489,26 +482,39 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    deal_id:
+      description: Filter by the deal/budget ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/time_entries/approve:
     patch:
       tags:
         - Time Entries - Bulk
       summary: Approves time entries
+      operationId: time_entries-approve-update-bulk
+      description: Approve a time entry (alternate endpoint).
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/time_entry'
       responses:
         '200':
           $ref: '#/components/responses/single_time_entry'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: time_entries-approve-update-bulk
-      requestBody:
-        $ref: '#/components/requestBodies/time_entry'
-      description: Approve a time entry (alternate endpoint).
   /api/v2/time_entries:
     post:
       tags:
         - Time Entries - Bulk
       summary: Create time entries
+      operationId: time_entries-create-bulk
+      description: Create a new time entry.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/time_entry'
       responses:
         '201':
           $ref: '#/components/responses/single_time_entry'
@@ -520,16 +526,16 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: time_entries-create-bulk
-      requestBody:
-        $ref: '#/components/requestBodies/time_entry'
-      description: Create a new time entry.
     patch:
       tags:
         - Time Entries - Bulk
       summary: Update time entries
+      operationId: time_entries-update-bulk
+      description: Update multiple time entries.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/time_entry'
       responses:
         '200':
           $ref: '#/components/responses/single_time_entry'
@@ -541,106 +547,406 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: time_entries-update-bulk
-      requestBody:
-        $ref: '#/components/requestBodies/time_entry'
-      description: Update multiple time entries.
     delete:
       tags:
         - Time Entries - Bulk
       summary: Deletes time entries
+      operationId: time_entries-destroy-bulk
+      description: Delete multiple time entries.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '204':
           description: No Content
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: time_entries-destroy-bulk
-      description: Delete multiple time entries.
   /api/v2/time_entries/unapprove:
     patch:
       tags:
         - Time Entries - Bulk
       summary: Unapproves time entries
+      operationId: time_entries-unapprove-update-bulk
+      description: Revoke approval of a time entry (alternate endpoint).
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/time_entry'
       responses:
         '200':
           $ref: '#/components/responses/single_time_entry'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: time_entries-unapprove-update-bulk
-      requestBody:
-        $ref: '#/components/requestBodies/time_entry'
-      description: Revoke approval of a time entry (alternate endpoint).
 components:
-  requestBodies:
-    time_entry:
+  responses:
+    single_time_entry:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single time entry record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The time entry resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - service_id
-                      - person_id
-                      - date
-                      - time
+                    description: Attributes of the time entry.
                     properties:
-                      date:
-                        $ref: '#/components/schemas/resource_time_entry/properties/date'
                       note:
                         $ref: '#/components/schemas/resource_time_entry/properties/note'
-                      time:
-                        $ref: '#/components/schemas/resource_time_entry/properties/time'
-                      task_id:
-                        $ref: '#/components/schemas/resource_time_entry/properties/task_id'
-                      person_id:
-                        $ref: '#/components/schemas/resource_time_entry/properties/person_id'
-                      service_id:
-                        $ref: '#/components/schemas/resource_time_entry/properties/service_id'
-                      started_at:
-                        $ref: '#/components/schemas/resource_time_entry/properties/started_at'
+                      internal_overhead_cost_normalized:
+                        $ref: '#/components/schemas/resource_time_entry/properties/internal_overhead_cost_normalized'
+                      cost_default:
+                        $ref: '#/components/schemas/resource_time_entry/properties/cost_default'
                       billable_time:
                         $ref: '#/components/schemas/resource_time_entry/properties/billable_time'
+                      rejected:
+                        $ref: '#/components/schemas/resource_time_entry/properties/rejected'
+                      internal_overhead_cost:
+                        $ref: '#/components/schemas/resource_time_entry/properties/internal_overhead_cost'
+                      rejected_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/rejected_at'
+                          - type: 'null'
+                        description: Timestamp when the time entry was rejected.
+                      work_cost:
+                        $ref: '#/components/schemas/resource_time_entry/properties/work_cost'
                       jira_issue_id:
-                        $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_id'
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_id'
+                          - type: 'null'
+                        description: Jira Issue ID if tracked from a Jira integration.
+                      invoice_attribution_id:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_time_entry/properties/invoice_attribution_id'
+                        description: ID of the invoice attribution linking this entry to an invoice.
+                      overhead_cost_default:
+                        $ref: '#/components/schemas/resource_time_entry/properties/overhead_cost_default'
+                      cost:
+                        $ref: '#/components/schemas/resource_time_entry/properties/cost'
+                      rejected_reason:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_time_entry/properties/rejected_reason'
+                        description: Reason provided when the time entry was rejected.
+                      work_cost_default:
+                        $ref: '#/components/schemas/resource_time_entry/properties/work_cost_default'
+                      created_at:
+                        $ref: '#/components/schemas/resource_time_entry/properties/created_at'
+                      last_activity_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/last_activity_at'
+                          - type: 'null'
+                        description: Date when the last change was made (edit, approval, move, etc.).
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_time_entry/properties/currency_normalized'
+                      cost_normalized:
+                        $ref: '#/components/schemas/resource_time_entry/properties/cost_normalized'
+                      timer_stopped_at:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_time_entry/properties/timer_stopped_at'
+                        description: When the timer was stopped.
+                      approved_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/approved_at'
+                          - type: 'null'
+                        description: Timestamp when the time entry was approved.
+                      currency_default:
+                        $ref: '#/components/schemas/resource_time_entry/properties/currency_default'
                       jira_worklog_id:
-                        $ref: '#/components/schemas/resource_time_entry/properties/jira_worklog_id'
-                      calendar_event_id:
-                        $ref: '#/components/schemas/resource_time_entry/properties/calendar_event_id'
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_worklog_id'
+                          - type: 'null'
+                        description: Jira Worklog ID for synced entries.
+                      date:
+                        $ref: '#/components/schemas/resource_time_entry/properties/date'
+                      time:
+                        $ref: '#/components/schemas/resource_time_entry/properties/time'
+                      facility_overhead_cost:
+                        $ref: '#/components/schemas/resource_time_entry/properties/facility_overhead_cost'
+                      facility_overhead_cost_default:
+                        $ref: '#/components/schemas/resource_time_entry/properties/facility_overhead_cost_default'
                       jira_issue_status:
-                        $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_status'
-                      jira_organization:
-                        $ref: '#/components/schemas/resource_time_entry/properties/jira_organization'
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_status'
+                          - type: 'null'
+                        description: Current status of the linked Jira issue.
+                      updated_at:
+                        $ref: '#/components/schemas/resource_time_entry/properties/updated_at'
+                      started_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/started_at'
+                          - type: 'null'
+                        description: Start date and time of the time entry.
+                      currency:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/currency'
+                          - type: 'null'
+                        description: Currency code for financial values on this time entry.
+                      approved:
+                        $ref: '#/components/schemas/resource_time_entry/properties/approved'
+                      track_method_id:
+                        $ref: '#/components/schemas/resource_time_entry/properties/track_method_id'
+                      overhead:
+                        $ref: '#/components/schemas/resource_time_entry/properties/overhead'
+                      recognized_time:
+                        $ref: '#/components/schemas/resource_time_entry/properties/recognized_time'
+                      timer_started_at:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_time_entry/properties/timer_started_at'
+                        description: When the timer was started (if tracked via timer).
                       jira_issue_summary:
-                        $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_summary'
-                      use_salary_currency:
-                        $ref: '#/components/schemas/resource_time_entry/properties/use_salary_currency'
-      description: Request body for creating or updating a time entry.
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_summary'
+                        description: Summary text of the linked Jira issue.
+                      invoiced:
+                        $ref: '#/components/schemas/resource_time_entry/properties/invoiced'
+                      submitted:
+                        $ref: '#/components/schemas/resource_time_entry/properties/submitted'
+                      overhead_cost:
+                        $ref: '#/components/schemas/resource_time_entry/properties/overhead_cost'
+                      facility_overhead_cost_normalized:
+                        $ref: '#/components/schemas/resource_time_entry/properties/facility_overhead_cost_normalized'
+                      internal_overhead_cost_default:
+                        $ref: '#/components/schemas/resource_time_entry/properties/internal_overhead_cost_default'
+                      work_cost_normalized:
+                        $ref: '#/components/schemas/resource_time_entry/properties/work_cost_normalized'
+                      overhead_cost_normalized:
+                        $ref: '#/components/schemas/resource_time_entry/properties/overhead_cost_normalized'
+                      jira_organization:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_organization'
+                          - type: 'null'
+                        description: Jira organization name for the linked issue.
+                      calendar_event_id:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_time_entry/properties/calendar_event_id'
+                          - type: 'null'
+                        description: ID of the calendar event this entry was created from, if applicable.
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Relationships of the time entry.
+                    properties:
+                      last_actor:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approval_statuses:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal_subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approver:
+                        $ref: '#/components/schemas/_single_relationship'
+                      rejecter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      service:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person_subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      invoice_attribution:
+                        $ref: '#/components/schemas/_single_relationship'
+                      timesheet:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A related resource object.
+                  example:
+                    eq: value
+                description: Array of related resource objects included in the response.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '84848214'
+                type: time_entries
+                attributes:
+                  date: '2026-03-15'
+                  created_at: '2026-03-15T09:30:00.000+00:00'
+                  time: 480
+                  note: Implemented user authentication flow
+                  track_method_id: 1
+                  started_at: '2026-03-15T09:00:00.000+00:00'
+                  timer_started_at: null
+                  timer_stopped_at: null
+                  approved: false
+                  approved_at: null
+                  updated_at: '2026-03-15T17:30:00.000+00:00'
+                  calendar_event_id: null
+                  invoice_attribution_id: null
+                  invoiced: false
+                  overhead: false
+                  rejected: false
+                  rejected_reason: null
+                  rejected_at: null
+                  last_activity_at: '2026-03-15T09:30:00.000+00:00'
+                  submitted: false
+                  currency: USD
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+                  task:
+                    data:
+                      type: tasks
+                      id: '120501'
+                  approver:
+                    data: null
+              included: []
+      description: Single time entry
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
     resource_time_entry:
       type: object
       title: Time entry Resource
+      description: A time entry records the time a person has logged against a service on a deal or project, capturing the date, duration, and optionally a note describing the work done.
       properties:
-        time:
-          type: integer
-          title: Time
-          description: Duration of work in minutes.
-          example:
-            gt: 0
-        submitted:
-          title: Submitted
-          description: Whether this time entry has been submitted for approval via a timesheet.
-          example:
-            eq: value
-        internal_overhead_cost_normalized:
-          title: Internal Overhead Cost Normalized
-          description: Internal overhead cost in the normalized reporting currency.
+        started_after:
+          type: string
+          title: Started After
+          format: date
+          description: Filter alias — only entries started after this value.
           example:
             eq: value
         booking_id:
@@ -655,13 +961,6 @@ components:
           description: ID of the subsidiary of the person who tracked time.
           example:
             - 123
-        started_after:
-          type: string
-          title: Started After
-          format: date
-          description: Filter alias — only entries started after this value.
-          example:
-            eq: value
         internal_overhead_cost:
           title: Internal Overhead Cost
           description: Internal overhead portion of the cost.
@@ -1112,11 +1411,6 @@ components:
           description: Total overhead cost in the organization's default currency.
           example:
             eq: value
-        creator:
-          title: Creator
-          description: The person who created this time entry.
-          example:
-            eq: value
         track_method_id:
           enum:
             - 1
@@ -1297,7 +1591,27 @@ components:
           description: Facility overhead cost in the normalized reporting currency.
           example:
             eq: value
-      description: A time entry records the time a person has logged against a service on a deal or project, capturing the date, duration, and optionally a note describing the work done.
+        time:
+          type: integer
+          title: Time
+          description: Duration of work in minutes.
+          example:
+            gt: 0
+        submitted:
+          title: Submitted
+          description: Whether this time entry has been submitted for approval via a timesheet.
+          example:
+            eq: value
+        internal_overhead_cost_normalized:
+          title: Internal Overhead Cost Normalized
+          description: Internal overhead cost in the normalized reporting currency.
+          example:
+            eq: value
+        creator:
+          title: Creator
+          description: The person who created this time entry.
+          example:
+            eq: value
       example:
         id: '84848214'
         type: time_entries
@@ -1338,126 +1652,82 @@ components:
               id: '120501'
           approver:
             data: null
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
+  requestBodies:
+    time_entry:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API request body for a time entry.
+            properties:
+              data:
+                type: object
+                description: The time entry resource object to create or update.
+                properties:
+                  attributes:
+                    type: object
+                    description: Writable attributes of the time entry.
+                    properties:
+                      billable_time:
+                        $ref: '#/components/schemas/resource_time_entry/properties/billable_time'
+                      jira_issue_status:
+                        $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_status'
+                      use_salary_currency:
+                        $ref: '#/components/schemas/resource_time_entry/properties/use_salary_currency'
+                      calendar_event_id:
+                        $ref: '#/components/schemas/resource_time_entry/properties/calendar_event_id'
+                      started_at:
+                        $ref: '#/components/schemas/resource_time_entry/properties/started_at'
+                      task_id:
+                        $ref: '#/components/schemas/resource_time_entry/properties/task_id'
+                      date:
+                        $ref: '#/components/schemas/resource_time_entry/properties/date'
+                      jira_organization:
+                        $ref: '#/components/schemas/resource_time_entry/properties/jira_organization'
+                      time:
+                        $ref: '#/components/schemas/resource_time_entry/properties/time'
+                      jira_issue_id:
+                        $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_id'
+                      person_id:
+                        $ref: '#/components/schemas/resource_time_entry/properties/person_id'
+                      jira_issue_summary:
+                        $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_summary'
+                      service_id:
+                        $ref: '#/components/schemas/resource_time_entry/properties/service_id'
+                      note:
+                        $ref: '#/components/schemas/resource_time_entry/properties/note'
+                      jira_worklog_id:
+                        $ref: '#/components/schemas/resource_time_entry/properties/jira_worklog_id'
+                    required:
+                      - service_id
+                      - person_id
+                      - date
+                      - time
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: time_entries
+                attributes:
+                  date: '2026-03-15'
+                  time: 480
+                  note: Implemented user authentication flow
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+                  task:
+                    data:
+                      type: tasks
+                      id: '120501'
+      description: Request body for creating or updating a time entry.
   parameters:
     header_organization:
       in: header
@@ -1466,173 +1736,3 @@ components:
         type: string
       required: true
       description: Organization ID
-  responses:
-    single_time_entry:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      cost:
-                        $ref: '#/components/schemas/resource_time_entry/properties/cost'
-                      date:
-                        $ref: '#/components/schemas/resource_time_entry/properties/date'
-                      note:
-                        $ref: '#/components/schemas/resource_time_entry/properties/note'
-                      time:
-                        $ref: '#/components/schemas/resource_time_entry/properties/time'
-                      approved:
-                        $ref: '#/components/schemas/resource_time_entry/properties/approved'
-                      currency:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/currency'
-                          - type: 'null'
-                      invoiced:
-                        $ref: '#/components/schemas/resource_time_entry/properties/invoiced'
-                      overhead:
-                        $ref: '#/components/schemas/resource_time_entry/properties/overhead'
-                      rejected:
-                        $ref: '#/components/schemas/resource_time_entry/properties/rejected'
-                      submitted:
-                        $ref: '#/components/schemas/resource_time_entry/properties/submitted'
-                      work_cost:
-                        $ref: '#/components/schemas/resource_time_entry/properties/work_cost'
-                      created_at:
-                        $ref: '#/components/schemas/resource_time_entry/properties/created_at'
-                      started_at:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/started_at'
-                          - type: 'null'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_time_entry/properties/updated_at'
-                      approved_at:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/approved_at'
-                          - type: 'null'
-                      rejected_at:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/rejected_at'
-                          - type: 'null'
-                      cost_default:
-                        $ref: '#/components/schemas/resource_time_entry/properties/cost_default'
-                      billable_time:
-                        $ref: '#/components/schemas/resource_time_entry/properties/billable_time'
-                      jira_issue_id:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_id'
-                          - type: 'null'
-                      overhead_cost:
-                        $ref: '#/components/schemas/resource_time_entry/properties/overhead_cost'
-                      cost_normalized:
-                        $ref: '#/components/schemas/resource_time_entry/properties/cost_normalized'
-                      jira_worklog_id:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_worklog_id'
-                          - type: 'null'
-                      recognized_time:
-                        $ref: '#/components/schemas/resource_time_entry/properties/recognized_time'
-                      rejected_reason:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/rejected_reason'
-                          - type: 'null'
-                      track_method_id:
-                        $ref: '#/components/schemas/resource_time_entry/properties/track_method_id'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_time_entry/properties/currency_default'
-                      last_activity_at:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/last_activity_at'
-                          - type: 'null'
-                      timer_started_at:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/timer_started_at'
-                          - type: 'null'
-                      timer_stopped_at:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/timer_stopped_at'
-                          - type: 'null'
-                      calendar_event_id:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/calendar_event_id'
-                          - type: 'null'
-                      jira_issue_status:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_status'
-                          - type: 'null'
-                      jira_organization:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_organization'
-                          - type: 'null'
-                      work_cost_default:
-                        $ref: '#/components/schemas/resource_time_entry/properties/work_cost_default'
-                      jira_issue_summary:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/jira_issue_summary'
-                          - type: 'null'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_time_entry/properties/currency_normalized'
-                      work_cost_normalized:
-                        $ref: '#/components/schemas/resource_time_entry/properties/work_cost_normalized'
-                      overhead_cost_default:
-                        $ref: '#/components/schemas/resource_time_entry/properties/overhead_cost_default'
-                      facility_overhead_cost:
-                        $ref: '#/components/schemas/resource_time_entry/properties/facility_overhead_cost'
-                      internal_overhead_cost:
-                        $ref: '#/components/schemas/resource_time_entry/properties/internal_overhead_cost'
-                      invoice_attribution_id:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_time_entry/properties/invoice_attribution_id'
-                          - type: 'null'
-                      overhead_cost_normalized:
-                        $ref: '#/components/schemas/resource_time_entry/properties/overhead_cost_normalized'
-                      facility_overhead_cost_default:
-                        $ref: '#/components/schemas/resource_time_entry/properties/facility_overhead_cost_default'
-                      internal_overhead_cost_default:
-                        $ref: '#/components/schemas/resource_time_entry/properties/internal_overhead_cost_default'
-                      facility_overhead_cost_normalized:
-                        $ref: '#/components/schemas/resource_time_entry/properties/facility_overhead_cost_normalized'
-                      internal_overhead_cost_normalized:
-                        $ref: '#/components/schemas/resource_time_entry/properties/internal_overhead_cost_normalized'
-                  relationships:
-                    type: object
-                    properties:
-                      task:
-                        $ref: '#/components/schemas/_single_relationship'
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      service:
-                        $ref: '#/components/schemas/_single_relationship'
-                      updater:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approver:
-                        $ref: '#/components/schemas/_single_relationship'
-                      rejecter:
-                        $ref: '#/components/schemas/_single_relationship'
-                      timesheet:
-                        $ref: '#/components/schemas/_single_relationship'
-                      last_actor:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      deal_subsidiary:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approval_statuses:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      person_subsidiary:
-                        $ref: '#/components/schemas/_single_relationship'
-                      invoice_attribution:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single time entry

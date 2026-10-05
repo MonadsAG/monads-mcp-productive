@@ -28,19 +28,25 @@ paths:
       tags:
         - Custom domains
       summary: Get custom domains
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_custom_domain'
+      operationId: custom_domains-index
+      description: List custom domains with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/filter_custom_domain'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_custom_domain'
-      operationId: custom_domains-index
-      description: List custom domains with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_custom_domain'
     post:
       tags:
         - Custom domains
       summary: Create a custom domain
+      operationId: custom_domains-create
+      description: Create a new custom domain.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/custom_domain'
       responses:
         '201':
           $ref: '#/components/responses/single_custom_domain'
@@ -52,20 +58,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: custom_domains-create
-      requestBody:
-        $ref: '#/components/requestBodies/custom_domain'
-      description: Create a new custom domain.
   /api/v2/custom_domains/{id}:
     get:
       tags:
         - Custom domains
       summary: Gets a custom domain
-      responses:
-        '200':
-          $ref: '#/components/responses/single_custom_domain'
+      operationId: custom_domains-show
+      description: Retrieve a single custom domain by ID.
       parameters:
         - in: path
           name: id
@@ -74,15 +73,15 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: custom_domains-show
-      description: Retrieve a single custom domain by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_custom_domain'
     delete:
       tags:
         - Custom domains
       summary: Deletes a custom domain
-      responses:
-        '204':
-          description: No Content
+      operationId: custom_domains-destroy
+      description: Delete a custom domain.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -91,8 +90,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: custom_domains-destroy
-      description: Delete a custom domain.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -129,56 +129,103 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single custom domain record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The custom domain resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Custom domain attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_custom_domain/properties/name'
                       mailgun_mx:
                         $ref: '#/components/schemas/resource_custom_domain/properties/mailgun_mx'
-                      mailgun_spf:
-                        $ref: '#/components/schemas/resource_custom_domain/properties/mailgun_spf'
-                      verified_at:
-                        $ref: '#/components/schemas/resource_custom_domain/properties/verified_at'
                       mailgun_dkim:
                         $ref: '#/components/schemas/resource_custom_domain/properties/mailgun_dkim'
+                      mailgun_spf:
+                        $ref: '#/components/schemas/resource_custom_domain/properties/mailgun_spf'
                       allow_user_email:
                         $ref: '#/components/schemas/resource_custom_domain/properties/allow_user_email'
-                      email_sender_name:
-                        $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_name'
+                      name:
+                        $ref: '#/components/schemas/resource_custom_domain/properties/name'
+                      verified_at:
+                        $ref: '#/components/schemas/resource_custom_domain/properties/verified_at'
                       email_sender_address:
                         $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_address'
+                      email_sender_name:
+                        $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_name'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Custom domain relationships.
                     properties:
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
                       subsidiaries:
                         $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '4'
+                type: custom_domains
+                attributes:
+                  domain: app.myagency.com
+                  verified: true
+                  verified_at: '2026-01-15T00:00:00.000+00:00'
+                relationships:
+                  subsidiary:
+                    data:
+                      type: subsidiaries
+                      id: '2'
+              included: []
       description: Single custom domain
     collection_custom_domain:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of custom domain records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A custom domain resource object.
                   properties:
+                    relationships:
+                      type: object
+                      description: Custom domain relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        subsidiaries:
+                          $ref: '#/components/schemas/_collection_relationship'
+                      example:
+                        eq: value
                     attributes:
                       type: object
+                      description: Custom domain attributes.
                       properties:
+                        email_sender_name:
+                          $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_name'
+                        allow_user_email:
+                          $ref: '#/components/schemas/resource_custom_domain/properties/allow_user_email'
                         name:
                           $ref: '#/components/schemas/resource_custom_domain/properties/name'
                         mailgun_mx:
@@ -187,31 +234,54 @@ components:
                           $ref: '#/components/schemas/resource_custom_domain/properties/mailgun_spf'
                         verified_at:
                           $ref: '#/components/schemas/resource_custom_domain/properties/verified_at'
-                        mailgun_dkim:
-                          $ref: '#/components/schemas/resource_custom_domain/properties/mailgun_dkim'
-                        allow_user_email:
-                          $ref: '#/components/schemas/resource_custom_domain/properties/allow_user_email'
-                        email_sender_name:
-                          $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_name'
                         email_sender_address:
                           $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_address'
-                    relationships:
-                      type: object
-                      properties:
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        subsidiaries:
-                          $ref: '#/components/schemas/_collection_relationship'
+                        mailgun_dkim:
+                          $ref: '#/components/schemas/resource_custom_domain/properties/mailgun_dkim'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of custom domain resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '4'
+                  type: custom_domains
+                  attributes:
+                    domain: app.myagency.com
+                    verified: true
+                    verified_at: '2026-01-15T00:00:00.000+00:00'
+                  relationships:
+                    subsidiary:
+                      data:
+                        type: subsidiaries
+                        id: '2'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection custom domain
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -244,82 +314,21 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -329,9 +338,70 @@ components:
         data:
           type: tasks
           id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
     resource_custom_domain:
       type: object
       title: Custom domain Resource
+      description: A custom URL domain configured for an organization's client-facing portals, with optional email sending settings.
       properties:
         mailgun_spf:
           type: string
@@ -397,7 +467,6 @@ components:
           description: Whether to allow user email.
           example:
             eq: value
-      description: A custom URL domain configured for an organization's client-facing portals, with optional email sending settings.
       example:
         id: '123'
         type: custom_domains
@@ -412,19 +481,36 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a custom domain.
             properties:
               data:
                 type: object
+                description: The custom domain resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Custom domain attributes.
                     properties:
                       name:
                         $ref: '#/components/schemas/resource_custom_domain/properties/name'
-                      allow_user_email:
-                        $ref: '#/components/schemas/resource_custom_domain/properties/allow_user_email'
-                      email_sender_name:
-                        $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_name'
                       email_sender_address:
                         $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_address'
+                      email_sender_name:
+                        $ref: '#/components/schemas/resource_custom_domain/properties/email_sender_name'
+                      allow_user_email:
+                        $ref: '#/components/schemas/resource_custom_domain/properties/allow_user_email'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: custom_domains
+                attributes:
+                  domain: app.myagency.com
+                relationships:
+                  subsidiary:
+                    data:
+                      type: subsidiaries
+                      id: '2'
       description: Request body for creating or updating a custom domain.
