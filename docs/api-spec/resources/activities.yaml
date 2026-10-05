@@ -10,8 +10,8 @@ description: |-
   _Note:_ Activities are created for most, but not all, objects in Productive.
 x-filters:
   activity:
-    item_type:
-      description: Filter by the resource type of the changed entity (e.g. "task", "deal").
+    deal_id:
+      description: Filter activities related to a specific deal or budget.
       operators:
         - contains
         - eq
@@ -108,13 +108,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    deal_id:
-      description: Filter activities related to a specific deal or budget.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     created_at:
       description: Filter by creation date range (`created_at`).
       operators:
@@ -192,29 +185,35 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    item_type:
+      description: Filter by the resource type of the changed entity (e.g. "task", "deal").
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/activities:
     get:
       tags:
         - Activities
       summary: Get activities
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_activity'
+      operationId: activities-index
+      description: List activities with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/sort_activity'
         - $ref: '#/components/parameters/filter_activity'
         - $ref: '#/components/parameters/header_organization'
-      operationId: activities-index
-      description: List activities with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_activity'
   /api/v2/activities/{id}:
     get:
       tags:
         - Activities
       summary: Get an activity
-      responses:
-        '200':
-          $ref: '#/components/responses/single_activity'
+      operationId: activities-show
+      description: Retrieve a single activity by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -223,267 +222,312 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: activities-show
-      description: Retrieve a single activity by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_activity'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_activity:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.activity at the top of this file.
-      required: false
-      description: Filters
-    sort_activity:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          type: string
-        title: Sort activity
-      explode: false
-      required: false
-      description: Sort activity
   responses:
     single_activity:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single activity record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: An activity resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Activity attributes.
                     properties:
+                      created_at:
+                        $ref: '#/components/schemas/resource_activity/properties/created_at'
+                      parent_name:
+                        $ref: '#/components/schemas/resource_activity/properties/parent_name'
+                      item_type:
+                        $ref: '#/components/schemas/resource_activity/properties/item_type'
+                      deal_is_budget:
+                        $ref: '#/components/schemas/resource_activity/properties/deal_is_budget'
                       event:
                         $ref: '#/components/schemas/resource_activity/properties/event'
-                      deal_id:
-                        $ref: '#/components/schemas/resource_activity/properties/deal_id'
                       item_id:
                         $ref: '#/components/schemas/resource_activity/properties/item_id'
-                      page_id:
-                        $ref: '#/components/schemas/resource_activity/properties/page_id'
-                      root_id:
-                        $ref: '#/components/schemas/resource_activity/properties/root_id'
+                      made_by_automation:
+                        $ref: '#/components/schemas/resource_activity/properties/made_by_automation'
                       task_id:
                         $ref: '#/components/schemas/resource_activity/properties/task_id'
                       changeset:
                         $ref: '#/components/schemas/resource_activity/properties/changeset'
-                      item_name:
-                        $ref: '#/components/schemas/resource_activity/properties/item_name'
-                      item_type:
-                        $ref: '#/components/schemas/resource_activity/properties/item_type'
-                      parent_id:
-                        $ref: '#/components/schemas/resource_activity/properties/parent_id'
+                      purchase_order_id:
+                        $ref: '#/components/schemas/resource_activity/properties/purchase_order_id'
+                      parent_type:
+                        $ref: '#/components/schemas/resource_activity/properties/parent_type'
                       person_id:
                         $ref: '#/components/schemas/resource_activity/properties/person_id'
                       root_name:
                         $ref: '#/components/schemas/resource_activity/properties/root_name'
-                      root_type:
-                        $ref: '#/components/schemas/resource_activity/properties/root_type'
-                      booking_id:
-                        $ref: '#/components/schemas/resource_activity/properties/booking_id'
-                      company_id:
-                        $ref: '#/components/schemas/resource_activity/properties/company_id'
-                      created_at:
-                        $ref: '#/components/schemas/resource_activity/properties/created_at'
-                      invoice_id:
-                        $ref: '#/components/schemas/resource_activity/properties/invoice_id'
-                      parent_name:
-                        $ref: '#/components/schemas/resource_activity/properties/parent_name'
-                      parent_type:
-                        $ref: '#/components/schemas/resource_activity/properties/parent_type'
-                      discussion_id:
-                        $ref: '#/components/schemas/resource_activity/properties/discussion_id'
-                      engagement_id:
-                        $ref: '#/components/schemas/resource_activity/properties/engagement_id'
-                      deal_is_budget:
-                        $ref: '#/components/schemas/resource_activity/properties/deal_is_budget'
                       item_deleted_at:
                         $ref: '#/components/schemas/resource_activity/properties/item_deleted_at'
-                      root_deleted_at:
-                        $ref: '#/components/schemas/resource_activity/properties/root_deleted_at'
+                      root_id:
+                        $ref: '#/components/schemas/resource_activity/properties/root_id'
+                      page_id:
+                        $ref: '#/components/schemas/resource_activity/properties/page_id'
+                      root_type:
+                        $ref: '#/components/schemas/resource_activity/properties/root_type'
+                      item_name:
+                        $ref: '#/components/schemas/resource_activity/properties/item_name'
+                      engagement_id:
+                        $ref: '#/components/schemas/resource_activity/properties/engagement_id'
+                      company_id:
+                        $ref: '#/components/schemas/resource_activity/properties/company_id'
+                      booking_id:
+                        $ref: '#/components/schemas/resource_activity/properties/booking_id'
+                      discussion_id:
+                        $ref: '#/components/schemas/resource_activity/properties/discussion_id'
+                      deal_id:
+                        $ref: '#/components/schemas/resource_activity/properties/deal_id'
+                      invoice_id:
+                        $ref: '#/components/schemas/resource_activity/properties/invoice_id'
                       parent_deleted_at:
                         $ref: '#/components/schemas/resource_activity/properties/parent_deleted_at'
-                      purchase_order_id:
-                        $ref: '#/components/schemas/resource_activity/properties/purchase_order_id'
-                      made_by_automation:
-                        $ref: '#/components/schemas/resource_activity/properties/made_by_automation'
+                      parent_id:
+                        $ref: '#/components/schemas/resource_activity/properties/parent_id'
+                      root_deleted_at:
+                        $ref: '#/components/schemas/resource_activity/properties/root_deleted_at'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Activity relationships.
                     properties:
-                      role:
-                        $ref: '#/components/schemas/_single_relationship'
                       email:
-                        $ref: '#/components/schemas/_single_relationship'
-                      comment:
                         $ref: '#/components/schemas/_single_relationship'
                       creator:
                         $ref: '#/components/schemas/_single_relationship'
                       attachment:
                         $ref: '#/components/schemas/_single_relationship'
+                      role:
+                        $ref: '#/components/schemas/_single_relationship'
+                      comment:
+                        $ref: '#/components/schemas/_single_relationship'
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '259275372'
+                type: activities
+                attributes:
+                  event: create
+                  changeset:
+                    - title:
+                        - ''
+                        - Implement user authentication
+                  item_id: 120501
+                  item_type: task
+                  item_name: '#42: Implement user authentication'
+                  item_deleted_at: null
+                  parent_id: 6899
+                  parent_type: project
+                  parent_name: Website Redesign
+                  parent_deleted_at: null
+                  root_id: 6899
+                  root_type: project
+                  root_name: Website Redesign
+                  root_deleted_at: null
+                  deal_is_budget: false
+                  task_id: 120501
+                  deal_id: null
+                  booking_id: null
+                  invoice_id: null
+                  company_id: 65111
+                  created_at: '2026-03-01T10:00:00.000+00:00'
+                  person_id: 12
+                  made_by_automation: false
+                relationships:
+                  creator:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
       description: Single activity
     collection_activity:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of activity records in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: array
                 items:
                   type: object
+                  description: An activity resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Activity attributes.
                       properties:
-                        event:
-                          $ref: '#/components/schemas/resource_activity/properties/event'
-                        deal_id:
-                          $ref: '#/components/schemas/resource_activity/properties/deal_id'
-                        item_id:
-                          $ref: '#/components/schemas/resource_activity/properties/item_id'
-                        page_id:
-                          $ref: '#/components/schemas/resource_activity/properties/page_id'
-                        root_id:
-                          $ref: '#/components/schemas/resource_activity/properties/root_id'
+                        parent_id:
+                          $ref: '#/components/schemas/resource_activity/properties/parent_id'
+                        item_deleted_at:
+                          $ref: '#/components/schemas/resource_activity/properties/item_deleted_at'
+                        made_by_automation:
+                          $ref: '#/components/schemas/resource_activity/properties/made_by_automation'
                         task_id:
                           $ref: '#/components/schemas/resource_activity/properties/task_id'
-                        changeset:
-                          $ref: '#/components/schemas/resource_activity/properties/changeset'
+                        parent_name:
+                          $ref: '#/components/schemas/resource_activity/properties/parent_name'
+                        invoice_id:
+                          $ref: '#/components/schemas/resource_activity/properties/invoice_id'
+                        event:
+                          $ref: '#/components/schemas/resource_activity/properties/event'
+                        booking_id:
+                          $ref: '#/components/schemas/resource_activity/properties/booking_id'
+                        root_id:
+                          $ref: '#/components/schemas/resource_activity/properties/root_id'
+                        parent_type:
+                          $ref: '#/components/schemas/resource_activity/properties/parent_type'
+                        person_id:
+                          $ref: '#/components/schemas/resource_activity/properties/person_id'
+                        purchase_order_id:
+                          $ref: '#/components/schemas/resource_activity/properties/purchase_order_id'
+                        root_deleted_at:
+                          $ref: '#/components/schemas/resource_activity/properties/root_deleted_at'
                         item_name:
                           $ref: '#/components/schemas/resource_activity/properties/item_name'
                         item_type:
                           $ref: '#/components/schemas/resource_activity/properties/item_type'
-                        parent_id:
-                          $ref: '#/components/schemas/resource_activity/properties/parent_id'
-                        person_id:
-                          $ref: '#/components/schemas/resource_activity/properties/person_id'
-                        root_name:
-                          $ref: '#/components/schemas/resource_activity/properties/root_name'
-                        root_type:
-                          $ref: '#/components/schemas/resource_activity/properties/root_type'
-                        booking_id:
-                          $ref: '#/components/schemas/resource_activity/properties/booking_id'
-                        company_id:
-                          $ref: '#/components/schemas/resource_activity/properties/company_id'
-                        created_at:
-                          $ref: '#/components/schemas/resource_activity/properties/created_at'
-                        invoice_id:
-                          $ref: '#/components/schemas/resource_activity/properties/invoice_id'
-                        parent_name:
-                          $ref: '#/components/schemas/resource_activity/properties/parent_name'
-                        parent_type:
-                          $ref: '#/components/schemas/resource_activity/properties/parent_type'
-                        discussion_id:
-                          $ref: '#/components/schemas/resource_activity/properties/discussion_id'
-                        engagement_id:
-                          $ref: '#/components/schemas/resource_activity/properties/engagement_id'
                         deal_is_budget:
                           $ref: '#/components/schemas/resource_activity/properties/deal_is_budget'
-                        item_deleted_at:
-                          $ref: '#/components/schemas/resource_activity/properties/item_deleted_at'
-                        root_deleted_at:
-                          $ref: '#/components/schemas/resource_activity/properties/root_deleted_at'
+                        discussion_id:
+                          $ref: '#/components/schemas/resource_activity/properties/discussion_id'
+                        root_type:
+                          $ref: '#/components/schemas/resource_activity/properties/root_type'
+                        page_id:
+                          $ref: '#/components/schemas/resource_activity/properties/page_id'
+                        root_name:
+                          $ref: '#/components/schemas/resource_activity/properties/root_name'
+                        item_id:
+                          $ref: '#/components/schemas/resource_activity/properties/item_id'
+                        company_id:
+                          $ref: '#/components/schemas/resource_activity/properties/company_id'
+                        engagement_id:
+                          $ref: '#/components/schemas/resource_activity/properties/engagement_id'
                         parent_deleted_at:
                           $ref: '#/components/schemas/resource_activity/properties/parent_deleted_at'
-                        purchase_order_id:
-                          $ref: '#/components/schemas/resource_activity/properties/purchase_order_id'
-                        made_by_automation:
-                          $ref: '#/components/schemas/resource_activity/properties/made_by_automation'
+                        changeset:
+                          $ref: '#/components/schemas/resource_activity/properties/changeset'
+                        deal_id:
+                          $ref: '#/components/schemas/resource_activity/properties/deal_id'
+                        created_at:
+                          $ref: '#/components/schemas/resource_activity/properties/created_at'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Activity relationships.
                       properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
                         role:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachment:
                           $ref: '#/components/schemas/_single_relationship'
                         email:
                           $ref: '#/components/schemas/_single_relationship'
                         comment:
                           $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        attachment:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: An activity resource object.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                - id: '259275372'
+                  type: activities
+                  attributes:
+                    event: create
+                    changeset:
+                      - title:
+                          - ''
+                          - Implement user authentication
+                    item_id: 120501
+                    item_type: task
+                    item_name: '#42: Implement user authentication'
+                    item_deleted_at: null
+                    parent_id: 6899
+                    parent_type: project
+                    parent_name: Website Redesign
+                    parent_deleted_at: null
+                    root_id: 6899
+                    root_type: project
+                    root_name: Website Redesign
+                    root_deleted_at: null
+                    deal_is_budget: false
+                    task_id: 120501
+                    deal_id: null
+                    booking_id: null
+                    invoice_id: null
+                    company_id: 65111
+                    created_at: '2026-03-01T10:00:00.000+00:00'
+                    person_id: 12
+                    made_by_automation: false
+                  relationships:
+                    creator:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection activity
   schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -496,6 +540,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -505,16 +550,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -522,29 +568,16 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
     resource_activity:
       type: object
       title: Activity Resource
+      description: An activity feed entry recording a change event on an entity. Activities track who changed what, when, and how — forming the audit log for tasks, deals, projects, invoices, and other resources.
       properties:
-        role:
-          title: Role
-          description: The role associated with this activity, if it was a role change.
-          example:
-            eq: value
-        before:
-          type: string
-          title: Before
-          format: date-time
-          description: Cursor for pagination — return activities before this timestamp.
-          example:
-            eq: value
         pinned:
           type: boolean
           title: Pinned
@@ -802,7 +835,18 @@ components:
           description: Whether this change was triggered by an automation rule rather than a person.
           example:
             eq: value
-      description: An activity feed entry recording a change event on an entity. Activities track who changed what, when, and how — forming the audit log for tasks, deals, projects, invoices, and other resources.
+        before:
+          type: string
+          title: Before
+          format: date-time
+          description: Cursor for pagination — return activities before this timestamp.
+          example:
+            eq: value
+        role:
+          title: Role
+          description: The role associated with this activity, if it was a role change.
+          example:
+            eq: value
       example:
         id: '259275372'
         type: activities
@@ -838,3 +882,74 @@ components:
             data:
               type: people
               id: '12'
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_activity:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.activity at the top of this file.
+      required: false
+      description: Filters
+    sort_activity:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort activity
+      explode: false
+      required: false
+      description: Sort activity

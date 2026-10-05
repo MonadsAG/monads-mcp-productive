@@ -54,19 +54,25 @@ paths:
       tags:
         - Service Assignments
       summary: Get service assignments
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_service_assignment'
+      operationId: service_assignments-index
+      description: List all service assignments.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_service_assignment'
         - $ref: '#/components/parameters/sort_service_assignment'
-      operationId: service_assignments-index
-      description: List all service assignments.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_service_assignment'
     post:
       tags:
         - Service Assignments
       summary: Create a service assignment
+      operationId: service_assignments-create
+      description: Create a new service assignment.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/service_assignment'
       responses:
         '201':
           $ref: '#/components/responses/single_service_assignment'
@@ -78,20 +84,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: service_assignments-create
-      requestBody:
-        $ref: '#/components/requestBodies/service_assignment'
-      description: Create a new service assignment.
   /api/v2/service_assignments/{id}:
     get:
       tags:
         - Service Assignments
       summary: Gets a service assignment
-      responses:
-        '200':
-          $ref: '#/components/responses/single_service_assignment'
+      operationId: service_assignments-show
+      description: Retrieve a single service assignment by ID.
       parameters:
         - in: path
           name: id
@@ -100,12 +99,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: service_assignments-show
-      description: Retrieve a single service assignment by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_service_assignment'
     patch:
       tags:
         - Service Assignments
       summary: Update a service assignment
+      operationId: service_assignments-update
+      description: Update a service assignment.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/service_assignment'
       responses:
         '200':
           $ref: '#/components/responses/single_service_assignment'
@@ -117,25 +129,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: service_assignments-update
-      requestBody:
-        $ref: '#/components/requestBodies/service_assignment'
-      description: Update a service assignment.
     delete:
       tags:
         - Service Assignments
       summary: Deletes a service assignment
-      responses:
-        '204':
-          description: No Content
+      operationId: service_assignments-destroy
+      description: Delete a service assignment by ID.
       parameters:
         - in: path
           name: id
@@ -144,8 +143,9 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: service_assignments-destroy
-      description: Delete a service assignment by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -176,31 +176,237 @@ components:
         description: Filter keys and their operators are listed under x-filters.service_assignment at the top of this file.
       required: false
       description: Filters
-  requestBodies:
-    service_assignment:
+  responses:
+    single_service_assignment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single service_assignment record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned service_assignment resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - service_id
-                      - person_id
+                    properties: {}
+                    description: Service assignment attributes.
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Service assignment relationships.
                     properties:
-                      person_id:
-                        $ref: '#/components/schemas/resource_service_assignment/properties/person_id'
-                      service_id:
-                        $ref: '#/components/schemas/resource_service_assignment/properties/service_id'
-      description: Request body for creating or updating a service assignment.
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      service:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '890'
+                type: service_assignments
+                attributes:
+                  billable: true
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+              included: []
+      description: Single service assignment
+    collection_service_assignment:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of service assignment records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A service assignment resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Service assignment relationships.
+                      properties:
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      properties: {}
+                      description: Service assignment attributes.
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of service assignment resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '890'
+                  type: service_assignments
+                  attributes:
+                    billable: true
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    service:
+                      data:
+                        type: services
+                        id: '1856422'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection service assignment
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_service_assignment:
       type: object
       title: Service assignment Resource
+      description: Represents an assignment of a person to a service (line item) on a deal or budget.
       properties:
         person_id:
           type: integer
@@ -235,7 +441,6 @@ components:
           description: The service this assignment belongs to.
           example:
             eq: value
-      description: Represents an assignment of a person to a service (line item) on a deal or budget.
       example:
         id: '123'
         type: service_assignments
@@ -251,156 +456,45 @@ components:
             data:
               type: services
               id: '34'
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_service_assignment:
+  requestBodies:
+    service_assignment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a service assignment.
             properties:
               data:
                 type: object
+                description: The service assignment resource object.
                 properties:
                   attributes:
                     type: object
-                    properties: {}
-                  relationships:
-                    type: object
+                    description: Service assignment attributes.
                     properties:
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      service:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single service assignment
-    collection_service_assignment:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      service_id:
+                        $ref: '#/components/schemas/resource_service_assignment/properties/service_id'
+                      person_id:
+                        $ref: '#/components/schemas/resource_service_assignment/properties/person_id'
+                    required:
+                      - service_id
+                      - person_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties: {}
-                    relationships:
-                      type: object
-                      properties:
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection service assignment
+                type: service_assignments
+                attributes:
+                  billable: true
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+      description: Request body for creating or updating a service assignment.

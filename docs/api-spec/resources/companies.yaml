@@ -241,9 +241,8 @@ paths:
       tags:
         - Companies
       summary: Archives a company
-      responses:
-        '200':
-          $ref: '#/components/responses/single_company'
+      operationId: companies-archive-archive
+      description: Archive a company.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -252,26 +251,33 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: companies-archive-archive
-      description: Archive a company.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_company'
   /api/v2/companies:
     get:
       tags:
         - Companies
       summary: Get companies
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_company'
+      operationId: companies-index
+      description: List companies with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/filter_company'
         - $ref: '#/components/parameters/sort_company'
         - $ref: '#/components/parameters/header_organization'
-      operationId: companies-index
-      description: List companies with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_company'
     post:
       tags:
         - Companies
       summary: Create a company
+      operationId: companies-create
+      description: Create a new company.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/company'
       responses:
         '201':
           $ref: '#/components/responses/single_company'
@@ -283,20 +289,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: companies-create
-      requestBody:
-        $ref: '#/components/requestBodies/company'
-      description: Create a new company.
   /api/v2/companies/{id}/restore:
     patch:
       tags:
         - Companies
       summary: Restores a company
-      responses:
-        '200':
-          $ref: '#/components/responses/single_company'
+      operationId: companies-restore-restore
+      description: Restore a company.
       parameters:
         - in: path
           name: id
@@ -305,16 +304,16 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: companies-restore-restore
-      description: Restore a company.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_company'
   /api/v2/companies/{id}:
     get:
       tags:
         - Companies
       summary: Gets a company
-      responses:
-        '200':
-          $ref: '#/components/responses/single_company'
+      operationId: companies-show
+      description: Retrieve a single company by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -323,12 +322,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: companies-show
-      description: Retrieve a single company by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_company'
     patch:
       tags:
         - Companies
       summary: Update a company
+      operationId: companies-update
+      description: Update a company.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/company'
       responses:
         '200':
           $ref: '#/components/responses/single_company'
@@ -340,85 +352,415 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: companies-update
-      requestBody:
-        $ref: '#/components/requestBodies/company'
-      description: Update a company.
 components:
-  requestBodies:
-    company:
+  responses:
+    single_company:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single company record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned company resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
+                    description: Company attributes.
                     properties:
-                      vat:
-                        $ref: '#/components/schemas/resource_company/properties/vat'
-                      name:
-                        $ref: '#/components/schemas/resource_company/properties/name'
-                      domain:
-                        $ref: '#/components/schemas/resource_company/properties/domain'
-                      contact:
-                        $ref: '#/components/schemas/resource_company/properties/contact'
-                      domains:
-                        $ref: '#/components/schemas/resource_company/properties/domains'
-                      due_days:
-                        $ref: '#/components/schemas/resource_company/properties/due_days'
-                      settings:
-                        $ref: '#/components/schemas/resource_company/properties/settings'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_company/properties/tag_list'
-                      avatar_url:
-                        $ref: '#/components/schemas/resource_company/properties/avatar_url'
-                      billing_name:
-                        $ref: '#/components/schemas/resource_company/properties/billing_name'
-                      company_code:
-                        $ref: '#/components/schemas/resource_company/properties/company_code'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_company/properties/custom_fields'
-                      subscriber_ids:
-                        $ref: '#/components/schemas/resource_company/properties/subscriber_ids'
-                      default_currency:
-                        $ref: '#/components/schemas/resource_company/properties/default_currency'
-                      parent_company_id:
-                        $ref: '#/components/schemas/resource_company/properties/parent_company_id'
-                      payment_terms_type:
-                        $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
                       default_tax_rate_id:
                         $ref: '#/components/schemas/resource_company/properties/default_tax_rate_id'
+                      company_code:
+                        $ref: '#/components/schemas/resource_company/properties/company_code'
+                      due_days:
+                        $ref: '#/components/schemas/resource_company/properties/due_days'
+                      original_avatar_url:
+                        $ref: '#/components/schemas/resource_company/properties/original_avatar_url'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_company/properties/tag_list'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_company/properties/last_activity_at'
+                      name:
+                        $ref: '#/components/schemas/resource_company/properties/name'
+                      created_at:
+                        $ref: '#/components/schemas/resource_company/properties/created_at'
+                      sample_data:
+                        $ref: '#/components/schemas/resource_company/properties/sample_data'
+                      settings:
+                        $ref: '#/components/schemas/resource_company/properties/settings'
+                      domain:
+                        $ref: '#/components/schemas/resource_company/properties/domain'
+                      domains:
+                        $ref: '#/components/schemas/resource_company/properties/domains'
+                      default_currency:
+                        $ref: '#/components/schemas/resource_company/properties/default_currency'
+                      projectless_budgets:
+                        $ref: '#/components/schemas/resource_company/properties/projectless_budgets'
+                      parent_company_id:
+                        $ref: '#/components/schemas/resource_company/properties/parent_company_id'
+                      invoice_email_recipients:
+                        $ref: '#/components/schemas/resource_company/properties/invoice_email_recipients'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_company/properties/custom_fields'
+                      vat:
+                        $ref: '#/components/schemas/resource_company/properties/vat'
                       default_subsidiary_id:
                         $ref: '#/components/schemas/resource_company/properties/default_subsidiary_id'
-                      default_document_type_id:
-                        $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
                       default_payment_reminder_sequence_id:
                         $ref: '#/components/schemas/resource_company/properties/default_payment_reminder_sequence_id'
-      description: Request body for creating or updating a company.
+                      billing_name:
+                        $ref: '#/components/schemas/resource_company/properties/billing_name'
+                      external_sync:
+                        $ref: '#/components/schemas/resource_company/properties/external_sync'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_company/properties/avatar_url'
+                      default_document_type_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
+                      payment_terms_type:
+                        $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
+                      external_id:
+                        $ref: '#/components/schemas/resource_company/properties/external_id'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_company/properties/archived_at'
+                      contact:
+                        $ref: '#/components/schemas/resource_company/properties/contact'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Company relationships.
+                    properties:
+                      default_document_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                      default_payment_reminder_sequence:
+                        $ref: '#/components/schemas/_single_relationship'
+                      einvoice_identity:
+                        $ref: '#/components/schemas/_single_relationship'
+                      default_subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      import:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      default_tax_rate:
+                        $ref: '#/components/schemas/_single_relationship'
+                      parent_company:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      custom_field_attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      integration_exporter_configuration:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '65111'
+                type: companies
+                attributes:
+                  name: Acme Corp
+                  billing_name: Acme Corporation Ltd
+                  vat: DE123456789
+                  default_currency: USD
+                  created_at: '2026-01-01T00:00:00.000+00:00'
+                  last_activity_at: '2026-03-10T14:00:00.000+00:00'
+                  archived_at: null
+                  avatar_url: null
+                  original_avatar_url: null
+                  invoice_email_recipients: {}
+                  custom_fields: null
+                  company_code: ACME1
+                  domain: acme.com
+                  domains:
+                    - acme.com
+                  projectless_budgets: false
+                  default_subsidiary_id: null
+                  default_tax_rate_id: null
+                  default_document_type_id: null
+                  due_days: 30
+                  tag_list:
+                    - enterprise
+                  contact: {}
+                  sample_data: false
+                  settings: {}
+                  external_id: null
+                  external_sync: false
+                  parent_company_id: null
+                relationships:
+                  default_subsidiary:
+                    data: null
+                  default_document_type:
+                    data: null
+                  parent_company:
+                    data: null
+              included: []
+      description: Single company
+    collection_company:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API collection response containing an array of company objects.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A company resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Company attributes.
+                      properties:
+                        sample_data:
+                          $ref: '#/components/schemas/resource_company/properties/sample_data'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_company/properties/last_activity_at'
+                        external_sync:
+                          $ref: '#/components/schemas/resource_company/properties/external_sync'
+                        avatar_url:
+                          $ref: '#/components/schemas/resource_company/properties/avatar_url'
+                        parent_company_id:
+                          $ref: '#/components/schemas/resource_company/properties/parent_company_id'
+                        tag_list:
+                          $ref: '#/components/schemas/resource_company/properties/tag_list'
+                        external_id:
+                          $ref: '#/components/schemas/resource_company/properties/external_id'
+                        due_days:
+                          $ref: '#/components/schemas/resource_company/properties/due_days'
+                        projectless_budgets:
+                          $ref: '#/components/schemas/resource_company/properties/projectless_budgets'
+                        payment_terms_type:
+                          $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_company/properties/archived_at'
+                        default_payment_reminder_sequence_id:
+                          $ref: '#/components/schemas/resource_company/properties/default_payment_reminder_sequence_id'
+                        vat:
+                          $ref: '#/components/schemas/resource_company/properties/vat'
+                        default_tax_rate_id:
+                          $ref: '#/components/schemas/resource_company/properties/default_tax_rate_id'
+                        domain:
+                          $ref: '#/components/schemas/resource_company/properties/domain'
+                        settings:
+                          $ref: '#/components/schemas/resource_company/properties/settings'
+                        contact:
+                          $ref: '#/components/schemas/resource_company/properties/contact'
+                        company_code:
+                          $ref: '#/components/schemas/resource_company/properties/company_code'
+                        domains:
+                          $ref: '#/components/schemas/resource_company/properties/domains'
+                        invoice_email_recipients:
+                          $ref: '#/components/schemas/resource_company/properties/invoice_email_recipients'
+                        default_subsidiary_id:
+                          $ref: '#/components/schemas/resource_company/properties/default_subsidiary_id'
+                        billing_name:
+                          $ref: '#/components/schemas/resource_company/properties/billing_name'
+                        created_at:
+                          $ref: '#/components/schemas/resource_company/properties/created_at'
+                        original_avatar_url:
+                          $ref: '#/components/schemas/resource_company/properties/original_avatar_url'
+                        name:
+                          $ref: '#/components/schemas/resource_company/properties/name'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_company/properties/custom_fields'
+                        default_currency:
+                          $ref: '#/components/schemas/resource_company/properties/default_currency'
+                        default_document_type_id:
+                          $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Company relationships.
+                      properties:
+                        default_tax_rate:
+                          $ref: '#/components/schemas/_single_relationship'
+                        default_subsidiary:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        default_document_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        einvoice_identity:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        default_payment_reminder_sequence:
+                          $ref: '#/components/schemas/_single_relationship'
+                        import:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        integration_exporter_configuration:
+                          $ref: '#/components/schemas/_single_relationship'
+                        parent_company:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of company resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '65111'
+                  type: companies
+                  attributes:
+                    name: Acme Corp
+                    billing_name: Acme Corporation Ltd
+                    vat: DE123456789
+                    default_currency: USD
+                    created_at: '2026-01-01T00:00:00.000+00:00'
+                    last_activity_at: '2026-03-10T14:00:00.000+00:00'
+                    archived_at: null
+                    avatar_url: null
+                    original_avatar_url: null
+                    invoice_email_recipients: {}
+                    custom_fields: null
+                    company_code: ACME1
+                    domain: acme.com
+                    domains:
+                      - acme.com
+                    projectless_budgets: false
+                    default_subsidiary_id: null
+                    default_tax_rate_id: null
+                    default_document_type_id: null
+                    due_days: 30
+                    tag_list:
+                      - enterprise
+                    contact: {}
+                    sample_data: false
+                    settings: {}
+                    external_id: null
+                    external_sync: false
+                    parent_company_id: null
+                  relationships:
+                    default_subsidiary:
+                      data: null
+                    default_document_type:
+                      data: null
+                    parent_company:
+                      data: null
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection company
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
     resource_company:
       type: object
       title: Company Resource
+      description: A client company linked to deals, budgets, projects, and invoices, with invoicing settings and rate card configuration.
       properties:
-        original_avatar_url:
-          title: Original Avatar Url
-          description: URL of the original full-size avatar image for this company before resizing.
-          example:
-            eq: value
         tags:
           type: string
           title: Tags
@@ -728,6 +1070,11 @@ components:
           description: ID of the default tax rate applied to this company's invoices.
           example:
             - 123
+        original_avatar_url:
+          title: Original Avatar Url
+          description: URL of the original full-size avatar image for this company before resizing.
+          example:
+            eq: value
         archived_at:
           type: string
           title: Archived At
@@ -735,7 +1082,6 @@ components:
           description: Timestamp when the company was archived.
           example:
             gt: '2026-01-01'
-      description: A client company linked to deals, budgets, projects, and invoices, with invoicing settings and rate card configuration.
       example:
         id: '65111'
         type: companies
@@ -778,6 +1124,7 @@ components:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -810,91 +1157,83 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
+  requestBodies:
+    company:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API request envelope for a company.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object containing the company resource attributes and relationships.
+                properties:
+                  attributes:
+                    type: object
+                    description: Writable attributes for a company.
+                    properties:
+                      tag_list:
+                        $ref: '#/components/schemas/resource_company/properties/tag_list'
+                      domain:
+                        $ref: '#/components/schemas/resource_company/properties/domain'
+                      due_days:
+                        $ref: '#/components/schemas/resource_company/properties/due_days'
+                      parent_company_id:
+                        $ref: '#/components/schemas/resource_company/properties/parent_company_id'
+                      contact:
+                        $ref: '#/components/schemas/resource_company/properties/contact'
+                      default_document_type_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
+                      vat:
+                        $ref: '#/components/schemas/resource_company/properties/vat'
+                      domains:
+                        $ref: '#/components/schemas/resource_company/properties/domains'
+                      default_payment_reminder_sequence_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_payment_reminder_sequence_id'
+                      default_currency:
+                        $ref: '#/components/schemas/resource_company/properties/default_currency'
+                      payment_terms_type:
+                        $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
+                      billing_name:
+                        $ref: '#/components/schemas/resource_company/properties/billing_name'
+                      default_subsidiary_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_subsidiary_id'
+                      company_code:
+                        $ref: '#/components/schemas/resource_company/properties/company_code'
+                      settings:
+                        $ref: '#/components/schemas/resource_company/properties/settings'
+                      default_tax_rate_id:
+                        $ref: '#/components/schemas/resource_company/properties/default_tax_rate_id'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_company/properties/avatar_url'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_company/properties/subscriber_ids'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_company/properties/custom_fields'
+                      name:
+                        $ref: '#/components/schemas/resource_company/properties/name'
+                    required:
+                      - name
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: companies
+                attributes:
+                  name: Acme Corp
+                  billing_name: Acme Corporation Ltd
+                  default_currency: USD
+                  due_days: 30
+      description: Request body for creating or updating a company.
   parameters:
     header_organization:
       in: header
@@ -937,204 +1276,3 @@ components:
         description: Filter keys and their operators are listed under x-filters.company at the top of this file.
       required: false
       description: Filters
-  responses:
-    single_company:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      vat:
-                        $ref: '#/components/schemas/resource_company/properties/vat'
-                      name:
-                        $ref: '#/components/schemas/resource_company/properties/name'
-                      domain:
-                        $ref: '#/components/schemas/resource_company/properties/domain'
-                      contact:
-                        $ref: '#/components/schemas/resource_company/properties/contact'
-                      domains:
-                        $ref: '#/components/schemas/resource_company/properties/domains'
-                      due_days:
-                        $ref: '#/components/schemas/resource_company/properties/due_days'
-                      settings:
-                        $ref: '#/components/schemas/resource_company/properties/settings'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_company/properties/tag_list'
-                      avatar_url:
-                        $ref: '#/components/schemas/resource_company/properties/avatar_url'
-                      created_at:
-                        $ref: '#/components/schemas/resource_company/properties/created_at'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_company/properties/archived_at'
-                      external_id:
-                        $ref: '#/components/schemas/resource_company/properties/external_id'
-                      sample_data:
-                        $ref: '#/components/schemas/resource_company/properties/sample_data'
-                      billing_name:
-                        $ref: '#/components/schemas/resource_company/properties/billing_name'
-                      company_code:
-                        $ref: '#/components/schemas/resource_company/properties/company_code'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_company/properties/custom_fields'
-                      external_sync:
-                        $ref: '#/components/schemas/resource_company/properties/external_sync'
-                      default_currency:
-                        $ref: '#/components/schemas/resource_company/properties/default_currency'
-                      last_activity_at:
-                        $ref: '#/components/schemas/resource_company/properties/last_activity_at'
-                      parent_company_id:
-                        $ref: '#/components/schemas/resource_company/properties/parent_company_id'
-                      payment_terms_type:
-                        $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
-                      default_tax_rate_id:
-                        $ref: '#/components/schemas/resource_company/properties/default_tax_rate_id'
-                      original_avatar_url:
-                        $ref: '#/components/schemas/resource_company/properties/original_avatar_url'
-                      projectless_budgets:
-                        $ref: '#/components/schemas/resource_company/properties/projectless_budgets'
-                      default_subsidiary_id:
-                        $ref: '#/components/schemas/resource_company/properties/default_subsidiary_id'
-                      default_document_type_id:
-                        $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
-                      invoice_email_recipients:
-                        $ref: '#/components/schemas/resource_company/properties/invoice_email_recipients'
-                      default_payment_reminder_sequence_id:
-                        $ref: '#/components/schemas/resource_company/properties/default_payment_reminder_sequence_id'
-                  relationships:
-                    type: object
-                    properties:
-                      import:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      parent_company:
-                        $ref: '#/components/schemas/_single_relationship'
-                      default_tax_rate:
-                        $ref: '#/components/schemas/_single_relationship'
-                      einvoice_identity:
-                        $ref: '#/components/schemas/_single_relationship'
-                      default_subsidiary:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      default_document_type:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_field_attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      default_payment_reminder_sequence:
-                        $ref: '#/components/schemas/_single_relationship'
-                      integration_exporter_configuration:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single company
-    collection_company:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        vat:
-                          $ref: '#/components/schemas/resource_company/properties/vat'
-                        name:
-                          $ref: '#/components/schemas/resource_company/properties/name'
-                        domain:
-                          $ref: '#/components/schemas/resource_company/properties/domain'
-                        contact:
-                          $ref: '#/components/schemas/resource_company/properties/contact'
-                        domains:
-                          $ref: '#/components/schemas/resource_company/properties/domains'
-                        due_days:
-                          $ref: '#/components/schemas/resource_company/properties/due_days'
-                        settings:
-                          $ref: '#/components/schemas/resource_company/properties/settings'
-                        tag_list:
-                          $ref: '#/components/schemas/resource_company/properties/tag_list'
-                        avatar_url:
-                          $ref: '#/components/schemas/resource_company/properties/avatar_url'
-                        created_at:
-                          $ref: '#/components/schemas/resource_company/properties/created_at'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_company/properties/archived_at'
-                        external_id:
-                          $ref: '#/components/schemas/resource_company/properties/external_id'
-                        sample_data:
-                          $ref: '#/components/schemas/resource_company/properties/sample_data'
-                        billing_name:
-                          $ref: '#/components/schemas/resource_company/properties/billing_name'
-                        company_code:
-                          $ref: '#/components/schemas/resource_company/properties/company_code'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_company/properties/custom_fields'
-                        external_sync:
-                          $ref: '#/components/schemas/resource_company/properties/external_sync'
-                        default_currency:
-                          $ref: '#/components/schemas/resource_company/properties/default_currency'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_company/properties/last_activity_at'
-                        parent_company_id:
-                          $ref: '#/components/schemas/resource_company/properties/parent_company_id'
-                        payment_terms_type:
-                          $ref: '#/components/schemas/resource_company/properties/payment_terms_type'
-                        default_tax_rate_id:
-                          $ref: '#/components/schemas/resource_company/properties/default_tax_rate_id'
-                        original_avatar_url:
-                          $ref: '#/components/schemas/resource_company/properties/original_avatar_url'
-                        projectless_budgets:
-                          $ref: '#/components/schemas/resource_company/properties/projectless_budgets'
-                        default_subsidiary_id:
-                          $ref: '#/components/schemas/resource_company/properties/default_subsidiary_id'
-                        default_document_type_id:
-                          $ref: '#/components/schemas/resource_company/properties/default_document_type_id'
-                        invoice_email_recipients:
-                          $ref: '#/components/schemas/resource_company/properties/invoice_email_recipients'
-                        default_payment_reminder_sequence_id:
-                          $ref: '#/components/schemas/resource_company/properties/default_payment_reminder_sequence_id'
-                    relationships:
-                      type: object
-                      properties:
-                        import:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        parent_company:
-                          $ref: '#/components/schemas/_single_relationship'
-                        default_tax_rate:
-                          $ref: '#/components/schemas/_single_relationship'
-                        einvoice_identity:
-                          $ref: '#/components/schemas/_single_relationship'
-                        default_subsidiary:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        default_document_type:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        default_payment_reminder_sequence:
-                          $ref: '#/components/schemas/_single_relationship'
-                        integration_exporter_configuration:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection company

@@ -35,19 +35,25 @@ paths:
       tags:
         - Timesheets
       summary: Get timesheets
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_timesheet'
+      operationId: timesheets-index
+      description: List all timesheets.
       parameters:
         - $ref: '#/components/parameters/filter_timesheet'
         - $ref: '#/components/parameters/sort_timesheet'
         - $ref: '#/components/parameters/header_organization'
-      operationId: timesheets-index
-      description: List all timesheets.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_timesheet'
     post:
       tags:
         - Timesheets
       summary: Create a timesheet
+      operationId: timesheets-create
+      description: Create a new timesheet.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/timesheet'
       responses:
         '201':
           $ref: '#/components/responses/single_timesheet'
@@ -59,20 +65,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: timesheets-create
-      requestBody:
-        $ref: '#/components/requestBodies/timesheet'
-      description: Create a new timesheet.
   /api/v2/timesheets/{id}:
     get:
       tags:
         - Timesheets
       summary: Gets a timesheet
-      responses:
-        '200':
-          $ref: '#/components/responses/single_timesheet'
+      operationId: timesheets-show
+      description: Retrieve a single timesheet by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -81,15 +80,15 @@ paths:
             type: string
           required: true
           description: The ID of the timesheet to retrieve.
-      operationId: timesheets-show
-      description: Retrieve a single timesheet by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_timesheet'
     delete:
       tags:
         - Timesheets
       summary: Deletes a timesheet
-      responses:
-        '204':
-          description: No Content
+      operationId: timesheets-destroy
+      description: Delete a timesheet by ID.
       parameters:
         - in: path
           name: id
@@ -98,8 +97,9 @@ paths:
           required: true
           description: The ID of the timesheet to delete.
         - $ref: '#/components/parameters/header_organization'
-      operationId: timesheets-destroy
-      description: Delete a timesheet by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -143,117 +143,148 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single timesheet record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned timesheet resource.
                 properties:
                   attributes:
                     type: object
+                    description: Timesheet attributes.
                     properties:
                       date:
                         $ref: '#/components/schemas/resource_timesheet/properties/date'
                       created_at:
                         $ref: '#/components/schemas/resource_timesheet/properties/created_at'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Timesheet relationships.
                     properties:
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
                       creator:
                         $ref: '#/components/schemas/_single_relationship'
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '567'
+                type: timesheets
+                attributes:
+                  status: submitted
+                  week_starting: '2026-03-10'
+                  total_time: 2400
+                  submitted_at: '2026-03-17T09:00:00.000+00:00'
+                  approved_at: null
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
       description: Single timesheet
     collection_timesheet:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of timesheet records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A timesheet resource object.
                   properties:
-                    attributes:
-                      type: object
-                      properties:
-                        date:
-                          $ref: '#/components/schemas/resource_timesheet/properties/date'
-                        created_at:
-                          $ref: '#/components/schemas/resource_timesheet/properties/created_at'
                     relationships:
                       type: object
+                      description: Timesheet relationships.
                       properties:
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
                         creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
                           $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Timesheet attributes.
+                      properties:
+                        created_at:
+                          $ref: '#/components/schemas/resource_timesheet/properties/created_at'
+                        date:
+                          $ref: '#/components/schemas/resource_timesheet/properties/date'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of timesheet resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '567'
+                  type: timesheets
+                  attributes:
+                    status: submitted
+                    week_starting: '2026-03-10'
+                    total_time: 2400
+                    submitted_at: '2026-03-17T09:00:00.000+00:00'
+                    approved_at: null
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection timesheet
   schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -266,6 +297,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -275,16 +307,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -292,16 +325,15 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
     resource_timesheet:
       type: object
       title: Timesheet Resource
+      description: A daily aggregate of a person's time entries, serving as the unit of submission in the time approval workflow.
       properties:
         id:
           title: Id
@@ -349,7 +381,6 @@ components:
           description: The organization this timesheet belongs to.
           example:
             eq: value
-      description: A daily aggregate of a person's time entries, serving as the unit of submission in the time approval workflow.
       example:
         id: '123'
         type: timesheets
@@ -362,21 +393,80 @@ components:
             data:
               type: people
               id: '12'
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
   requestBodies:
     timesheet:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a timesheet.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the timesheet resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Timesheet attributes.
                     properties:
                       date:
                         $ref: '#/components/schemas/resource_timesheet/properties/date'
                       person_id:
                         $ref: '#/components/schemas/resource_timesheet/properties/person_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: timesheets
+                attributes:
+                  status: submitted
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
       description: Request body for creating or updating a timesheet.

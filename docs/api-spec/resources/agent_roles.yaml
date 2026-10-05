@@ -9,9 +9,8 @@ paths:
       tags:
         - Agent Roles
       summary: Get an agent role
-      responses:
-        '200':
-          $ref: '#/components/responses/single_role'
+      operationId: agent-roles-show
+      description: Returns the role associated with the specified agent, including its permission settings.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -20,12 +19,25 @@ paths:
             type: string
           required: true
           description: The unique identifier of the agent role to retrieve.
-      operationId: agent-roles-show
-      description: Returns the role associated with the specified agent, including its permission settings.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_role'
     patch:
       tags:
         - Agent Roles
       summary: Update an agent role
+      operationId: agent-roles-update
+      description: Updates the permissions and access settings for the specified agent role.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The unique identifier of the agent role to update.
+      requestBody:
+        $ref: '#/components/requestBodies/agent_role'
       responses:
         '200':
           $ref: '#/components/responses/single_role'
@@ -37,46 +49,103 @@ paths:
               schema:
                 type: string
           description: Returned when the update fails validation — for example, when required fields are missing or contain invalid values.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The unique identifier of the agent role to update.
-      operationId: agent-roles-update
-      requestBody:
-        $ref: '#/components/requestBodies/agent_role'
-      description: Updates the permissions and access settings for the specified agent role.
 components:
-  requestBodies:
-    agent_role:
+  responses:
+    single_role:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single role record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned role resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Role relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Role attributes.
                     properties:
+                      resolved_permissions:
+                        $ref: '#/components/schemas/resource_role/properties/resolved_permissions'
+                      inactive_users_count:
+                        $ref: '#/components/schemas/resource_role/properties/inactive_users_count'
+                      name:
+                        $ref: '#/components/schemas/resource_role/properties/name'
+                      people_count:
+                        $ref: '#/components/schemas/resource_role/properties/people_count'
+                      base_role_id:
+                        $ref: '#/components/schemas/resource_role/properties/base_role_id'
+                      inactive_agents_count:
+                        $ref: '#/components/schemas/resource_role/properties/inactive_agents_count'
+                      active_users_count:
+                        $ref: '#/components/schemas/resource_role/properties/active_users_count'
+                      description:
+                        $ref: '#/components/schemas/resource_role/properties/description'
+                      user_type_id:
+                        $ref: '#/components/schemas/resource_role/properties/user_type_id'
+                      active_agents_count:
+                        $ref: '#/components/schemas/resource_role/properties/active_agents_count'
                       permissions:
                         $ref: '#/components/schemas/resource_role/properties/permissions'
-      description: Request body for updating an agent role's permissions.
+                      editable_by_user:
+                        $ref: '#/components/schemas/resource_role/properties/editable_by_user'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '5'
+                type: roles
+                attributes:
+                  name: Project Manager
+                  description: Can manage projects, budgets, and team members
+                  base_role_id: 2
+                  people_count: 8
+                  active_users_count: 6
+                  inactive_users_count: 2
+                  active_agents_count: 0
+                  inactive_agents_count: 0
+                  editable_by_user: true
+                  user_type_id: 1
+                  permissions:
+                    manage_projects: true
+                    manage_budgets: true
+                    view_financials: false
+              included: []
+      description: Single role
   schemas:
     resource_role:
       type: object
       title: Role Resource
+      description: A role defines a set of permissions that control what members assigned to it can access and do within the organization.
       properties:
-        inactive_agents_count:
-          type: integer
-          title: Inactive Agents Count
-          description: The number of inactive AI agents assigned to this role.
+        name:
+          type: string
+          title: Name
+          description: The display name of this role.
           example:
-            gt: 0
+            eq: value
         user_type_id:
           enum:
             - 1
@@ -86,12 +155,6 @@ components:
           description: ID of the user type associated with this role (e.g. full user, limited user).
           example:
             - 123
-        name:
-          type: string
-          title: Name
-          description: The display name of this role.
-          example:
-            eq: value
         resolved_permissions:
           title: Resolved Permissions
           description: The effective resolved permissions for this role, including inherited permissions from the base role.
@@ -170,7 +233,12 @@ components:
           description: ID of the base role type this custom role is derived from (determines the permission baseline).
           example:
             - 123
-      description: A role defines a set of permissions that control what members assigned to it can access and do within the organization.
+        inactive_agents_count:
+          type: integer
+          title: Inactive Agents Count
+          description: The number of inactive AI agents assigned to this role.
+          example:
+            gt: 0
       example:
         id: '123'
         type: roles
@@ -178,9 +246,64 @@ components:
           name: Project Manager
           description: Manages project delivery
         relationships: {}
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -213,77 +336,14 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-  responses:
-    single_role:
+  requestBodies:
+    agent_role:
       content:
         application/vnd.api+json:
           schema:
@@ -295,38 +355,14 @@ components:
                   attributes:
                     type: object
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_role/properties/name'
-                      description:
-                        $ref: '#/components/schemas/resource_role/properties/description'
                       permissions:
                         $ref: '#/components/schemas/resource_role/properties/permissions'
-                      base_role_id:
-                        $ref: '#/components/schemas/resource_role/properties/base_role_id'
-                      people_count:
-                        $ref: '#/components/schemas/resource_role/properties/people_count'
-                      user_type_id:
-                        $ref: '#/components/schemas/resource_role/properties/user_type_id'
-                      editable_by_user:
-                        $ref: '#/components/schemas/resource_role/properties/editable_by_user'
-                      active_users_count:
-                        $ref: '#/components/schemas/resource_role/properties/active_users_count'
-                      active_agents_count:
-                        $ref: '#/components/schemas/resource_role/properties/active_agents_count'
-                      inactive_users_count:
-                        $ref: '#/components/schemas/resource_role/properties/inactive_users_count'
-                      resolved_permissions:
-                        $ref: '#/components/schemas/resource_role/properties/resolved_permissions'
-                      inactive_agents_count:
-                        $ref: '#/components/schemas/resource_role/properties/inactive_agents_count'
-                  relationships:
-                    type: object
-                    properties:
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single role
+      description: Request body for updating an agent role's permissions.
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID

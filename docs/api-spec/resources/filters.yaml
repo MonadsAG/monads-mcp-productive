@@ -26,13 +26,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    report:
-      description: Filter saved filters (reports) by the report flag.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     shared:
       description: Filter to include only saved filters that are shared with others.
       operators:
@@ -145,25 +138,38 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    report:
+      description: Filter saved filters (reports) by the report flag.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/filters:
     get:
       tags:
         - Filters
       summary: Get filters
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_filter'
+      operationId: filters-index
+      description: List filters.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_filter'
         - $ref: '#/components/parameters/filter_filter'
-      operationId: filters-index
-      description: List filters.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_filter'
     post:
       tags:
         - Filters
       summary: Create a filter
+      operationId: filters-create
+      description: Create a new filter.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/filter'
       responses:
         '201':
           $ref: '#/components/responses/single_filter'
@@ -175,20 +181,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: filters-create
-      requestBody:
-        $ref: '#/components/requestBodies/filter'
-      description: Create a new filter.
   /api/v2/filters/{id}:
     get:
       tags:
         - Filters
       summary: Gets a filter
-      responses:
-        '200':
-          $ref: '#/components/responses/single_filter'
+      operationId: filters-show
+      description: Retrieve a single filter.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -197,12 +196,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: filters-show
-      description: Retrieve a single filter.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_filter'
     patch:
       tags:
         - Filters
       summary: Update a filter
+      operationId: filters-update
+      description: Update a filter.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/filter'
       responses:
         '200':
           $ref: '#/components/responses/single_filter'
@@ -214,25 +226,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: filters-update
-      requestBody:
-        $ref: '#/components/requestBodies/filter'
-      description: Update a filter.
     delete:
       tags:
         - Filters
       summary: Deletes a filter
-      responses:
-        '204':
-          description: No Content
+      operationId: filters-destroy
+      description: Delete a filter.
       parameters:
         - in: path
           name: id
@@ -241,8 +240,9 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: filters-destroy
-      description: Delete a filter.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -294,71 +294,282 @@ components:
       explode: false
       required: false
       description: Sort filter
-  requestBodies:
-    filter:
+  responses:
+    single_filter:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single filter record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned filter resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Filter relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      memberships:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      template_object:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      report_category:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Filter attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_filter/properties/name'
-                      hidden:
-                        $ref: '#/components/schemas/resource_filter/properties/hidden'
-                      params:
-                        $ref: '#/components/schemas/resource_filter/properties/params'
-                      public:
-                        $ref: '#/components/schemas/resource_filter/properties/public'
-                      report:
-                        $ref: '#/components/schemas/resource_filter/properties/report'
-                      columns:
-                        $ref: '#/components/schemas/resource_filter/properties/columns'
-                      sort_by:
-                        $ref: '#/components/schemas/resource_filter/properties/sort_by'
-                      type_id:
-                        $ref: '#/components/schemas/resource_filter/properties/type_id'
-                      formulas:
-                        $ref: '#/components/schemas/resource_filter/properties/formulas'
                       group_by:
                         $ref: '#/components/schemas/resource_filter/properties/group_by'
-                      settings:
-                        $ref: '#/components/schemas/resource_filter/properties/settings'
-                      layout_id:
-                        $ref: '#/components/schemas/resource_filter/properties/layout_id'
-                      transpose_by:
-                        $ref: '#/components/schemas/resource_filter/properties/transpose_by'
-                      chart_type_id:
-                        $ref: '#/components/schemas/resource_filter/properties/chart_type_id'
-                      exchange_date:
-                        $ref: '#/components/schemas/resource_filter/properties/exchange_date'
-                      filterable_id:
-                        $ref: '#/components/schemas/resource_filter/properties/filterable_id'
-                      predefined_id:
-                        $ref: '#/components/schemas/resource_filter/properties/predefined_id'
-                      column_settings:
-                        $ref: '#/components/schemas/resource_filter/properties/column_settings'
                       filterable_type:
                         $ref: '#/components/schemas/resource_filter/properties/filterable_type'
-                      report_layout_id:
-                        $ref: '#/components/schemas/resource_filter/properties/report_layout_id'
+                      report:
+                        $ref: '#/components/schemas/resource_filter/properties/report'
+                      layout_id:
+                        $ref: '#/components/schemas/resource_filter/properties/layout_id'
+                      last_viewed_at:
+                        $ref: '#/components/schemas/resource_filter/properties/last_viewed_at'
                       exchange_currency:
                         $ref: '#/components/schemas/resource_filter/properties/exchange_currency'
-                      report_category_id:
-                        $ref: '#/components/schemas/resource_filter/properties/report_category_id'
+                      exchange_date:
+                        $ref: '#/components/schemas/resource_filter/properties/exchange_date'
+                      original_id:
+                        $ref: '#/components/schemas/resource_filter/properties/original_id'
+                      public:
+                        $ref: '#/components/schemas/resource_filter/properties/public'
+                      column_settings:
+                        $ref: '#/components/schemas/resource_filter/properties/column_settings'
+                      transpose_by:
+                        $ref: '#/components/schemas/resource_filter/properties/transpose_by'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_filter/properties/updated_at'
+                      formulas:
+                        $ref: '#/components/schemas/resource_filter/properties/formulas'
+                      last_pulse_sent_at:
+                        $ref: '#/components/schemas/resource_filter/properties/last_pulse_sent_at'
+                      created_at:
+                        $ref: '#/components/schemas/resource_filter/properties/created_at'
+                      report_layout_id:
+                        $ref: '#/components/schemas/resource_filter/properties/report_layout_id'
+                      predefined_id:
+                        $ref: '#/components/schemas/resource_filter/properties/predefined_id'
+                      columns:
+                        $ref: '#/components/schemas/resource_filter/properties/columns'
+                      hidden:
+                        $ref: '#/components/schemas/resource_filter/properties/hidden'
+                      settings:
+                        $ref: '#/components/schemas/resource_filter/properties/settings'
+                      filterable_id:
+                        $ref: '#/components/schemas/resource_filter/properties/filterable_id'
+                      default:
+                        $ref: '#/components/schemas/resource_filter/properties/default'
+                      name:
+                        $ref: '#/components/schemas/resource_filter/properties/name'
+                      chart_type_id:
+                        $ref: '#/components/schemas/resource_filter/properties/chart_type_id'
                       filterable_collection:
                         $ref: '#/components/schemas/resource_filter/properties/filterable_collection'
-      description: Request body for creating or updating a saved view or report.
+                      shared:
+                        $ref: '#/components/schemas/resource_filter/properties/shared'
+                      pulse_count:
+                        $ref: '#/components/schemas/resource_filter/properties/pulse_count'
+                      sort_by:
+                        $ref: '#/components/schemas/resource_filter/properties/sort_by'
+                      params:
+                        $ref: '#/components/schemas/resource_filter/properties/params'
+                      type_id:
+                        $ref: '#/components/schemas/resource_filter/properties/type_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '89'
+                type: filters
+                attributes:
+                  name: My Open Tasks
+                  item_type: task
+                  filter_data:
+                    assignee_id:
+                      - 12
+                    closed:
+                      eq: false
+                  created_at: '2026-01-15T10:00:00.000+00:00'
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
+      description: Single filter
+    collection_filter:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of filter records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A filter resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Filter attributes.
+                      properties:
+                        exchange_date:
+                          $ref: '#/components/schemas/resource_filter/properties/exchange_date'
+                        shared:
+                          $ref: '#/components/schemas/resource_filter/properties/shared'
+                        type_id:
+                          $ref: '#/components/schemas/resource_filter/properties/type_id'
+                        transpose_by:
+                          $ref: '#/components/schemas/resource_filter/properties/transpose_by'
+                        original_id:
+                          $ref: '#/components/schemas/resource_filter/properties/original_id'
+                        formulas:
+                          $ref: '#/components/schemas/resource_filter/properties/formulas'
+                        last_viewed_at:
+                          $ref: '#/components/schemas/resource_filter/properties/last_viewed_at'
+                        chart_type_id:
+                          $ref: '#/components/schemas/resource_filter/properties/chart_type_id'
+                        default:
+                          $ref: '#/components/schemas/resource_filter/properties/default'
+                        hidden:
+                          $ref: '#/components/schemas/resource_filter/properties/hidden'
+                        filterable_id:
+                          $ref: '#/components/schemas/resource_filter/properties/filterable_id'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_filter/properties/updated_at'
+                        layout_id:
+                          $ref: '#/components/schemas/resource_filter/properties/layout_id'
+                        pulse_count:
+                          $ref: '#/components/schemas/resource_filter/properties/pulse_count'
+                        report_layout_id:
+                          $ref: '#/components/schemas/resource_filter/properties/report_layout_id'
+                        exchange_currency:
+                          $ref: '#/components/schemas/resource_filter/properties/exchange_currency'
+                        filterable_type:
+                          $ref: '#/components/schemas/resource_filter/properties/filterable_type'
+                        name:
+                          $ref: '#/components/schemas/resource_filter/properties/name'
+                        report:
+                          $ref: '#/components/schemas/resource_filter/properties/report'
+                        public:
+                          $ref: '#/components/schemas/resource_filter/properties/public'
+                        sort_by:
+                          $ref: '#/components/schemas/resource_filter/properties/sort_by'
+                        settings:
+                          $ref: '#/components/schemas/resource_filter/properties/settings'
+                        predefined_id:
+                          $ref: '#/components/schemas/resource_filter/properties/predefined_id'
+                        params:
+                          $ref: '#/components/schemas/resource_filter/properties/params'
+                        columns:
+                          $ref: '#/components/schemas/resource_filter/properties/columns'
+                        created_at:
+                          $ref: '#/components/schemas/resource_filter/properties/created_at'
+                        last_pulse_sent_at:
+                          $ref: '#/components/schemas/resource_filter/properties/last_pulse_sent_at'
+                        group_by:
+                          $ref: '#/components/schemas/resource_filter/properties/group_by'
+                        filterable_collection:
+                          $ref: '#/components/schemas/resource_filter/properties/filterable_collection'
+                        column_settings:
+                          $ref: '#/components/schemas/resource_filter/properties/column_settings'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Filter relationships.
+                      properties:
+                        memberships:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        template_object:
+                          $ref: '#/components/schemas/_single_relationship'
+                        report_category:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of filter resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '89'
+                  type: filters
+                  attributes:
+                    name: My Open Tasks
+                    item_type: task
+                    filter_data:
+                      assignee_id:
+                        - 12
+                      closed:
+                        eq: false
+                    created_at: '2026-01-15T10:00:00.000+00:00'
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection filter
   schemas:
     resource_filter:
       type: object
       title: Filter Resource
+      description: A saved view configuration containing filters, sorters, column layout, and optional report aggregation settings.
       properties:
+        exchange_currency:
+          type: string
+          title: Exchange Currency
+          description: The currency used for exchange rate conversions when this filter displays monetary values.
+          example:
+            eq: value
         exchange_date:
           type: object
           title: Exchange Date
@@ -371,12 +582,6 @@ components:
           description: ID of the project this filter is scoped to, when filterable_type is projects.
           example:
             - 123
-        exchange_currency:
-          type: string
-          title: Exchange Currency
-          description: The currency used for exchange rate conversions when this filter displays monetary values.
-          example:
-            eq: value
         hidden:
           type: boolean
           title: Hidden
@@ -608,7 +813,6 @@ components:
           description: ID of the layout mode used to display this filter (e.g. list, board, timeline).
           example:
             - 123
-      description: A saved view configuration containing filters, sorters, column layout, and optional report aggregation settings.
       example:
         id: '89'
         type: filters
@@ -626,9 +830,88 @@ components:
             data:
               type: people
               id: '12'
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -661,273 +944,87 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-  responses:
-    single_filter:
+  requestBodies:
+    filter:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a saved view or report.
             properties:
               data:
                 type: object
+                description: The saved view or report resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Saved view or report attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_filter/properties/name'
-                      hidden:
-                        $ref: '#/components/schemas/resource_filter/properties/hidden'
-                      params:
-                        $ref: '#/components/schemas/resource_filter/properties/params'
-                      public:
-                        $ref: '#/components/schemas/resource_filter/properties/public'
-                      report:
-                        $ref: '#/components/schemas/resource_filter/properties/report'
-                      shared:
-                        $ref: '#/components/schemas/resource_filter/properties/shared'
-                      columns:
-                        $ref: '#/components/schemas/resource_filter/properties/columns'
-                      default:
-                        $ref: '#/components/schemas/resource_filter/properties/default'
-                      sort_by:
-                        $ref: '#/components/schemas/resource_filter/properties/sort_by'
-                      type_id:
-                        $ref: '#/components/schemas/resource_filter/properties/type_id'
-                      formulas:
-                        $ref: '#/components/schemas/resource_filter/properties/formulas'
-                      group_by:
-                        $ref: '#/components/schemas/resource_filter/properties/group_by'
-                      settings:
-                        $ref: '#/components/schemas/resource_filter/properties/settings'
-                      layout_id:
-                        $ref: '#/components/schemas/resource_filter/properties/layout_id'
-                      created_at:
-                        $ref: '#/components/schemas/resource_filter/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_filter/properties/updated_at'
-                      original_id:
-                        $ref: '#/components/schemas/resource_filter/properties/original_id'
-                      pulse_count:
-                        $ref: '#/components/schemas/resource_filter/properties/pulse_count'
-                      transpose_by:
-                        $ref: '#/components/schemas/resource_filter/properties/transpose_by'
+                      filterable_collection:
+                        $ref: '#/components/schemas/resource_filter/properties/filterable_collection'
+                      predefined_id:
+                        $ref: '#/components/schemas/resource_filter/properties/predefined_id'
                       chart_type_id:
                         $ref: '#/components/schemas/resource_filter/properties/chart_type_id'
+                      report:
+                        $ref: '#/components/schemas/resource_filter/properties/report'
+                      report_layout_id:
+                        $ref: '#/components/schemas/resource_filter/properties/report_layout_id'
+                      transpose_by:
+                        $ref: '#/components/schemas/resource_filter/properties/transpose_by'
+                      settings:
+                        $ref: '#/components/schemas/resource_filter/properties/settings'
                       exchange_date:
                         $ref: '#/components/schemas/resource_filter/properties/exchange_date'
                       filterable_id:
                         $ref: '#/components/schemas/resource_filter/properties/filterable_id'
-                      predefined_id:
-                        $ref: '#/components/schemas/resource_filter/properties/predefined_id'
-                      last_viewed_at:
-                        $ref: '#/components/schemas/resource_filter/properties/last_viewed_at'
-                      column_settings:
-                        $ref: '#/components/schemas/resource_filter/properties/column_settings'
+                      type_id:
+                        $ref: '#/components/schemas/resource_filter/properties/type_id'
+                      sort_by:
+                        $ref: '#/components/schemas/resource_filter/properties/sort_by'
+                      params:
+                        $ref: '#/components/schemas/resource_filter/properties/params'
+                      group_by:
+                        $ref: '#/components/schemas/resource_filter/properties/group_by'
+                      layout_id:
+                        $ref: '#/components/schemas/resource_filter/properties/layout_id'
+                      public:
+                        $ref: '#/components/schemas/resource_filter/properties/public'
                       filterable_type:
                         $ref: '#/components/schemas/resource_filter/properties/filterable_type'
-                      report_layout_id:
-                        $ref: '#/components/schemas/resource_filter/properties/report_layout_id'
+                      columns:
+                        $ref: '#/components/schemas/resource_filter/properties/columns'
+                      hidden:
+                        $ref: '#/components/schemas/resource_filter/properties/hidden'
+                      formulas:
+                        $ref: '#/components/schemas/resource_filter/properties/formulas'
+                      column_settings:
+                        $ref: '#/components/schemas/resource_filter/properties/column_settings'
                       exchange_currency:
                         $ref: '#/components/schemas/resource_filter/properties/exchange_currency'
-                      last_pulse_sent_at:
-                        $ref: '#/components/schemas/resource_filter/properties/last_pulse_sent_at'
-                      filterable_collection:
-                        $ref: '#/components/schemas/resource_filter/properties/filterable_collection'
-                  relationships:
-                    type: object
-                    properties:
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      memberships:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      report_category:
-                        $ref: '#/components/schemas/_single_relationship'
-                      template_object:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single filter
-    collection_filter:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      name:
+                        $ref: '#/components/schemas/resource_filter/properties/name'
+                      report_category_id:
+                        $ref: '#/components/schemas/resource_filter/properties/report_category_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_filter/properties/name'
-                        hidden:
-                          $ref: '#/components/schemas/resource_filter/properties/hidden'
-                        params:
-                          $ref: '#/components/schemas/resource_filter/properties/params'
-                        public:
-                          $ref: '#/components/schemas/resource_filter/properties/public'
-                        report:
-                          $ref: '#/components/schemas/resource_filter/properties/report'
-                        shared:
-                          $ref: '#/components/schemas/resource_filter/properties/shared'
-                        columns:
-                          $ref: '#/components/schemas/resource_filter/properties/columns'
-                        default:
-                          $ref: '#/components/schemas/resource_filter/properties/default'
-                        sort_by:
-                          $ref: '#/components/schemas/resource_filter/properties/sort_by'
-                        type_id:
-                          $ref: '#/components/schemas/resource_filter/properties/type_id'
-                        formulas:
-                          $ref: '#/components/schemas/resource_filter/properties/formulas'
-                        group_by:
-                          $ref: '#/components/schemas/resource_filter/properties/group_by'
-                        settings:
-                          $ref: '#/components/schemas/resource_filter/properties/settings'
-                        layout_id:
-                          $ref: '#/components/schemas/resource_filter/properties/layout_id'
-                        created_at:
-                          $ref: '#/components/schemas/resource_filter/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_filter/properties/updated_at'
-                        original_id:
-                          $ref: '#/components/schemas/resource_filter/properties/original_id'
-                        pulse_count:
-                          $ref: '#/components/schemas/resource_filter/properties/pulse_count'
-                        transpose_by:
-                          $ref: '#/components/schemas/resource_filter/properties/transpose_by'
-                        chart_type_id:
-                          $ref: '#/components/schemas/resource_filter/properties/chart_type_id'
-                        exchange_date:
-                          $ref: '#/components/schemas/resource_filter/properties/exchange_date'
-                        filterable_id:
-                          $ref: '#/components/schemas/resource_filter/properties/filterable_id'
-                        predefined_id:
-                          $ref: '#/components/schemas/resource_filter/properties/predefined_id'
-                        last_viewed_at:
-                          $ref: '#/components/schemas/resource_filter/properties/last_viewed_at'
-                        column_settings:
-                          $ref: '#/components/schemas/resource_filter/properties/column_settings'
-                        filterable_type:
-                          $ref: '#/components/schemas/resource_filter/properties/filterable_type'
-                        report_layout_id:
-                          $ref: '#/components/schemas/resource_filter/properties/report_layout_id'
-                        exchange_currency:
-                          $ref: '#/components/schemas/resource_filter/properties/exchange_currency'
-                        last_pulse_sent_at:
-                          $ref: '#/components/schemas/resource_filter/properties/last_pulse_sent_at'
-                        filterable_collection:
-                          $ref: '#/components/schemas/resource_filter/properties/filterable_collection'
-                    relationships:
-                      type: object
-                      properties:
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        memberships:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        report_category:
-                          $ref: '#/components/schemas/_single_relationship'
-                        template_object:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection filter
+                type: filters
+                attributes:
+                  name: My Open Tasks
+                  item_type: task
+                  filter_data:
+                    assignee_id:
+                      - 12
+                    closed:
+                      eq: false
+      description: Request body for creating or updating a saved view or report.

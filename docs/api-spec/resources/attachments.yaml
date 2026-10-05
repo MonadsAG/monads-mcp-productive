@@ -105,19 +105,25 @@ paths:
       tags:
         - Attachments
       summary: Get attachments
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_attachment'
+      operationId: attachments-index
+      description: List attachments with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/filter_attachment'
         - $ref: '#/components/parameters/sort_attachment'
         - $ref: '#/components/parameters/header_organization'
-      operationId: attachments-index
-      description: List attachments with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_attachment'
     post:
       tags:
         - Attachments
       summary: Create an attachment
+      operationId: attachments-create
+      description: Create a new attachment.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/attachment'
       responses:
         '201':
           $ref: '#/components/responses/single_attachment'
@@ -129,20 +135,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: attachments-create
-      requestBody:
-        $ref: '#/components/requestBodies/attachment'
-      description: Create a new attachment.
   /api/v2/attachments/{id}:
     get:
       tags:
         - Attachments
       summary: Get an attachment
-      responses:
-        '200':
-          $ref: '#/components/responses/single_attachment'
+      operationId: attachments-show
+      description: Retrieve a single attachment by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -151,12 +150,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: attachments-show
-      description: Retrieve a single attachment by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_attachment'
     patch:
       tags:
         - Attachments
       summary: Update an attachment
+      operationId: attachments-update
+      description: Update an attachment.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/attachment'
       responses:
         '200':
           $ref: '#/components/responses/single_attachment'
@@ -168,25 +180,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: attachments-update
-      requestBody:
-        $ref: '#/components/requestBodies/attachment'
-      description: Update an attachment.
     delete:
       tags:
         - Attachments
       summary: Delete an attachment
-      responses:
-        '204':
-          description: No Content
+      operationId: attachments-destroy
+      description: Delete an attachment.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -195,8 +194,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: attachments-destroy
-      description: Delete an attachment.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -230,62 +230,235 @@ components:
         description: Filter keys and their operators are listed under x-filters.attachment at the top of this file.
       required: false
       description: Filters
-  requestBodies:
-    attachment:
+  responses:
+    single_attachment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single attachment record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned attachment resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Attachment relationships.
+                    properties:
+                      invoice:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      page:
+                        $ref: '#/components/schemas/_single_relationship'
+                      document_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                      document_style:
+                        $ref: '#/components/schemas/_single_relationship'
+                      comment:
+                        $ref: '#/components/schemas/_single_relationship'
+                      purchase_order:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      bill:
+                        $ref: '#/components/schemas/_single_relationship'
+                      email:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      expense:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
-                    required:
-                      - name
+                    description: Attachment attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_attachment/properties/name'
-                      size:
-                        $ref: '#/components/schemas/resource_attachment/properties/size'
-                      bill_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/bill_id'
-                      page_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/page_id'
-                      task_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/task_id'
-                      temp_url:
-                        $ref: '#/components/schemas/resource_attachment/properties/temp_url'
-                      widget_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/widget_id'
-                      booking_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/booking_id'
-                      comment_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/comment_id'
-                      expense_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/expense_id'
-                      invoice_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/invoice_id'
+                      url:
+                        $ref: '#/components/schemas/resource_attachment/properties/url'
+                      thumb:
+                        $ref: '#/components/schemas/resource_attachment/properties/thumb'
+                      deleted_at:
+                        $ref: '#/components/schemas/resource_attachment/properties/deleted_at'
                       content_type:
                         $ref: '#/components/schemas/resource_attachment/properties/content_type'
-                      attachable_type:
-                        $ref: '#/components/schemas/resource_attachment/properties/attachable_type'
+                      aws_policy:
+                        $ref: '#/components/schemas/resource_attachment/properties/aws_policy'
+                      resized:
+                        $ref: '#/components/schemas/resource_attachment/properties/resized'
+                      temp_url:
+                        $ref: '#/components/schemas/resource_attachment/properties/temp_url'
+                      message_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/message_id'
+                      name:
+                        $ref: '#/components/schemas/resource_attachment/properties/name'
+                      created_at:
+                        $ref: '#/components/schemas/resource_attachment/properties/created_at'
                       attachment_type:
                         $ref: '#/components/schemas/resource_attachment/properties/attachment_type'
-                      file_updated_at:
-                        $ref: '#/components/schemas/resource_attachment/properties/file_updated_at'
-                      document_type_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/document_type_id'
-                      document_style_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/document_style_id'
-                      purchase_order_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/purchase_order_id'
-      description: Request body for uploading an attachment. Provide the file data and the parent resource relationship (comment, task, deal, page, invoice, expense, purchase order, or bill). Supports direct upload via temp_url workflow.
+                      size:
+                        $ref: '#/components/schemas/resource_attachment/properties/size'
+                      attachable_type:
+                        $ref: '#/components/schemas/resource_attachment/properties/attachable_type'
+                      external_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/external_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '890'
+                type: attachments
+                attributes:
+                  name: design-mockup-v2.png
+                  file_size: 2048000
+                  content_type: image/png
+                  created_at: '2026-03-10T10:00:00.000+00:00'
+                  url: null
+                relationships:
+                  creator:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
+      description: Single attachment
+    collection_attachment:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of attachment records in JSON:API format.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              data:
+                type: array
+                items:
+                  type: object
+                  description: An attachment resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Attachment relationships.
+                      properties:
+                        page:
+                          $ref: '#/components/schemas/_single_relationship'
+                        document_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        expense:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        purchase_order:
+                          $ref: '#/components/schemas/_single_relationship'
+                        email:
+                          $ref: '#/components/schemas/_single_relationship'
+                        bill:
+                          $ref: '#/components/schemas/_single_relationship'
+                        comment:
+                          $ref: '#/components/schemas/_single_relationship'
+                        document_style:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        invoice:
+                          $ref: '#/components/schemas/_single_relationship'
+                        task:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Attachment attributes.
+                      properties:
+                        created_at:
+                          $ref: '#/components/schemas/resource_attachment/properties/created_at'
+                        resized:
+                          $ref: '#/components/schemas/resource_attachment/properties/resized'
+                        external_id:
+                          $ref: '#/components/schemas/resource_attachment/properties/external_id'
+                        size:
+                          $ref: '#/components/schemas/resource_attachment/properties/size'
+                        attachment_type:
+                          $ref: '#/components/schemas/resource_attachment/properties/attachment_type'
+                        message_id:
+                          $ref: '#/components/schemas/resource_attachment/properties/message_id'
+                        thumb:
+                          $ref: '#/components/schemas/resource_attachment/properties/thumb'
+                        url:
+                          $ref: '#/components/schemas/resource_attachment/properties/url'
+                        temp_url:
+                          $ref: '#/components/schemas/resource_attachment/properties/temp_url'
+                        name:
+                          $ref: '#/components/schemas/resource_attachment/properties/name'
+                        attachable_type:
+                          $ref: '#/components/schemas/resource_attachment/properties/attachable_type'
+                        deleted_at:
+                          $ref: '#/components/schemas/resource_attachment/properties/deleted_at'
+                        content_type:
+                          $ref: '#/components/schemas/resource_attachment/properties/content_type'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of attachment resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '890'
+                  type: attachments
+                  attributes:
+                    name: design-mockup-v2.png
+                    file_size: 2048000
+                    content_type: image/png
+                    created_at: '2026-03-10T10:00:00.000+00:00'
+                    url: null
+                  relationships:
+                    creator:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection attachment
   schemas:
     resource_attachment:
       type: object
       title: Attachment Resource
+      description: An uploaded file attached to a task, comment, expense, or other entity.
       properties:
         attachment_type:
           enum:
@@ -318,6 +491,12 @@ components:
           description: The AWS S3 presigned upload policy used for direct file uploads to object storage.
           example:
             eq: value
+        creator_id:
+          type: integer
+          title: Creator
+          description: The ID of the person who uploaded this attachment.
+          example:
+            - 123
         id:
           type: integer
           title: Id
@@ -390,11 +569,6 @@ components:
           description: The organization this attachment belongs to.
           example:
             eq: value
-        purchase_order_id:
-          type: integer
-          title: Purchase Order
-          description: ID of the purchase order this attachment is associated with.
-          example: 1234567
         full_query:
           type: string
           title: Full Query
@@ -426,12 +600,6 @@ components:
           description: Timestamp when this attachment was soft-deleted. Null if not deleted.
           example:
             gt: '2026-01-01'
-        creator_id:
-          type: integer
-          title: Creator
-          description: The ID of the person who uploaded this attachment.
-          example:
-            - 123
         deal:
           title: Deal
           description: The deal this attachment is associated with.
@@ -556,6 +724,11 @@ components:
           description: ID of the widget this attachment is associated with.
           example:
             - 123
+        purchase_order_id:
+          type: integer
+          title: Purchase Order
+          description: ID of the purchase order this attachment is associated with.
+          example: 1234567
         comment_id:
           type: integer
           title: Comment
@@ -567,7 +740,6 @@ components:
           description: The MIME content type of this file (e.g. image/png, application/pdf).
           example:
             eq: active
-      description: An uploaded file attached to a task, comment, expense, or other entity.
       example:
         id: '890'
         type: attachments
@@ -582,9 +754,64 @@ components:
             data:
               type: people
               id: '12'
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -617,215 +844,74 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_attachment:
+  requestBodies:
+    attachment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating an attachment.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the attachment resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Attachment attributes.
                     properties:
-                      url:
-                        $ref: '#/components/schemas/resource_attachment/properties/url'
-                      name:
-                        $ref: '#/components/schemas/resource_attachment/properties/name'
                       size:
                         $ref: '#/components/schemas/resource_attachment/properties/size'
-                      thumb:
-                        $ref: '#/components/schemas/resource_attachment/properties/thumb'
-                      resized:
-                        $ref: '#/components/schemas/resource_attachment/properties/resized'
                       temp_url:
                         $ref: '#/components/schemas/resource_attachment/properties/temp_url'
-                      aws_policy:
-                        $ref: '#/components/schemas/resource_attachment/properties/aws_policy'
-                      created_at:
-                        $ref: '#/components/schemas/resource_attachment/properties/created_at'
-                      deleted_at:
-                        $ref: '#/components/schemas/resource_attachment/properties/deleted_at'
-                      message_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/message_id'
-                      external_id:
-                        $ref: '#/components/schemas/resource_attachment/properties/external_id'
-                      content_type:
-                        $ref: '#/components/schemas/resource_attachment/properties/content_type'
+                      file_updated_at:
+                        $ref: '#/components/schemas/resource_attachment/properties/file_updated_at'
+                      document_type_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/document_type_id'
+                      bill_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/bill_id'
+                      widget_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/widget_id'
+                      name:
+                        $ref: '#/components/schemas/resource_attachment/properties/name'
+                      page_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/page_id'
+                      purchase_order_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/purchase_order_id'
                       attachable_type:
                         $ref: '#/components/schemas/resource_attachment/properties/attachable_type'
+                      content_type:
+                        $ref: '#/components/schemas/resource_attachment/properties/content_type'
+                      document_style_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/document_style_id'
+                      expense_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/expense_id'
+                      invoice_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/invoice_id'
+                      booking_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/booking_id'
                       attachment_type:
                         $ref: '#/components/schemas/resource_attachment/properties/attachment_type'
-                  relationships:
-                    type: object
-                    properties:
-                      bill:
-                        $ref: '#/components/schemas/_single_relationship'
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      page:
-                        $ref: '#/components/schemas/_single_relationship'
-                      task:
-                        $ref: '#/components/schemas/_single_relationship'
-                      email:
-                        $ref: '#/components/schemas/_single_relationship'
-                      comment:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      expense:
-                        $ref: '#/components/schemas/_single_relationship'
-                      invoice:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      document_type:
-                        $ref: '#/components/schemas/_single_relationship'
-                      document_style:
-                        $ref: '#/components/schemas/_single_relationship'
-                      purchase_order:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single attachment
-    collection_attachment:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      comment_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/comment_id'
+                      task_id:
+                        $ref: '#/components/schemas/resource_attachment/properties/task_id'
+                    required:
+                      - name
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        url:
-                          $ref: '#/components/schemas/resource_attachment/properties/url'
-                        name:
-                          $ref: '#/components/schemas/resource_attachment/properties/name'
-                        size:
-                          $ref: '#/components/schemas/resource_attachment/properties/size'
-                        thumb:
-                          $ref: '#/components/schemas/resource_attachment/properties/thumb'
-                        resized:
-                          $ref: '#/components/schemas/resource_attachment/properties/resized'
-                        temp_url:
-                          $ref: '#/components/schemas/resource_attachment/properties/temp_url'
-                        created_at:
-                          $ref: '#/components/schemas/resource_attachment/properties/created_at'
-                        deleted_at:
-                          $ref: '#/components/schemas/resource_attachment/properties/deleted_at'
-                        message_id:
-                          $ref: '#/components/schemas/resource_attachment/properties/message_id'
-                        external_id:
-                          $ref: '#/components/schemas/resource_attachment/properties/external_id'
-                        content_type:
-                          $ref: '#/components/schemas/resource_attachment/properties/content_type'
-                        attachable_type:
-                          $ref: '#/components/schemas/resource_attachment/properties/attachable_type'
-                        attachment_type:
-                          $ref: '#/components/schemas/resource_attachment/properties/attachment_type'
-                    relationships:
-                      type: object
-                      properties:
-                        bill:
-                          $ref: '#/components/schemas/_single_relationship'
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        page:
-                          $ref: '#/components/schemas/_single_relationship'
-                        task:
-                          $ref: '#/components/schemas/_single_relationship'
-                        email:
-                          $ref: '#/components/schemas/_single_relationship'
-                        comment:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        expense:
-                          $ref: '#/components/schemas/_single_relationship'
-                        invoice:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        document_type:
-                          $ref: '#/components/schemas/_single_relationship'
-                        document_style:
-                          $ref: '#/components/schemas/_single_relationship'
-                        purchase_order:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection attachment
+                type: attachments
+                attributes:
+                  name: design-mockup-v2.png
+                  content_type: image/png
+      description: Request body for uploading an attachment. Provide the file data and the parent resource relationship (comment, task, deal, page, invoice, expense, purchase order, or bill). Supports direct upload via temp_url workflow.

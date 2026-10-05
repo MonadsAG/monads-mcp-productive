@@ -28,6 +28,14 @@ paths:
       tags:
         - Job Role
       summary: Archives the job role
+      operationId: job_roles-archive-archive
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
       responses:
         '200':
           $ref: '#/components/responses/single_job_role'
@@ -39,31 +47,28 @@ paths:
               schema:
                 type: string
           description: Conflict
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-      operationId: job_roles-archive-archive
   /api/v2/job_roles:
     get:
       tags:
         - Job Role
       summary: Get job roles
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_job_role'
+      operationId: job_roles-index
       parameters:
         - $ref: '#/components/parameters/filter_job_role'
         - $ref: '#/components/parameters/sort_job_role'
         - $ref: '#/components/parameters/header_organization'
-      operationId: job_roles-index
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_job_role'
     post:
       tags:
         - Job Role
       summary: Creates the job role
+      operationId: job_roles-create
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/job_role'
       responses:
         '201':
           $ref: '#/components/responses/single_job_role'
@@ -75,16 +80,19 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: job_roles-create
-      requestBody:
-        $ref: '#/components/requestBodies/job_role'
   /api/v2/job_roles/{id}/restore:
     patch:
       tags:
         - Job Role
       summary: Restores the job role
+      operationId: job_roles-restore-restore
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
       responses:
         '200':
           $ref: '#/components/responses/single_job_role'
@@ -96,22 +104,12 @@ paths:
               schema:
                 type: string
           description: Conflict
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-      operationId: job_roles-restore-restore
   /api/v2/job_roles/{id}:
     get:
       tags:
         - Job Role
       summary: Gets the job role
-      responses:
-        '200':
-          $ref: '#/components/responses/single_job_role'
+      operationId: job_roles-show
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -119,11 +117,23 @@ paths:
           schema:
             type: string
           required: true
-      operationId: job_roles-show
+      responses:
+        '200':
+          $ref: '#/components/responses/single_job_role'
     patch:
       tags:
         - Job Role
       summary: Updates the job role
+      operationId: job_roles-update
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        $ref: '#/components/requestBodies/job_role'
       responses:
         '200':
           $ref: '#/components/responses/single_job_role'
@@ -135,35 +145,127 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-      operationId: job_roles-update
-      requestBody:
-        $ref: '#/components/requestBodies/job_role'
 components:
-  requestBodies:
-    job_role:
+  responses:
+    single_job_role:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      archived_at:
+                        $ref: '#/components/schemas/resource_job_role/properties/archived_at'
+                      name:
+                        $ref: '#/components/schemas/resource_job_role/properties/name'
+                      created_at:
+                        $ref: '#/components/schemas/resource_job_role/properties/created_at'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_job_role/properties/updated_at'
+                  relationships:
+                    type: object
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+      description: Single job role
+    collection_job_role:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
               data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    required:
-                      - name
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_job_role/properties/name'
+                type: array
+                items:
+                  type: object
+                  properties:
+                    relationships:
+                      type: object
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                    attributes:
+                      type: object
+                      properties:
+                        updated_at:
+                          $ref: '#/components/schemas/resource_job_role/properties/updated_at'
+                        name:
+                          $ref: '#/components/schemas/resource_job_role/properties/name'
+                        created_at:
+                          $ref: '#/components/schemas/resource_job_role/properties/created_at'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_job_role/properties/archived_at'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items: {}
+      description: Collection job role
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_job_role:
       type: object
       title: Job role Resource
@@ -200,6 +302,7 @@ components:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -232,67 +335,29 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
+  requestBodies:
+    job_role:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_job_role/properties/name'
+                    required:
+                      - name
   parameters:
     header_organization:
       in: header
@@ -320,68 +385,3 @@ components:
         type: object
         description: Filter keys and their operators are listed under x-filters.job_role at the top of this file.
       required: false
-  responses:
-    single_job_role:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_job_role/properties/name'
-                      created_at:
-                        $ref: '#/components/schemas/resource_job_role/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_job_role/properties/updated_at'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_job_role/properties/archived_at'
-                  relationships:
-                    type: object
-                    properties:
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single job role
-    collection_job_role:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_job_role/properties/name'
-                        created_at:
-                          $ref: '#/components/schemas/resource_job_role/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_job_role/properties/updated_at'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_job_role/properties/archived_at'
-                    relationships:
-                      type: object
-                      properties:
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection job role

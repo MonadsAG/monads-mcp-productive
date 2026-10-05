@@ -38,6 +38,16 @@ paths:
       tags:
         - Workflows
       summary: Archives a workflow
+      operationId: workflows-archive-archive
+      description: Archive a workflow to deactivate it.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_workflow'
@@ -49,34 +59,30 @@ paths:
               schema:
                 type: string
           description: Conflict
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: workflows-archive-archive
-      description: Archive a workflow to deactivate it.
   /api/v2/workflows:
     get:
       tags:
         - Workflows
       summary: Get workflows
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_workflow'
+      operationId: workflows-index
+      description: List all workflows.
       parameters:
         - $ref: '#/components/parameters/filter_workflow'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_workflow'
-      operationId: workflows-index
-      description: List all workflows.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_workflow'
     post:
       tags:
         - Workflows
       summary: Create an workflow
+      operationId: workflows-create
+      description: Create a new workflow.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/workflow'
       responses:
         '201':
           $ref: '#/components/responses/single_workflow'
@@ -96,20 +102,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: workflows-create
-      requestBody:
-        $ref: '#/components/requestBodies/workflow'
-      description: Create a new workflow.
   /api/v2/workflows/{id}:
     get:
       tags:
         - Workflows
       summary: Gets a workflow
-      responses:
-        '200':
-          $ref: '#/components/responses/single_workflow'
+      operationId: workflows-show
+      description: Retrieve a single workflow by ID.
       parameters:
         - in: path
           name: id
@@ -118,12 +117,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: workflows-show
-      description: Retrieve a single workflow by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_workflow'
     patch:
       tags:
         - Workflows
       summary: Update an workflow
+      operationId: workflows-update
+      description: Update a workflow.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/workflow'
       responses:
         '200':
           $ref: '#/components/responses/single_workflow'
@@ -135,25 +147,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: workflows-update
-      requestBody:
-        $ref: '#/components/requestBodies/workflow'
-      description: Update a workflow.
     delete:
       tags:
         - Workflows
       summary: Deletes a workflow
-      responses:
-        '204':
-          description: No Content
+      operationId: workflows-destroy
+      description: Delete a workflow by ID.
       parameters:
         - in: path
           name: id
@@ -162,13 +161,24 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: workflows-destroy
-      description: Delete a workflow by ID.
+      responses:
+        '204':
+          description: No Content
   /api/v2/workflows/{id}/restore:
     patch:
       tags:
         - Workflows
       summary: Restores a workflow
+      operationId: workflows-restore-restore
+      description: Restore an archived workflow.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_workflow'
@@ -180,114 +190,148 @@ paths:
               schema:
                 type: string
           description: Created
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: workflows-restore-restore
-      description: Restore an archived workflow.
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_workflow:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - name
-            - -name
-          type: string
-        title: Sort workflow
-      explode: false
-      required: false
-      description: Sort workflow
-    filter_workflow:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.workflow at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_workflow:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single workflow record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned workflow resource.
                 properties:
                   attributes:
                     type: object
+                    description: Workflow attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_workflow/properties/name'
                       archived_at:
                         $ref: '#/components/schemas/resource_workflow/properties/archived_at'
+                      name:
+                        $ref: '#/components/schemas/resource_workflow/properties/name'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Workflow relationships.
                     properties:
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
                       workflow_statuses:
                         $ref: '#/components/schemas/_collection_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                id: '75'
+                type: workflows
+                attributes:
+                  name: Default Workflow
+                  archived_at: null
+                relationships:
+                  workflow_statuses:
+                    data:
+                      - type: workflow_statuses
+                        id: '224'
+                      - type: workflow_statuses
+                        id: '225'
+                      - type: workflow_statuses
+                        id: '226'
+              included: []
       description: Single workflow
     collection_workflow:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of workflow records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A workflow resource object.
                   properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_workflow/properties/name'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_workflow/properties/archived_at'
                     relationships:
                       type: object
+                      description: Workflow relationships.
                       properties:
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
                         workflow_statuses:
                           $ref: '#/components/schemas/_collection_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Workflow attributes.
+                      properties:
+                        archived_at:
+                          $ref: '#/components/schemas/resource_workflow/properties/archived_at'
+                        name:
+                          $ref: '#/components/schemas/resource_workflow/properties/name'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of workflow resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '75'
+                  type: workflows
+                  attributes:
+                    name: Default Workflow
+                    archived_at: null
+                  relationships:
+                    workflow_statuses:
+                      data:
+                        - type: workflow_statuses
+                          id: '224'
+                        - type: workflow_statuses
+                          id: '225'
+                        - type: workflow_statuses
+                          id: '226'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection workflow
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -320,7 +364,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
@@ -332,6 +375,7 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
           properties:
             data:
               type: array
@@ -341,7 +385,6 @@ components:
               example:
                 - type: tasks
                   id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
           example:
             data:
               - type: tasks
@@ -354,6 +397,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -363,16 +407,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -380,10 +425,8 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
@@ -392,10 +435,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -408,12 +451,8 @@ components:
     resource_workflow:
       type: object
       title: Workflow Resource
+      description: Named group of workflow statuses assigned to a project. Workflows define the task lifecycle for a project. Each workflow contains ordered statuses in Not Started, Started, or Closed categories.
       properties:
-        archived:
-          type: boolean
-          title: Archived
-          description: When true, filter to include only archived workflows.
-          example: true
         archived_at:
           type: string
           title: Archived At
@@ -421,11 +460,6 @@ components:
           description: Timestamp when this workflow was archived, or null if still active.
           example:
             gt: '2026-01-01'
-        workflow_statuses:
-          title: Workflow Statuses
-          description: The list of statuses defined in this workflow.
-          example:
-            eq: active
         query:
           type: string
           title: Query
@@ -443,7 +477,16 @@ components:
           description: The display name of this workflow.
           example:
             eq: value
-      description: Named group of workflow statuses assigned to a project. Workflows define the task lifecycle for a project. Each workflow contains ordered statuses in Not Started, Started, or Closed categories.
+        workflow_statuses:
+          title: Workflow Statuses
+          description: The list of statuses defined in this workflow.
+          example:
+            eq: active
+        archived:
+          type: boolean
+          title: Archived
+          description: When true, filter to include only archived workflows.
+          example: true
       example:
         id: '75'
         type: workflows
@@ -459,21 +502,65 @@ components:
                 id: '225'
               - type: workflow_statuses
                 id: '226'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_workflow:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - name
+            - -name
+          type: string
+        title: Sort workflow
+      explode: false
+      required: false
+      description: Sort workflow
+    filter_workflow:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.workflow at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     workflow:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a workflow.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the workflow resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
+                    description: Workflow attributes.
                     properties:
                       name:
                         $ref: '#/components/schemas/resource_workflow/properties/name'
+                    required:
+                      - name
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: workflows
+                attributes:
+                  name: Development Workflow
       description: Request body for creating or updating a workflow. Specify the name and optional archived_at. Workflow statuses are managed separately via the workflow_statuses endpoint.

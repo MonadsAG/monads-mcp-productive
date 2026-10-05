@@ -113,13 +113,6 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    budgeted_time:
-      description: Filter by the service's budgeted time (in minutes).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     budget_date:
       description: Filter by the start date of the associated budget (quotes.date).
       operators:
@@ -561,6 +554,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    budgeted_time:
+      description: Filter by the service's budgeted time (in minutes).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     sales_status_id:
       description: Filter by sales pipeline stage status.
       operators:
@@ -574,19 +574,25 @@ paths:
       tags:
         - Services
       summary: Get services
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_service'
+      operationId: services-index
+      description: List services with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/filter_service'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_service'
-      operationId: services-index
-      description: List services with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_service'
     post:
       tags:
         - Services
       summary: Create a service
+      operationId: services-create
+      description: Create a new service on a deal.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/service'
       responses:
         '201':
           $ref: '#/components/responses/single_service'
@@ -598,20 +604,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: services-create
-      requestBody:
-        $ref: '#/components/requestBodies/service'
-      description: Create a new service on a deal.
   /api/v2/services/{id}:
     get:
       tags:
         - Services
       summary: Gets a service
-      responses:
-        '200':
-          $ref: '#/components/responses/single_service'
+      operationId: services-show
+      description: Retrieve a single service by ID.
       parameters:
         - in: path
           name: id
@@ -620,12 +619,25 @@ paths:
           required: true
           description: The numeric ID of the service.
         - $ref: '#/components/parameters/header_organization'
-      operationId: services-show
-      description: Retrieve a single service by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_service'
     patch:
       tags:
         - Services
       summary: Update a service
+      operationId: services-update
+      description: Update a service.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The numeric ID of the service.
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/service'
       responses:
         '200':
           $ref: '#/components/responses/single_service'
@@ -637,25 +649,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The numeric ID of the service.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: services-update
-      requestBody:
-        $ref: '#/components/requestBodies/service'
-      description: Update a service.
     delete:
       tags:
         - Services
       summary: Deletes a service
-      responses:
-        '204':
-          description: No Content
+      operationId: services-destroy
+      description: Delete a service.
       parameters:
         - in: path
           name: id
@@ -664,8 +663,9 @@ paths:
           required: true
           description: The numeric ID of the service.
         - $ref: '#/components/parameters/header_organization'
-      operationId: services-destroy
-      description: Delete a service.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -707,93 +707,660 @@ components:
         description: Filter keys and their operators are listed under x-filters.service at the top of this file.
       required: false
       description: Filter parameter for querying services.
-  requestBodies:
-    service:
+  responses:
+    single_service:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API response envelope for a single service.
             properties:
+              included:
+                type: array
+                items:
+                  description: An included related resource.
+                  example:
+                    eq: value
+                description: Included related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned service resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - deal_id
-                      - limitation_type
+                    description: Attributes of the service.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_service/properties/name'
-                      price:
-                        $ref: '#/components/schemas/resource_service/properties/price'
-                      markup:
-                        $ref: '#/components/schemas/resource_service/properties/markup'
-                      deal_id:
-                        $ref: '#/components/schemas/resource_service/properties/deal_id'
-                      unit_id:
-                        $ref: '#/components/schemas/resource_service/properties/unit_id'
-                      discount:
-                        $ref: '#/components/schemas/resource_service/properties/discount'
-                      position:
-                        $ref: '#/components/schemas/resource_service/properties/position'
-                      quantity:
-                        $ref: '#/components/schemas/resource_service/properties/quantity'
-                      person_id:
-                        $ref: '#/components/schemas/resource_service/properties/person_id'
-                      section_id:
-                        $ref: '#/components/schemas/resource_service/properties/section_id'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_service/properties/custom_fields'
-                      editor_config:
-                        $ref: '#/components/schemas/resource_service/properties/editor_config'
+                      work_cost_default:
+                        $ref: '#/components/schemas/resource_service/properties/work_cost_default'
+                      price_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/price_normalized'
                       estimated_cost:
                         $ref: '#/components/schemas/resource_service/properties/estimated_cost'
-                      estimated_time:
-                        $ref: '#/components/schemas/resource_service/properties/estimated_time'
-                      billing_type_id:
-                        $ref: '#/components/schemas/resource_service/properties/billing_type_id'
-                      limitation_type:
-                        $ref: '#/components/schemas/resource_service/properties/limitation_type'
-                      service_type_id:
-                        $ref: '#/components/schemas/resource_service/properties/service_type_id'
-                      rolled_over_time:
-                        $ref: '#/components/schemas/resource_service/properties/rolled_over_time'
-                      budget_cap_enabled:
-                        $ref: '#/components/schemas/resource_service/properties/budget_cap_enabled'
+                      profit_default:
+                        $ref: '#/components/schemas/resource_service/properties/profit_default'
+                      future_budget_used_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/future_budget_used_normalized'
+                      future_cost:
+                        $ref: '#/components/schemas/resource_service/properties/future_cost'
+                      worked_time:
+                        $ref: '#/components/schemas/resource_service/properties/worked_time'
+                      discount_amount_default:
+                        $ref: '#/components/schemas/resource_service/properties/discount_amount_default'
+                      expense_billable_amount_default:
+                        $ref: '#/components/schemas/resource_service/properties/expense_billable_amount_default'
+                      budget_used_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/budget_used_normalized'
+                      editor_config:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_service/properties/editor_config'
+                          - type: 'null'
+                        description: Rich text editor configuration.
+                      markup_amount:
+                        $ref: '#/components/schemas/resource_service/properties/markup_amount'
+                      future_cost_default:
+                        $ref: '#/components/schemas/resource_service/properties/future_cost_default'
+                      future_cost_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/future_cost_normalized'
+                      billable_time:
+                        $ref: '#/components/schemas/resource_service/properties/billable_time'
+                      profit_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/profit_normalized'
+                      custom_fields:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_service/properties/custom_fields'
+                        description: Custom field values on this service.
+                      projected_revenue:
+                        $ref: '#/components/schemas/resource_service/properties/projected_revenue'
+                      budgeted_time:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_service/properties/budgeted_time'
+                        description: Budgeted hours allocated for this service.
+                      estimated_cost_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/estimated_cost_normalized'
+                      discount_type:
+                        $ref: '#/components/schemas/resource_service/properties/discount_type'
+                      discount_amount_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/discount_amount_normalized'
+                      initial_service_id:
+                        $ref: '#/components/schemas/resource_service/properties/initial_service_id'
+                      deleted_at:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_service/properties/deleted_at'
+                        description: Soft-deletion timestamp.
+                      work_cost:
+                        $ref: '#/components/schemas/resource_service/properties/work_cost'
+                      future_revenue_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/future_revenue_normalized'
+                      quantity:
+                        anyOf:
+                          - type: 'null'
+                          - type: string
+                          - $ref: '#/components/schemas/resource_service/properties/quantity'
+                        description: Number of units (hours, days, or pieces) for this service.
                       time_tracking_enabled:
                         $ref: '#/components/schemas/resource_service/properties/time_tracking_enabled'
-                      booking_tracking_enabled:
-                        $ref: '#/components/schemas/resource_service/properties/booking_tracking_enabled'
+                      revenue:
+                        $ref: '#/components/schemas/resource_service/properties/revenue'
+                      budget_total_default:
+                        $ref: '#/components/schemas/resource_service/properties/budget_total_default'
+                      projected_revenue_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/projected_revenue_normalized'
+                      budget_used:
+                        $ref: '#/components/schemas/resource_service/properties/budget_used'
                       expense_tracking_enabled:
                         $ref: '#/components/schemas/resource_service/properties/expense_tracking_enabled'
-      description: Request body for creating or updating a service.
+                      price:
+                        $ref: '#/components/schemas/resource_service/properties/price'
+                      estimated_cost_default:
+                        $ref: '#/components/schemas/resource_service/properties/estimated_cost_default'
+                      work_cost_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/work_cost_normalized'
+                      budget_total:
+                        $ref: '#/components/schemas/resource_service/properties/budget_total'
+                      cost:
+                        $ref: '#/components/schemas/resource_service/properties/cost'
+                      markup_amount_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/markup_amount_normalized'
+                      expense_amount_default:
+                        $ref: '#/components/schemas/resource_service/properties/expense_amount_default'
+                      price_default:
+                        $ref: '#/components/schemas/resource_service/properties/price_default'
+                      booked_time:
+                        $ref: '#/components/schemas/resource_service/properties/booked_time'
+                      budget_used_default:
+                        $ref: '#/components/schemas/resource_service/properties/budget_used_default'
+                      unapproved_time:
+                        $ref: '#/components/schemas/resource_service/properties/unapproved_time'
+                      markup_amount_default:
+                        $ref: '#/components/schemas/resource_service/properties/markup_amount_default'
+                      profit_margin:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_service/properties/profit_margin'
+                          - type: string
+                          - type: 'null'
+                        description: Profit as a percentage of revenue.
+                      expense_billable_amount:
+                        $ref: '#/components/schemas/resource_service/properties/expense_billable_amount'
+                      billable:
+                        $ref: '#/components/schemas/resource_service/properties/billable'
+                      origin_service_id:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_service/properties/origin_service_id'
+                        description: ID of the original service if this was duplicated or rolled over.
+                      unit_id:
+                        $ref: '#/components/schemas/resource_service/properties/unit_id'
+                      budget_total_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/budget_total_normalized'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/currency_normalized'
+                      projected_revenue_default:
+                        $ref: '#/components/schemas/resource_service/properties/projected_revenue_default'
+                      estimated_time:
+                        $ref: '#/components/schemas/resource_service/properties/estimated_time'
+                      booking_tracking_enabled:
+                        $ref: '#/components/schemas/resource_service/properties/booking_tracking_enabled'
+                      name:
+                        $ref: '#/components/schemas/resource_service/properties/name'
+                      markup:
+                        anyOf:
+                          - type: 'null'
+                          - type: string
+                          - $ref: '#/components/schemas/resource_service/properties/markup'
+                        description: Markup amount added to the service price.
+                      profit:
+                        $ref: '#/components/schemas/resource_service/properties/profit'
+                      cost_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/cost_normalized'
+                      expense_amount_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/expense_amount_normalized'
+                      revenue_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/revenue_normalized'
+                      future_revenue:
+                        $ref: '#/components/schemas/resource_service/properties/future_revenue'
+                      expense_billable_amount_normalized:
+                        $ref: '#/components/schemas/resource_service/properties/expense_billable_amount_normalized'
+                      position:
+                        $ref: '#/components/schemas/resource_service/properties/position'
+                      limitation_type:
+                        $ref: '#/components/schemas/resource_service/properties/limitation_type'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_service/properties/currency_default'
+                      cost_default:
+                        $ref: '#/components/schemas/resource_service/properties/cost_default'
+                      currency:
+                        $ref: '#/components/schemas/resource_service/properties/currency'
+                      future_revenue_default:
+                        $ref: '#/components/schemas/resource_service/properties/future_revenue_default'
+                      expense_amount:
+                        $ref: '#/components/schemas/resource_service/properties/expense_amount'
+                      billing_type_id:
+                        $ref: '#/components/schemas/resource_service/properties/billing_type_id'
+                      discount_amount:
+                        $ref: '#/components/schemas/resource_service/properties/discount_amount'
+                      rolled_over_time:
+                        $ref: '#/components/schemas/resource_service/properties/rolled_over_time'
+                      future_budget_used:
+                        $ref: '#/components/schemas/resource_service/properties/future_budget_used'
+                      future_budget_used_default:
+                        $ref: '#/components/schemas/resource_service/properties/future_budget_used_default'
+                      revenue_default:
+                        $ref: '#/components/schemas/resource_service/properties/revenue_default'
+                      future_booked_time:
+                        $ref: '#/components/schemas/resource_service/properties/future_booked_time'
+                      budget_cap_enabled:
+                        $ref: '#/components/schemas/resource_service/properties/budget_cap_enabled'
+                      discount:
+                        anyOf:
+                          - type: 'null'
+                          - $ref: '#/components/schemas/resource_service/properties/discount'
+                          - type: string
+                        description: Discount amount subtracted from the service price.
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Relationships of the service.
+                    properties:
+                      section:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      service_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      import:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '1856422'
+                type: services
+                attributes:
+                  name: Frontend Development
+                  position: 1
+                  deleted_at: null
+                  description: Building React components and user interfaces
+                  time_tracking_enabled: true
+                  expense_tracking_enabled: false
+                  booking_tracking_enabled: true
+                  origin_service_id: null
+                  initial_service_id: 1856422
+                  editor_config: {}
+                  custom_fields: null
+                  billing_type_id: 1
+                  limitation_type: no_limitation
+                  worked_time: 4800
+                  billable_time: 4800
+                  estimated_time: 8000
+                  budgeted_time: 8000
+                  currency: USD
+                relationships:
+                  service_type:
+                    data:
+                      type: service_types
+                      id: '5'
+                  deal:
+                    data:
+                      type: deals
+                      id: '89'
+                  person:
+                    data: null
+                  section:
+                    data: null
+              included: []
+      description: Single service
+    collection_service:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API response envelope for a collection of services.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A service resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Relationships of the service.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        section:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        import:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Attributes of the service.
+                      properties:
+                        projected_revenue_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/projected_revenue_normalized'
+                        budget_cap_enabled:
+                          $ref: '#/components/schemas/resource_service/properties/budget_cap_enabled'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_service/properties/currency_default'
+                        work_cost:
+                          $ref: '#/components/schemas/resource_service/properties/work_cost'
+                        future_cost_default:
+                          $ref: '#/components/schemas/resource_service/properties/future_cost_default'
+                        markup:
+                          anyOf:
+                            - type: 'null'
+                            - $ref: '#/components/schemas/resource_service/properties/markup'
+                            - type: string
+                          description: Markup amount added to the service price.
+                        work_cost_default:
+                          $ref: '#/components/schemas/resource_service/properties/work_cost_default'
+                        deleted_at:
+                          anyOf:
+                            - type: 'null'
+                            - $ref: '#/components/schemas/resource_service/properties/deleted_at'
+                          description: Soft-deletion timestamp.
+                        name:
+                          $ref: '#/components/schemas/resource_service/properties/name'
+                        expense_tracking_enabled:
+                          $ref: '#/components/schemas/resource_service/properties/expense_tracking_enabled'
+                        revenue:
+                          $ref: '#/components/schemas/resource_service/properties/revenue'
+                        estimated_cost_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/estimated_cost_normalized'
+                        estimated_cost_default:
+                          $ref: '#/components/schemas/resource_service/properties/estimated_cost_default'
+                        quantity:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_service/properties/quantity'
+                            - type: string
+                            - type: 'null'
+                          description: Number of units (hours, days, or pieces) for this service.
+                        expense_amount_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/expense_amount_normalized'
+                        discount_amount:
+                          $ref: '#/components/schemas/resource_service/properties/discount_amount'
+                        billing_type_id:
+                          $ref: '#/components/schemas/resource_service/properties/billing_type_id'
+                        unapproved_time:
+                          $ref: '#/components/schemas/resource_service/properties/unapproved_time'
+                        booking_tracking_enabled:
+                          $ref: '#/components/schemas/resource_service/properties/booking_tracking_enabled'
+                        price_default:
+                          $ref: '#/components/schemas/resource_service/properties/price_default'
+                        future_budget_used:
+                          $ref: '#/components/schemas/resource_service/properties/future_budget_used'
+                        future_revenue_default:
+                          $ref: '#/components/schemas/resource_service/properties/future_revenue_default'
+                        budget_total_default:
+                          $ref: '#/components/schemas/resource_service/properties/budget_total_default'
+                        discount_amount_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/discount_amount_normalized'
+                        future_booked_time:
+                          $ref: '#/components/schemas/resource_service/properties/future_booked_time'
+                        future_revenue_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/future_revenue_normalized'
+                        time_tracking_enabled:
+                          $ref: '#/components/schemas/resource_service/properties/time_tracking_enabled'
+                        budget_used_default:
+                          $ref: '#/components/schemas/resource_service/properties/budget_used_default'
+                        custom_fields:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_service/properties/custom_fields'
+                            - type: 'null'
+                          description: Custom field values on this service.
+                        booked_time:
+                          $ref: '#/components/schemas/resource_service/properties/booked_time'
+                        future_budget_used_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/future_budget_used_normalized'
+                        profit_default:
+                          $ref: '#/components/schemas/resource_service/properties/profit_default'
+                        markup_amount:
+                          $ref: '#/components/schemas/resource_service/properties/markup_amount'
+                        projected_revenue:
+                          $ref: '#/components/schemas/resource_service/properties/projected_revenue'
+                        budget_total:
+                          $ref: '#/components/schemas/resource_service/properties/budget_total'
+                        expense_billable_amount:
+                          $ref: '#/components/schemas/resource_service/properties/expense_billable_amount'
+                        unit_id:
+                          $ref: '#/components/schemas/resource_service/properties/unit_id'
+                        price_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/price_normalized'
+                        cost:
+                          $ref: '#/components/schemas/resource_service/properties/cost'
+                        profit_margin:
+                          anyOf:
+                            - type: 'null'
+                            - $ref: '#/components/schemas/resource_service/properties/profit_margin'
+                            - type: string
+                          description: Profit as a percentage of revenue.
+                        future_cost_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/future_cost_normalized'
+                        cost_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/cost_normalized'
+                        worked_time:
+                          $ref: '#/components/schemas/resource_service/properties/worked_time'
+                        future_cost:
+                          $ref: '#/components/schemas/resource_service/properties/future_cost'
+                        revenue_default:
+                          $ref: '#/components/schemas/resource_service/properties/revenue_default'
+                        future_revenue:
+                          $ref: '#/components/schemas/resource_service/properties/future_revenue'
+                        budget_total_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/budget_total_normalized'
+                        expense_billable_amount_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/expense_billable_amount_normalized'
+                        expense_billable_amount_default:
+                          $ref: '#/components/schemas/resource_service/properties/expense_billable_amount_default'
+                        profit:
+                          $ref: '#/components/schemas/resource_service/properties/profit'
+                        profit_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/profit_normalized'
+                        initial_service_id:
+                          $ref: '#/components/schemas/resource_service/properties/initial_service_id'
+                        budget_used:
+                          $ref: '#/components/schemas/resource_service/properties/budget_used'
+                        revenue_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/revenue_normalized'
+                        future_budget_used_default:
+                          $ref: '#/components/schemas/resource_service/properties/future_budget_used_default'
+                        budgeted_time:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_service/properties/budgeted_time'
+                            - type: 'null'
+                          description: Budgeted hours allocated for this service.
+                        projected_revenue_default:
+                          $ref: '#/components/schemas/resource_service/properties/projected_revenue_default'
+                        currency:
+                          $ref: '#/components/schemas/resource_service/properties/currency'
+                        work_cost_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/work_cost_normalized'
+                        budget_used_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/budget_used_normalized'
+                        rolled_over_time:
+                          $ref: '#/components/schemas/resource_service/properties/rolled_over_time'
+                        expense_amount_default:
+                          $ref: '#/components/schemas/resource_service/properties/expense_amount_default'
+                        price:
+                          $ref: '#/components/schemas/resource_service/properties/price'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/currency_normalized'
+                        discount_type:
+                          $ref: '#/components/schemas/resource_service/properties/discount_type'
+                        markup_amount_default:
+                          $ref: '#/components/schemas/resource_service/properties/markup_amount_default'
+                        discount:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_service/properties/discount'
+                            - type: string
+                            - type: 'null'
+                          description: Discount amount subtracted from the service price.
+                        position:
+                          $ref: '#/components/schemas/resource_service/properties/position'
+                        editor_config:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_service/properties/editor_config'
+                            - type: 'null'
+                          description: Rich text editor configuration.
+                        origin_service_id:
+                          anyOf:
+                            - type: 'null'
+                            - $ref: '#/components/schemas/resource_service/properties/origin_service_id'
+                          description: ID of the original service if this was duplicated or rolled over.
+                        markup_amount_normalized:
+                          $ref: '#/components/schemas/resource_service/properties/markup_amount_normalized'
+                        estimated_cost:
+                          $ref: '#/components/schemas/resource_service/properties/estimated_cost'
+                        billable:
+                          $ref: '#/components/schemas/resource_service/properties/billable'
+                        estimated_time:
+                          $ref: '#/components/schemas/resource_service/properties/estimated_time'
+                        limitation_type:
+                          $ref: '#/components/schemas/resource_service/properties/limitation_type'
+                        discount_amount_default:
+                          $ref: '#/components/schemas/resource_service/properties/discount_amount_default'
+                        cost_default:
+                          $ref: '#/components/schemas/resource_service/properties/cost_default'
+                        billable_time:
+                          $ref: '#/components/schemas/resource_service/properties/billable_time'
+                        expense_amount:
+                          $ref: '#/components/schemas/resource_service/properties/expense_amount'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of service resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: An included related resource.
+                  example:
+                    eq: value
+                description: Included related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '1856422'
+                  type: services
+                  attributes:
+                    name: Frontend Development
+                    position: 1
+                    deleted_at: null
+                    description: Building React components and user interfaces
+                    time_tracking_enabled: true
+                    expense_tracking_enabled: false
+                    booking_tracking_enabled: true
+                    origin_service_id: null
+                    initial_service_id: 1856422
+                    editor_config: {}
+                    custom_fields: null
+                    billing_type_id: 1
+                    limitation_type: no_limitation
+                    worked_time: 4800
+                    billable_time: 4800
+                    estimated_time: 8000
+                    budgeted_time: 8000
+                    currency: USD
+                  relationships:
+                    service_type:
+                      data:
+                        type: service_types
+                        id: '5'
+                    deal:
+                      data:
+                        type: deals
+                        id: '89'
+                    person:
+                      data: null
+                    section:
+                      data: null
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection service
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
     resource_service:
       type: object
       title: Service Resource
+      description: A line item on a deal or budget that defines billing type, rate, and tracking rules. Services connect time tracking, resource scheduling, and invoicing for a specific scope of work.
       properties:
-        position:
-          type: integer
-          title: Position
-          description: Sort order within the deal's service list.
-          example:
-            eq: value
-        bookable_date:
-          type: string
-          title: Bookable Date
-          format: date
-          description: Filters services to those bookable on the specified date, based on the budget's active period. Services on deals are always included.
-          example:
-            gt: '2026-01-01'
-        bookable_after:
-          type: string
-          title: Bookable After
-          format: date
-          description: Start date from which resource bookings are allowed.
-          example:
-            eq: value
         origin_deal_id:
           type: integer
           title: Origin Deal
@@ -1589,12 +2156,31 @@ components:
           description: The pipeline stage the parent deal is in.
           example:
             - 123
+        bookable_date:
+          type: string
+          title: Bookable Date
+          format: date
+          description: Filters services to those bookable on the specified date, based on the budget's active period. Services on deals are always included.
+          example:
+            gt: '2026-01-01'
+        bookable_after:
+          type: string
+          title: Bookable After
+          format: date
+          description: Start date from which resource bookings are allowed.
+          example:
+            eq: value
+        position:
+          type: integer
+          title: Position
+          description: Sort order within the deal's service list.
+          example:
+            eq: value
         budget:
           title: Budget
           description: The deal budget this service is part of.
           example:
             gt: 0
-      description: A line item on a deal or budget that defines billing type, rate, and tracking rules. Services connect time tracking, resource scheduling, and invoicing for a specific scope of work.
       example:
         id: '1856422'
         type: services
@@ -1633,6 +2219,7 @@ components:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -1665,525 +2252,95 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-  responses:
-    single_service:
+  requestBodies:
+    service:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API request envelope for a service.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the service resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Writable attributes for creating or updating a service.
                     properties:
-                      cost:
-                        $ref: '#/components/schemas/resource_service/properties/cost'
-                      name:
-                        $ref: '#/components/schemas/resource_service/properties/name'
-                      price:
-                        $ref: '#/components/schemas/resource_service/properties/price'
-                      markup:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/markup'
-                          - type: string
-                          - type: 'null'
-                      profit:
-                        $ref: '#/components/schemas/resource_service/properties/profit'
-                      revenue:
-                        $ref: '#/components/schemas/resource_service/properties/revenue'
+                      discount:
+                        $ref: '#/components/schemas/resource_service/properties/discount'
                       unit_id:
                         $ref: '#/components/schemas/resource_service/properties/unit_id'
-                      billable:
-                        $ref: '#/components/schemas/resource_service/properties/billable'
-                      currency:
-                        $ref: '#/components/schemas/resource_service/properties/currency'
-                      discount:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/discount'
-                          - type: string
-                          - type: 'null'
-                      position:
-                        $ref: '#/components/schemas/resource_service/properties/position'
-                      quantity:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/quantity'
-                          - type: string
-                          - type: 'null'
-                      work_cost:
-                        $ref: '#/components/schemas/resource_service/properties/work_cost'
-                      deleted_at:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/deleted_at'
-                          - type: 'null'
-                      booked_time:
-                        $ref: '#/components/schemas/resource_service/properties/booked_time'
-                      budget_used:
-                        $ref: '#/components/schemas/resource_service/properties/budget_used'
-                      future_cost:
-                        $ref: '#/components/schemas/resource_service/properties/future_cost'
-                      worked_time:
-                        $ref: '#/components/schemas/resource_service/properties/worked_time'
-                      budget_total:
-                        $ref: '#/components/schemas/resource_service/properties/budget_total'
-                      cost_default:
-                        $ref: '#/components/schemas/resource_service/properties/cost_default'
-                      billable_time:
-                        $ref: '#/components/schemas/resource_service/properties/billable_time'
-                      budgeted_time:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/budgeted_time'
-                          - type: 'null'
+                      price:
+                        $ref: '#/components/schemas/resource_service/properties/price'
+                      deal_id:
+                        $ref: '#/components/schemas/resource_service/properties/deal_id'
                       custom_fields:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/custom_fields'
-                          - type: 'null'
-                      discount_type:
-                        $ref: '#/components/schemas/resource_service/properties/discount_type'
-                      editor_config:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/editor_config'
-                          - type: 'null'
-                      markup_amount:
-                        $ref: '#/components/schemas/resource_service/properties/markup_amount'
-                      price_default:
-                        $ref: '#/components/schemas/resource_service/properties/price_default'
-                      profit_margin:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/profit_margin'
-                          - type: string
-                          - type: 'null'
-                      estimated_cost:
-                        $ref: '#/components/schemas/resource_service/properties/estimated_cost'
-                      estimated_time:
-                        $ref: '#/components/schemas/resource_service/properties/estimated_time'
-                      expense_amount:
-                        $ref: '#/components/schemas/resource_service/properties/expense_amount'
-                      future_revenue:
-                        $ref: '#/components/schemas/resource_service/properties/future_revenue'
-                      profit_default:
-                        $ref: '#/components/schemas/resource_service/properties/profit_default'
-                      billing_type_id:
-                        $ref: '#/components/schemas/resource_service/properties/billing_type_id'
-                      cost_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/cost_normalized'
-                      discount_amount:
-                        $ref: '#/components/schemas/resource_service/properties/discount_amount'
-                      limitation_type:
-                        $ref: '#/components/schemas/resource_service/properties/limitation_type'
-                      revenue_default:
-                        $ref: '#/components/schemas/resource_service/properties/revenue_default'
-                      unapproved_time:
-                        $ref: '#/components/schemas/resource_service/properties/unapproved_time'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_service/properties/currency_default'
-                      price_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/price_normalized'
-                      rolled_over_time:
-                        $ref: '#/components/schemas/resource_service/properties/rolled_over_time'
-                      origin_service_id:
-                        anyOf:
-                          - $ref: '#/components/schemas/resource_service/properties/origin_service_id'
-                          - type: 'null'
-                      profit_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/profit_normalized'
-                      projected_revenue:
-                        $ref: '#/components/schemas/resource_service/properties/projected_revenue'
-                      work_cost_default:
-                        $ref: '#/components/schemas/resource_service/properties/work_cost_default'
-                      budget_cap_enabled:
-                        $ref: '#/components/schemas/resource_service/properties/budget_cap_enabled'
-                      future_booked_time:
-                        $ref: '#/components/schemas/resource_service/properties/future_booked_time'
-                      future_budget_used:
-                        $ref: '#/components/schemas/resource_service/properties/future_budget_used'
-                      initial_service_id:
-                        $ref: '#/components/schemas/resource_service/properties/initial_service_id'
-                      revenue_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/revenue_normalized'
-                      budget_used_default:
-                        $ref: '#/components/schemas/resource_service/properties/budget_used_default'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/currency_normalized'
-                      future_cost_default:
-                        $ref: '#/components/schemas/resource_service/properties/future_cost_default'
-                      budget_total_default:
-                        $ref: '#/components/schemas/resource_service/properties/budget_total_default'
-                      work_cost_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/work_cost_normalized'
-                      markup_amount_default:
-                        $ref: '#/components/schemas/resource_service/properties/markup_amount_default'
+                        $ref: '#/components/schemas/resource_service/properties/custom_fields'
                       time_tracking_enabled:
                         $ref: '#/components/schemas/resource_service/properties/time_tracking_enabled'
-                      budget_used_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/budget_used_normalized'
-                      estimated_cost_default:
-                        $ref: '#/components/schemas/resource_service/properties/estimated_cost_default'
-                      expense_amount_default:
-                        $ref: '#/components/schemas/resource_service/properties/expense_amount_default'
-                      future_cost_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/future_cost_normalized'
-                      future_revenue_default:
-                        $ref: '#/components/schemas/resource_service/properties/future_revenue_default'
-                      budget_total_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/budget_total_normalized'
-                      discount_amount_default:
-                        $ref: '#/components/schemas/resource_service/properties/discount_amount_default'
-                      expense_billable_amount:
-                        $ref: '#/components/schemas/resource_service/properties/expense_billable_amount'
-                      booking_tracking_enabled:
-                        $ref: '#/components/schemas/resource_service/properties/booking_tracking_enabled'
+                      budget_cap_enabled:
+                        $ref: '#/components/schemas/resource_service/properties/budget_cap_enabled'
+                      service_type_id:
+                        $ref: '#/components/schemas/resource_service/properties/service_type_id'
+                      editor_config:
+                        $ref: '#/components/schemas/resource_service/properties/editor_config'
+                      section_id:
+                        $ref: '#/components/schemas/resource_service/properties/section_id'
+                      position:
+                        $ref: '#/components/schemas/resource_service/properties/position'
+                      estimated_cost:
+                        $ref: '#/components/schemas/resource_service/properties/estimated_cost'
+                      rolled_over_time:
+                        $ref: '#/components/schemas/resource_service/properties/rolled_over_time'
+                      estimated_time:
+                        $ref: '#/components/schemas/resource_service/properties/estimated_time'
+                      quantity:
+                        $ref: '#/components/schemas/resource_service/properties/quantity'
+                      limitation_type:
+                        $ref: '#/components/schemas/resource_service/properties/limitation_type'
+                      person_id:
+                        $ref: '#/components/schemas/resource_service/properties/person_id'
                       expense_tracking_enabled:
                         $ref: '#/components/schemas/resource_service/properties/expense_tracking_enabled'
-                      markup_amount_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/markup_amount_normalized'
-                      estimated_cost_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/estimated_cost_normalized'
-                      expense_amount_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/expense_amount_normalized'
-                      future_revenue_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/future_revenue_normalized'
-                      projected_revenue_default:
-                        $ref: '#/components/schemas/resource_service/properties/projected_revenue_default'
-                      discount_amount_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/discount_amount_normalized'
-                      future_budget_used_default:
-                        $ref: '#/components/schemas/resource_service/properties/future_budget_used_default'
-                      projected_revenue_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/projected_revenue_normalized'
-                      future_budget_used_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/future_budget_used_normalized'
-                      expense_billable_amount_default:
-                        $ref: '#/components/schemas/resource_service/properties/expense_billable_amount_default'
-                      expense_billable_amount_normalized:
-                        $ref: '#/components/schemas/resource_service/properties/expense_billable_amount_normalized'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      import:
-                        $ref: '#/components/schemas/_single_relationship'
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      section:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      service_type:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      custom_field_attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single service
-    collection_service:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      markup:
+                        $ref: '#/components/schemas/resource_service/properties/markup'
+                      booking_tracking_enabled:
+                        $ref: '#/components/schemas/resource_service/properties/booking_tracking_enabled'
+                      billing_type_id:
+                        $ref: '#/components/schemas/resource_service/properties/billing_type_id'
+                      name:
+                        $ref: '#/components/schemas/resource_service/properties/name'
+                    required:
+                      - name
+                      - deal_id
+                      - limitation_type
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        cost:
-                          $ref: '#/components/schemas/resource_service/properties/cost'
-                        name:
-                          $ref: '#/components/schemas/resource_service/properties/name'
-                        price:
-                          $ref: '#/components/schemas/resource_service/properties/price'
-                        markup:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/markup'
-                            - type: string
-                            - type: 'null'
-                        profit:
-                          $ref: '#/components/schemas/resource_service/properties/profit'
-                        revenue:
-                          $ref: '#/components/schemas/resource_service/properties/revenue'
-                        unit_id:
-                          $ref: '#/components/schemas/resource_service/properties/unit_id'
-                        billable:
-                          $ref: '#/components/schemas/resource_service/properties/billable'
-                        currency:
-                          $ref: '#/components/schemas/resource_service/properties/currency'
-                        discount:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/discount'
-                            - type: string
-                            - type: 'null'
-                        position:
-                          $ref: '#/components/schemas/resource_service/properties/position'
-                        quantity:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/quantity'
-                            - type: string
-                            - type: 'null'
-                        work_cost:
-                          $ref: '#/components/schemas/resource_service/properties/work_cost'
-                        deleted_at:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/deleted_at'
-                            - type: 'null'
-                        booked_time:
-                          $ref: '#/components/schemas/resource_service/properties/booked_time'
-                        budget_used:
-                          $ref: '#/components/schemas/resource_service/properties/budget_used'
-                        future_cost:
-                          $ref: '#/components/schemas/resource_service/properties/future_cost'
-                        worked_time:
-                          $ref: '#/components/schemas/resource_service/properties/worked_time'
-                        budget_total:
-                          $ref: '#/components/schemas/resource_service/properties/budget_total'
-                        cost_default:
-                          $ref: '#/components/schemas/resource_service/properties/cost_default'
-                        billable_time:
-                          $ref: '#/components/schemas/resource_service/properties/billable_time'
-                        budgeted_time:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/budgeted_time'
-                            - type: 'null'
-                        custom_fields:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/custom_fields'
-                            - type: 'null'
-                        discount_type:
-                          $ref: '#/components/schemas/resource_service/properties/discount_type'
-                        editor_config:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/editor_config'
-                            - type: 'null'
-                        markup_amount:
-                          $ref: '#/components/schemas/resource_service/properties/markup_amount'
-                        price_default:
-                          $ref: '#/components/schemas/resource_service/properties/price_default'
-                        profit_margin:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/profit_margin'
-                            - type: string
-                            - type: 'null'
-                        estimated_cost:
-                          $ref: '#/components/schemas/resource_service/properties/estimated_cost'
-                        estimated_time:
-                          $ref: '#/components/schemas/resource_service/properties/estimated_time'
-                        expense_amount:
-                          $ref: '#/components/schemas/resource_service/properties/expense_amount'
-                        future_revenue:
-                          $ref: '#/components/schemas/resource_service/properties/future_revenue'
-                        profit_default:
-                          $ref: '#/components/schemas/resource_service/properties/profit_default'
-                        billing_type_id:
-                          $ref: '#/components/schemas/resource_service/properties/billing_type_id'
-                        cost_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/cost_normalized'
-                        discount_amount:
-                          $ref: '#/components/schemas/resource_service/properties/discount_amount'
-                        limitation_type:
-                          $ref: '#/components/schemas/resource_service/properties/limitation_type'
-                        revenue_default:
-                          $ref: '#/components/schemas/resource_service/properties/revenue_default'
-                        unapproved_time:
-                          $ref: '#/components/schemas/resource_service/properties/unapproved_time'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_service/properties/currency_default'
-                        price_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/price_normalized'
-                        rolled_over_time:
-                          $ref: '#/components/schemas/resource_service/properties/rolled_over_time'
-                        origin_service_id:
-                          anyOf:
-                            - $ref: '#/components/schemas/resource_service/properties/origin_service_id'
-                            - type: 'null'
-                        profit_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/profit_normalized'
-                        projected_revenue:
-                          $ref: '#/components/schemas/resource_service/properties/projected_revenue'
-                        work_cost_default:
-                          $ref: '#/components/schemas/resource_service/properties/work_cost_default'
-                        budget_cap_enabled:
-                          $ref: '#/components/schemas/resource_service/properties/budget_cap_enabled'
-                        future_booked_time:
-                          $ref: '#/components/schemas/resource_service/properties/future_booked_time'
-                        future_budget_used:
-                          $ref: '#/components/schemas/resource_service/properties/future_budget_used'
-                        initial_service_id:
-                          $ref: '#/components/schemas/resource_service/properties/initial_service_id'
-                        revenue_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/revenue_normalized'
-                        budget_used_default:
-                          $ref: '#/components/schemas/resource_service/properties/budget_used_default'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/currency_normalized'
-                        future_cost_default:
-                          $ref: '#/components/schemas/resource_service/properties/future_cost_default'
-                        budget_total_default:
-                          $ref: '#/components/schemas/resource_service/properties/budget_total_default'
-                        work_cost_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/work_cost_normalized'
-                        markup_amount_default:
-                          $ref: '#/components/schemas/resource_service/properties/markup_amount_default'
-                        time_tracking_enabled:
-                          $ref: '#/components/schemas/resource_service/properties/time_tracking_enabled'
-                        budget_used_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/budget_used_normalized'
-                        estimated_cost_default:
-                          $ref: '#/components/schemas/resource_service/properties/estimated_cost_default'
-                        expense_amount_default:
-                          $ref: '#/components/schemas/resource_service/properties/expense_amount_default'
-                        future_cost_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/future_cost_normalized'
-                        future_revenue_default:
-                          $ref: '#/components/schemas/resource_service/properties/future_revenue_default'
-                        budget_total_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/budget_total_normalized'
-                        discount_amount_default:
-                          $ref: '#/components/schemas/resource_service/properties/discount_amount_default'
-                        expense_billable_amount:
-                          $ref: '#/components/schemas/resource_service/properties/expense_billable_amount'
-                        booking_tracking_enabled:
-                          $ref: '#/components/schemas/resource_service/properties/booking_tracking_enabled'
-                        expense_tracking_enabled:
-                          $ref: '#/components/schemas/resource_service/properties/expense_tracking_enabled'
-                        markup_amount_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/markup_amount_normalized'
-                        estimated_cost_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/estimated_cost_normalized'
-                        expense_amount_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/expense_amount_normalized'
-                        future_revenue_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/future_revenue_normalized'
-                        projected_revenue_default:
-                          $ref: '#/components/schemas/resource_service/properties/projected_revenue_default'
-                        discount_amount_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/discount_amount_normalized'
-                        future_budget_used_default:
-                          $ref: '#/components/schemas/resource_service/properties/future_budget_used_default'
-                        projected_revenue_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/projected_revenue_normalized'
-                        future_budget_used_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/future_budget_used_normalized'
-                        expense_billable_amount_default:
-                          $ref: '#/components/schemas/resource_service/properties/expense_billable_amount_default'
-                        expense_billable_amount_normalized:
-                          $ref: '#/components/schemas/resource_service/properties/expense_billable_amount_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        import:
-                          $ref: '#/components/schemas/_single_relationship'
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        section:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service_type:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection service
+                type: services
+                attributes:
+                  name: Frontend Development
+                  description: Building React components and user interfaces
+                  time_tracking_enabled: true
+                  billing_type_id: 1
+                relationships:
+                  deal:
+                    data:
+                      type: deals
+                      id: '89'
+                  service_type:
+                    data:
+                      type: service_types
+                      id: '5'
+      description: Request body for creating or updating a service.

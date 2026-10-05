@@ -57,19 +57,25 @@ paths:
       tags:
         - Workflow Statuses
       summary: Get workflow statuses
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_workflow_status'
+      operationId: workflow_statuses-index
+      description: List all workflow statuses.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_workflow_status'
         - $ref: '#/components/parameters/sort_workflow_status'
-      operationId: workflow_statuses-index
-      description: List all workflow statuses.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_workflow_status'
     post:
       tags:
         - Workflow Statuses
       summary: Create an workflow status
+      operationId: workflow_statuses-create
+      description: Create a new workflow status.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/workflow_status'
       responses:
         '201':
           $ref: '#/components/responses/single_workflow_status'
@@ -81,20 +87,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: workflow_statuses-create
-      requestBody:
-        $ref: '#/components/requestBodies/workflow_status'
-      description: Create a new workflow status.
   /api/v2/workflow_statuses/{id}:
     get:
       tags:
         - Workflow Statuses
       summary: Gets a workflow status
-      responses:
-        '200':
-          $ref: '#/components/responses/single_workflow_status'
+      operationId: workflow_statuses-show
+      description: Retrieve a single workflow status by ID.
       parameters:
         - in: path
           name: id
@@ -103,12 +102,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: workflow_statuses-show
-      description: Retrieve a single workflow status by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_workflow_status'
     patch:
       tags:
         - Workflow Statuses
       summary: Update an workflow status
+      operationId: workflow_statuses-update
+      description: Update a workflow status.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/workflow_status'
       responses:
         '200':
           $ref: '#/components/responses/single_workflow_status'
@@ -120,6 +132,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
+    delete:
+      tags:
+        - Workflow Statuses
+      summary: Deletes a workflow status and moves tasks to other workflow status
+      operationId: workflow_statuses-destroy
+      description: Delete a workflow status by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -128,14 +146,6 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: workflow_statuses-update
-      requestBody:
-        $ref: '#/components/requestBodies/workflow_status'
-      description: Update a workflow status.
-    delete:
-      tags:
-        - Workflow Statuses
-      summary: Deletes a workflow status and moves tasks to other workflow status
       responses:
         '204':
           description: No Content
@@ -147,16 +157,6 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: workflow_statuses-destroy
-      description: Delete a workflow status by ID.
 components:
   parameters:
     header_organization:
@@ -192,38 +192,193 @@ components:
         description: Filter keys and their operators are listed under x-filters.workflow_status at the top of this file.
       required: false
       description: Filters
-  requestBodies:
-    workflow_status:
+  responses:
+    single_workflow_status:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single workflow_status record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned workflow_status resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Workflow status relationships.
+                    properties:
+                      workflow:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - workflow_id
-                      - category_id
+                    description: Workflow status attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_workflow_status/properties/name'
-                      color_id:
-                        $ref: '#/components/schemas/resource_workflow_status/properties/color_id'
                       position:
                         $ref: '#/components/schemas/resource_workflow_status/properties/position'
                       category_id:
                         $ref: '#/components/schemas/resource_workflow_status/properties/category_id'
-                      workflow_id:
-                        $ref: '#/components/schemas/resource_workflow_status/properties/workflow_id'
-      description: Request body for creating or updating a workflow status. Specify the parent workflow, name, category (not_started, started, or closed), position, and optional color.
+                      color_id:
+                        $ref: '#/components/schemas/resource_workflow_status/properties/color_id'
+                      name:
+                        $ref: '#/components/schemas/resource_workflow_status/properties/name'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '224'
+                type: workflow_statuses
+                attributes:
+                  name: In Progress
+                  color_id: '5'
+                  position: 2
+                  category_id: 2
+                relationships:
+                  workflow:
+                    data:
+                      type: workflows
+                      id: '75'
+              included: []
+      description: Single workflow status
+    collection_workflow_status:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of workflow status records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A workflow status resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Workflow status relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        workflow:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Workflow status attributes.
+                      properties:
+                        color_id:
+                          $ref: '#/components/schemas/resource_workflow_status/properties/color_id'
+                        position:
+                          $ref: '#/components/schemas/resource_workflow_status/properties/position'
+                        category_id:
+                          $ref: '#/components/schemas/resource_workflow_status/properties/category_id'
+                        name:
+                          $ref: '#/components/schemas/resource_workflow_status/properties/name'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of workflow status resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '224'
+                  type: workflow_statuses
+                  attributes:
+                    name: In Progress
+                    color_id: '5'
+                    position: 2
+                    category_id: 2
+                  relationships:
+                    workflow:
+                      data:
+                        type: workflows
+                        id: '75'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection workflow status
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_workflow_status:
       type: object
       title: Workflow status Resource
+      description: Task lifecycle status within a workflow. Belongs to a workflow and has a category_id (not_started, started, or closed) that determines how tasks in this status are counted and reported. Supports color coding and ordered positioning.
       properties:
         name:
           type: string
@@ -284,7 +439,6 @@ components:
         project_id:
           type: integer
           title: Project
-      description: Task lifecycle status within a workflow. Belongs to a workflow and has a category_id (not_started, started, or closed) that determines how tasks in this status are counted and reported. Supports color coding and ordered positioning.
       example:
         id: '224'
         type: workflow_statuses
@@ -298,57 +452,15 @@ components:
             data:
               type: workflows
               id: '75'
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -361,6 +473,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -370,16 +483,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -387,79 +501,55 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
-  responses:
-    single_workflow_status:
+  requestBodies:
+    workflow_status:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a workflow status.
             properties:
               data:
                 type: object
+                description: The workflow status resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Workflow status attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_workflow_status/properties/name'
-                      color_id:
-                        $ref: '#/components/schemas/resource_workflow_status/properties/color_id'
+                      workflow_id:
+                        $ref: '#/components/schemas/resource_workflow_status/properties/workflow_id'
                       position:
                         $ref: '#/components/schemas/resource_workflow_status/properties/position'
+                      color_id:
+                        $ref: '#/components/schemas/resource_workflow_status/properties/color_id'
+                      name:
+                        $ref: '#/components/schemas/resource_workflow_status/properties/name'
                       category_id:
                         $ref: '#/components/schemas/resource_workflow_status/properties/category_id'
-                  relationships:
-                    type: object
-                    properties:
-                      workflow:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single workflow status
-    collection_workflow_status:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                    required:
+                      - name
+                      - workflow_id
+                      - category_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_workflow_status/properties/name'
-                        color_id:
-                          $ref: '#/components/schemas/resource_workflow_status/properties/color_id'
-                        position:
-                          $ref: '#/components/schemas/resource_workflow_status/properties/position'
-                        category_id:
-                          $ref: '#/components/schemas/resource_workflow_status/properties/category_id'
-                    relationships:
-                      type: object
-                      properties:
-                        workflow:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection workflow status
+                type: workflow_statuses
+                attributes:
+                  name: In Review
+                  color_id: '6'
+                  category_id: 2
+                relationships:
+                  workflow:
+                    data:
+                      type: workflows
+                      id: '75'
+      description: Request body for creating or updating a workflow status. Specify the parent workflow, name, category (not_started, started, or closed), position, and optional color.

@@ -69,9 +69,8 @@ paths:
       tags:
         - Folders
       summary: Archives a folder
-      responses:
-        '200':
-          $ref: '#/components/responses/single_folder'
+      operationId: folders-archive-archive
+      description: Archives a folder and all of its task lists, hiding them from active views. Reversible via [`/folders/{id}/restore`](#tag/Folders/operation/folders-restore-restore).
       parameters:
         - in: path
           name: id
@@ -80,29 +79,15 @@ paths:
           required: true
           description: The numeric ID of the folder.
         - $ref: '#/components/parameters/header_organization'
-      operationId: folders-archive-archive
-      description: Archives a folder and all of its task lists, hiding them from active views. Reversible via [`/folders/{id}/restore`](#tag/Folders/operation/folders-restore-restore).
+      responses:
+        '200':
+          $ref: '#/components/responses/single_folder'
   /api/v2/folders/copy:
     post:
       tags:
         - Folders
       summary: Copy a folder
-      responses:
-        '201':
-          $ref: '#/components/responses/single_folder'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: The folder could not be copied due to validation errors.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
       operationId: folders-copy-copy
-      requestBody:
-        $ref: '#/components/requestBodies/folder_copy'
       description: |-
         Creates a new folder by copying a **source folder** (`template_id`) into a target project. By default only the folder shell is copied; enable the `copy_*` flags to duplicate its task lists, tasks, and their details.
 
@@ -167,24 +152,10 @@ paths:
           }
         }
         ```
-  /api/v2/folders:
-    get:
-      tags:
-        - Folders
-      summary: Get folders
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_folder'
       parameters:
         - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_folder'
-        - $ref: '#/components/parameters/filter_folder'
-      operationId: folders-index
-      description: Returns a paginated list of folders — the top-level groupings inside a project that hold its task lists. Supports filtering by project, status, and free-text query.
-    post:
-      tags:
-        - Folders
-      summary: Create a folder
+      requestBody:
+        $ref: '#/components/requestBodies/folder_copy'
       responses:
         '201':
           $ref: '#/components/responses/single_folder'
@@ -195,12 +166,26 @@ paths:
             Content-Type:
               schema:
                 type: string
-          description: The folder could not be created due to validation errors.
+          description: The folder could not be copied due to validation errors.
+  /api/v2/folders:
+    get:
+      tags:
+        - Folders
+      summary: Get folders
+      operationId: folders-index
+      description: Returns a paginated list of folders — the top-level groupings inside a project that hold its task lists. Supports filtering by project, status, and free-text query.
       parameters:
         - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_folder'
+        - $ref: '#/components/parameters/filter_folder'
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_folder'
+    post:
+      tags:
+        - Folders
+      summary: Create a folder
       operationId: folders-create
-      requestBody:
-        $ref: '#/components/requestBodies/folder'
       description: |-
         Creates a folder inside a project. Requires a `name` and the `project_id`.
 
@@ -215,13 +200,12 @@ paths:
           }
         }
         ```
-  /api/v2/folders/{id}/move:
-    patch:
-      tags:
-        - Folders
-      summary: Move a folder
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/folder'
       responses:
-        '200':
+        '201':
           $ref: '#/components/responses/single_folder'
         '422':
           content:
@@ -230,18 +214,13 @@ paths:
             Content-Type:
               schema:
                 type: string
-          description: The folder could not be moved due to validation errors.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The numeric ID of the folder.
+          description: The folder could not be created due to validation errors.
+  /api/v2/folders/{id}/move:
+    patch:
+      tags:
+        - Folders
+      summary: Move a folder
       operationId: folders-move-move
-      requestBody:
-        $ref: '#/components/requestBodies/folder_move'
       description: |-
         Moves a folder — and all of its task lists and tasks — to a different project. Provide the target `project_id`.
 
@@ -260,14 +239,6 @@ paths:
           }
         }
         ```
-  /api/v2/folders/{id}/reposition:
-    patch:
-      tags:
-        - Folders
-      summary: Reposition a folder
-      responses:
-        '200':
-          $ref: '#/components/responses/single_folder'
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -276,9 +247,25 @@ paths:
             type: string
           required: true
           description: The numeric ID of the folder.
-      operationId: folders-reposition-reposition
       requestBody:
-        $ref: '#/components/requestBodies/folder_reposition'
+        $ref: '#/components/requestBodies/folder_move'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_folder'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: The folder could not be moved due to validation errors.
+  /api/v2/folders/{id}/reposition:
+    patch:
+      tags:
+        - Folders
+      summary: Reposition a folder
+      operationId: folders-reposition-reposition
       description: |-
         Reorders a folder among the other folders in its project. Pass `move_before_id` and/or `move_after_id` — the IDs of the folders to position it relative to. When both are provided, the folder is placed between them.
 
@@ -290,14 +277,26 @@ paths:
           }
         }
         ```
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The numeric ID of the folder.
+      requestBody:
+        $ref: '#/components/requestBodies/folder_reposition'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_folder'
   /api/v2/folders/{id}/restore:
     patch:
       tags:
         - Folders
       summary: Restores a folder
-      responses:
-        '200':
-          $ref: '#/components/responses/single_folder'
+      operationId: folders-restore-restore
+      description: Restores an archived folder — and its task lists — back to active status.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -306,16 +305,16 @@ paths:
             type: string
           required: true
           description: The numeric ID of the folder.
-      operationId: folders-restore-restore
-      description: Restores an archived folder — and its task lists — back to active status.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_folder'
   /api/v2/folders/{id}:
     get:
       tags:
         - Folders
       summary: Gets a folder
-      responses:
-        '200':
-          $ref: '#/components/responses/single_folder'
+      operationId: folders-show
+      description: Returns a single folder by ID.
       parameters:
         - in: path
           name: id
@@ -324,12 +323,25 @@ paths:
           required: true
           description: The numeric ID of the folder.
         - $ref: '#/components/parameters/header_organization'
-      operationId: folders-show
-      description: Returns a single folder by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_folder'
     patch:
       tags:
         - Folders
       summary: Update a folder
+      operationId: folders-update
+      description: Updates a folder. Only the provided attributes are modified — rename it or toggle its visibility via `hidden`. To move a folder to a **different project** (which reassigns its task lists and tasks and remaps workflow statuses), use [`PATCH /folders/{id}/move`](#tag/Folders/operation/folders-move-move) instead.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The numeric ID of the folder.
+      requestBody:
+        $ref: '#/components/requestBodies/folder'
       responses:
         '200':
           $ref: '#/components/responses/single_folder'
@@ -341,113 +353,200 @@ paths:
               schema:
                 type: string
           description: The folder could not be updated due to validation errors.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The numeric ID of the folder.
-      operationId: folders-update
-      requestBody:
-        $ref: '#/components/requestBodies/folder'
-      description: Updates a folder. Only the provided attributes are modified — rename it or toggle its visibility via `hidden`. To move a folder to a **different project** (which reassigns its task lists and tasks and remaps workflow statuses), use [`PATCH /folders/{id}/move`](#tag/Folders/operation/folders-move-move) instead.
 components:
-  requestBodies:
-    folder:
+  responses:
+    single_folder:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API response schema for a single folder.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned folder resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: The relationships of the folder resource.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - project_id
+                    description: The attributes of the folder resource.
                     properties:
+                      archived_at:
+                        $ref: '#/components/schemas/resource_folder/properties/archived_at'
                       name:
                         $ref: '#/components/schemas/resource_folder/properties/name'
                       hidden:
                         $ref: '#/components/schemas/resource_folder/properties/hidden'
                       position:
                         $ref: '#/components/schemas/resource_folder/properties/position'
-                      project_id:
-                        $ref: '#/components/schemas/resource_folder/properties/project_id'
-      description: The request body for creating or updating a folder.
-    folder_reposition:
+                      placement:
+                        $ref: '#/components/schemas/resource_folder/properties/placement'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A single included related resource object.
+                  example:
+                    eq: value
+                description: An array of included related resources (side-loaded data).
+                example:
+                  eq: value
+            example:
+              data:
+                id: '5522'
+                type: folders
+                attributes:
+                  name: Features
+                  position: 1
+                  placement: 1000000
+                  archived_at: null
+                  hidden: false
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+              included: []
+      description: A single folder resource response.
+    collection_folder:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API response schema for a collection of folders.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A single included related resource object.
+                  example:
+                    eq: value
+                description: An array of included related resources (side-loaded data).
+                example:
+                  eq: value
               data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      move_after_id:
-                        type: integer
-                        description: Place the folder directly after the folder with this ID. When both move_before_id and move_after_id are passed, the folder is placed between them.
-                      move_before_id:
-                        type: integer
-                        description: Place the folder directly before the folder with this ID.
-      description: Request body for reordering a folder among the other folders in its project. Pass `move_before_id` and/or `move_after_id`.
-    folder_move:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                type: array
+                items:
+                  type: object
+                  description: A single folder resource object in the collection.
+                  properties:
+                    attributes:
+                      type: object
+                      description: The attributes of a folder resource.
+                      properties:
+                        archived_at:
+                          $ref: '#/components/schemas/resource_folder/properties/archived_at'
+                        placement:
+                          $ref: '#/components/schemas/resource_folder/properties/placement'
+                        hidden:
+                          $ref: '#/components/schemas/resource_folder/properties/hidden'
+                        position:
+                          $ref: '#/components/schemas/resource_folder/properties/position'
+                        name:
+                          $ref: '#/components/schemas/resource_folder/properties/name'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: The relationships of a folder resource.
+                      properties:
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: The JSON:API data array containing the list of folder resources.
+                example:
+                  eq: value
+            example:
               data:
-                type: object
-                properties:
+                - id: '5522'
+                  type: folders
                   attributes:
-                    type: object
-                    required:
-                      - project_id
-                    properties:
-                      map:
-                        type: object
-                        description: Workflow status ID mapping. Required when the target project uses a different workflow than the source — keys are source workflow status IDs, values are target workflow status IDs.
-                        additionalProperties:
-                          type: integer
-                      project_id:
-                        $ref: '#/components/schemas/resource_folder/properties/project_id'
-      description: Request body for moving a folder to a different project. The target `project_id` is required; provide `map` when the target project uses a different workflow than the source.
-    folder_copy:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    required:
-                      - name
-                      - template_id
-                      - project_id
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_folder/properties/name'
-                      project_id:
-                        $ref: '#/components/schemas/resource_folder/properties/project_id'
-                      template_id:
-                        type: integer
-                        description: ID of the source folder being copied.
-      description: 'Request body for copying an existing folder. Required attributes: `name`, `template_id`, `project_id`. Optional `copy_*` flags control how much of the source folder''s contents is duplicated — see the operation description for the prerequisite tree.'
+                    name: Features
+                    position: 1
+                    placement: 1000000
+                    archived_at: null
+                    hidden: false
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: A paginated collection of folder resources.
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_folder:
       type: object
       title: Folder Resource
+      description: The folder resource schema representing a collection of task lists within a project.
       properties:
         position:
           type: integer
@@ -517,7 +616,6 @@ components:
           description: The archive status of this folder. Returns 1 for active folders and 2 for archived folders.
           example:
             eq: active
-      description: The folder resource schema representing a collection of task lists within a project.
       example:
         id: '5522'
         type: folders
@@ -532,57 +630,15 @@ components:
             data:
               type: projects
               id: '6899'
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -595,6 +651,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -604,16 +661,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -621,13 +679,178 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
+  requestBodies:
+    folder:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API request schema for folder create or update operations.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object containing the folder resource attributes and relationships.
+                properties:
+                  attributes:
+                    type: object
+                    description: The attributes of the folder resource to create or update.
+                    properties:
+                      project_id:
+                        $ref: '#/components/schemas/resource_folder/properties/project_id'
+                      position:
+                        $ref: '#/components/schemas/resource_folder/properties/position'
+                      name:
+                        $ref: '#/components/schemas/resource_folder/properties/name'
+                      hidden:
+                        $ref: '#/components/schemas/resource_folder/properties/hidden'
+                    required:
+                      - name
+                      - project_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: folders
+                attributes:
+                  name: Features
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+      description: The request body for creating or updating a folder.
+    folder_reposition:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API request envelope for the folder reposition operation.
+            properties:
+              data:
+                type: object
+                description: The resource object being repositioned. `type` must be `folders`.
+                properties:
+                  attributes:
+                    type: object
+                    description: 'Positioning attributes: `move_before_id` and/or `move_after_id`, the IDs of the folders to position this folder relative to.'
+                    properties:
+                      move_after_id:
+                        type: integer
+                        description: Place the folder directly after the folder with this ID. When both move_before_id and move_after_id are passed, the folder is placed between them.
+                      move_before_id:
+                        type: integer
+                        description: Place the folder directly before the folder with this ID.
+                    example:
+                      move_after_id: 5521
+                example:
+                  type: folders
+                  attributes:
+                    move_after_id: 5521
+            example:
+              data:
+                type: folders
+                attributes:
+                  move_after_id: 5521
+      description: Request body for reordering a folder among the other folders in its project. Pass `move_before_id` and/or `move_after_id`.
+    folder_move:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API request envelope for the folder move operation.
+            properties:
+              data:
+                type: object
+                description: The resource object being updated. `type` must be `folders`.
+                properties:
+                  attributes:
+                    type: object
+                    description: 'Move attributes: the target `project_id` (required) and an optional workflow status `map` (required only when the target project''s workflow differs from the source).'
+                    properties:
+                      map:
+                        type: object
+                        description: Workflow status ID mapping, required when the target project uses a different workflow than the source. Keys are source workflow status IDs, values are target workflow status IDs; the map must cover every status in the source workflow.
+                        additionalProperties:
+                          type: integer
+                      project_id:
+                        $ref: '#/components/schemas/resource_folder/properties/project_id'
+                    required:
+                      - project_id
+                    example:
+                      project_id: 31055
+                      map:
+                        '101': 205
+                        '102': 206
+                        '103': 207
+                example:
+                  type: folders
+                  attributes:
+                    project_id: 31055
+                    map:
+                      '101': 205
+                      '102': 206
+                      '103': 207
+            example:
+              data:
+                type: folders
+                attributes:
+                  project_id: 31055
+                  map:
+                    '101': 205
+                    '102': 206
+                    '103': 207
+      description: Request body for moving a folder to a different project. The target `project_id` is required; provide `map` when the target project uses a different workflow than the source.
+    folder_copy:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API request envelope for the folder copy operation.
+            properties:
+              data:
+                type: object
+                description: The resource object being created. `type` must be `folders`.
+                properties:
+                  attributes:
+                    type: object
+                    description: Attributes for the new folder plus the `copy_*` flags controlling what is copied from the source. `name`, `template_id`, and `project_id` are required; every `copy_*` flag is optional and defaults to `false`.
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_folder/properties/name'
+                      template_id:
+                        type: integer
+                        description: ID of the source folder being copied.
+                      project_id:
+                        $ref: '#/components/schemas/resource_folder/properties/project_id'
+                    required:
+                      - name
+                      - template_id
+                      - project_id
+                    example:
+                      name: Design (copy)
+                      template_id: 88440
+                      project_id: 31002
+                example:
+                  type: folders
+                  attributes:
+                    name: Design (copy)
+                    template_id: 88440
+                    project_id: 31002
+            example:
+              data:
+                type: folders
+                attributes:
+                  name: Design (copy)
+                  template_id: 88440
+                  project_id: 31002
+      description: 'Request body for copying an existing folder. Required attributes: `name`, `template_id`, `project_id`. Optional `copy_*` flags control how much of the source folder''s contents is duplicated — see the operation description for the prerequisite tree.'
   parameters:
     header_organization:
       in: header
@@ -657,76 +880,3 @@ components:
       explode: false
       required: false
       description: Sort folders by one or more fields. Prefix a field name with a minus sign for descending order.
-  responses:
-    single_folder:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_folder/properties/name'
-                      hidden:
-                        $ref: '#/components/schemas/resource_folder/properties/hidden'
-                      position:
-                        $ref: '#/components/schemas/resource_folder/properties/position'
-                      placement:
-                        $ref: '#/components/schemas/resource_folder/properties/placement'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_folder/properties/archived_at'
-                  relationships:
-                    type: object
-                    properties:
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: A single folder resource response.
-    collection_folder:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_folder/properties/name'
-                        hidden:
-                          $ref: '#/components/schemas/resource_folder/properties/hidden'
-                        position:
-                          $ref: '#/components/schemas/resource_folder/properties/position'
-                        placement:
-                          $ref: '#/components/schemas/resource_folder/properties/placement'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_folder/properties/archived_at'
-                    relationships:
-                      type: object
-                      properties:
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: A paginated collection of folder resources.

@@ -149,9 +149,8 @@ paths:
       tags:
         - Comments
       summary: Adds reaction to a comment
-      responses:
-        '200':
-          $ref: '#/components/responses/single_comment'
+      operationId: comments-add_reaction-add_reaction
+      description: Add a reaction to a comment.
       parameters:
         - in: path
           name: id
@@ -160,26 +159,33 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: comments-add_reaction-add_reaction
-      description: Add a reaction to a comment.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_comment'
   /api/v2/comments:
     get:
       tags:
         - Comments
       summary: Get comments
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_comment'
+      operationId: comments-index
+      description: List comments with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/sort_comment'
         - $ref: '#/components/parameters/filter_comment'
         - $ref: '#/components/parameters/header_organization'
-      operationId: comments-index
-      description: List comments with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_comment'
     post:
       tags:
         - Comments
       summary: Create a comment
+      operationId: comments-create
+      description: Creates a comment. The `creator` is set to the authenticated user making the request, so historical comments imported through a single integration token cannot preserve their original authors.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/comment'
       responses:
         '201':
           $ref: '#/components/responses/single_comment'
@@ -191,20 +197,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: comments-create
-      requestBody:
-        $ref: '#/components/requestBodies/comment'
-      description: Creates a comment. The `creator` is set to the authenticated user making the request, so historical comments imported through a single integration token cannot preserve their original authors.
   /api/v2/comments/{id}:
     get:
       tags:
         - Comments
       summary: Gets a comment
-      responses:
-        '200':
-          $ref: '#/components/responses/single_comment'
+      operationId: comments-show
+      description: Retrieve a single comment by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -213,15 +212,15 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: comments-show
-      description: Retrieve a single comment by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_comment'
     patch:
       tags:
         - Comments
       summary: Update a comment
-      responses:
-        '200':
-          $ref: '#/components/responses/single_comment'
+      operationId: comments-update
+      description: Updates a comment's editable fields. The `creator` is fixed at creation time and cannot be changed.
       parameters:
         - in: path
           name: id
@@ -230,17 +229,17 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: comments-update
       requestBody:
         $ref: '#/components/requestBodies/comment'
-      description: Updates a comment's editable fields. The `creator` is fixed at creation time and cannot be changed.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_comment'
     delete:
       tags:
         - Comments
       summary: Deletes a comment
-      responses:
-        '204':
-          description: No Content
+      operationId: comments-destroy
+      description: Delete a comment.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -249,13 +248,24 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: comments-destroy
-      description: Delete a comment.
+      responses:
+        '204':
+          description: No Content
   /api/v2/comments/{id}/pin:
     patch:
       tags:
         - Comments
       summary: Pins a comment
+      operationId: comments-pin-pin
+      description: Pin a comment.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_comment'
@@ -267,24 +277,13 @@ paths:
               schema:
                 type: string
           description: Conflict
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: comments-pin-pin
-      description: Pin a comment.
   /api/v2/comments/{id}/remove_reaction:
     patch:
       tags:
         - Comments
       summary: Removes reaction from comment
-      responses:
-        '200':
-          $ref: '#/components/responses/single_comment'
+      operationId: comments-remove_reaction-remove_reaction
+      description: Remove a reaction from a comment.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -293,13 +292,24 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: comments-remove_reaction-remove_reaction
-      description: Remove a reaction from a comment.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_comment'
   /api/v2/comments/{id}/unpin:
     patch:
       tags:
         - Comments
       summary: Unpins a comment
+      operationId: comments-unpin-unpin
+      description: Unpin a comment.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_comment'
@@ -311,190 +321,230 @@ paths:
               schema:
                 type: string
           description: Conflict
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: comments-unpin-unpin
-      description: Unpin a comment.
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_comment:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.comment at the top of this file.
-      required: false
-      description: Filters
-    sort_comment:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - created_at
-            - -created_at
-          type: string
-        title: Sort comment
-      explode: false
-      required: false
-      description: Sort comment
   responses:
     single_comment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single comment record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned comment resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Comment relationships.
+                    properties:
+                      discussion:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      pinned_by:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      company:
+                        $ref: '#/components/schemas/_single_relationship'
+                      invoice:
+                        $ref: '#/components/schemas/_single_relationship'
+                      purchase_order:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Comment attributes.
                     properties:
-                      body:
-                        $ref: '#/components/schemas/resource_comment/properties/body'
+                      deleted_at:
+                        $ref: '#/components/schemas/resource_comment/properties/deleted_at'
                       draft:
                         $ref: '#/components/schemas/resource_comment/properties/draft'
-                      hidden:
-                        $ref: '#/components/schemas/resource_comment/properties/hidden'
+                      commentable_type:
+                        $ref: '#/components/schemas/resource_comment/properties/commentable_type'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_comment/properties/updated_at'
                       edited_at:
                         $ref: '#/components/schemas/resource_comment/properties/edited_at'
                       pinned_at:
                         $ref: '#/components/schemas/resource_comment/properties/pinned_at'
-                      reactions:
-                        $ref: '#/components/schemas/resource_comment/properties/reactions'
                       created_at:
                         $ref: '#/components/schemas/resource_comment/properties/created_at'
-                      deleted_at:
-                        $ref: '#/components/schemas/resource_comment/properties/deleted_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_comment/properties/updated_at'
                       version_number:
                         $ref: '#/components/schemas/resource_comment/properties/version_number'
-                      commentable_type:
-                        $ref: '#/components/schemas/resource_comment/properties/commentable_type'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      task:
-                        $ref: '#/components/schemas/_single_relationship'
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      company:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      invoice:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      pinned_by:
-                        $ref: '#/components/schemas/_single_relationship'
-                      discussion:
-                        $ref: '#/components/schemas/_single_relationship'
-                      attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      purchase_order:
-                        $ref: '#/components/schemas/_single_relationship'
+                      reactions:
+                        $ref: '#/components/schemas/resource_comment/properties/reactions'
+                      body:
+                        $ref: '#/components/schemas/resource_comment/properties/body'
+                      hidden:
+                        $ref: '#/components/schemas/resource_comment/properties/hidden'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                id: '456'
+                type: comments
+                attributes:
+                  note: Looks good! I added a few edge cases to handle. Let me know if you need help with the OAuth token refresh flow.
+                  created_at: '2026-03-10T11:30:00.000+00:00'
+                  updated_at: '2026-03-10T11:30:00.000+00:00'
+                  commentable_type: task
+                  commentable_id: 120501
+                relationships:
+                  author:
+                    data:
+                      type: people
+                      id: '12'
+                  task:
+                    data:
+                      type: tasks
+                      id: '120501'
+              included: []
       description: Single comment
     collection_comment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of comment records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A comment resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Comment attributes.
                       properties:
-                        body:
-                          $ref: '#/components/schemas/resource_comment/properties/body'
-                        draft:
-                          $ref: '#/components/schemas/resource_comment/properties/draft'
-                        hidden:
-                          $ref: '#/components/schemas/resource_comment/properties/hidden'
-                        edited_at:
-                          $ref: '#/components/schemas/resource_comment/properties/edited_at'
-                        pinned_at:
-                          $ref: '#/components/schemas/resource_comment/properties/pinned_at'
                         reactions:
                           $ref: '#/components/schemas/resource_comment/properties/reactions'
+                        draft:
+                          $ref: '#/components/schemas/resource_comment/properties/draft'
+                        body:
+                          $ref: '#/components/schemas/resource_comment/properties/body'
+                        pinned_at:
+                          $ref: '#/components/schemas/resource_comment/properties/pinned_at'
                         created_at:
                           $ref: '#/components/schemas/resource_comment/properties/created_at'
-                        deleted_at:
-                          $ref: '#/components/schemas/resource_comment/properties/deleted_at'
+                        commentable_type:
+                          $ref: '#/components/schemas/resource_comment/properties/commentable_type'
                         updated_at:
                           $ref: '#/components/schemas/resource_comment/properties/updated_at'
                         version_number:
                           $ref: '#/components/schemas/resource_comment/properties/version_number'
-                        commentable_type:
-                          $ref: '#/components/schemas/resource_comment/properties/commentable_type'
+                        edited_at:
+                          $ref: '#/components/schemas/resource_comment/properties/edited_at'
+                        deleted_at:
+                          $ref: '#/components/schemas/resource_comment/properties/deleted_at'
+                        hidden:
+                          $ref: '#/components/schemas/resource_comment/properties/hidden'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Comment relationships.
                       properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        task:
-                          $ref: '#/components/schemas/_single_relationship'
                         person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        company:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
                           $ref: '#/components/schemas/_single_relationship'
                         invoice:
                           $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
                         project:
                           $ref: '#/components/schemas/_single_relationship'
-                        pinned_by:
+                        creator:
                           $ref: '#/components/schemas/_single_relationship'
                         discussion:
                           $ref: '#/components/schemas/_single_relationship'
+                        pinned_by:
+                          $ref: '#/components/schemas/_single_relationship'
+                        company:
+                          $ref: '#/components/schemas/_single_relationship'
                         attachments:
                           $ref: '#/components/schemas/_collection_relationship'
-                        organization:
+                        task:
                           $ref: '#/components/schemas/_single_relationship'
                         purchase_order:
                           $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of comment resource objects.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '456'
+                  type: comments
+                  attributes:
+                    note: Looks good! I added a few edge cases to handle. Let me know if you need help with the OAuth token refresh flow.
+                    created_at: '2026-03-10T11:30:00.000+00:00'
+                    updated_at: '2026-03-10T11:30:00.000+00:00'
+                    commentable_type: task
+                    commentable_id: 120501
+                  relationships:
+                    author:
+                      data:
+                        type: people
+                        id: '12'
+                    task:
+                      data:
+                        type: tasks
+                        id: '120501'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection comment
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -527,101 +577,17 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
     resource_comment:
       type: object
       title: Comment Resource
+      description: A message in the activity feed of a task, deal, company, or other entity. Comments support rich text, @mentions, and file attachments.
       properties:
-        workflow_status_category_id:
-          type: string
-          title: Workflow Status Category
-          description: The ID of the workflow status category referenced in this comment's activity context.
-          example:
-            - 123
         public_access:
           type: boolean
           title: Public Access
@@ -905,7 +871,12 @@ components:
           description: The ID of the role referenced in this comment's activity context.
           example:
             - 123
-      description: A message in the activity feed of a task, deal, company, or other entity. Comments support rich text, @mentions, and file attachments.
+        workflow_status_category_id:
+          type: string
+          title: Workflow Status Category
+          description: The ID of the workflow status category referenced in this comment's activity context.
+          example:
+            - 123
       example:
         id: '456'
         type: comments
@@ -924,47 +895,174 @@ components:
             data:
               type: tasks
               id: '120501'
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_comment:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.comment at the top of this file.
+      required: false
+      description: Filters
+    sort_comment:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+          type: string
+        title: Sort comment
+      explode: false
+      required: false
+      description: Sort comment
   requestBodies:
     comment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a comment.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the comment resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Comment attributes.
                     properties:
                       body:
                         $ref: '#/components/schemas/resource_comment/properties/body'
-                      draft:
-                        $ref: '#/components/schemas/resource_comment/properties/draft'
-                      hidden:
-                        $ref: '#/components/schemas/resource_comment/properties/hidden'
-                      deal_id:
-                        $ref: '#/components/schemas/resource_comment/properties/deal_id'
-                      task_id:
-                        $ref: '#/components/schemas/resource_comment/properties/task_id'
-                      person_id:
-                        $ref: '#/components/schemas/resource_comment/properties/person_id'
-                      company_id:
-                        $ref: '#/components/schemas/resource_comment/properties/company_id'
-                      invoice_id:
-                        $ref: '#/components/schemas/resource_comment/properties/invoice_id'
-                      project_id:
-                        $ref: '#/components/schemas/resource_comment/properties/project_id'
-                      proposal_id:
-                        $ref: '#/components/schemas/resource_comment/properties/proposal_id'
-                      discussion_id:
-                        $ref: '#/components/schemas/resource_comment/properties/discussion_id'
-                      attachment_ids:
-                        $ref: '#/components/schemas/resource_comment/properties/attachment_ids'
-                      version_number:
-                        $ref: '#/components/schemas/resource_comment/properties/version_number'
                       purchase_order_id:
                         $ref: '#/components/schemas/resource_comment/properties/purchase_order_id'
+                      draft:
+                        $ref: '#/components/schemas/resource_comment/properties/draft'
+                      company_id:
+                        $ref: '#/components/schemas/resource_comment/properties/company_id'
+                      project_id:
+                        $ref: '#/components/schemas/resource_comment/properties/project_id'
                       resource_request_id:
                         $ref: '#/components/schemas/resource_comment/properties/resource_request_id'
+                      task_id:
+                        $ref: '#/components/schemas/resource_comment/properties/task_id'
+                      attachment_ids:
+                        $ref: '#/components/schemas/resource_comment/properties/attachment_ids'
+                      discussion_id:
+                        $ref: '#/components/schemas/resource_comment/properties/discussion_id'
+                      deal_id:
+                        $ref: '#/components/schemas/resource_comment/properties/deal_id'
+                      hidden:
+                        $ref: '#/components/schemas/resource_comment/properties/hidden'
+                      person_id:
+                        $ref: '#/components/schemas/resource_comment/properties/person_id'
+                      version_number:
+                        $ref: '#/components/schemas/resource_comment/properties/version_number'
+                      invoice_id:
+                        $ref: '#/components/schemas/resource_comment/properties/invoice_id'
+                      proposal_id:
+                        $ref: '#/components/schemas/resource_comment/properties/proposal_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: comments
+                attributes:
+                  note: Looks good! I added a few edge cases to handle.
+                relationships:
+                  task:
+                    data:
+                      type: tasks
+                      id: '120501'
       description: Request body for creating or updating a comment. Provide the rich text body (HTML with @mentions), the parent resource relationship (task, deal, person, etc.), and optional draft status. Reactions and pin state are managed via separate actions.

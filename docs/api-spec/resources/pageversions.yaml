@@ -42,19 +42,31 @@ paths:
       tags:
         - PageVersions
       summary: Get page_versions
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_page_version'
+      operationId: page_versions-index
+      description: Returns the version history of pages. Filter by `page_id` to list one page's versions; sort with `-created_at` for newest first.
       parameters:
         - $ref: '#/components/parameters/filter_page_version'
         - $ref: '#/components/parameters/sort_page_version'
         - $ref: '#/components/parameters/header_organization'
-      operationId: page_versions-index
-      description: Returns the version history of pages. Filter by `page_id` to list one page's versions; sort with `-created_at` for newest first.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_page_version'
     post:
       tags:
         - PageVersions
       summary: Create a page_version
+      operationId: page_versions-create
+      description: |-
+        Creates a page version. Pass exactly one of:
+
+        - `page_id` — snapshots the page's current title and body as a new version, optionally labelled via `name`.
+        - `restored_from_version_id` — creates a new version whose snapshot is copied from an earlier version, marking a restore point. The page's live body is **not** changed by this call.
+
+        Editing a page records versions automatically (edits within two minutes merge into one); use this endpoint for named snapshots and restore points.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/page_version'
       responses:
         '201':
           $ref: '#/components/responses/single_page_version'
@@ -66,26 +78,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: page_versions-create
-      requestBody:
-        $ref: '#/components/requestBodies/page_version'
-      description: |-
-        Creates a page version. Pass exactly one of:
-
-        - `page_id` — snapshots the page's current title and body as a new version, optionally labelled via `name`.
-        - `restored_from_version_id` — creates a new version whose snapshot is copied from an earlier version, marking a restore point. The page's live body is **not** changed by this call.
-
-        Editing a page records versions automatically (edits within two minutes merge into one); use this endpoint for named snapshots and restore points.
   /api/v2/page_versions/{id}:
     get:
       tags:
         - PageVersions
       summary: Gets a page_version
-      responses:
-        '200':
-          $ref: '#/components/responses/single_page_version'
+      operationId: page_versions-show
+      description: Retrieve a single page version.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -94,12 +93,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: page_versions-show
-      description: Retrieve a single page version.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_page_version'
     patch:
       tags:
         - PageVersions
       summary: Update a page_version
+      operationId: page_versions-update
+      description: Renames a page version — `name` is the only writable attribute.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/page_version'
       responses:
         '200':
           $ref: '#/components/responses/single_page_version'
@@ -111,43 +123,214 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: page_versions-update
-      requestBody:
-        $ref: '#/components/requestBodies/page_version'
-      description: Renames a page version — `name` is the only writable attribute.
 components:
-  requestBodies:
-    page_version:
+  responses:
+    single_page_version:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single page_version record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned page_version resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Page version relationships.
+                    properties:
+                      page:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Page version attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_page_version/properties/name'
-                      page_id:
-                        $ref: '#/components/schemas/resource_page_version/properties/page_id'
+                      body_snapshot:
+                        $ref: '#/components/schemas/resource_page_version/properties/body_snapshot'
+                      created_at:
+                        $ref: '#/components/schemas/resource_page_version/properties/created_at'
                       restored_from_version_id:
                         $ref: '#/components/schemas/resource_page_version/properties/restored_from_version_id'
-      description: Request body for creating a page version. Pass exactly one of `page_id` (snapshot the page's current state) or `restored_from_version_id` (restore point copied from an earlier version), plus an optional `name`.
+                      prosemirror_steps:
+                        $ref: '#/components/schemas/resource_page_version/properties/prosemirror_steps'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_page_version/properties/updated_at'
+                      name:
+                        $ref: '#/components/schemas/resource_page_version/properties/name'
+                      title_snapshot:
+                        $ref: '#/components/schemas/resource_page_version/properties/title_snapshot'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '45'
+                type: page_versions
+                attributes:
+                  version_number: 3
+                  created_at: '2026-03-10T15:00:00.000+00:00'
+                relationships:
+                  page:
+                    data:
+                      type: pages
+                      id: '78'
+                  author:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
+      description: Single page version
+    collection_page_version:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of page version records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A page version resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Page version attributes.
+                      properties:
+                        updated_at:
+                          $ref: '#/components/schemas/resource_page_version/properties/updated_at'
+                        prosemirror_steps:
+                          $ref: '#/components/schemas/resource_page_version/properties/prosemirror_steps'
+                        body_snapshot:
+                          $ref: '#/components/schemas/resource_page_version/properties/body_snapshot'
+                        created_at:
+                          $ref: '#/components/schemas/resource_page_version/properties/created_at'
+                        title_snapshot:
+                          $ref: '#/components/schemas/resource_page_version/properties/title_snapshot'
+                        name:
+                          $ref: '#/components/schemas/resource_page_version/properties/name'
+                        restored_from_version_id:
+                          $ref: '#/components/schemas/resource_page_version/properties/restored_from_version_id'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Page version relationships.
+                      properties:
+                        page:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of page version resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '45'
+                  type: page_versions
+                  attributes:
+                    version_number: 3
+                    created_at: '2026-03-10T15:00:00.000+00:00'
+                  relationships:
+                    page:
+                      data:
+                        type: pages
+                        id: '78'
+                    author:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection page version
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_page_version:
       type: object
       title: Page version Resource
+      description: A historical snapshot of a page's content created whenever the page is saved.
       properties:
         updated_at:
           type: string
@@ -225,7 +408,6 @@ components:
           description: Timestamp when this page version was created.
           example:
             gt: '2026-01-01'
-      description: A historical snapshot of a page's content created whenever the page is saved.
       example:
         id: '45'
         type: page_versions
@@ -241,57 +423,15 @@ components:
             data:
               type: people
               id: '12'
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -304,6 +444,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -313,16 +454,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -330,13 +472,49 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
+  requestBodies:
+    page_version:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body schema for a page version.
+            properties:
+              data:
+                type: object
+                description: The page version resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Page version attributes.
+                    properties:
+                      restored_from_version_id:
+                        $ref: '#/components/schemas/resource_page_version/properties/restored_from_version_id'
+                      page_id:
+                        $ref: '#/components/schemas/resource_page_version/properties/page_id'
+                      name:
+                        $ref: '#/components/schemas/resource_page_version/properties/name'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: pages
+                attributes:
+                  title: Architecture Overview
+                  note: System architecture documentation
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+      description: Request body for creating a page version. Pass exactly one of `page_id` (snapshot the page's current state) or `restored_from_version_id` (restore point copied from an earlier version), plus an optional `name`.
   parameters:
     header_organization:
       in: header
@@ -373,88 +551,3 @@ components:
         description: Filter keys and their operators are listed under x-filters.page_version at the top of this file.
       required: false
       description: Filters
-  responses:
-    single_page_version:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_page_version/properties/name'
-                      created_at:
-                        $ref: '#/components/schemas/resource_page_version/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_page_version/properties/updated_at'
-                      body_snapshot:
-                        $ref: '#/components/schemas/resource_page_version/properties/body_snapshot'
-                      title_snapshot:
-                        $ref: '#/components/schemas/resource_page_version/properties/title_snapshot'
-                      prosemirror_steps:
-                        $ref: '#/components/schemas/resource_page_version/properties/prosemirror_steps'
-                      restored_from_version_id:
-                        $ref: '#/components/schemas/resource_page_version/properties/restored_from_version_id'
-                  relationships:
-                    type: object
-                    properties:
-                      page:
-                        $ref: '#/components/schemas/_single_relationship'
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single page version
-    collection_page_version:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_page_version/properties/name'
-                        created_at:
-                          $ref: '#/components/schemas/resource_page_version/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_page_version/properties/updated_at'
-                        body_snapshot:
-                          $ref: '#/components/schemas/resource_page_version/properties/body_snapshot'
-                        title_snapshot:
-                          $ref: '#/components/schemas/resource_page_version/properties/title_snapshot'
-                        prosemirror_steps:
-                          $ref: '#/components/schemas/resource_page_version/properties/prosemirror_steps'
-                        restored_from_version_id:
-                          $ref: '#/components/schemas/resource_page_version/properties/restored_from_version_id'
-                    relationships:
-                      type: object
-                      properties:
-                        page:
-                          $ref: '#/components/schemas/_single_relationship'
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection page version

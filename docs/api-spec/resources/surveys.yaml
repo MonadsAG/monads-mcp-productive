@@ -60,6 +60,10 @@ paths:
       tags:
         - Surveys
       summary: Copies a survey
+      operationId: surveys-copy-copy
+      description: Copy an existing survey.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_survey'
@@ -71,45 +75,40 @@ paths:
               schema:
                 type: string
           description: Created
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: surveys-copy-copy
-      description: Copy an existing survey.
   /api/v2/surveys:
     get:
       tags:
         - Surveys
       summary: Get surveys
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_survey'
+      operationId: surveys-index
+      description: List all surveys.
       parameters:
         - $ref: '#/components/parameters/sort_survey'
         - $ref: '#/components/parameters/filter_survey'
         - $ref: '#/components/parameters/header_organization'
-      operationId: surveys-index
-      description: List all surveys.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_survey'
     post:
       tags:
         - Surveys
       summary: Create a survey
+      operationId: surveys-create
+      description: Create a new survey.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/survey'
       responses:
         '201':
           $ref: '#/components/responses/single_survey'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: surveys-create
-      requestBody:
-        $ref: '#/components/requestBodies/survey'
-      description: Create a new survey.
   /api/v2/surveys/{id}:
     get:
       tags:
         - Surveys
       summary: Gets a survey
-      responses:
-        '200':
-          $ref: '#/components/responses/single_survey'
+      operationId: surveys-show
+      description: Retrieve a single survey by ID.
       parameters:
         - in: path
           name: id
@@ -118,15 +117,15 @@ paths:
           required: true
           description: The ID of the survey to retrieve.
         - $ref: '#/components/parameters/header_organization'
-      operationId: surveys-show
-      description: Retrieve a single survey by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey'
     patch:
       tags:
         - Surveys
       summary: Update a survey
-      responses:
-        '200':
-          $ref: '#/components/responses/single_survey'
+      operationId: surveys-update
+      description: Update a survey.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -135,17 +134,17 @@ paths:
             type: string
           required: true
           description: The ID of the survey to update.
-      operationId: surveys-update
       requestBody:
         $ref: '#/components/requestBodies/survey'
-      description: Update a survey.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey'
     delete:
       tags:
         - Surveys
       summary: Deletes a survey
-      responses:
-        '204':
-          description: No Content
+      operationId: surveys-destroy
+      description: Delete a survey by ID.
       parameters:
         - in: path
           name: id
@@ -154,8 +153,9 @@ paths:
           required: true
           description: The ID of the survey to delete.
         - $ref: '#/components/parameters/header_organization'
-      operationId: surveys-destroy
-      description: Delete a survey by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -191,33 +191,215 @@ components:
       explode: false
       required: false
       description: Sort order for survey list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
-  requestBodies:
-    survey:
+  responses:
+    single_survey:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single survey record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned survey resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - title
-                      - project_id
+                    description: Survey attributes.
                     properties:
+                      updated_at:
+                        $ref: '#/components/schemas/resource_survey/properties/updated_at'
+                      created_at:
+                        $ref: '#/components/schemas/resource_survey/properties/created_at'
                       title:
                         $ref: '#/components/schemas/resource_survey/properties/title'
-                      project_id:
-                        $ref: '#/components/schemas/resource_survey/properties/project_id'
                       submission_access:
                         $ref: '#/components/schemas/resource_survey/properties/submission_access'
-      description: Request body for creating or updating a survey. Specify the project, name, and configuration. Survey fields are managed separately via the survey_fields endpoint.
+                      public_uuid:
+                        $ref: '#/components/schemas/resource_survey/properties/public_uuid'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Survey relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '7'
+                type: surveys
+                attributes:
+                  title: Client Satisfaction Q1 2026
+                  status: published
+                  created_at: '2026-01-15T10:00:00.000+00:00'
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+              included: []
+      description: Single survey
+    collection_survey:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of survey records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A survey resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Survey attributes.
+                      properties:
+                        updated_at:
+                          $ref: '#/components/schemas/resource_survey/properties/updated_at'
+                        title:
+                          $ref: '#/components/schemas/resource_survey/properties/title'
+                        submission_access:
+                          $ref: '#/components/schemas/resource_survey/properties/submission_access'
+                        public_uuid:
+                          $ref: '#/components/schemas/resource_survey/properties/public_uuid'
+                        created_at:
+                          $ref: '#/components/schemas/resource_survey/properties/created_at'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Survey relationships.
+                      properties:
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of survey resource objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '7'
+                  type: surveys
+                  attributes:
+                    title: Client Satisfaction Q1 2026
+                    status: published
+                    created_at: '2026-01-15T10:00:00.000+00:00'
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection survey
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_survey:
       type: object
       title: Survey Resource
+      description: Project form for structured data collection. Supports automation triggers on submission. Responses are stored as survey_response records with field values.
       properties:
         submission_access:
           enum:
@@ -306,7 +488,6 @@ components:
           description: The person who created this survey.
           example:
             eq: value
-      description: Project form for structured data collection. Supports automation triggers on submission. Responses are stored as survey_response records with field values.
       example:
         id: '7'
         type: surveys
@@ -322,6 +503,7 @@ components:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -354,145 +536,49 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_survey:
+  requestBodies:
+    survey:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a survey.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the survey resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Survey attributes.
                     properties:
                       title:
                         $ref: '#/components/schemas/resource_survey/properties/title'
-                      created_at:
-                        $ref: '#/components/schemas/resource_survey/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_survey/properties/updated_at'
-                      public_uuid:
-                        $ref: '#/components/schemas/resource_survey/properties/public_uuid'
                       submission_access:
                         $ref: '#/components/schemas/resource_survey/properties/submission_access'
-                  relationships:
-                    type: object
-                    properties:
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      updater:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single survey
-    collection_survey:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      project_id:
+                        $ref: '#/components/schemas/resource_survey/properties/project_id'
+                    required:
+                      - title
+                      - project_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        title:
-                          $ref: '#/components/schemas/resource_survey/properties/title'
-                        created_at:
-                          $ref: '#/components/schemas/resource_survey/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_survey/properties/updated_at'
-                        public_uuid:
-                          $ref: '#/components/schemas/resource_survey/properties/public_uuid'
-                        submission_access:
-                          $ref: '#/components/schemas/resource_survey/properties/submission_access'
-                    relationships:
-                      type: object
-                      properties:
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        updater:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection survey
+                type: surveys
+                attributes:
+                  title: Client Satisfaction Q1 2026
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+      description: Request body for creating or updating a survey. Specify the project, name, and configuration. Survey fields are managed separately via the survey_fields endpoint.

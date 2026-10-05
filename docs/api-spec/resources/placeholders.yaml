@@ -1,0 +1,673 @@
+openapi: 3.1.0
+info:
+  title: Productive.io API – Placeholders
+  version: 2.0.0
+description: |-
+  **Placeholders** are named person or date slots defined on a template project. When a project is created from the template, each placeholder is resolved to a concrete person or date, and the resolved value is applied wherever the placeholder is used.
+
+  Not to be confused with placeholder people in resource planning — those are `people` records with the `placeholder` attribute.
+x-filters:
+  placeholder:
+    category:
+      description: Filter by placeholder category.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    usage_project_id:
+      description: Filter placeholders that are used in tasks or todos belonging to the specified project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    type:
+      description: Filter by placeholder type.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by creation date range.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Filter placeholders by name (text search on the name field).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the associated project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+paths:
+  /api/v2/placeholders:
+    get:
+      tags:
+        - Placeholders
+      summary: Get placeholders
+      operationId: placeholders-index
+      description: Returns a paginated list of placeholders — named person or date slots defined on template projects. Supports filtering by name, category, type, and project, or by the project whose tasks and todos use the placeholder (`usage_project_id`).
+      parameters:
+        - $ref: '#/components/parameters/sort_placeholder'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_placeholder'
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_placeholder'
+    post:
+      tags:
+        - Placeholders
+      summary: Create a placeholder
+      operationId: placeholders-create
+      description: |-
+        Creates a placeholder on a template project. Requires `name`, `category`, `type`, `color`, `icon`, and `project_id` — the project must be a template. The `type` determines what the placeholder resolves to when a project is created from the template: a person or a date.
+
+        ### Create a person placeholder
+
+        ```json
+        {
+          "data": {
+            "type": "placeholders",
+            "attributes": {
+              "name": "Project Manager",
+              "category": "project",
+              "type": "person",
+              "color": "electric",
+              "icon": "icon-cowboy-hat-filled",
+              "project_id": 7388870
+            }
+          }
+        }
+        ```
+
+        ### Create a date placeholder
+
+        ```json
+        {
+          "data": {
+            "type": "placeholders",
+            "attributes": {
+              "name": "Kickoff date",
+              "category": "project",
+              "type": "date",
+              "color": "canary",
+              "icon": "icon-calendar",
+              "project_id": 7388870
+            }
+          }
+        }
+        ```
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/placeholder'
+      responses:
+        '201':
+          $ref: '#/components/responses/single_placeholder'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+  /api/v2/placeholders/{id}:
+    get:
+      tags:
+        - Placeholders
+      summary: Gets a placeholder
+      operationId: placeholders-show
+      description: Returns a single placeholder by ID.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder to retrieve.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_placeholder'
+    patch:
+      tags:
+        - Placeholders
+      summary: Update a placeholder
+      operationId: placeholders-update
+      description: Updates a placeholder. Only the provided attributes are modified. The project can only be changed to another template project.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder to update.
+      requestBody:
+        $ref: '#/components/requestBodies/placeholder'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_placeholder'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+    delete:
+      tags:
+        - Placeholders
+      summary: Deletes a placeholder
+      operationId: placeholders-destroy
+      description: Deletes a placeholder along with all of its placeholder usages.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder to delete.
+      responses:
+        '204':
+          description: No Content
+components:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_placeholder:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.placeholder at the top of this file.
+      required: false
+      description: Filter parameter for querying placeholders.
+    sort_placeholder:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - category
+            - -category
+            - id
+            - -id
+            - name
+            - -name
+            - type
+            - -type
+          type: string
+        title: Sort placeholder
+      explode: false
+      required: false
+      description: Sort order for placeholder list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
+  responses:
+    single_placeholder:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single placeholder record in JSON:API format.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: object
+                description: The JSON:API data object for the returned placeholder resource.
+                properties:
+                  attributes:
+                    type: object
+                    description: Placeholder attributes.
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_placeholder/properties/name'
+                      color:
+                        $ref: '#/components/schemas/resource_placeholder/properties/color'
+                      created_at:
+                        $ref: '#/components/schemas/resource_placeholder/properties/created_at'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_placeholder/properties/updated_at'
+                      category:
+                        $ref: '#/components/schemas/resource_placeholder/properties/category'
+                      type:
+                        $ref: '#/components/schemas/resource_placeholder/properties/type'
+                      icon:
+                        $ref: '#/components/schemas/resource_placeholder/properties/icon'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Placeholder relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '88'
+                type: placeholders
+                attributes:
+                  name: Employee
+                  category: project
+                  color: electric
+                  icon: icon-cowboy-hat-filled
+                  type: person
+                  created_at: '2026-09-02T11:48:32.010+02:00'
+                  updated_at: '2026-09-02T11:48:42.251+02:00'
+                relationships:
+                  organization:
+                    data:
+                      type: organizations
+                      id: '109'
+                  project:
+                    data:
+                      type: projects
+                      id: '7388870'
+              included: []
+      description: Single placeholder
+    collection_placeholder:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of placeholder records in JSON:API format.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A placeholder resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Placeholder attributes.
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_placeholder/properties/name'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_placeholder/properties/updated_at'
+                        type:
+                          $ref: '#/components/schemas/resource_placeholder/properties/type'
+                        icon:
+                          $ref: '#/components/schemas/resource_placeholder/properties/icon'
+                        created_at:
+                          $ref: '#/components/schemas/resource_placeholder/properties/created_at'
+                        color:
+                          $ref: '#/components/schemas/resource_placeholder/properties/color'
+                        category:
+                          $ref: '#/components/schemas/resource_placeholder/properties/category'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Placeholder relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of placeholder resource objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '88'
+                  type: placeholders
+                  attributes:
+                    name: Employee
+                    category: project
+                    color: electric
+                    icon: icon-cowboy-hat-filled
+                    type: person
+                    created_at: '2026-09-02T11:48:32.010+02:00'
+                    updated_at: '2026-09-02T11:48:42.251+02:00'
+                  relationships:
+                    organization:
+                      data:
+                        type: organizations
+                        id: '109'
+                    project:
+                      data:
+                        type: projects
+                        id: '7388870'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 1
+                total_count: 2
+                page_size: 30
+                max_page_size: 200
+      description: Collection placeholder
+  schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    resource_placeholder:
+      type: object
+      title: Placeholder Resource
+      description: A named person or date slot defined on a template project. Carries a name, category, type (person or date), and a color and icon for display. Resolved to a concrete person or date when a project is created from the template.
+      properties:
+        usage_project_id:
+          type: integer
+          title: Usage Project
+          description: Filter placeholders to those used in tasks or todos within the specified project.
+          example:
+            - 123
+        icon:
+          type: string
+          title: Icon
+          description: The icon identifier used to visually represent the placeholder. The API accepts any string — the Productive UI uses identifiers from its icon set (e.g. `icon-cowboy-hat-filled`).
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: A text search query to filter placeholders by name.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this placeholder was last updated.
+          example:
+            gt: '2026-01-01'
+        category:
+          enum:
+            - project
+          type: string
+          title: Category
+          description: The category of this placeholder, indicating the context in which it is used (e.g. project).
+          example:
+            eq: active
+        organization:
+          title: Organization
+          description: The organization this placeholder belongs to.
+          example:
+            eq: value
+        project:
+          title: Project
+          description: The template project this placeholder belongs to.
+          example:
+            eq: value
+        type:
+          enum:
+            - person
+            - date
+          type: string
+          title: Type
+          description: The type of placeholder, either person or date.
+          example:
+            eq: active
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this placeholder.
+          example:
+            - 123
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this placeholder was created.
+          example:
+            gt: '2026-01-01'
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the template project this placeholder belongs to.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: The display name of this placeholder (e.g. Frontend Developer).
+          example:
+            eq: value
+        color:
+          type: string
+          title: Color
+          description: The color identifier used to visually represent the placeholder. The API accepts any string — the Productive UI uses tokens from its color palette (e.g. `electric`).
+          example:
+            eq: value
+      example:
+        id: '88'
+        type: placeholders
+        attributes:
+          name: Employee
+          category: project
+          color: electric
+          icon: icon-cowboy-hat-filled
+          type: person
+          created_at: '2026-09-02T11:48:32.010+02:00'
+          updated_at: '2026-09-02T11:48:42.251+02:00'
+        relationships:
+          organization:
+            data:
+              type: organizations
+              id: '109'
+          project:
+            data:
+              type: projects
+              id: '7388870'
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+  requestBodies:
+    placeholder:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating a placeholder.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object containing the placeholder resource attributes and relationships.
+                properties:
+                  attributes:
+                    type: object
+                    description: Placeholder attributes.
+                    properties:
+                      category:
+                        $ref: '#/components/schemas/resource_placeholder/properties/category'
+                      icon:
+                        $ref: '#/components/schemas/resource_placeholder/properties/icon'
+                      color:
+                        $ref: '#/components/schemas/resource_placeholder/properties/color'
+                      project_id:
+                        $ref: '#/components/schemas/resource_placeholder/properties/project_id'
+                      type:
+                        $ref: '#/components/schemas/resource_placeholder/properties/type'
+                      name:
+                        $ref: '#/components/schemas/resource_placeholder/properties/name'
+                    required:
+                      - category
+                      - color
+                      - icon
+                      - name
+                      - project_id
+                      - type
+                    example:
+                      name: Senior Developer
+                      category: project
+                      type: person
+                      color: electric
+                      icon: icon-cowboy-hat-filled
+                      project_id: 7388870
+                example:
+                  type: placeholders
+                  attributes:
+                    name: Senior Developer
+                    category: project
+                    type: person
+                    color: electric
+                    icon: icon-cowboy-hat-filled
+                    project_id: 7388870
+            example:
+              data:
+                type: placeholders
+                attributes:
+                  name: Senior Developer
+                  category: project
+                  type: person
+                  color: electric
+                  icon: icon-cowboy-hat-filled
+                  project_id: 7388870
+      description: Request body for creating a placeholder.

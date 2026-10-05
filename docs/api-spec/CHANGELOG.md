@@ -1,5 +1,35 @@
 # Productive.io API Changelog
 
+## 2026-10-05
+
+**Spec:** OpenAPI 3.1.0, 404 paths, 668 operations
+
+### New paths
+
+- `/api/v2/expense_line_items`
+- `/api/v2/expense_line_items/{id}`
+- `/api/v2/placeholder_usages`
+- `/api/v2/placeholder_usages/{id}`
+- `/api/v2/placeholders`
+- `/api/v2/placeholders/{id}`
+- `/api/v2/public/proposals/{uuid}/confirm_identity`
+
+### Filter keys
+
+- **new_time_report**: removed `role_type`
+
+### Resource attributes
+
+- **agent_config**: added `ai_model`, `reasoning_effort`
+- **custom_field**: added `maximum_value`, `minimum_value`
+- **deal**: added `contact_ids`, `contacts`
+- **expense**: added `markup_amount`, `markup_amount_default`, `markup_amount_normalized`
+- **organization**: added `ai_allowed_models`
+- **person**: added `ai_assistant_instructions`
+- **proposal**: added `identity_confirmation_enabled`, `identity_confirmed_at`
+
+---
+
 ## 2026-09-28
 
 **Spec:** OpenAPI 3.1.0, 397 paths, 652 operations

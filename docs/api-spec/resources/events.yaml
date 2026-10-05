@@ -100,9 +100,8 @@ paths:
       tags:
         - Events
       summary: Archives an event
-      responses:
-        '200':
-          $ref: '#/components/responses/single_event'
+      operationId: events-archive-archive
+      description: Archive an event.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -111,26 +110,33 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: events-archive-archive
-      description: Archive an event.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_event'
   /api/v2/events:
     get:
       tags:
         - Events
       summary: Get events
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_event'
+      operationId: events-index
+      description: List events.
       parameters:
         - $ref: '#/components/parameters/filter_event'
         - $ref: '#/components/parameters/sort_event'
         - $ref: '#/components/parameters/header_organization'
-      operationId: events-index
-      description: List events.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_event'
     post:
       tags:
         - Events
       summary: Create an event
+      operationId: events-create
+      description: Create a new event.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/event'
       responses:
         '201':
           $ref: '#/components/responses/single_event'
@@ -142,20 +148,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: events-create
-      requestBody:
-        $ref: '#/components/requestBodies/event'
-      description: Create a new event.
   /api/v2/events/{id}:
     get:
       tags:
         - Events
       summary: Get an event
-      responses:
-        '200':
-          $ref: '#/components/responses/single_event'
+      operationId: events-show
+      description: Retrieve a single event.
       parameters:
         - in: path
           name: id
@@ -164,12 +163,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: events-show
-      description: Retrieve a single event.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_event'
     patch:
       tags:
         - Events
       summary: Update an event
+      operationId: events-update
+      description: Update an event.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/event'
       responses:
         '200':
           $ref: '#/components/responses/single_event'
@@ -181,22 +193,20 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
+    delete:
+      tags:
+        - Events
+      summary: Deletes an event
+      operationId: events-destroy
+      description: Delete an event.
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: events-update
-      requestBody:
-        $ref: '#/components/requestBodies/event'
-      description: Update an event.
-    delete:
-      tags:
-        - Events
-      summary: Deletes an event
       responses:
         '204':
           description: No Content
@@ -208,24 +218,13 @@ paths:
               schema:
                 type: string
           description: Conflict
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: events-destroy
-      description: Delete an event.
   /api/v2/events/{id}/restore:
     patch:
       tags:
         - Events
       summary: Restores an event
-      responses:
-        '200':
-          $ref: '#/components/responses/single_event'
+      operationId: events-restore-restore
+      description: Restore an archived event.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -234,227 +233,177 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: events-restore-restore
-      description: Restore an archived event.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_event'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_event:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          type: string
-        title: Sort event
-      explode: false
-      required: false
-      description: Sort event
-    filter_event:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.event at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_event:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single event (absence category) record in JSON:API format.
             properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_event/properties/name'
-                      icon_id:
-                        $ref: '#/components/schemas/resource_event/properties/icon_id'
-                      color_id:
-                        $ref: '#/components/schemas/resource_event/properties/color_id'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_event/properties/archived_at'
-                      description:
-                        $ref: '#/components/schemas/resource_event/properties/description'
-                      absence_type:
-                        $ref: '#/components/schemas/resource_event/properties/absence_type'
-                      event_type_id:
-                        $ref: '#/components/schemas/resource_event/properties/event_type_id'
-                      half_day_bookings:
-                        $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
-                      limitation_type_id:
-                        $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
-                      sync_personal_integrations:
-                        $ref: '#/components/schemas/resource_event/properties/sync_personal_integrations'
-                  relationships:
-                    type: object
-                    properties:
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: object
+                description: The JSON:API data object for the returned event resource.
+                properties:
+                  relationships:
+                    type: object
+                    description: Event relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                  attributes:
+                    type: object
+                    description: Event attributes.
+                    properties:
+                      sync_personal_integrations:
+                        $ref: '#/components/schemas/resource_event/properties/sync_personal_integrations'
+                      description:
+                        $ref: '#/components/schemas/resource_event/properties/description'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_event/properties/archived_at'
+                      name:
+                        $ref: '#/components/schemas/resource_event/properties/name'
+                      limitation_type_id:
+                        $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
+                      color_id:
+                        $ref: '#/components/schemas/resource_event/properties/color_id'
+                      half_day_bookings:
+                        $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_event/properties/icon_id'
+                      event_type_id:
+                        $ref: '#/components/schemas/resource_event/properties/event_type_id'
+                      absence_type:
+                        $ref: '#/components/schemas/resource_event/properties/absence_type'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '10'
+                type: events
+                attributes:
+                  name: Vacation
+                  event_type_id: 1
+                  icon_id: '3'
+                  color_id: '7'
+                  archived_at: null
+                  limitation_type_id: 1
+                  sync_personal_integrations: false
+                  half_day_bookings: true
+                  description: Annual paid leave
+                  absence_type: vacation
+              included: []
       description: Single event
     collection_event:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of event records in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: array
                 items:
                   type: object
+                  description: An event resource object.
                   properties:
+                    relationships:
+                      type: object
+                      description: Event relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
                     attributes:
                       type: object
+                      description: Event attributes.
                       properties:
-                        name:
-                          $ref: '#/components/schemas/resource_event/properties/name'
-                        icon_id:
-                          $ref: '#/components/schemas/resource_event/properties/icon_id'
-                        color_id:
-                          $ref: '#/components/schemas/resource_event/properties/color_id'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_event/properties/archived_at'
-                        description:
-                          $ref: '#/components/schemas/resource_event/properties/description'
+                        limitation_type_id:
+                          $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
                         absence_type:
                           $ref: '#/components/schemas/resource_event/properties/absence_type'
                         event_type_id:
                           $ref: '#/components/schemas/resource_event/properties/event_type_id'
-                        half_day_bookings:
-                          $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
-                        limitation_type_id:
-                          $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
+                        icon_id:
+                          $ref: '#/components/schemas/resource_event/properties/icon_id'
                         sync_personal_integrations:
                           $ref: '#/components/schemas/resource_event/properties/sync_personal_integrations'
-                    relationships:
-                      type: object
-                      properties:
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
+                        description:
+                          $ref: '#/components/schemas/resource_event/properties/description'
+                        half_day_bookings:
+                          $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
+                        name:
+                          $ref: '#/components/schemas/resource_event/properties/name'
+                        color_id:
+                          $ref: '#/components/schemas/resource_event/properties/color_id'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_event/properties/archived_at'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of event resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                - id: '10'
+                  type: events
+                  attributes:
+                    name: Vacation
+                    event_type_id: 1
+                    icon_id: '3'
+                    color_id: '7'
+                    archived_at: null
+                    limitation_type_id: 1
+                    sync_personal_integrations: false
+                    half_day_bookings: true
+                    description: Annual paid leave
+                    absence_type: vacation
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection event
   schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
     resource_event:
       type: object
       title: Event Resource
+      description: An absence event type (e.g. vacation, sick leave) used to categorize time-off bookings in the resource planner.
       properties:
         sync_personal_integrations:
           type: boolean
@@ -563,7 +512,6 @@ components:
           description: When true, this event has a limit on the amount of time-off that can be booked.
           example:
             eq: value
-      description: An absence event type (e.g. vacation, sick leave) used to categorize time-off bookings in the resource planner.
       example:
         id: '123'
         type: events
@@ -583,37 +531,178 @@ components:
             data:
               type: organizations
               id: '1'
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_event:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort event
+      explode: false
+      required: false
+      description: Sort event
+    filter_event:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.event at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     event:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for an absence category.
             properties:
               data:
                 type: object
+                description: The absence category resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Absence category attributes.
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_event/properties/name'
+                      sync_personal_integrations:
+                        $ref: '#/components/schemas/resource_event/properties/sync_personal_integrations'
+                      limitation_type_id:
+                        $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
+                      half_day_bookings:
+                        $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
+                      color_id:
+                        $ref: '#/components/schemas/resource_event/properties/color_id'
+                      event_type_id:
+                        $ref: '#/components/schemas/resource_event/properties/event_type_id'
+                      absence_type:
+                        $ref: '#/components/schemas/resource_event/properties/absence_type'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_event/properties/icon_id'
                     required:
                       - name
                       - event_type_id
                       - limitation_type_id
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_event/properties/name'
-                      icon_id:
-                        $ref: '#/components/schemas/resource_event/properties/icon_id'
-                      color_id:
-                        $ref: '#/components/schemas/resource_event/properties/color_id'
-                      absence_type:
-                        $ref: '#/components/schemas/resource_event/properties/absence_type'
-                      event_type_id:
-                        $ref: '#/components/schemas/resource_event/properties/event_type_id'
-                      half_day_bookings:
-                        $ref: '#/components/schemas/resource_event/properties/half_day_bookings'
-                      limitation_type_id:
-                        $ref: '#/components/schemas/resource_event/properties/limitation_type_id'
-                      sync_personal_integrations:
-                        $ref: '#/components/schemas/resource_event/properties/sync_personal_integrations'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: events
+                attributes:
+                  name: Vacation
+                  event_type_id: 1
+                  color_id: '7'
+                  half_day_bookings: true
+                  absence_type: vacation
       description: Request body for creating or updating an absence category.

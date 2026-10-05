@@ -8,19 +8,6 @@ description: |-
   List and retrieve email threads associated with records through these endpoints.
 x-filters:
   email:
-    before:
-      description: Filter by before.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    purchase_order_id:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     status:
       description: Filter by email resolution status (unresolved, resolved, or dismissed).
       operators:
@@ -106,12 +93,35 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    before:
+      description: Filter by before.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    purchase_order_id:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/emails/{id}/attach:
     patch:
       tags:
         - Emails
       summary: Attach an email
+      operationId: emails-attach-attach
+      description: Attach an email to a resource.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_email'
@@ -123,24 +133,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: emails-attach-attach
-      description: Attach an email to a resource.
   /api/v2/emails/{id}:
     get:
       tags:
         - Emails
       summary: Get an email
-      responses:
-        '200':
-          $ref: '#/components/responses/single_email'
+      operationId: emails-show
+      description: Retrieve a single email.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -149,15 +148,15 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: emails-show
-      description: Retrieve a single email.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_email'
     delete:
       tags:
         - Emails
       summary: Delete an email
-      responses:
-        '204':
-          description: No Content
+      operationId: emails-destroy
+      description: Delete an email.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -166,16 +165,16 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: emails-destroy
-      description: Delete an email.
+      responses:
+        '204':
+          description: No Content
   /api/v2/emails/{id}/dismiss:
     patch:
       tags:
         - Emails
       summary: Dismiss an email
-      responses:
-        '200':
-          $ref: '#/components/responses/single_email'
+      operationId: emails-dismiss-dismiss
+      description: Dismiss an email from the inbox.
       parameters:
         - in: path
           name: id
@@ -184,68 +183,318 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: emails-dismiss-dismiss
-      description: Dismiss an email from the inbox.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_email'
   /api/v2/emails:
     get:
       tags:
         - Emails
       summary: Get emails
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_email'
+      operationId: emails-index
+      description: List emails.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_email'
         - $ref: '#/components/parameters/sort_email'
-      operationId: emails-index
-      description: List emails.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_email'
 components:
-  parameters:
-    sort_email:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          type: string
-        title: Sort email
-      explode: false
-      required: false
-      description: Sort email
-    filter_email:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.email at the top of this file.
-      required: false
-      description: Filters
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
+  responses:
+    collection_email:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of email records in JSON:API format.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: An email resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Email relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        thread:
+                          $ref: '#/components/schemas/_single_relationship'
+                        bcc_recipients:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        participants:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        integration:
+                          $ref: '#/components/schemas/_single_relationship'
+                        to_recipients:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        cc_recipients:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        recipients:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        invoice:
+                          $ref: '#/components/schemas/_single_relationship'
+                        payment_reminder:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Email attributes.
+                      properties:
+                        subject:
+                          $ref: '#/components/schemas/resource_email/properties/subject'
+                        dismissed_at:
+                          $ref: '#/components/schemas/resource_email/properties/dismissed_at'
+                        delivered_at:
+                          $ref: '#/components/schemas/resource_email/properties/delivered_at'
+                        received_at:
+                          $ref: '#/components/schemas/resource_email/properties/received_at'
+                        linked_id:
+                          $ref: '#/components/schemas/resource_email/properties/linked_id'
+                        unread:
+                          $ref: '#/components/schemas/resource_email/properties/unread'
+                        created_at:
+                          $ref: '#/components/schemas/resource_email/properties/created_at'
+                        auto_linked:
+                          $ref: '#/components/schemas/resource_email/properties/auto_linked'
+                        from:
+                          $ref: '#/components/schemas/resource_email/properties/from'
+                        body:
+                          $ref: '#/components/schemas/resource_email/properties/body'
+                        external_id:
+                          $ref: '#/components/schemas/resource_email/properties/external_id'
+                        outgoing:
+                          $ref: '#/components/schemas/resource_email/properties/outgoing'
+                        body_truncated:
+                          $ref: '#/components/schemas/resource_email/properties/body_truncated'
+                        body_html:
+                          $ref: '#/components/schemas/resource_email/properties/body_html'
+                        recipients:
+                          $ref: '#/components/schemas/resource_email/properties/recipients'
+                        linked_type:
+                          $ref: '#/components/schemas/resource_email/properties/linked_type'
+                        participants:
+                          $ref: '#/components/schemas/resource_email/properties/participants'
+                        failed_at:
+                          $ref: '#/components/schemas/resource_email/properties/failed_at'
+                        snippet:
+                          $ref: '#/components/schemas/resource_email/properties/snippet'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of email resource objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '789'
+                  type: emails
+                  attributes:
+                    subject: 'Re: Website Redesign — Updated timeline'
+                    snippet: Hi Alex, I've reviewed the updated timeline and everything looks good. We can proceed with...
+                    body_truncated: true
+                    auto_linked: true
+                    linked_type: deal
+                    linked_id: 89
+                    outgoing: false
+                    from:
+                      email: client@acmecorp.com
+                      name: Jane Doe
+                    recipients:
+                      - email: alex.smith@example.com
+                        name: Alex Smith
+                        type: to
+                    created_at: '2026-03-10T09:15:00.000+00:00'
+                    received_at: '2026-03-10T09:15:00.000+00:00'
+                    delivered_at: null
+                    failed_at: null
+                    unread: true
+                    dismissed_at: null
+                  relationships:
+                    creator:
+                      data: null
+                    deal:
+                      data:
+                        type: deals
+                        id: '89'
+                    thread:
+                      data:
+                        type: emails
+                        id: '785'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection email
+    single_email:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single email record in JSON:API format.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object for the returned email resource.
+                properties:
+                  relationships:
+                    type: object
+                    description: Email relationships.
+                    properties:
+                      attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      bcc_recipients:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      participants:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      cc_recipients:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      thread:
+                        $ref: '#/components/schemas/_single_relationship'
+                      recipients:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      to_recipients:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      integration:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      payment_reminder:
+                        $ref: '#/components/schemas/_single_relationship'
+                      invoice:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                  attributes:
+                    type: object
+                    description: Email attributes.
+                    properties:
+                      external_id:
+                        $ref: '#/components/schemas/resource_email/properties/external_id'
+                      subject:
+                        $ref: '#/components/schemas/resource_email/properties/subject'
+                      failed_at:
+                        $ref: '#/components/schemas/resource_email/properties/failed_at'
+                      delivered_at:
+                        $ref: '#/components/schemas/resource_email/properties/delivered_at'
+                      linked_id:
+                        $ref: '#/components/schemas/resource_email/properties/linked_id'
+                      body_truncated:
+                        $ref: '#/components/schemas/resource_email/properties/body_truncated'
+                      from:
+                        $ref: '#/components/schemas/resource_email/properties/from'
+                      received_at:
+                        $ref: '#/components/schemas/resource_email/properties/received_at'
+                      snippet:
+                        $ref: '#/components/schemas/resource_email/properties/snippet'
+                      linked_type:
+                        $ref: '#/components/schemas/resource_email/properties/linked_type'
+                      body:
+                        $ref: '#/components/schemas/resource_email/properties/body'
+                      unread:
+                        $ref: '#/components/schemas/resource_email/properties/unread'
+                      body_html:
+                        $ref: '#/components/schemas/resource_email/properties/body_html'
+                      recipients:
+                        $ref: '#/components/schemas/resource_email/properties/recipients'
+                      created_at:
+                        $ref: '#/components/schemas/resource_email/properties/created_at'
+                      participants:
+                        $ref: '#/components/schemas/resource_email/properties/participants'
+                      dismissed_at:
+                        $ref: '#/components/schemas/resource_email/properties/dismissed_at'
+                      auto_linked:
+                        $ref: '#/components/schemas/resource_email/properties/auto_linked'
+                      outgoing:
+                        $ref: '#/components/schemas/resource_email/properties/outgoing'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '789'
+                type: emails
+                attributes:
+                  subject: 'Re: Website Redesign — Updated timeline'
+                  snippet: Hi Alex, I've reviewed the updated timeline and everything looks good. We can proceed with...
+                  body_truncated: true
+                  auto_linked: true
+                  linked_type: deal
+                  linked_id: 89
+                  outgoing: false
+                  from:
+                    email: client@acmecorp.com
+                    name: Jane Doe
+                  recipients:
+                    - email: alex.smith@example.com
+                      name: Alex Smith
+                      type: to
+                  created_at: '2026-03-10T09:15:00.000+00:00'
+                  received_at: '2026-03-10T09:15:00.000+00:00'
+                  delivered_at: null
+                  failed_at: null
+                  unread: true
+                  dismissed_at: null
+                relationships:
+                  creator:
+                    data: null
+                  deal:
+                    data:
+                      type: deals
+                      id: '89'
+                  thread:
+                    data:
+                      type: emails
+                      id: '785'
+              included: []
+      description: Single email
   schemas:
     resource_email:
       type: object
       title: Email Resource
+      description: A synced email message linked to deals, invoices, companies, or other resources in Productive.
       properties:
-        external_id:
-          type: string
-          title: External
-          description: The external identifier of this email from the originating email provider.
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: The organization this email belongs to.
-          example:
-            eq: value
         before:
           type: string
           title: Before
@@ -479,7 +728,17 @@ components:
           description: A truncated version of the plain text body, used for preview purposes.
           example:
             eq: value
-      description: A synced email message linked to deals, invoices, companies, or other resources in Productive.
+        external_id:
+          type: string
+          title: External
+          description: The external identifier of this email from the originating email provider.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this email belongs to.
+          example:
+            eq: value
       example:
         id: '123'
         type: emails
@@ -490,9 +749,88 @@ components:
           received_at: '2026-01-15T09:00:00Z'
           body: Hi, here is the latest update...
         relationships: {}
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -525,261 +863,38 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
+  parameters:
+    sort_email:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
           type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-  responses:
-    collection_email:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        body:
-                          $ref: '#/components/schemas/resource_email/properties/body'
-                        from:
-                          $ref: '#/components/schemas/resource_email/properties/from'
-                        unread:
-                          $ref: '#/components/schemas/resource_email/properties/unread'
-                        snippet:
-                          $ref: '#/components/schemas/resource_email/properties/snippet'
-                        subject:
-                          $ref: '#/components/schemas/resource_email/properties/subject'
-                        outgoing:
-                          $ref: '#/components/schemas/resource_email/properties/outgoing'
-                        body_html:
-                          $ref: '#/components/schemas/resource_email/properties/body_html'
-                        failed_at:
-                          $ref: '#/components/schemas/resource_email/properties/failed_at'
-                        linked_id:
-                          $ref: '#/components/schemas/resource_email/properties/linked_id'
-                        created_at:
-                          $ref: '#/components/schemas/resource_email/properties/created_at'
-                        recipients:
-                          $ref: '#/components/schemas/resource_email/properties/recipients'
-                        auto_linked:
-                          $ref: '#/components/schemas/resource_email/properties/auto_linked'
-                        external_id:
-                          $ref: '#/components/schemas/resource_email/properties/external_id'
-                        linked_type:
-                          $ref: '#/components/schemas/resource_email/properties/linked_type'
-                        received_at:
-                          $ref: '#/components/schemas/resource_email/properties/received_at'
-                        delivered_at:
-                          $ref: '#/components/schemas/resource_email/properties/delivered_at'
-                        dismissed_at:
-                          $ref: '#/components/schemas/resource_email/properties/dismissed_at'
-                        participants:
-                          $ref: '#/components/schemas/resource_email/properties/participants'
-                        body_truncated:
-                          $ref: '#/components/schemas/resource_email/properties/body_truncated'
-                    relationships:
-                      type: object
-                      properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        thread:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        invoice:
-                          $ref: '#/components/schemas/_single_relationship'
-                        recipients:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        integration:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        participants:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        cc_recipients:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        to_recipients:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        bcc_recipients:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        payment_reminder:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection email
-    single_email:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      body:
-                        $ref: '#/components/schemas/resource_email/properties/body'
-                      from:
-                        $ref: '#/components/schemas/resource_email/properties/from'
-                      unread:
-                        $ref: '#/components/schemas/resource_email/properties/unread'
-                      snippet:
-                        $ref: '#/components/schemas/resource_email/properties/snippet'
-                      subject:
-                        $ref: '#/components/schemas/resource_email/properties/subject'
-                      outgoing:
-                        $ref: '#/components/schemas/resource_email/properties/outgoing'
-                      body_html:
-                        $ref: '#/components/schemas/resource_email/properties/body_html'
-                      failed_at:
-                        $ref: '#/components/schemas/resource_email/properties/failed_at'
-                      linked_id:
-                        $ref: '#/components/schemas/resource_email/properties/linked_id'
-                      created_at:
-                        $ref: '#/components/schemas/resource_email/properties/created_at'
-                      recipients:
-                        $ref: '#/components/schemas/resource_email/properties/recipients'
-                      auto_linked:
-                        $ref: '#/components/schemas/resource_email/properties/auto_linked'
-                      external_id:
-                        $ref: '#/components/schemas/resource_email/properties/external_id'
-                      linked_type:
-                        $ref: '#/components/schemas/resource_email/properties/linked_type'
-                      received_at:
-                        $ref: '#/components/schemas/resource_email/properties/received_at'
-                      delivered_at:
-                        $ref: '#/components/schemas/resource_email/properties/delivered_at'
-                      dismissed_at:
-                        $ref: '#/components/schemas/resource_email/properties/dismissed_at'
-                      participants:
-                        $ref: '#/components/schemas/resource_email/properties/participants'
-                      body_truncated:
-                        $ref: '#/components/schemas/resource_email/properties/body_truncated'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      thread:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      invoice:
-                        $ref: '#/components/schemas/_single_relationship'
-                      recipients:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      integration:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      participants:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      cc_recipients:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      to_recipients:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      bcc_recipients:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      payment_reminder:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single email
+        title: Sort email
+      explode: false
+      required: false
+      description: Sort email
+    filter_email:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.email at the top of this file.
+      required: false
+      description: Filters
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID

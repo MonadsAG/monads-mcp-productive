@@ -5,13 +5,6 @@ info:
 description: Contact information records (email, phone, website, postal address) for companies and people. Multiple contact entries can be attached to a single company or person, each with a type (e.g. work, personal) and optional billing-specific fields.
 x-filters:
   contact_entry:
-    invoice_id:
-      description: Filter by the associated invoice.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     contactable_type:
       description: Filter by the type of the contactable resource (person or company).
       operators:
@@ -47,25 +40,38 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    invoice_id:
+      description: Filter by the associated invoice.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/contact_entries:
     get:
       tags:
         - Contact Entries
       summary: Get contact entries
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_contact_entry'
+      operationId: contact_entries-index
+      description: List contact entries with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_contact_entry'
         - $ref: '#/components/parameters/filter_contact_entry'
-      operationId: contact_entries-index
-      description: List contact entries with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_contact_entry'
     post:
       tags:
         - Contact Entries
       summary: Create a contact entry
+      operationId: contact_entries-create
+      description: Create a new contact entry.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/contact_entry'
       responses:
         '201':
           $ref: '#/components/responses/single_contact_entry'
@@ -77,20 +83,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: contact_entries-create
-      requestBody:
-        $ref: '#/components/requestBodies/contact_entry'
-      description: Create a new contact entry.
   /api/v2/contact_entries/{id}:
     get:
       tags:
         - Contact Entries
       summary: Gets a contact entry
-      responses:
-        '200':
-          $ref: '#/components/responses/single_contact_entry'
+      operationId: contact_entries-show
+      description: Retrieve a single contact entry by ID.
       parameters:
         - in: path
           name: id
@@ -99,12 +98,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: contact_entries-show
-      description: Retrieve a single contact entry by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_contact_entry'
     patch:
       tags:
         - Contact Entries
       summary: Update a contact entry
+      operationId: contact_entries-update
+      description: Update a contact entry.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/contact_entry'
       responses:
         '200':
           $ref: '#/components/responses/single_contact_entry'
@@ -116,25 +128,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: contact_entries-update
-      requestBody:
-        $ref: '#/components/requestBodies/contact_entry'
-      description: Update a contact entry.
     delete:
       tags:
         - Contact Entries
       summary: Deletes a contact entry
-      responses:
-        '204':
-          description: No Content
+      operationId: contact_entries-destroy
+      description: Delete a contact entry.
       parameters:
         - in: path
           name: id
@@ -143,8 +142,9 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: contact_entries-destroy
-      description: Delete a contact entry.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -175,69 +175,329 @@ components:
       explode: false
       required: false
       description: Sort contact entry
-  requestBodies:
-    contact_entry:
+  responses:
+    single_contact_entry:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single contact entry record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The contact entry resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - type
-                      - name
+                    description: Contact entry attributes.
                     properties:
-                      vat:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/vat'
-                      city:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/city'
-                      name:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/name'
-                      type:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/type'
-                      email:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/email'
-                      phone:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/phone'
-                      state:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/state'
                       address:
                         $ref: '#/components/schemas/resource_contact_entry/properties/address'
-                      country:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/country'
-                      website:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/website'
-                      zipcode:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/zipcode'
-                      person_id:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/person_id'
-                      company_id:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/company_id'
-                      invoice_id:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/invoice_id'
-                      billing_email:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/billing_email'
-                      subsidiary_id:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/subsidiary_id'
+                      city:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/city'
+                      email:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/email'
                       billing_address:
                         $ref: '#/components/schemas/resource_contact_entry/properties/billing_address'
-                      organization_id:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/organization_id'
+                      website:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/website'
+                      billing_email:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/billing_email'
+                      zipcode:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/zipcode'
+                      name:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/name'
+                      vat:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/vat'
+                      country:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/country'
+                      state:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/state'
                       contactable_type:
                         $ref: '#/components/schemas/resource_contact_entry/properties/contactable_type'
-                      purchase_order_id:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/purchase_order_id'
-                      invoice_template_id:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/invoice_template_id'
-      description: Request body for creating or updating a contact entry. Specify the type (email, phone, address, website), the contact fields, and the parent relationship (company or person). Billing fields (billing_address, billing_email, VAT) are available when financials are enabled.
+                      phone:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/phone'
+                      type:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/type'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Contact entry relationships.
+                    properties:
+                      subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      company:
+                        $ref: '#/components/schemas/_single_relationship'
+                      purchase_order:
+                        $ref: '#/components/schemas/_single_relationship'
+                      invoice_template:
+                        $ref: '#/components/schemas/_single_relationship'
+                      invoice:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '891'
+                type: contact_entries
+                attributes:
+                  contactable_type: company
+                  type: main
+                  name: Headquarters
+                  email: hello@acmecorp.com
+                  phone: +1-555-0123
+                  website: https://acmecorp.com
+                  address: 123 Innovation Drive
+                  city: San Francisco
+                  state: CA
+                  zipcode: '94105'
+                  country: US
+                  billing_address: 123 Innovation Drive, San Francisco, CA 94105
+                  billing_email: billing@acmecorp.com
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+                  person:
+                    data: null
+              included: []
+      description: Single contact entry
+    collection_contact_entry:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of contact entry records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A contact entry resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Contact entry attributes.
+                      properties:
+                        type:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/type'
+                        billing_email:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/billing_email'
+                        address:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/address'
+                        vat:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/vat'
+                        phone:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/phone'
+                        website:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/website'
+                        name:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/name'
+                        city:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/city'
+                        email:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/email'
+                        country:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/country'
+                        zipcode:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/zipcode'
+                        billing_address:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/billing_address'
+                        state:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/state'
+                        contactable_type:
+                          $ref: '#/components/schemas/resource_contact_entry/properties/contactable_type'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Contact entry relationships.
+                      properties:
+                        invoice:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        purchase_order:
+                          $ref: '#/components/schemas/_single_relationship'
+                        invoice_template:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        subsidiary:
+                          $ref: '#/components/schemas/_single_relationship'
+                        company:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of contact entry resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '891'
+                  type: contact_entries
+                  attributes:
+                    contactable_type: company
+                    type: main
+                    name: Headquarters
+                    email: hello@acmecorp.com
+                    phone: +1-555-0123
+                    website: https://acmecorp.com
+                    address: 123 Innovation Drive
+                    city: San Francisco
+                    state: CA
+                    zipcode: '94105'
+                    country: US
+                    billing_address: 123 Innovation Drive, San Francisco, CA 94105
+                    billing_email: billing@acmecorp.com
+                  relationships:
+                    company:
+                      data:
+                        type: companies
+                        id: '65111'
+                    person:
+                      data: null
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection contact entry
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_contact_entry:
       type: object
       title: Contact entry Resource
+      description: Contact information record (email, phone, website, or postal address) for a company or person. Supports multiple entries per contact with type classification. Billing-specific fields (billing_address, billing_email, VAT) are available for company contacts with financials enabled.
       properties:
         vat:
           type: string
@@ -404,7 +664,6 @@ components:
           description: The street address of this contact entry.
           example:
             eq: value
-      description: Contact information record (email, phone, website, or postal address) for a company or person. Supports multiple entries per contact with type classification. Billing-specific fields (billing_address, billing_email, VAT) are available for company contacts with financials enabled.
       example:
         id: '16235'
         type: contact_entries
@@ -449,228 +708,84 @@ components:
           proposal:
             meta:
               included: false
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_contact_entry:
+  requestBodies:
+    contact_entry:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a contact entry.
             properties:
               data:
                 type: object
+                description: The contact entry resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Contact entry attributes.
                     properties:
-                      vat:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/vat'
-                      city:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/city'
-                      name:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/name'
-                      type:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/type'
-                      email:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/email'
-                      phone:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/phone'
-                      state:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/state'
-                      address:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/address'
-                      country:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/country'
-                      website:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/website'
-                      zipcode:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/zipcode'
-                      billing_email:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/billing_email'
-                      billing_address:
-                        $ref: '#/components/schemas/resource_contact_entry/properties/billing_address'
+                      subsidiary_id:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/subsidiary_id'
                       contactable_type:
                         $ref: '#/components/schemas/resource_contact_entry/properties/contactable_type'
-                  relationships:
-                    type: object
-                    properties:
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      company:
-                        $ref: '#/components/schemas/_single_relationship'
-                      invoice:
-                        $ref: '#/components/schemas/_single_relationship'
-                      subsidiary:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      purchase_order:
-                        $ref: '#/components/schemas/_single_relationship'
-                      invoice_template:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single contact entry
-    collection_contact_entry:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      vat:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/vat'
+                      state:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/state'
+                      phone:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/phone'
+                      address:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/address'
+                      type:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/type'
+                      organization_id:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/organization_id'
+                      zipcode:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/zipcode'
+                      company_id:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/company_id'
+                      billing_email:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/billing_email'
+                      city:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/city'
+                      country:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/country'
+                      name:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/name'
+                      email:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/email'
+                      purchase_order_id:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/purchase_order_id'
+                      website:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/website'
+                      invoice_template_id:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/invoice_template_id'
+                      invoice_id:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/invoice_id'
+                      person_id:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/person_id'
+                      billing_address:
+                        $ref: '#/components/schemas/resource_contact_entry/properties/billing_address'
+                    required:
+                      - type
+                      - name
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        vat:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/vat'
-                        city:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/city'
-                        name:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/name'
-                        type:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/type'
-                        email:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/email'
-                        phone:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/phone'
-                        state:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/state'
-                        address:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/address'
-                        country:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/country'
-                        website:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/website'
-                        zipcode:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/zipcode'
-                        billing_email:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/billing_email'
-                        billing_address:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/billing_address'
-                        contactable_type:
-                          $ref: '#/components/schemas/resource_contact_entry/properties/contactable_type'
-                    relationships:
-                      type: object
-                      properties:
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        company:
-                          $ref: '#/components/schemas/_single_relationship'
-                        invoice:
-                          $ref: '#/components/schemas/_single_relationship'
-                        subsidiary:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        purchase_order:
-                          $ref: '#/components/schemas/_single_relationship'
-                        invoice_template:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection contact entry
+                type: contact_entries
+                attributes:
+                  name: Headquarters
+                  email: hello@acmecorp.com
+                  phone: +1-555-0123
+                  address: 123 Innovation Drive
+                  city: San Francisco
+                  country: US
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+      description: Request body for creating or updating a contact entry. Specify the type (email, phone, address, website), the contact fields, and the parent relationship (company or person). Billing fields (billing_address, billing_email, VAT) are available when financials are enabled.
