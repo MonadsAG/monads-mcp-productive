@@ -3,7 +3,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    // Agent worktrees under .claude/ hold full repo copies; their tests would run twice.
+    // Local worktrees under .claude/ hold full repo copies; their tests would run twice.
     exclude: [...configDefaults.exclude, '.claude/**'],
     setupFiles: ['./tests/setup.ts'],
     // Runs once in the main process; warns when the integration suites are
