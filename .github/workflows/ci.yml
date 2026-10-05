@@ -6,6 +6,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,9 +15,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -46,3 +47,89 @@ jobs:
       # committed spec does not have. Same check the weekly sync PR runs.
       - name: API spec drift
         run: npm run spec:impact
+
+      # Packs the package with its shrinkwrap, checks the contents (stdio build,
+      # README, LICENSE, NOTICE -- Apache-2.0 requires NOTICE) and starts it via
+      # npx from a local registry, the way the MCP hub does.
+      - name: Package smoke test
+        run: npm run package:smoke
+
+  # Every push to main publishes @monadsag/productive-mcp; the MCP hub runs
+  # `npx @monadsag/productive-mcp@latest`. Cloudflare Workers Builds deploys the
+  # Worker from the same push independently of this job.
+  publish:
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    # One publish at a time, in push order, so `latest` never moves backwards.
+    concurrency:
+      group: npm-publish
+      cancel-in-progress: false
+    # The token lives in the env of the two steps that need it, never at job
+    # level: there every install script in the dependency tree would see it.
+    steps:
+      - name: Require NPM_TOKEN
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::Repository secret NPM_TOKEN is not set -- nothing was published. Add a granular npm token with publish rights for @monadsag."
+            exit 1
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      # No dependency install scripts in the job that publishes; the build is
+      # plain tsc and needs none.
+      - run: npm ci --ignore-scripts
+
+      # Major.minor come from package.json, the patch is this workflow's run
+      # number: monotonic, unique per run, and nothing is committed back.
+      # Bumping major or minor in package.json is a normal commit.
+      - name: Set version
+        run: |
+          base=$(node -p "require('./package.json').version.split('.').slice(0, 2).join('.')")
+          npm version --no-git-tag-version "$base.$GITHUB_RUN_NUMBER"
+
+      - name: Build
+        run: npm run build
+
+      # Pins the published package to the dependency tree CI just tested
+      # (written after `npm version`, so it carries the release version).
+      - name: Shrinkwrap
+        run: npm run package:shrinkwrap
+
+      # Only a 404 means "nothing published yet"; any other failure to read
+      # the current version stops here. A re-run of an older workflow run would
+      # otherwise publish an older build and move `latest` back onto it.
+      # --ignore-scripts: build and shrinkwrap ran above, without the token.
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if latest=$(npm view "$name" version 2>"$RUNNER_TEMP/npm-view.log"); then
+            :
+          elif grep -q 'code E404' "$RUNNER_TEMP/npm-view.log"; then
+            latest=''
+          else
+            cat "$RUNNER_TEMP/npm-view.log"
+            echo "::error::Could not read the published version of $name -- not publishing."
+            exit 1
+          fi
+          if [ -n "$latest" ] && [ "$(printf '%s\n%s\n' "$latest" "$version" | sort -V | tail -n1)" != "$version" ]; then
+            echo "::error::$name@$latest is already published and newer than $version -- not publishing."
+            exit 1
+          fi
+          npm publish --provenance --access public --ignore-scripts
+          echo "Published $name@$version" >> "$GITHUB_STEP_SUMMARY"

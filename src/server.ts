@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -17,6 +18,10 @@ import {
   quickTimesheetPromptDefinition,
 } from './prompts/timesheet.js';
 
+// The npm release sets the patch per CI run, so the version lives only in
+// package.json. Resolves from both src/ (tests) and build/ (the package).
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
+
 export async function createServer() {
   const baseConfig = getConfig();
   const apiClient = new ProductiveAPIClient(baseConfig);
@@ -28,7 +33,7 @@ export async function createServer() {
   const server = new Server(
     {
       name: 'Productive Remote MCP',
-      version: '1.1.0',
+      version,
       icons: [{ src: LOGO_DATA_URI, mimeType: 'image/svg+xml', sizes: ['any'] }],
       description: `MCP server for Productive.io API integration. Productive has a hierarchical structure: Customers → Projects → Boards → Task Lists → Tasks.${hasConfiguredUser ? ` IMPORTANT: When users say "me" or "assign to me", use "me" as the assignee_id value - it automatically resolves to the configured user ID ${config.PRODUCTIVE_USER_ID}.` : ' No user configured - set PRODUCTIVE_USER_ID to enable "me" context.'} Use the 'whoami' tool to check current user context.`,
     },

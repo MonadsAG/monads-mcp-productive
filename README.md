@@ -305,6 +305,32 @@ create_budget → create_budget_service → update_budget_service (optional)
 
 `unit_id` (1=Hour, 2=Piece, 3=Day) defaults to `1`; `billing_type_id` (1=Fixed, 2=Actuals, 3=None, 4=Percentage) defaults to `2`.
 
+## npm package / MCP hub
+
+The stdio entry point is also published to npm as
+[`@monadsag/productive-mcp`](https://www.npmjs.com/package/@monadsag/productive-mcp), for hosts
+that start MCP servers as local processes (such as the Monads MCP hub). Every push to `main`
+publishes a new version from CI with npm provenance: major and minor come from `package.json`,
+the patch is the CI run number. There is no manual release step. Each release ships an
+`npm-shrinkwrap.json`, so every install gets exactly the dependency tree CI tested.
+
+```bash
+npx -y @monadsag/productive-mcp@latest
+```
+
+| Variable               | Required | Description                                             |
+| ---------------------- | -------- | ------------------------------------------------------- |
+| `PRODUCTIVE_API_TOKEN` | yes      | The user's own Productive API token                     |
+| `PRODUCTIVE_ORG_ID`    | yes      | Organization ID with slug, e.g. `12345-company-name`    |
+| `PRODUCTIVE_USER_ID`   | no       | Person ID behind "me"; resolved from the token if unset |
+| `PRODUCTIVE_TOOLSETS`  | no       | Comma-separated toolsets to enable (default: all)       |
+
+The server speaks MCP on stdout and logs to stderr only. Note that the unscoped
+`productive-mcp` on npm is the upstream original by berwickgeek, not this fork.
+
+`npm run build && npm run package:smoke` packs the package, serves it from a throwaway local
+registry and starts it with `npx` over stdio, the same way the hub does.
+
 ## Development
 
 ```bash
