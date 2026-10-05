@@ -265,8 +265,15 @@ when the spec moved, with the impact analysis in the PR body.
 ## CI
 
 `.github/workflows/ci.yml` runs on every push to `main` and on every PR: both typechecks, the stdio
-build, `prettier --check`, `npm test` and `npm run spec:impact`. Run the same set locally before
-pushing — nothing else gates a merge.
+build, `prettier --check`, `npm test`, `npm run spec:impact` and `npm run package:smoke`. Run the
+same set locally before pushing — nothing else gates a merge.
+
+On a push to `main` the `publish` job then releases the stdio entry point to npm as
+`@monadsag/productive-mcp` (version `<major>.<minor>` from `package.json`, patch = run number), with
+an `npm-shrinkwrap.json` generated from `package-lock.json` (`scripts/write-shrinkwrap.ts`, never
+committed — while it exists, npm reads it instead of `package-lock.json`). The MCP hub starts
+`@latest`, so a merge reaches the hub on its next process start. `package:smoke` installs the packed
+package from a throwaway local registry via `npx`, the same path the hub takes.
 
 The integration suites under `tests/integration/` skip themselves when `PRODUCTIVE_API_TOKEN` is
 unset, so CI runs the unit tests only. Locally they use the credentials in `.dev.vars` — copy
@@ -378,5 +385,5 @@ KV namespaces (`wrangler.jsonc`): `OAUTH_KV`, `USER_MAPPING_KV` (oid → person 
 - **Surveying upstream**: `git fetch upstream && git log --no-merges $(git merge-base main upstream/main)..upstream/main`. Upstream is still actively developed, so this is worth a look before building something it may already have. Anything filesystem-based (e.g. its attachment tools) is out — it does not run on the Workers runtime.
 - **The GitHub fork relationship stays** for as long as we harvest from upstream. Detaching it is the option once we stop, not a cleanup task.
 - **`gh` default repo**: `remote.origin.gh-resolved=base` is set (via `gh repo set-default MonadsAG/monads-mcp-productive`), so `gh` targets origin, not the parent. If `gh` ever prompts for a repo or aims at `berwickgeek/...`, that config was lost — re-run `gh repo set-default` instead of pasting `--repo` into every command.
-- **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production. Neither `.github/workflows` entry deploys: `ci.yml` checks, `api-spec-sync.yml` syncs the spec. `npm run worker:deploy` is only for deliberate out-of-band/test deploys.
+- **Deploy**: the repo is connected to **Cloudflare Workers Builds** — merging to `main` **auto-deploys** to production. No `.github/workflows` entry deploys the Worker: `ci.yml` checks and publishes the npm package (see CI), `api-spec-sync.yml` syncs the spec. `npm run worker:deploy` is only for deliberate out-of-band/test deploys. **Workers Builds needs the devDependencies**: `wrangler` and the Worker-only packages (`agents`, `hono`, `@cloudflare/workers-oauth-provider`) are devDependencies so that the npm package stays small. Its install runs `npm clean-install`, which includes them — never set `NODE_ENV=production` or add `--omit=dev` in the Workers Builds settings in the dashboard.
 - **PRs are squash-merged** (`gh pr merge --squash --delete-branch`) — confirmed by `main`'s single-commit-per-PR history. Afterward, local feature branches need `git branch -D` (not `-d`) to clean up, since git doesn't recognize a squash commit as merged via ancestry.
