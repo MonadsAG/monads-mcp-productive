@@ -102,7 +102,8 @@ describe('toNumericId', () => {
     expect(toNumericId(' 42 ', 'person_id')).toBe(42);
   });
 
-  it.each(['abc', '', '12a'])('rejects %o and names the field', (value) => {
+  // The last one is 2^53 + 1, which Number() would silently round to 2^53.
+  it.each(['abc', '', '12a', '9007199254740993'])('rejects %o and names the field', (value) => {
     const error = thrownBy(() => toNumericId(value, 'person_id'));
 
     expect(error).toBeInstanceOf(McpError);

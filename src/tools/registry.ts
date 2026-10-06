@@ -220,6 +220,16 @@ import {
   updateBudgetServiceDefinition,
 } from './budget-services.js';
 import {
+  listBudgetSectionsTool,
+  listBudgetSectionsDefinition,
+  createBudgetSectionTool,
+  createBudgetSectionDefinition,
+  updateBudgetSectionTool,
+  updateBudgetSectionDefinition,
+  deleteBudgetSectionTool,
+  deleteBudgetSectionDefinition,
+} from './budget-sections.js';
+import {
   listPeopleTool,
   listPeopleDefinition,
   getPersonTool,
@@ -281,6 +291,10 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     getProjectServicesDefinition,
     createBudgetServiceDefinition,
     updateBudgetServiceDefinition,
+    listBudgetSectionsDefinition,
+    createBudgetSectionDefinition,
+    updateBudgetSectionDefinition,
+    deleteBudgetSectionDefinition,
     updateTimeEntryDefinition,
     deleteTimeEntryDefinition,
     setTimeEntryApprovalDefinition,
@@ -447,6 +461,14 @@ export async function handleToolCall(
       return await createBudgetServiceTool(apiClient, args);
     case 'update_budget_service':
       return await updateBudgetServiceTool(apiClient, args);
+    case 'list_budget_sections':
+      return await listBudgetSectionsTool(apiClient, args);
+    case 'create_budget_section':
+      return await createBudgetSectionTool(apiClient, args);
+    case 'update_budget_section':
+      return await updateBudgetSectionTool(apiClient, args);
+    case 'delete_budget_section':
+      return await deleteBudgetSectionTool(apiClient, args);
     case 'update_time_entry':
       return await updateTimeEntryTool(apiClient, args);
     case 'delete_time_entry':
