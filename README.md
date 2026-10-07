@@ -228,13 +228,14 @@ Productive's UI calls this resource a "folder"; the API models it as a "board" (
 
 ### Time Tracking
 
-| Tool                                                                                   | Description                      |
-| -------------------------------------------------------------------------------------- | -------------------------------- |
-| `list_time_entries` / `create_time_entry` / `update_time_entry`                        | Time entry CRUD                  |
-| `set_time_entry_approval`                                                              | Approval workflow (action param) |
-| `start_timer` / `stop_timer` / `get_timer`                                             | Real-time timers                 |
-| `list_services` / `get_project_services` / `list_project_deals` / `list_deal_services` | Budget & service lookup          |
-| `create_budget_service` / `update_budget_service`                                      | Budget service (line item) CRUD  |
+| Tool                                                                                                 | Description                      |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `list_time_entries` / `create_time_entry` / `update_time_entry`                                      | Time entry CRUD                  |
+| `set_time_entry_approval`                                                                            | Approval workflow (action param) |
+| `start_timer` / `stop_timer` / `get_timer`                                                           | Real-time timers                 |
+| `list_services` / `get_project_services` / `list_project_deals` / `list_deal_services`               | Budget & service lookup          |
+| `create_budget_service` / `update_budget_service`                                                    | Budget service (line item) CRUD  |
+| `list_budget_sections` / `create_budget_section` / `update_budget_section` / `delete_budget_section` | Budget sections (service groups) |
 
 ### Invoicing
 
@@ -304,6 +305,11 @@ create_budget → create_budget_service → update_budget_service (optional)
 ```
 
 `unit_id` (1=Hour, 2=Piece, 3=Day) defaults to `1`; `billing_type_id` (1=Fixed, 2=Actuals, 3=None, 4=Percentage) defaults to `2`.
+
+To group a budget's services, for example by project phase, create sections with
+`create_budget_section` and pass `section_id` to `create_budget_service` or `update_budget_service`.
+`list_budget_sections` shows each section with its services; `delete_budget_section` deletes only
+an empty section. `section_id: "none"` on `update_budget_service` takes a service out of its section.
 
 ## npm package / MCP hub
 

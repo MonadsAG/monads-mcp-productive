@@ -18,6 +18,9 @@ import {
   ProductiveDealFromOrigin,
   ProductiveServiceCreate,
   ProductiveServiceUpdate,
+  ProductiveSection,
+  ProductiveSectionCreate,
+  ProductiveSectionUpdate,
   ProductiveTodo,
   ProductivePage,
   ProductiveResponse,
@@ -701,6 +704,8 @@ export class ProductiveAPIClient {
    * @param params.deal_id - Filter by deal/budget ID
    * @param params.limit - Number of results per page
    * @param params.page - Page number for pagination
+   * @param params.include - Relationships to sideload, e.g. `section` to get each
+   *   service's section id (without it the relationship is a stub)
    * @returns Promise resolving to paginated services response
    *
    * @example
@@ -713,11 +718,23 @@ export class ProductiveAPIClient {
     deal_id: string;
     limit?: number;
     page?: number;
+    include?: string;
+    projectless_budgets?: boolean;
   }): Promise<ProductiveResponse<ProductiveService>> {
     const queryParams = new URLSearchParams();
 
     // Filter by deal/budget
     queryParams.append('filter[deal_id]', params.deal_id);
+
+    if (params.include) {
+      queryParams.append('include', params.include);
+    }
+
+    // Per the spec, services of budgets without a project are only included
+    // when this is set.
+    if (params.projectless_budgets) {
+      queryParams.append('filter[projectless_budgets]', 'true');
+    }
 
     if (params.limit) {
       queryParams.append('page[size]', params.limit.toString());
@@ -1180,6 +1197,83 @@ export class ProductiveAPIClient {
 
   async deleteService(id: string): Promise<void> {
     return this.makeVoidRequest(`services/${id}`, { method: 'DELETE' });
+  }
+
+  /** One service with its `section` linkage sideloaded. */
+  async getServiceWithSection(id: string): Promise<ProductiveSingleResponse<ProductiveService>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveService>>(
+      `services/${id}?include=section`,
+    );
+  }
+
+  /**
+   * One page of the sections of a deal/budget. `include=deal` carries each
+   * section's parent budget id, so a caller can check that the filter really
+   * narrowed the list.
+   */
+  async listSections(
+    dealId: string,
+    page: number = 1,
+  ): Promise<ProductiveResponse<ProductiveSection>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('filter[deal_id]', dealId);
+    queryParams.append('include', 'deal');
+    queryParams.append('page[size]', '200');
+    queryParams.append('page[number]', page.toString());
+    return this.makeRequest<ProductiveResponse<ProductiveSection>>(
+      `sections?${queryParams.toString()}`,
+    );
+  }
+
+  /**
+   * One page of the services in a section, from any budget, with each one's
+   * `section` linkage sideloaded so the caller can check the filter's result.
+   * `projectless` adds `filter[projectless_budgets]=true`, without which the
+   * spec says services of budgets not linked to a project are left out.
+   */
+  async listServicesInSection(
+    sectionId: string,
+    page: number,
+    projectless: boolean,
+  ): Promise<ProductiveResponse<ProductiveService>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('filter[section_id]', sectionId);
+    if (projectless) queryParams.append('filter[projectless_budgets]', 'true');
+    queryParams.append('include', 'section');
+    queryParams.append('page[size]', '200');
+    queryParams.append('page[number]', page.toString());
+    return this.makeRequest<ProductiveResponse<ProductiveService>>(
+      `services?${queryParams.toString()}`,
+    );
+  }
+
+  async getSection(id: string): Promise<ProductiveSingleResponse<ProductiveSection>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveSection>>(
+      `sections/${id}?include=deal`,
+    );
+  }
+
+  async createSection(
+    data: ProductiveSectionCreate,
+  ): Promise<ProductiveSingleResponse<ProductiveSection>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveSection>>('sections', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSection(
+    id: string,
+    data: ProductiveSectionUpdate,
+  ): Promise<ProductiveSingleResponse<ProductiveSection>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveSection>>(`sections/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSection(id: string): Promise<void> {
+    return this.makeVoidRequest(`sections/${id}`, { method: 'DELETE' });
   }
 
   async deleteInvoice(id: string): Promise<void> {

@@ -567,6 +567,9 @@ export interface ProductiveServiceCreate {
       price?: number;
       quantity?: number;
       budgeted_time?: number;
+      // Flat attribute, as in the spec's request body. Not verified against the
+      // live API, so the tools read the service back to confirm it took effect.
+      section_id?: number;
     };
     relationships: {
       // A Service references its parent budget/deal via `deal`, not `budget_id` --
@@ -588,7 +591,59 @@ export interface ProductiveServiceUpdate {
       unit_id?: number;
       billing_type_id?: number;
       budgeted_time?: number;
+      // `null` takes the service out of its section (not verified live either).
+      section_id?: number | null;
     };
+  };
+}
+
+/**
+ * A to-one relationship as Productive returns it: the linkage (`data`) is only
+ * present when the request asked for it with `?include=`, otherwise the
+ * relationship is a stub carrying `meta.included: false` and no id.
+ */
+export interface ProductiveToOneRelationship<TType extends string> {
+  data?: { id: string; type: TType } | null;
+  meta?: { included?: boolean };
+}
+
+/**
+ * A section groups the services of one deal/budget, e.g. by project phase.
+ * Which section a service belongs to is stored on the service (`section`
+ * relationship), not on the section.
+ */
+export interface ProductiveSection {
+  id: string;
+  type: 'sections';
+  attributes: {
+    name: string;
+    position?: number | null;
+    [key: string]: unknown;
+  };
+  relationships?: {
+    deal?: ProductiveToOneRelationship<'deals'>;
+    [key: string]: unknown;
+  };
+}
+
+export interface ProductiveSectionCreate {
+  data: {
+    type: 'sections';
+    attributes: {
+      name: string;
+      // The spec's request body names the budget as a flat, required `deal_id`
+      // attribute (unlike services, which are linked via a `deal` relationship).
+      // Not verified against the live API.
+      deal_id: number;
+    };
+  };
+}
+
+export interface ProductiveSectionUpdate {
+  data: {
+    type: 'sections';
+    id: string;
+    attributes: { name: string };
   };
 }
 

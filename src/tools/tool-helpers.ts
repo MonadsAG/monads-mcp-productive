@@ -144,10 +144,12 @@ export function rethrowToolError(error: unknown): never {
  * `Number('abc')` is NaN and JSON.stringify writes that as `null`, so a
  * mistyped ID would reach the API as a missing field and come back as a
  * confusing 422 about the person. Reject it here, where the field name is known.
+ * Digits beyond `Number.MAX_SAFE_INTEGER` are rejected too: they would round to
+ * a different ID, and the section tools also use the result in request paths.
  */
 export function toNumericId(value: string, field: string): number {
   const trimmed = value.trim();
-  if (!/^\d+$/.test(trimmed)) {
+  if (!/^\d+$/.test(trimmed) || !Number.isSafeInteger(Number(trimmed))) {
     throw new McpError(
       ErrorCode.InvalidParams,
       `${field} must be a numeric Productive ID, got "${value}".`,

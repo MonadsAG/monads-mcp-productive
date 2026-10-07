@@ -41,7 +41,7 @@ src/
 ├── tools/
 │   ├── registry.ts       # Shared tool registry (used by both entry points)
 │   ├── tasks.ts          # CRUD + assignment + details
-│   └── ...               # 41 tool files total
+│   └── ...               # one file per tool group, plus shared helpers
 ├── prompts/
 │   └── timesheet.ts      # Guided timesheet workflow
 scripts/                  # spec sync + impact analysis (tsx, see API Spec)
@@ -95,6 +95,8 @@ Budgets are Deals with `budget: true` (`src/tools/budgets.ts`) -- same underlyin
 
 Services (line items) attach to a budget via `create_budget_service`/`update_budget_service` (`src/tools/budget-services.ts`) -- a Service references its parent via a `deal` relationship (not a `budget_id` attribute), since Services attach identically to plain deals or budgets at the API level; there is no server-side distinction to validate against, so the tool doesn't attempt one. `unit_id` (1=Hour/2=Piece/3=Day) and `billing_type_id` (1=Fixed/2=Actuals/3=None/4=Percentage) are required by the API but default to `1` and `2` respectively.
 
+Sections group a budget's services, e.g. by project phase (`src/tools/budget-sections.ts`: `list_budget_sections`, `create_budget_section`, `update_budget_section`, `delete_budget_section`, plus `section_id` on `create_budget_service`/`update_budget_service`). Which section a service is in is stored on the service, as its `section` relationship, and is only readable with `?include=section` (see the relationship-linkage gotcha). Two payload shapes come from the spec and are **not verified against the live API**: a section is created with the budget as a flat numeric `deal_id` attribute, and a service gets its section as a flat numeric `section_id` attribute (`section_id: "none"` on `update_budget_service` sends `null` to take it out of its section). The service tools therefore read the service back and fail loudly when the section did not stick, rather than reporting success. `delete_budget_section` refuses unless the section is provably empty, because the spec does not say what happens to the services of a deleted section. It looks the services up by section (`filter[section_id]`, so a service of another budget sitting in the section counts too; an ignored filter only returns more rows), and the rows read must add up to the `meta.total_count` Productive reports -- `/services` has no unique sort key, so a row can slip across a page boundary unnoticed otherwise -- with every row reporting its section. Every service lookup for sections runs twice, once with `filter[projectless_budgets]=true`: per the spec, `/services` leaves out the services of budgets that are not linked to a project unless that flag is set, and `create_budget` makes such budgets.
+
 ## Toolsets
 
 `PRODUCTIVE_TOOLSETS` (optional, comma-separated) restricts which domain groups of tools a deployment exposes -- unset/`all` means every tool, same as before this feature existed. Catalog lives in `src/tools/toolsets.ts`; `registry.ts`'s `getToolDefinitions`/`handleToolCall` filter `ListTools` and reject `CallTool` for disabled tools (not just hide them).
@@ -105,7 +107,7 @@ Services (line items) attach to a budget via `create_budget_service`/`update_bud
 | `tasks`               | tasks, task lists, subtasks, dependencies, backlog, reposition, my-tasks                                 |
 | `custom_fields`       | custom field discovery + generic get/set                                                                 |
 | `comments`            | task comments, pins, reactions                                                                           |
-| `time_tracking`       | time entries, timers, approvals, deals/services                                                          |
+| `time_tracking`       | time entries, timers, approvals, deals/services, budget sections                                         |
 | `invoicing`           | invoices, company budgets, line items, PDF/timesheet URLs, invoice time-entry audit                      |
 | `docs`                | folders (boards) + pages, incl. `list_page_children` (page hierarchy)                                    |
 | `todos`               | todos                                                                                                    |
@@ -228,13 +230,13 @@ way a client can tell `delete_task` from `list_tasks`, so a wrong hint is worse 
 it makes a client actively confident instead of cautious. The policy, enforced by
 `tests/unit/annotations.test.ts`:
 
-| Hint              | Rule                                                                                                                                                                                     |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `title`           | Human-readable name, always set                                                                                                                                                          |
-| `readOnlyHint`    | `true` when the call changes nothing in Productive (the 38 `list_*`/`get_*`, `whoami`, `my_tasks`)                                                                                       |
-| `destructiveHint` | `true` only for what is not easily undone: the six `delete_*`, the two `archive_*`, plus `finalize_invoice` and `mark_invoice_paid`. An `update_*` that replaces one field stays `false` |
-| `idempotentHint`  | `false` for creates (each call makes another object) and for `update_page` (its `append: true` mode writes again), `true` for every other write                                          |
-| `openWorldHint`   | `true` throughout -- Productive is shared, so two identical calls can differ because of what someone else did                                                                            |
+| Hint              | Rule                                                                                                                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`           | Human-readable name, always set                                                                                                                                                        |
+| `readOnlyHint`    | `true` when the call changes nothing in Productive (every `list_*`/`get_*`, plus `whoami` and `my_tasks`)                                                                              |
+| `destructiveHint` | `true` only for what is not easily undone: every `delete_*`, the two `archive_*`, plus `finalize_invoice` and `mark_invoice_paid`. An `update_*` that replaces one field stays `false` |
+| `idempotentHint`  | `false` for creates (each call makes another object) and for `update_page` (its `append: true` mode writes again), `true` for every other write                                        |
+| `openWorldHint`   | `true` throughout -- Productive is shared, so two identical calls can differ because of what someone else did                                                                          |
 
 The destructive and non-idempotent sets are pinned as literal lists in that test: reclassifying a
 tool, or adding a `delete_*` and forgetting the hint, fails there rather than silently changing what

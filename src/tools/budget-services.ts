@@ -3,6 +3,8 @@ import { ProductiveAPIClient } from '../api/client.js';
 import { ProductiveServiceCreate, ProductiveServiceUpdate } from '../api/types.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { toMcpError } from '../utils/errors.js';
+import { toNumericId } from './tool-helpers.js';
+import { confirmSection } from './budget-sections.js';
 
 // ---------------------------------------------------------------------------
 // Tool: create_budget_service
@@ -17,7 +19,28 @@ const createBudgetServiceSchema = z.object({
   price: z.coerce.number().optional(),
   quantity: z.coerce.number().optional(),
   budgeted_time: z.coerce.number().optional(),
+  section_id: z.string().min(1).optional(),
 });
+
+const SECTION_HINT =
+  'Use a section of the same budget (from list_budget_sections or create_budget_section). ' +
+  'The service is read back to confirm the assignment.';
+
+const createSectionIdProperty = {
+  type: 'string',
+  description: `Section to put the service into. ${SECTION_HINT}`,
+};
+
+const updateSectionIdProperty = {
+  type: 'string',
+  description: `Section to put the service into, or "none" to take it out of its section. ${SECTION_HINT}`,
+};
+
+/** `"none"` takes a service out of its section, sent as `section_id: null`. */
+function sectionChoice(value: string | undefined): number | null | undefined {
+  if (value === undefined) return undefined;
+  return value.trim().toLowerCase() === 'none' ? null : toNumericId(value, 'section_id');
+}
 
 export async function createBudgetServiceTool(
   client: ProductiveAPIClient,
@@ -25,6 +48,8 @@ export async function createBudgetServiceTool(
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
     const params = createBudgetServiceSchema.parse(args);
+    const sectionId =
+      params.section_id === undefined ? undefined : toNumericId(params.section_id, 'section_id');
 
     const data: ProductiveServiceCreate = {
       data: {
@@ -37,6 +62,7 @@ export async function createBudgetServiceTool(
           ...(params.price !== undefined && { price: params.price }),
           ...(params.quantity !== undefined && { quantity: params.quantity }),
           ...(params.budgeted_time !== undefined && { budgeted_time: params.budgeted_time }),
+          ...(sectionId !== undefined && { section_id: sectionId }),
         },
         relationships: {
           deal: { data: { id: params.budget_id, type: 'deals' } },
@@ -47,13 +73,17 @@ export async function createBudgetServiceTool(
     const response = await client.createService(data);
     const id = response.data.id;
     const serviceName = response.data.attributes.name;
+    const sectionNote =
+      sectionId === undefined
+        ? ''
+        : `\n${await confirmSection(client, id, String(sectionId), 'created')}`;
 
     return {
       content: [
         {
           type: 'text',
           text:
-            `Service created! Service ID: ${id} (${serviceName}) on budget ${params.budget_id}\n\n` +
+            `Service created! Service ID: ${id} (${serviceName}) on budget ${params.budget_id}${sectionNote}\n\n` +
             'Next step: use update_budget_service to adjust fields, or list_deal_services to verify.',
         },
       ],
@@ -91,6 +121,7 @@ export const createBudgetServiceDefinition = {
       price: { type: 'number', description: 'Unit price' },
       quantity: { type: 'number', description: 'Number of units (hours/days/pieces)' },
       budgeted_time: { type: 'number', description: 'Allocated hours for this service' },
+      section_id: createSectionIdProperty,
     },
   },
   annotations: {
@@ -115,6 +146,7 @@ const updateBudgetServiceSchema = z.object({
   unit_id: z.coerce.number().optional(),
   billing_type_id: z.coerce.number().optional(),
   budgeted_time: z.coerce.number().optional(),
+  section_id: z.string().min(1).optional(),
 });
 
 export async function updateBudgetServiceTool(
@@ -122,13 +154,17 @@ export async function updateBudgetServiceTool(
   args: unknown,
 ): Promise<{ content: Array<{ type: string; text: string }> }> {
   try {
-    const { service_id, ...fields } = updateBudgetServiceSchema.parse(args);
+    const { service_id, section_id, ...fields } = updateBudgetServiceSchema.parse(args);
 
     const attributes: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) {
         attributes[key] = value;
       }
+    }
+    const sectionId = sectionChoice(section_id);
+    if (sectionId !== undefined) {
+      attributes.section_id = sectionId;
     }
 
     if (Object.keys(attributes).length === 0) {
@@ -145,12 +181,17 @@ export async function updateBudgetServiceTool(
 
     const response = await client.updateService(service_id, data);
     const service = response.data;
+    const expected = sectionId === null ? null : String(sectionId);
+    const sectionNote =
+      sectionId === undefined
+        ? ''
+        : `\n${await confirmSection(client, service_id, expected, 'updated')}`;
 
     return {
       content: [
         {
           type: 'text',
-          text: `Service ${service_id} updated.\n\nName: ${service.attributes.name}\nPrice: ${service.attributes.price ?? 'N/A'}\nQuantity: ${service.attributes.quantity ?? 'N/A'}`,
+          text: `Service ${service_id} updated.\n\nName: ${service.attributes.name}\nPrice: ${service.attributes.price ?? 'N/A'}\nQuantity: ${service.attributes.quantity ?? 'N/A'}${sectionNote}`,
         },
       ],
     };
@@ -163,7 +204,8 @@ export const updateBudgetServiceDefinition = {
   name: 'update_budget_service',
   description:
     'Update a budget service (line item). Can change name, description, price, quantity, ' +
-    'unit_id, billing_type_id, and budgeted_time. Cannot move the service to a different budget.',
+    'unit_id, billing_type_id, budgeted_time and the section (section_id, or "none" to take ' +
+    'the service out of its section). Cannot move the service to a different budget.',
   inputSchema: {
     type: 'object',
     required: ['service_id'],
@@ -182,6 +224,7 @@ export const updateBudgetServiceDefinition = {
         description: 'Billing type: 1 = Fixed, 2 = Actuals, 3 = None, 4 = Percentage',
       },
       budgeted_time: { type: 'number', description: 'Allocated hours for this service' },
+      section_id: updateSectionIdProperty,
     },
   },
   annotations: {
