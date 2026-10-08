@@ -94,56 +94,6 @@ async function sweepServices(
   return { rows: [...byId.values()], gaps };
 }
 
-/**
- * Read a service back and check that Productive kept the requested section,
- * or -- for `sectionId: null` -- that the service is in no section.
- *
- * The flat `section_id` attribute follows the spec and is not verified against
- * the live API. An API that accepted the field and ignored it would otherwise
- * report success for a service in the wrong section. Every failure here says
- * that the write itself happened, so a create is not retried into a duplicate.
- */
-export async function confirmSection(
-  client: ProductiveAPIClient,
-  serviceId: string,
-  sectionId: string | null,
-  action: 'created' | 'updated',
-): Promise<string> {
-  const written = `Service ${serviceId} was ${action}`;
-  const duplicateWarning =
-    action === 'created' ? ' The service exists, do not create it again.' : '';
-  const label = sectionId ?? 'none';
-
-  let linkage: Linkage;
-  try {
-    linkage = sectionOf((await client.getServiceWithSection(serviceId)).data);
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    throw new McpError(
-      ErrorCode.InternalError,
-      `${written}, but reading it back to check its section (${label}) failed (${reason}).${duplicateWarning}`,
-    );
-  }
-
-  const kept =
-    sectionId === null
-      ? linkage.kind === 'none'
-      : linkage.kind === 'linked' && linkage.id === sectionId;
-  if (kept) return `Section: ${label} (confirmed by reading the service back)`;
-  if (linkage.kind === 'unknown') {
-    return `Section: ${label} requested, but Productive did not report the assignment, so it is not confirmed`;
-  }
-
-  const actual = linkage.kind === 'linked' ? `section ${linkage.id}` : 'no section';
-  const intended =
-    sectionId === null ? 'take it out of its section' : `put it into section ${sectionId}`;
-  throw new McpError(
-    ErrorCode.InternalError,
-    `${written}, but Productive did not ${intended} (it reports ${actual}).` +
-      `${duplicateWarning} Check the budget with list_budget_sections.`,
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Tool: list_budget_sections
 // ---------------------------------------------------------------------------
@@ -167,10 +117,22 @@ function countLabel(n: number): string {
   return n === 0 ? 'no services' : `${n} service${n === 1 ? '' : 's'}`;
 }
 
+/**
+ * A section's name, or null when it has none: Productive keeps sections with
+ * an empty name (seen live), and a blank in the output reads like a bug.
+ */
+function nameOf(section: ProductiveSection): string | null {
+  return section.attributes.name?.trim() ? section.attributes.name : null;
+}
+
 function sectionHeading(section: ProductiveSection, members: number): string {
   const unreported =
     readLinkage(section.relationships?.deal).kind === 'linked' ? '' : ', budget not reported';
-  return `Section ${section.id}: ${section.attributes.name} (${countLabel(members)}${unreported})`;
+  const details = `${countLabel(members)}${unreported}`;
+  const name = nameOf(section);
+  return name === null
+    ? `Section ${section.id} (unnamed, ${details})`
+    : `Section ${section.id}: ${name} (${details})`;
 }
 
 function formatSectionList(
@@ -435,10 +397,9 @@ async function assertSectionEmpty(
   if (inside.length > 0) {
     throw new McpError(
       ErrorCode.InvalidParams,
-      `Section ${sectionId} (${section.attributes.name}) still contains ${countLabel(inside.length)}:\n` +
+      `Section ${sectionId} (${nameOf(section) ?? 'unnamed'}) still contains ${countLabel(inside.length)}:\n` +
         `${serviceLines(inside).join('\n')}\n` +
-        'Move them to another section, or take them out with section_id "none", using ' +
-        'update_budget_service first. Nothing was deleted.',
+        'Move them to another section with update_budget_service first. Nothing was deleted.',
     );
   }
 }
@@ -465,7 +426,10 @@ export async function deleteBudgetSectionTool(
     const from = budget.kind === 'linked' ? ` from budget ${budget.id}` : '';
     return {
       content: [
-        { type: 'text', text: `Section ${sectionId} (${section.attributes.name}) deleted${from}.` },
+        {
+          type: 'text',
+          text: `Section ${sectionId} (${nameOf(section) ?? 'unnamed'}) deleted${from}.`,
+        },
       ],
     };
   } catch (error) {
@@ -477,8 +441,8 @@ export const deleteBudgetSectionDefinition = {
   name: 'delete_budget_section',
   description:
     'Delete a budget section. Only an empty section can be deleted: while any service is still ' +
-    'in it, the call is refused and names the services; move them to another section, or take ' +
-    'them out with section_id "none", using update_budget_service first. It is also refused ' +
+    'in it, the call is refused and names the services; move them to another section with ' +
+    'update_budget_service first. It is also refused ' +
     "when Productive's answer does not prove the section empty. Cannot be undone.",
   inputSchema: {
     type: 'object',

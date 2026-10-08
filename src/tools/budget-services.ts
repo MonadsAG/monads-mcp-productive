@@ -4,7 +4,54 @@ import { ProductiveServiceCreate, ProductiveServiceUpdate } from '../api/types.j
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { toMcpError } from '../utils/errors.js';
 import { toNumericId } from './tool-helpers.js';
-import { confirmSection } from './budget-sections.js';
+import { readLinkage, type Linkage } from './budget-sections.js';
+
+/**
+ * Read a service back and check that Productive kept the requested section.
+ *
+ * Setting the section through the flat `section_id` attribute is verified live;
+ * the read-back stays because a field that is accepted and then ignored would
+ * otherwise report success for a service in the wrong section. Every failure
+ * here says that the write itself happened, so a create is not retried into a
+ * duplicate.
+ */
+async function confirmSection(
+  client: ProductiveAPIClient,
+  serviceId: string,
+  sectionId: string,
+  action: 'created' | 'updated',
+): Promise<string> {
+  const written = `Service ${serviceId} was ${action}`;
+  const duplicateWarning =
+    action === 'created' ? ' The service exists, do not create it again.' : '';
+
+  let linkage: Linkage;
+  try {
+    linkage = readLinkage(
+      (await client.getServiceWithSection(serviceId)).data.relationships?.section,
+    );
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new McpError(
+      ErrorCode.InternalError,
+      `${written}, but reading it back to check its section (${sectionId}) failed (${reason}).${duplicateWarning}`,
+    );
+  }
+
+  if (linkage.kind === 'linked' && linkage.id === sectionId) {
+    return `Section: ${sectionId} (confirmed by reading the service back)`;
+  }
+  if (linkage.kind === 'unknown') {
+    return `Section: ${sectionId} requested, but Productive did not report the assignment, so it is not confirmed`;
+  }
+
+  const actual = linkage.kind === 'linked' ? `section ${linkage.id}` : 'no section';
+  throw new McpError(
+    ErrorCode.InternalError,
+    `${written}, but Productive did not put it into section ${sectionId} (it reports ${actual}).` +
+      `${duplicateWarning} Check the budget with list_budget_sections.`,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Tool: create_budget_service
@@ -26,21 +73,10 @@ const SECTION_HINT =
   'Use a section of the same budget (from list_budget_sections or create_budget_section). ' +
   'The service is read back to confirm the assignment.';
 
-const createSectionIdProperty = {
+const sectionIdProperty = {
   type: 'string',
   description: `Section to put the service into. ${SECTION_HINT}`,
 };
-
-const updateSectionIdProperty = {
-  type: 'string',
-  description: `Section to put the service into, or "none" to take it out of its section. ${SECTION_HINT}`,
-};
-
-/** `"none"` takes a service out of its section, sent as `section_id: null`. */
-function sectionChoice(value: string | undefined): number | null | undefined {
-  if (value === undefined) return undefined;
-  return value.trim().toLowerCase() === 'none' ? null : toNumericId(value, 'section_id');
-}
 
 export async function createBudgetServiceTool(
   client: ProductiveAPIClient,
@@ -121,7 +157,7 @@ export const createBudgetServiceDefinition = {
       price: { type: 'number', description: 'Unit price' },
       quantity: { type: 'number', description: 'Number of units (hours/days/pieces)' },
       budgeted_time: { type: 'number', description: 'Allocated hours for this service' },
-      section_id: createSectionIdProperty,
+      section_id: sectionIdProperty,
     },
   },
   annotations: {
@@ -162,7 +198,7 @@ export async function updateBudgetServiceTool(
         attributes[key] = value;
       }
     }
-    const sectionId = sectionChoice(section_id);
+    const sectionId = section_id === undefined ? undefined : toNumericId(section_id, 'section_id');
     if (sectionId !== undefined) {
       attributes.section_id = sectionId;
     }
@@ -181,11 +217,10 @@ export async function updateBudgetServiceTool(
 
     const response = await client.updateService(service_id, data);
     const service = response.data;
-    const expected = sectionId === null ? null : String(sectionId);
     const sectionNote =
       sectionId === undefined
         ? ''
-        : `\n${await confirmSection(client, service_id, expected, 'updated')}`;
+        : `\n${await confirmSection(client, service_id, String(sectionId), 'updated')}`;
 
     return {
       content: [
@@ -204,8 +239,9 @@ export const updateBudgetServiceDefinition = {
   name: 'update_budget_service',
   description:
     'Update a budget service (line item). Can change name, description, price, quantity, ' +
-    'unit_id, billing_type_id, budgeted_time and the section (section_id, or "none" to take ' +
-    'the service out of its section). Cannot move the service to a different budget.',
+    'unit_id, billing_type_id, budgeted_time and the section (section_id). Cannot move the ' +
+    'service to a different budget, and cannot take it out of its section: Productive rejects ' +
+    'an empty section, so move it to another section instead.',
   inputSchema: {
     type: 'object',
     required: ['service_id'],
@@ -224,7 +260,7 @@ export const updateBudgetServiceDefinition = {
         description: 'Billing type: 1 = Fixed, 2 = Actuals, 3 = None, 4 = Percentage',
       },
       budgeted_time: { type: 'number', description: 'Allocated hours for this service' },
-      section_id: updateSectionIdProperty,
+      section_id: sectionIdProperty,
     },
   },
   annotations: {

@@ -567,8 +567,8 @@ export interface ProductiveServiceCreate {
       price?: number;
       quantity?: number;
       budgeted_time?: number;
-      // Flat attribute, as in the spec's request body. Not verified against the
-      // live API, so the tools read the service back to confirm it took effect.
+      // Flat attribute, as in the spec's request body (verified live). The tools
+      // still read the service back to confirm it took effect.
       section_id?: number;
     };
     relationships: {
@@ -591,8 +591,9 @@ export interface ProductiveServiceUpdate {
       unit_id?: number;
       billing_type_id?: number;
       budgeted_time?: number;
-      // `null` takes the service out of its section (not verified live either).
-      section_id?: number | null;
+      // No `null`: Productive refuses to take a service out of every section
+      // (422 "attribute is invalid (data/attributes/section)", verified live).
+      section_id?: number;
     };
   };
 }
@@ -632,8 +633,8 @@ export interface ProductiveSectionCreate {
     attributes: {
       name: string;
       // The spec's request body names the budget as a flat, required `deal_id`
-      // attribute (unlike services, which are linked via a `deal` relationship).
-      // Not verified against the live API.
+      // attribute (unlike services, which are linked via a `deal` relationship);
+      // verified live.
       deal_id: number;
     };
   };
