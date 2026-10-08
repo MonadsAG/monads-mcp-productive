@@ -159,6 +159,19 @@ describe('listBudgetSectionsTool', () => {
     );
   });
 
+  it('marks a section without a name instead of printing a blank', async () => {
+    const client = mockClient({
+      listSections: vi.fn().mockResolvedValue(page([section('11', '', '123')])),
+      listDealServices: vi
+        .fn()
+        .mockResolvedValue(page([service('501', 'Concept', inSection('11'))])),
+    });
+
+    const text = (await listBudgetSectionsTool(client, { budget_id: '123' })).content[0].text;
+
+    expect(text).toMatch(/Section 11 \(unnamed, 1 service\)\n {2}- Service 501: Concept/);
+  });
+
   it('rejects a non-numeric budget id before calling the API', async () => {
     const client = mockClient({ listSections: vi.fn(), listDealServices: vi.fn() });
 
@@ -248,6 +261,17 @@ describe('deleteBudgetSectionTool', () => {
     expect(client.listServicesInSection).toHaveBeenCalledWith('11', 1, true);
     expect(client.deleteSection).toHaveBeenCalledWith('11');
     expect(text).toBe('Section 11 (Discovery) deleted from budget 123.');
+  });
+
+  it('marks a section without a name in its messages', async () => {
+    const empty = deleteClient(section('11', ' ', '123'), () => page([]));
+    const text = (await deleteBudgetSectionTool(empty, { section_id: '11' })).content[0].text;
+    expect(text).toBe('Section 11 (unnamed) deleted from budget 123.');
+
+    const full = deleteClient(section('11', '', '123'), () =>
+      page([service('501', 'Concept', inSection('11'))]),
+    );
+    await expectRefusal(full, /Section 11 \(unnamed\) still contains 1 service/);
   });
 
   it('uses the normalised id for every request', async () => {

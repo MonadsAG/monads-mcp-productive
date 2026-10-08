@@ -309,7 +309,7 @@ create_budget → create_budget_service → update_budget_service (optional)
 To group a budget's services, for example by project phase, create sections with
 `create_budget_section` and pass `section_id` to `create_budget_service` or `update_budget_service`.
 `list_budget_sections` shows each section with its services; `delete_budget_section` deletes only
-an empty section. `section_id: "none"` on `update_budget_service` takes a service out of its section.
+an empty section.
 
 ## npm package / MCP hub
 

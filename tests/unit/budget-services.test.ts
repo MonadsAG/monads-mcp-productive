@@ -278,44 +278,22 @@ describe('section_id on budget services', () => {
     expect(client.updateService).not.toHaveBeenCalled();
   });
 
-  it('update with section_id "none" sends null and confirms the service is in no section', async () => {
+  // Productive refuses to take a service out of every section, both as
+  // `section_id: null` and as `{ data: null }` on the relationship: 422
+  // "attribute is invalid (data/attributes/section)", verified live.
+  it('offers no "none": update and create reject it before calling the API', async () => {
     const client = {
-      updateService: vi.fn().mockResolvedValue(SERVICE),
-      getServiceWithSection: readBack({ data: null }),
-    } as unknown as ProductiveAPIClient;
-
-    const result = await updateBudgetServiceTool(client, {
-      service_id: '999',
-      section_id: ' None ',
-    });
-
-    expect(client.updateService).toHaveBeenCalledWith('999', {
-      data: { type: 'services', id: '999', attributes: { section_id: null } },
-    });
-    expect(result.content[0].text).toContain(
-      'Section: none (confirmed by reading the service back)',
-    );
-  });
-
-  it('update with "none" fails when the service is still in a section', async () => {
-    const client = {
-      updateService: vi.fn().mockResolvedValue(SERVICE),
-      getServiceWithSection: readBack({ data: { id: '11', type: 'sections' } }),
+      updateService: vi.fn(),
+      createService: vi.fn(),
     } as unknown as ProductiveAPIClient;
 
     await expect(
       updateBudgetServiceTool(client, { service_id: '999', section_id: 'none' }),
-    ).rejects.toThrow(
-      /was updated, but Productive did not take it out of its section \(it reports section 11\)/,
-    );
-  });
-
-  it('create does not accept "none": a new service has no section unless one is given', async () => {
-    const client = { createService: vi.fn() } as unknown as ProductiveAPIClient;
-
+    ).rejects.toThrow(/section_id must be a numeric Productive ID/);
     await expect(
       createBudgetServiceTool(client, { budget_id: '123', name: 'Concept', section_id: 'none' }),
     ).rejects.toThrow(/section_id must be a numeric Productive ID/);
+    expect(client.updateService).not.toHaveBeenCalled();
     expect(client.createService).not.toHaveBeenCalled();
   });
 });
