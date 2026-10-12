@@ -134,19 +134,25 @@ paths:
       tags:
         - Payments
       summary: Get payments
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_payment'
+      operationId: payments-index
+      description: List all payments.
       parameters:
         - $ref: '#/components/parameters/filter_payment'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_payment'
-      operationId: payments-index
-      description: List all payments.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_payment'
     post:
       tags:
         - Payments
       summary: Create a payment
+      operationId: payments-create
+      description: Create a new payment.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/payment'
       responses:
         '201':
           $ref: '#/components/responses/single_payment'
@@ -158,20 +164,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: payments-create
-      requestBody:
-        $ref: '#/components/requestBodies/payment'
-      description: Create a new payment.
   /api/v2/payments/{id}:
     get:
       tags:
         - Payments
       summary: Gets a payment
-      responses:
-        '200':
-          $ref: '#/components/responses/single_payment'
+      operationId: payments-show
+      description: Retrieve a single payment by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -180,12 +179,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: payments-show
-      description: Retrieve a single payment by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_payment'
     patch:
       tags:
         - Payments
       summary: Update a payment
+      operationId: payments-update
+      description: Update a payment.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/payment'
       responses:
         '200':
           $ref: '#/components/responses/single_payment'
@@ -197,25 +209,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: payments-update
-      requestBody:
-        $ref: '#/components/requestBodies/payment'
-      description: Update a payment.
     delete:
       tags:
         - Payments
       summary: Deletes a payment
-      responses:
-        '204':
-          description: No Content
+      operationId: payments-destroy
+      description: Delete a payment by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -224,8 +223,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: payments-destroy
-      description: Delete a payment by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -269,61 +269,385 @@ components:
         description: Filter keys and their operators are listed under x-filters.payment at the top of this file.
       required: false
       description: Filters
-  requestBodies:
-    payment:
+  responses:
+    single_payment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single payment record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned payment resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - invoice_id
-                      - amount
+                    description: Payment attributes.
                     properties:
+                      paid_on:
+                        $ref: '#/components/schemas/resource_payment/properties/paid_on'
+                      amount_normalized:
+                        $ref: '#/components/schemas/resource_payment/properties/amount_normalized'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_payment/properties/currency_default'
                       note:
                         $ref: '#/components/schemas/resource_payment/properties/note'
                       amount:
                         $ref: '#/components/schemas/resource_payment/properties/amount'
-                      paid_on:
-                        $ref: '#/components/schemas/resource_payment/properties/paid_on'
-                      invoice_id:
-                        $ref: '#/components/schemas/resource_payment/properties/invoice_id'
+                      amount_default:
+                        $ref: '#/components/schemas/resource_payment/properties/amount_default'
+                      currency:
+                        $ref: '#/components/schemas/resource_payment/properties/currency'
+                      external_id:
+                        $ref: '#/components/schemas/resource_payment/properties/external_id'
                       written_off_on:
                         $ref: '#/components/schemas/resource_payment/properties/written_off_on'
-        application/vnd.api+json; ext=bulk:
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_payment/properties/currency_normalized'
+                    example:
+                      paid_on: '2026-03-15'
+                      written_off_on: null
+                      note: 'Wire transfer ref: WT-9281'
+                      external_id: xero-pay-456
+                      currency: GBP
+                      currency_default: EUR
+                      currency_normalized: GBP
+                      amount: 200000
+                      amount_default: 232000
+                      amount_normalized: 200000
+                  relationships:
+                    type: object
+                    description: Payment relationships.
+                    properties:
+                      invoice:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      invoice:
+                        data:
+                          type: invoices
+                          id: '789012'
+                example:
+                  type: payments
+                  id: '345678'
+                  attributes:
+                    paid_on: '2026-03-15'
+                    written_off_on: null
+                    note: 'Wire transfer ref: WT-9281'
+                    external_id: xero-pay-456
+                    currency: GBP
+                    currency_default: EUR
+                    currency_normalized: GBP
+                    amount: 200000
+                    amount_default: 232000
+                    amount_normalized: 200000
+                  relationships:
+                    organization:
+                      data:
+                        type: organizations
+                        id: '109'
+                    invoice:
+                      data:
+                        type: invoices
+                        id: '789012'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    type: invoices
+                    id: '789012'
+                    attributes:
+                      number: INV-2026-042
+                      issued_on: '2026-02-28'
+                description: Sideloaded related resources.
+                example:
+                  - type: invoices
+                    id: '789012'
+                    attributes:
+                      number: INV-2026-042
+                      issued_on: '2026-02-28'
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '67'
+                type: payments
+                attributes:
+                  amount: '5000.00'
+                  currency: USD
+                  paid_on: '2026-03-10'
+                  note: null
+                  created_at: '2026-03-10T12:00:00.000+00:00'
+                relationships:
+                  invoice:
+                    data:
+                      type: invoices
+                      id: '234'
+              included: []
+      description: Single payment
+    collection_payment:
+      content:
+        application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of payment records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
-                  required:
-                    - type
-                    - attributes
+                  description: A payment resource object.
                   properties:
-                    type:
-                      enum:
-                        - payments
-                      type: string
+                    relationships:
+                      type: object
+                      description: Payment relationships.
+                      properties:
+                        invoice:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        organization:
+                          data:
+                            type: organizations
+                            id: '109'
+                        invoice:
+                          data:
+                            type: invoices
+                            id: '789012'
                     attributes:
                       type: object
-                maxItems: 100
-      description: Request body for creating or updating a payment.
+                      description: Payment attributes.
+                      properties:
+                        amount_normalized:
+                          $ref: '#/components/schemas/resource_payment/properties/amount_normalized'
+                        paid_on:
+                          $ref: '#/components/schemas/resource_payment/properties/paid_on'
+                        written_off_on:
+                          $ref: '#/components/schemas/resource_payment/properties/written_off_on'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_payment/properties/currency_default'
+                        amount_default:
+                          $ref: '#/components/schemas/resource_payment/properties/amount_default'
+                        external_id:
+                          $ref: '#/components/schemas/resource_payment/properties/external_id'
+                        currency:
+                          $ref: '#/components/schemas/resource_payment/properties/currency'
+                        note:
+                          $ref: '#/components/schemas/resource_payment/properties/note'
+                        amount:
+                          $ref: '#/components/schemas/resource_payment/properties/amount'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_payment/properties/currency_normalized'
+                      example:
+                        paid_on: '2026-03-15'
+                        written_off_on: null
+                        note: 'Wire transfer ref: WT-9281'
+                        external_id: xero-pay-456
+                        currency: GBP
+                        currency_default: EUR
+                        currency_normalized: GBP
+                        amount: 200000
+                        amount_default: 232000
+                        amount_normalized: 200000
+                  example:
+                    type: payments
+                    id: '345678'
+                    attributes:
+                      paid_on: '2026-03-15'
+                      written_off_on: null
+                      note: 'Wire transfer ref: WT-9281'
+                      external_id: xero-pay-456
+                      currency: GBP
+                      currency_default: EUR
+                      currency_normalized: GBP
+                      amount: 200000
+                      amount_default: 232000
+                      amount_normalized: 200000
+                    relationships:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      invoice:
+                        data:
+                          type: invoices
+                          id: '789012'
+                description: Array of payment resource objects.
+                example:
+                  - type: payments
+                    id: '345678'
+                    attributes:
+                      paid_on: '2026-03-15'
+                      written_off_on: null
+                      note: 'Wire transfer ref: WT-9281'
+                      external_id: xero-pay-456
+                      currency: GBP
+                      currency_default: EUR
+                      currency_normalized: GBP
+                      amount: 200000
+                      amount_default: 232000
+                      amount_normalized: 200000
+                    relationships:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      invoice:
+                        data:
+                          type: invoices
+                          id: '789012'
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    type: invoices
+                    id: '789012'
+                    attributes:
+                      number: INV-2026-042
+                      issued_on: '2026-02-28'
+                description: Sideloaded related resources.
+                example:
+                  - type: invoices
+                    id: '789012'
+                    attributes:
+                      number: INV-2026-042
+                      issued_on: '2026-02-28'
+            example:
+              data:
+                - id: '67'
+                  type: payments
+                  attributes:
+                    amount: '5000.00'
+                    currency: USD
+                    paid_on: '2026-03-10'
+                    note: null
+                    created_at: '2026-03-10T12:00:00.000+00:00'
+                  relationships:
+                    invoice:
+                      data:
+                        type: invoices
+                        id: '234'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection payment
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_payment:
       type: object
       title: Payment Resource
+      description: A payment record representing an amount received against an invoice, internally referred to as an InvoicePayment.
       properties:
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized (reporting) currency for this payment.
-          example: GBP
         invoice_number:
           title: Invoice Number
           description: The invoice number of the associated invoice at the time this payment was recorded.
@@ -351,10 +675,6 @@ components:
           format: date
           description: Date when this payment was written off as uncollectable, or null if the payment is not written off.
           example: null
-        currency:
-          title: Currency
-          description: The currency of this payment, inherited from the associated invoice.
-          example: GBP
         amount:
           type: integer
           title: Amount
@@ -388,10 +708,6 @@ components:
           format: date
           description: Filter for payments made before this date (used as a filter parameter).
           example: '2026-03-31'
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency for this payment.
-          example: EUR
         id:
           type: integer
           title: Id
@@ -441,7 +757,18 @@ components:
           title: Company
           description: ID of the company (client) on the invoice this payment was applied to.
           example: 234567
-      description: A payment record representing an amount received against an invoice, internally referred to as an InvoicePayment.
+        currency:
+          title: Currency
+          description: The currency of this payment, inherited from the associated invoice.
+          example: GBP
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency for this payment.
+          example: EUR
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized (reporting) currency for this payment.
+          example: GBP
       example:
         id: '67'
         type: payments
@@ -456,151 +783,59 @@ components:
             data:
               type: invoices
               id: '234'
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_payment:
+  requestBodies:
+    payment:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a payment.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the payment resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Payment attributes.
                     properties:
+                      written_off_on:
+                        $ref: '#/components/schemas/resource_payment/properties/written_off_on'
+                      invoice_id:
+                        $ref: '#/components/schemas/resource_payment/properties/invoice_id'
                       note:
                         $ref: '#/components/schemas/resource_payment/properties/note'
                       amount:
                         $ref: '#/components/schemas/resource_payment/properties/amount'
                       paid_on:
                         $ref: '#/components/schemas/resource_payment/properties/paid_on'
-                      currency:
-                        $ref: '#/components/schemas/resource_payment/properties/currency'
-                      external_id:
-                        $ref: '#/components/schemas/resource_payment/properties/external_id'
-                      amount_default:
-                        $ref: '#/components/schemas/resource_payment/properties/amount_default'
-                      written_off_on:
-                        $ref: '#/components/schemas/resource_payment/properties/written_off_on'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_payment/properties/currency_default'
-                      amount_normalized:
-                        $ref: '#/components/schemas/resource_payment/properties/amount_normalized'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_payment/properties/currency_normalized'
-                  relationships:
-                    type: object
-                    properties:
-                      invoice:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single payment
-    collection_payment:
-      content:
-        application/vnd.api+json:
+                    required:
+                      - invoice_id
+                      - amount
+                    example:
+                      invoice_id: 789012
+                      amount: 250000
+                      paid_on: '2026-03-15'
+                      written_off_on: '2026-03-20'
+                      note: 'Wire transfer ref: WT-9281'
+                example:
+                  type: payments
+                  attributes:
+                    invoice_id: 789012
+                    amount: 250000
+                    paid_on: '2026-03-15'
+                    written_off_on: '2026-03-20'
+                    note: 'Wire transfer ref: WT-9281'
+            example:
+              data:
+                type: payments
+                attributes:
+                  invoice_id: 789012
+                  amount: 250000
+                  paid_on: '2026-03-15'
+                  written_off_on: '2026-03-20'
+                  note: 'Wire transfer ref: WT-9281'
+        application/vnd.api+json; ext=bulk:
           schema:
             type: object
             properties:
@@ -609,39 +844,14 @@ components:
                 items:
                   type: object
                   properties:
+                    type:
+                      enum:
+                        - payments
+                      type: string
                     attributes:
                       type: object
-                      properties:
-                        note:
-                          $ref: '#/components/schemas/resource_payment/properties/note'
-                        amount:
-                          $ref: '#/components/schemas/resource_payment/properties/amount'
-                        paid_on:
-                          $ref: '#/components/schemas/resource_payment/properties/paid_on'
-                        currency:
-                          $ref: '#/components/schemas/resource_payment/properties/currency'
-                        external_id:
-                          $ref: '#/components/schemas/resource_payment/properties/external_id'
-                        amount_default:
-                          $ref: '#/components/schemas/resource_payment/properties/amount_default'
-                        written_off_on:
-                          $ref: '#/components/schemas/resource_payment/properties/written_off_on'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_payment/properties/currency_default'
-                        amount_normalized:
-                          $ref: '#/components/schemas/resource_payment/properties/amount_normalized'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_payment/properties/currency_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        invoice:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection payment
+                  required:
+                    - type
+                    - attributes
+                maxItems: 100
+      description: Request body for creating or updating a payment.

@@ -4,13 +4,6 @@ info:
   version: 2.0.0
 x-filters:
   new_time_report:
-    company_id:
-      description: Filter by client company.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     role_id:
       description: Filter by the person's role.
       operators:
@@ -75,13 +68,6 @@ x-filters:
         - not_eq
     month:
       description: 'Deprecated: filter by a specific month (use date range filters instead).'
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    role_type:
-      description: Filter by the role type category of the person who tracked time.
       operators:
         - contains
         - eq
@@ -220,207 +206,310 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    company_id:
+      description: Filter by client company.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/reports/time_reports:
     get:
       tags:
         - Reports
       summary: Get time reports
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_new_time_report'
+      operationId: reports-time_reports-index
+      description: Retrieve aggregated time report data grouped by configurable dimensions.
       parameters:
         - $ref: '#/components/parameters/group_new_time_report'
         - $ref: '#/components/parameters/filter_new_time_report'
         - $ref: '#/components/parameters/sort_new_time_report'
         - $ref: '#/components/parameters/header_organization'
-      operationId: reports-time_reports-index
-      description: Retrieve aggregated time report data grouped by configurable dimensions.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_new_time_report'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_new_time_report:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - available_time
-            - -available_time
-            - average_cost_rate
-            - -average_cost_rate
-            - billable_time
-            - -billable_time
-            - billing_type
-            - -billing_type
-            - bookings_custom_fields
-            - -bookings_custom_fields
-            - budget
-            - -budget
-            - capacity
-            - -capacity
-            - client_time
-            - -client_time
-            - company
-            - -company
-            - count
-            - -count
-            - date
-            - -date
-            - day
-            - -day
-            - draft_scheduled_billable_time
-            - -draft_scheduled_billable_time
-            - draft_scheduled_client_time
-            - -draft_scheduled_client_time
-            - draft_scheduled_internal_time
-            - -draft_scheduled_internal_time
-            - draft_scheduled_time
-            - -draft_scheduled_time
-            - event
-            - -event
-            - event_time
-            - -event_time
-            - future
-            - -future
-            - holiday_time
-            - -holiday_time
-            - internal_time
-            - -internal_time
-            - job_role
-            - -job_role
-            - manager
-            - -manager
-            - month
-            - -month
-            - paid_event_time
-            - -paid_event_time
-            - people_custom_fields
-            - -people_custom_fields
-            - person
-            - -person
-            - person_company
-            - -person_company
-            - person_title
-            - -person_title
-            - person_type
-            - -person_type
-            - project
-            - -project
-            - quarter
-            - -quarter
-            - recognized_scheduled_time
-            - -recognized_scheduled_time
-            - recognized_time
-            - -recognized_time
-            - scheduled_billable_time
-            - -scheduled_billable_time
-            - scheduled_client_time
-            - -scheduled_client_time
-            - scheduled_event_time
-            - -scheduled_event_time
-            - scheduled_internal_time
-            - -scheduled_internal_time
-            - scheduled_remote_work_time
-            - -scheduled_remote_work_time
-            - scheduled_time
-            - -scheduled_time
-            - service
-            - -service
-            - service_type
-            - -service_type
-            - stage_type
-            - -stage_type
-            - subsidiary
-            - -subsidiary
-            - total_cost
-            - -total_cost
-            - total_draft_scheduled_cost
-            - -total_draft_scheduled_cost
-            - total_draft_scheduled_revenue
-            - -total_draft_scheduled_revenue
-            - total_scheduled_cost
-            - -total_scheduled_cost
-            - total_scheduled_revenue
-            - -total_scheduled_revenue
-            - total_work_cost
-            - -total_work_cost
-            - unapproved_time
-            - -unapproved_time
-            - unpaid_event_time
-            - -unpaid_event_time
-            - week
-            - -week
-            - worked_time
-            - -worked_time
-            - workload
-            - -workload
-            - year
-            - -year
-          type: string
-        title: Sort new time report
-      explode: false
-      required: false
-      description: Sort new time report
-    filter_new_time_report:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.new_time_report at the top of this file.
-      required: false
-      description: Filters
-    group_new_time_report:
-      in: query
-      name: group
-      style: form
-      schema:
-        enum:
-          - billing_type
-          - budget
-          - company
-          - date
-          - day
-          - event
-          - future
-          - job_role
-          - manager
-          - month
-          - organization
-          - people_custom_fields
-          - person
-          - project
-          - quarter
-          - service
-          - service_type
-          - stage_type
-          - subsidiary
-          - week
-          - year
-        type: string
-        title: Group new time report
-      explode: false
-      required: false
-      description: Group new time report
+  responses:
+    collection_new_time_report:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A paginated list of time report rows, each aggregating tracked hours by configurable dimensions with utilization, capacity, and overtime calculations.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: An included related resource object.
+                  example:
+                    eq: value
+                description: Array of included related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A time report row aggregating tracked hours by configurable dimensions with utilization, capacity, and overtime calculations.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Attributes of a time report row.
+                      properties:
+                        client_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/client_time'
+                        total_scheduled_revenue:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_revenue'
+                        workload:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/workload'
+                        draft_scheduled_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/draft_scheduled_time'
+                        available_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/available_time'
+                        average_cost_rate_normalized:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/average_cost_rate_normalized'
+                        scheduled_remote_work_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_remote_work_time'
+                        total_draft_scheduled_cost_default:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_cost_default'
+                        unpaid_event_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/unpaid_event_time'
+                        user_capacity:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/user_capacity'
+                        total_draft_scheduled_cost:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_cost'
+                        total_work_cost_default:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_work_cost_default'
+                        total_scheduled_revenue_default:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_revenue_default'
+                        day:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/day'
+                        worked_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/worked_time'
+                        date_period:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/date_period'
+                        total_work_cost_normalized:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_work_cost_normalized'
+                        billing_type:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/billing_type'
+                        total_cost_default:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_cost_default'
+                        total_scheduled_cost_default:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_cost_default'
+                        total_cost:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_cost'
+                        currency:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/currency'
+                        average_cost_rate:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/average_cost_rate'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/currency_normalized'
+                        recognized_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/recognized_time'
+                        scheduled_event_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_event_time'
+                        stage_type:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/stage_type'
+                        scheduled_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_time'
+                        total_draft_scheduled_revenue_normalized:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_revenue_normalized'
+                        scheduled_client_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_client_time'
+                        quarter:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/quarter'
+                        scheduled_billable_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_billable_time'
+                        total_work_cost:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_work_cost'
+                        total_draft_scheduled_revenue:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_revenue'
+                        formula_fields:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/formula_fields'
+                        draft_scheduled_internal_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/draft_scheduled_internal_time'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/currency_default'
+                        total_cost_normalized:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_cost_normalized'
+                        count:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/count'
+                        total_draft_scheduled_cost_normalized:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_cost_normalized'
+                        average_cost_rate_default:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/average_cost_rate_default'
+                        event_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/event_time'
+                        scheduled_internal_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_internal_time'
+                        total_scheduled_cost:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_cost'
+                        paid_event_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/paid_event_time'
+                        total_scheduled_cost_normalized:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_cost_normalized'
+                        holiday_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/holiday_time'
+                        capacity:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/capacity'
+                        month:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/month'
+                        year:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/year'
+                        group:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/group'
+                        internal_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/internal_time'
+                        unapproved_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/unapproved_time'
+                        draft_scheduled_billable_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/draft_scheduled_billable_time'
+                        total_scheduled_revenue_normalized:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_revenue_normalized'
+                        week:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/week'
+                        people_custom_fields:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/people_custom_fields'
+                        draft_scheduled_client_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/draft_scheduled_client_time'
+                        future:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/future'
+                        billable_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/billable_time'
+                        recognized_scheduled_time:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/recognized_scheduled_time'
+                        total_draft_scheduled_revenue_default:
+                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_revenue_default'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: New Time Report row relationships.
+                      properties:
+                        service:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        job_role:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project_report:
+                          $ref: '#/components/schemas/_single_relationship'
+                        company:
+                          $ref: '#/components/schemas/_single_relationship'
+                        manager:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        event:
+                          $ref: '#/components/schemas/_single_relationship'
+                        subsidiary:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person_report:
+                          $ref: '#/components/schemas/_single_relationship'
+                        report:
+                          $ref: '#/components/schemas/_single_relationship'
+                        budget:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal_or_budget_report:
+                          $ref: '#/components/schemas/_single_relationship'
+                        company_report:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of new time report row resource objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: r-018
+                  type: new_time_reports
+                  attributes:
+                    billable_time: 14400
+                    nonbillable_time: 1800
+                    total_time: 16200
+                    revenue: '3600.00'
+                    cost: '1620.00'
+                    person_id: 12
+                    project_id: 6899
+                    date: '2026-03-15'
+                    currency: USD
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection new time report
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_new_time_report:
       type: object
       title: New time report Resource
+      description: A time report row aggregating tracked hours by configurable dimensions with utilization, capacity, and overtime calculations.
       properties:
-        total_cost_default:
-          title: Total Cost Default
-          description: Total cost in the organization default currency.
-          example:
-            eq: value
         workload:
           type: number
           title: Workload
@@ -983,6 +1072,11 @@ components:
           description: Total tentative time scheduled on internal projects.
           example:
             gt: 0
+        total_cost_default:
+          title: Total Cost Default
+          description: Total cost in the organization default currency.
+          example:
+            eq: value
         recognized_time:
           type: number
           title: Recognized Time
@@ -995,7 +1089,6 @@ components:
           description: ID of the role this row is grouped by.
           example:
             - 123
-      description: A time report row aggregating tracked hours by configurable dimensions with utilization, capacity, and overtime calculations.
       example:
         id: '123'
         type: new_time_reports
@@ -1009,6 +1102,7 @@ components:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -1041,244 +1135,183 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_new_time_report:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - available_time
+            - -available_time
+            - average_cost_rate
+            - -average_cost_rate
+            - billable_time
+            - -billable_time
+            - billing_type
+            - -billing_type
+            - bookings_custom_fields
+            - -bookings_custom_fields
+            - budget
+            - -budget
+            - capacity
+            - -capacity
+            - client_time
+            - -client_time
+            - company
+            - -company
+            - count
+            - -count
+            - date
+            - -date
+            - day
+            - -day
+            - draft_scheduled_billable_time
+            - -draft_scheduled_billable_time
+            - draft_scheduled_client_time
+            - -draft_scheduled_client_time
+            - draft_scheduled_internal_time
+            - -draft_scheduled_internal_time
+            - draft_scheduled_time
+            - -draft_scheduled_time
+            - event
+            - -event
+            - event_time
+            - -event_time
+            - future
+            - -future
+            - holiday_time
+            - -holiday_time
+            - internal_time
+            - -internal_time
+            - job_role
+            - -job_role
+            - manager
+            - -manager
+            - month
+            - -month
+            - paid_event_time
+            - -paid_event_time
+            - people_custom_fields
+            - -people_custom_fields
+            - person
+            - -person
+            - person_company
+            - -person_company
+            - person_title
+            - -person_title
+            - person_type
+            - -person_type
+            - project
+            - -project
+            - quarter
+            - -quarter
+            - recognized_scheduled_time
+            - -recognized_scheduled_time
+            - recognized_time
+            - -recognized_time
+            - scheduled_billable_time
+            - -scheduled_billable_time
+            - scheduled_client_time
+            - -scheduled_client_time
+            - scheduled_event_time
+            - -scheduled_event_time
+            - scheduled_internal_time
+            - -scheduled_internal_time
+            - scheduled_remote_work_time
+            - -scheduled_remote_work_time
+            - scheduled_time
+            - -scheduled_time
+            - service
+            - -service
+            - service_type
+            - -service_type
+            - stage_type
+            - -stage_type
+            - subsidiary
+            - -subsidiary
+            - total_cost
+            - -total_cost
+            - total_draft_scheduled_cost
+            - -total_draft_scheduled_cost
+            - total_draft_scheduled_revenue
+            - -total_draft_scheduled_revenue
+            - total_scheduled_cost
+            - -total_scheduled_cost
+            - total_scheduled_revenue
+            - -total_scheduled_revenue
+            - total_work_cost
+            - -total_work_cost
+            - unapproved_time
+            - -unapproved_time
+            - unpaid_event_time
+            - -unpaid_event_time
+            - week
+            - -week
+            - worked_time
+            - -worked_time
+            - workload
+            - -workload
+            - year
+            - -year
           type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    collection_new_time_report:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        day:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/day'
-                        week:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/week'
-                        year:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/year'
-                        count:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/count'
-                        group:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/group'
-                        month:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/month'
-                        future:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/future'
-                        quarter:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/quarter'
-                        capacity:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/capacity'
-                        currency:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/currency'
-                        workload:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/workload'
-                        event_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/event_time'
-                        stage_type:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/stage_type'
-                        total_cost:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_cost'
-                        client_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/client_time'
-                        date_period:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/date_period'
-                        worked_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/worked_time'
-                        billing_type:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/billing_type'
-                        holiday_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/holiday_time'
-                        billable_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/billable_time'
-                        internal_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/internal_time'
-                        user_capacity:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/user_capacity'
-                        available_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/available_time'
-                        formula_fields:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/formula_fields'
-                        scheduled_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_time'
-                        paid_event_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/paid_event_time'
-                        recognized_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/recognized_time'
-                        total_work_cost:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_work_cost'
-                        unapproved_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/unapproved_time'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/currency_default'
-                        average_cost_rate:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/average_cost_rate'
-                        unpaid_event_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/unpaid_event_time'
-                        total_cost_default:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_cost_default'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/currency_normalized'
-                        draft_scheduled_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/draft_scheduled_time'
-                        people_custom_fields:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/people_custom_fields'
-                        scheduled_event_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_event_time'
-                        total_scheduled_cost:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_cost'
-                        scheduled_client_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_client_time'
-                        total_cost_normalized:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_cost_normalized'
-                        scheduled_billable_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_billable_time'
-                        scheduled_internal_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_internal_time'
-                        total_scheduled_revenue:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_revenue'
-                        total_work_cost_default:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_work_cost_default'
-                        average_cost_rate_default:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/average_cost_rate_default'
-                        recognized_scheduled_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/recognized_scheduled_time'
-                        scheduled_remote_work_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/scheduled_remote_work_time'
-                        total_draft_scheduled_cost:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_cost'
-                        total_work_cost_normalized:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_work_cost_normalized'
-                        draft_scheduled_client_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/draft_scheduled_client_time'
-                        average_cost_rate_normalized:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/average_cost_rate_normalized'
-                        total_scheduled_cost_default:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_cost_default'
-                        draft_scheduled_billable_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/draft_scheduled_billable_time'
-                        draft_scheduled_internal_time:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/draft_scheduled_internal_time'
-                        total_draft_scheduled_revenue:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_revenue'
-                        total_scheduled_cost_normalized:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_cost_normalized'
-                        total_scheduled_revenue_default:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_revenue_default'
-                        total_draft_scheduled_cost_default:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_cost_default'
-                        total_scheduled_revenue_normalized:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_scheduled_revenue_normalized'
-                        total_draft_scheduled_cost_normalized:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_cost_normalized'
-                        total_draft_scheduled_revenue_default:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_revenue_default'
-                        total_draft_scheduled_revenue_normalized:
-                          $ref: '#/components/schemas/resource_new_time_report/properties/total_draft_scheduled_revenue_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        event:
-                          $ref: '#/components/schemas/_single_relationship'
-                        budget:
-                          $ref: '#/components/schemas/_single_relationship'
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        report:
-                          $ref: '#/components/schemas/_single_relationship'
-                        company:
-                          $ref: '#/components/schemas/_single_relationship'
-                        manager:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service:
-                          $ref: '#/components/schemas/_single_relationship'
-                        job_role:
-                          $ref: '#/components/schemas/_single_relationship'
-                        subsidiary:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service_type:
-                          $ref: '#/components/schemas/_single_relationship'
-                        person_report:
-                          $ref: '#/components/schemas/_single_relationship'
-                        company_report:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project_report:
-                          $ref: '#/components/schemas/_single_relationship'
-                        deal_or_budget_report:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection new time report
+        title: Sort new time report
+      explode: false
+      required: false
+      description: Sort new time report
+    filter_new_time_report:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.new_time_report at the top of this file.
+      required: false
+      description: Filters
+    group_new_time_report:
+      in: query
+      name: group
+      style: form
+      schema:
+        enum:
+          - billing_type
+          - budget
+          - company
+          - date
+          - day
+          - event
+          - future
+          - job_role
+          - manager
+          - month
+          - organization
+          - people_custom_fields
+          - person
+          - project
+          - quarter
+          - service
+          - service_type
+          - stage_type
+          - subsidiary
+          - week
+          - year
+        type: string
+        title: Group new time report
+      explode: false
+      required: false
+      description: Group new time report

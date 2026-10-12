@@ -39,9 +39,8 @@ paths:
       tags:
         - Rate cards
       summary: Archives a rate card
-      responses:
-        '200':
-          $ref: '#/components/responses/single_rate_card'
+      operationId: rate_cards-archive-archive
+      description: Archive a rate card to deactivate it.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -50,13 +49,18 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: rate_cards-archive-archive
-      description: Archive a rate card to deactivate it.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_rate_card'
   /api/v2/rate_cards/copy:
     post:
       tags:
         - Rate cards
       summary: Copy a rate card
+      operationId: rate_cards-copy-copy
+      description: Copy an existing rate card.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_rate_card'
@@ -84,28 +88,30 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: rate_cards-copy-copy
-      description: Copy an existing rate card.
   /api/v2/rate_cards:
     get:
       tags:
         - Rate cards
       summary: Get rate cards
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_rate_card'
+      operationId: rate_cards-index
+      description: List all rate cards.
       parameters:
         - $ref: '#/components/parameters/filter_rate_card'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_rate_card'
-      operationId: rate_cards-index
-      description: List all rate cards.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_rate_card'
     post:
       tags:
         - Rate cards
       summary: Create a price
+      operationId: rate_cards-create
+      description: Create a new rate card.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/rate_card'
       responses:
         '201':
           $ref: '#/components/responses/single_rate_card'
@@ -117,20 +123,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: rate_cards-create
-      requestBody:
-        $ref: '#/components/requestBodies/rate_card'
-      description: Create a new rate card.
   /api/v2/rate_cards/{id}:
     get:
       tags:
         - Rate cards
       summary: Gets a rate card
-      responses:
-        '200':
-          $ref: '#/components/responses/single_rate_card'
+      operationId: rate_cards-show
+      description: Retrieve a single rate card by ID.
       parameters:
         - in: path
           name: id
@@ -139,12 +138,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: rate_cards-show
-      description: Retrieve a single rate card by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_rate_card'
     patch:
       tags:
         - Rate cards
       summary: Update a price
+      operationId: rate_cards-update
+      description: Update a rate card.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/rate_card'
       responses:
         '200':
           $ref: '#/components/responses/single_rate_card'
@@ -156,25 +168,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: rate_cards-update
-      requestBody:
-        $ref: '#/components/requestBodies/rate_card'
-      description: Update a rate card.
     delete:
       tags:
         - Rate cards
       summary: Deletes a price
-      responses:
-        '204':
-          description: No Content
+      operationId: rate_cards-destroy
+      description: Delete a rate card by ID.
       parameters:
         - in: path
           name: id
@@ -183,16 +182,16 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: rate_cards-destroy
-      description: Delete a rate card by ID.
+      responses:
+        '204':
+          description: No Content
   /api/v2/rate_cards/{id}/restore:
     patch:
       tags:
         - Rate cards
       summary: Restores a rate card
-      responses:
-        '200':
-          $ref: '#/components/responses/single_rate_card'
+      operationId: rate_cards-restore-restore
+      description: Restore an archived rate card.
       parameters:
         - in: path
           name: id
@@ -201,124 +200,155 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: rate_cards-restore-restore
-      description: Restore an archived rate card.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_rate_card'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_rate_card:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - created_at
-            - -created_at
-            - name
-            - -name
-          type: string
-        title: Sort rate card
-      explode: false
-      required: false
-      description: Sort rate card
-    filter_rate_card:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.rate_card at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_rate_card:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single rate_card record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned rate_card resource.
                 properties:
                   attributes:
                     type: object
+                    description: Rate card attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_rate_card/properties/name'
                       created_at:
                         $ref: '#/components/schemas/resource_rate_card/properties/created_at'
                       updated_at:
                         $ref: '#/components/schemas/resource_rate_card/properties/updated_at'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_rate_card/properties/archived_at'
                       prices_count:
                         $ref: '#/components/schemas/resource_rate_card/properties/prices_count'
+                      name:
+                        $ref: '#/components/schemas/resource_rate_card/properties/name'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_rate_card/properties/archived_at'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Rate card relationships.
                     properties:
-                      company:
+                      organization:
                         $ref: '#/components/schemas/_single_relationship'
                       creator:
                         $ref: '#/components/schemas/_single_relationship'
-                      organization:
+                      company:
                         $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '7'
+                type: rate_cards
+                attributes:
+                  name: Standard 2026
+                  currency: USD
+                  created_at: '2026-01-01T00:00:00.000+00:00'
+                  updated_at: '2026-01-01T00:00:00.000+00:00'
+                relationships: {}
+              included: []
       description: Single rate card
     collection_rate_card:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of rate card records in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: array
                 items:
                   type: object
+                  description: A rate card resource object.
                   properties:
+                    relationships:
+                      type: object
+                      description: Rate card relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        company:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
                     attributes:
                       type: object
+                      description: Rate card attributes.
                       properties:
+                        prices_count:
+                          $ref: '#/components/schemas/resource_rate_card/properties/prices_count'
                         name:
                           $ref: '#/components/schemas/resource_rate_card/properties/name'
-                        created_at:
-                          $ref: '#/components/schemas/resource_rate_card/properties/created_at'
                         updated_at:
                           $ref: '#/components/schemas/resource_rate_card/properties/updated_at'
                         archived_at:
                           $ref: '#/components/schemas/resource_rate_card/properties/archived_at'
-                        prices_count:
-                          $ref: '#/components/schemas/resource_rate_card/properties/prices_count'
-                    relationships:
-                      type: object
-                      properties:
-                        company:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
+                        created_at:
+                          $ref: '#/components/schemas/resource_rate_card/properties/created_at'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of rate card resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                - id: '7'
+                  type: rate_cards
+                  attributes:
+                    name: Standard 2026
+                    currency: USD
+                    created_at: '2026-01-01T00:00:00.000+00:00'
+                    updated_at: '2026-01-01T00:00:00.000+00:00'
+                  relationships: {}
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection rate card
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -351,7 +381,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
@@ -363,10 +392,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -379,6 +408,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -388,16 +418,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -405,16 +436,15 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
     resource_rate_card:
       type: object
       title: Rate card Resource
+      description: Price list for services. Contains a name, optional client company link (for client-specific rates), creation metadata, and a count of contained prices. Prices are managed separately via the prices endpoint.
       properties:
         creator:
           title: Creator
@@ -478,7 +508,6 @@ components:
           description: ID of the company this rate card is associated with.
           example:
             - 123
-      description: Price list for services. Contains a name, optional client company link (for client-specific rates), creation metadata, and a count of contained prices. Prices are managed separately via the prices endpoint.
       example:
         id: '7'
         type: rate_cards
@@ -488,24 +517,71 @@ components:
           created_at: '2026-01-01T00:00:00.000+00:00'
           updated_at: '2026-01-01T00:00:00.000+00:00'
         relationships: {}
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_rate_card:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+            - name
+            - -name
+          type: string
+        title: Sort rate card
+      explode: false
+      required: false
+      description: Sort rate card
+    filter_rate_card:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.rate_card at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     rate_card:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a rate card.
             properties:
               data:
                 type: object
+                description: The rate card resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - company_id
+                    description: Rate card attributes.
                     properties:
                       name:
                         $ref: '#/components/schemas/resource_rate_card/properties/name'
                       company_id:
                         $ref: '#/components/schemas/resource_rate_card/properties/company_id'
+                    required:
+                      - name
+                      - company_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: rate_cards
+                attributes:
+                  name: Standard 2026
+                  currency: USD
       description: Request body for creating or updating a rate card. Specify the name and optional company (for client-specific pricing). Prices within the rate card are managed via the prices endpoint.

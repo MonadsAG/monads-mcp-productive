@@ -21,9 +21,8 @@ paths:
       tags:
         - Lost Reasons
       summary: Archives a lost reason
-      responses:
-        '200':
-          $ref: '#/components/responses/single_lost_reason'
+      operationId: lost_reasons-archive-archive
+      description: Archive a lost reason.
       parameters:
         - in: path
           name: id
@@ -32,26 +31,33 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: lost_reasons-archive-archive
-      description: Archive a lost reason.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_lost_reason'
   /api/v2/lost_reasons:
     get:
       tags:
         - Lost Reasons
       summary: Get lost reasons
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_lost_reason'
+      operationId: lost_reasons-index
+      description: List lost reasons.
       parameters:
         - $ref: '#/components/parameters/sort_lost_reason'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_lost_reason'
-      operationId: lost_reasons-index
-      description: List lost reasons.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_lost_reason'
     post:
       tags:
         - Lost Reasons
       summary: Create a lost reason
+      operationId: lost_reasons-create
+      description: Create a new lost reason.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/lost_reason'
       responses:
         '201':
           $ref: '#/components/responses/single_lost_reason'
@@ -63,20 +69,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: lost_reasons-create
-      requestBody:
-        $ref: '#/components/requestBodies/lost_reason'
-      description: Create a new lost reason.
   /api/v2/lost_reasons/{id}:
     get:
       tags:
         - Lost Reasons
       summary: Gets a lost reason
-      responses:
-        '200':
-          $ref: '#/components/responses/single_lost_reason'
+      operationId: lost_reasons-show
+      description: Retrieve a single lost reason.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -85,12 +84,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: lost_reasons-show
-      description: Retrieve a single lost reason.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_lost_reason'
     patch:
       tags:
         - Lost Reasons
       summary: Update a lost reason
+      operationId: lost_reasons-update
+      description: Update a lost reason.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/lost_reason'
       responses:
         '200':
           $ref: '#/components/responses/single_lost_reason'
@@ -102,78 +114,130 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: lost_reasons-update
-      requestBody:
-        $ref: '#/components/requestBodies/lost_reason'
-      description: Update a lost reason.
 components:
-  requestBodies:
-    lost_reason:
+  responses:
+    single_lost_reason:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single lost reason record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The lost reason resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
+                    description: Lost reason attributes.
                     properties:
                       name:
                         $ref: '#/components/schemas/resource_lost_reason/properties/name'
-      description: Request body for creating or updating a lost reason.
+                      archived_at:
+                        $ref: '#/components/schemas/resource_lost_reason/properties/archived_at'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Lost reason relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '3'
+                type: lost_reasons
+                attributes:
+                  name: Budget constraints
+                  position: 1
+                  archived_at: null
+                relationships: {}
+              included: []
+      description: Single lost reason
+    collection_lost_reason:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of lost reason records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A lost reason resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Lost reason relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Lost reason attributes.
+                      properties:
+                        archived_at:
+                          $ref: '#/components/schemas/resource_lost_reason/properties/archived_at'
+                        name:
+                          $ref: '#/components/schemas/resource_lost_reason/properties/name'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of lost reason resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '3'
+                  type: lost_reasons
+                  attributes:
+                    name: Budget constraints
+                    position: 1
+                    archived_at: null
+                  relationships: {}
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection lost reason
   schemas:
-    resource_lost_reason:
-      type: object
-      title: Lost reason Resource
-      properties:
-        name:
-          type: string
-          title: Name
-          description: Label text displayed on the deal when marked as lost.
-          example:
-            eq: value
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this lost reason.
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: The organization this lost reason belongs to.
-          example:
-            eq: value
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when this lost reason was archived, or null if active.
-          example:
-            gt: '2026-01-01'
-      description: A label explaining why a deal was lost, used for sales pipeline analytics.
-      example:
-        id: '3'
-        type: lost_reasons
-        attributes:
-          name: Budget constraints
-          position: 1
-          archived_at: null
-        relationships: {}
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -206,7 +270,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
@@ -218,10 +281,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -234,6 +297,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -243,16 +307,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -260,13 +325,79 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
+    resource_lost_reason:
+      type: object
+      title: Lost reason Resource
+      description: A label explaining why a deal was lost, used for sales pipeline analytics.
+      properties:
+        name:
+          type: string
+          title: Name
+          description: Label text displayed on the deal when marked as lost.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this lost reason.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this lost reason belongs to.
+          example:
+            eq: value
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when this lost reason was archived, or null if active.
+          example:
+            gt: '2026-01-01'
+      example:
+        id: '3'
+        type: lost_reasons
+        attributes:
+          name: Budget constraints
+          position: 1
+          archived_at: null
+        relationships: {}
+  requestBodies:
+    lost_reason:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body schema for a lost reason.
+            properties:
+              data:
+                type: object
+                description: The lost reason resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Lost reason attributes.
+                    properties:
+                      name:
+                        $ref: '#/components/schemas/resource_lost_reason/properties/name'
+                    required:
+                      - name
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: lost_reasons
+                attributes:
+                  name: Budget constraints
+                  position: 1
+      description: Request body for creating or updating a lost reason.
   parameters:
     header_organization:
       in: header
@@ -296,60 +427,3 @@ components:
       explode: false
       required: false
       description: Sort lost reason
-  responses:
-    single_lost_reason:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_lost_reason/properties/name'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_lost_reason/properties/archived_at'
-                  relationships:
-                    type: object
-                    properties:
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single lost reason
-    collection_lost_reason:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_lost_reason/properties/name'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_lost_reason/properties/archived_at'
-                    relationships:
-                      type: object
-                      properties:
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection lost reason

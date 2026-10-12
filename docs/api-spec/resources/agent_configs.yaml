@@ -24,19 +24,25 @@ paths:
       tags:
         - Agent Configs
       summary: Get agent configs
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_agent_config'
+      operationId: agent-configs-index
+      description: Returns a paginated list of agent configurations in the organization. Supports filtering by agent ID.
       parameters:
         - $ref: '#/components/parameters/sort_agent_config'
         - $ref: '#/components/parameters/filter_agent_config'
         - $ref: '#/components/parameters/header_organization'
-      operationId: agent-configs-index
-      description: Returns a paginated list of agent configurations in the organization. Supports filtering by agent ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_agent_config'
     post:
       tags:
         - Agent Configs
       summary: Create an agent config
+      operationId: agent-configs-create
+      description: Creates a new configuration for an agent, defining AI behavior instructions and Slack integration trigger settings.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/agent_config'
       responses:
         '201':
           $ref: '#/components/responses/single_agent_config'
@@ -48,20 +54,13 @@ paths:
               schema:
                 type: string
           description: Returned when creating an agent configuration fails validation.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: agent-configs-create
-      requestBody:
-        $ref: '#/components/requestBodies/agent_config'
-      description: Creates a new configuration for an agent, defining AI behavior instructions and Slack integration trigger settings.
   /api/v2/agent_configs/{id}:
     get:
       tags:
         - Agent Configs
       summary: Get an agent config
-      responses:
-        '200':
-          $ref: '#/components/responses/single_agent_config'
+      operationId: agent-configs-show
+      description: Returns the configuration for the specified agent, including AI instructions and Slack trigger settings.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -70,12 +69,25 @@ paths:
             type: string
           required: true
           description: The unique identifier of the agent configuration to retrieve.
-      operationId: agent-configs-show
-      description: Returns the configuration for the specified agent, including AI instructions and Slack trigger settings.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_agent_config'
     patch:
       tags:
         - Agent Configs
       summary: Update an agent config
+      operationId: agent-configs-update
+      description: Updates the configuration for the specified agent, including AI behavior instructions and Slack trigger settings.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The unique identifier of the agent configuration to update.
+      requestBody:
+        $ref: '#/components/requestBodies/agent_config_update'
       responses:
         '200':
           $ref: '#/components/responses/single_agent_config'
@@ -87,25 +99,12 @@ paths:
               schema:
                 type: string
           description: Returned when updating the agent configuration fails validation.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The unique identifier of the agent configuration to update.
-      operationId: agent-configs-update
-      requestBody:
-        $ref: '#/components/requestBodies/agent_config_update'
-      description: Updates the configuration for the specified agent, including AI behavior instructions and Slack trigger settings.
     delete:
       tags:
         - Agent Configs
       summary: Delete an agent config
-      responses:
-        '204':
-          description: Returned when the agent configuration is successfully deleted.
+      operationId: agent-configs-destroy
+      description: Deletes the specified agent configuration. This action cannot be undone.
       parameters:
         - in: path
           name: id
@@ -113,8 +112,9 @@ paths:
             type: string
           required: true
         - $ref: '#/components/parameters/header_organization'
-      operationId: agent-configs-destroy
-      description: Deletes the specified agent configuration. This action cannot be undone.
+      responses:
+        '204':
+          description: Returned when the agent configuration is successfully deleted.
 components:
   parameters:
     header_organization:
@@ -144,85 +144,76 @@ components:
         title: Sort agent config
       explode: false
       required: false
-  requestBodies:
-    agent_config_update:
+  responses:
+    single_agent_config:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
+              included:
+                type: array
+                items: {}
               data:
                 type: object
                 properties:
+                  relationships:
+                    type: object
+                    properties:
+                      attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      agent:
+                        $ref: '#/components/schemas/_single_relationship'
                   attributes:
                     type: object
                     properties:
-                      ai_model:
-                        $ref: '#/components/schemas/resource_agent_config/properties/ai_model'
                       instructions:
                         $ref: '#/components/schemas/resource_agent_config/properties/instructions'
-                      reasoning_effort:
-                        $ref: '#/components/schemas/resource_agent_config/properties/reasoning_effort'
-    agent_config:
+                      created_at:
+                        $ref: '#/components/schemas/resource_agent_config/properties/created_at'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_agent_config/properties/updated_at'
+              meta:
+                $ref: '#/components/schemas/_meta'
+      description: A single agent configuration record returned in JSON:API format.
+    collection_agent_config:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
+              included:
+                type: array
+                items: {}
               data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    required:
-                      - agent_id
-                    properties:
-                      agent_id:
-                        $ref: '#/components/schemas/resource_agent_config/properties/agent_id'
-                      ai_model:
-                        $ref: '#/components/schemas/resource_agent_config/properties/ai_model'
-                      instructions:
-                        $ref: '#/components/schemas/resource_agent_config/properties/instructions'
-                      reasoning_effort:
-                        $ref: '#/components/schemas/resource_agent_config/properties/reasoning_effort'
-      description: Request body for creating or updating an agent configuration, including AI behavior instructions and Slack trigger settings.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    relationships:
+                      type: object
+                      properties:
+                        attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        agent:
+                          $ref: '#/components/schemas/_single_relationship'
+                    attributes:
+                      type: object
+                      properties:
+                        instructions:
+                          $ref: '#/components/schemas/resource_agent_config/properties/instructions'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_agent_config/properties/updated_at'
+                        created_at:
+                          $ref: '#/components/schemas/resource_agent_config/properties/created_at'
+              meta:
+                $ref: '#/components/schemas/_meta'
+      description: A paginated collection of agent configurations returned in JSON:API format.
   schemas:
-    resource_agent_config:
-      type: object
-      title: Agent Config Resource
-      properties:
-        instructions:
-          type: string
-          title: Instructions
-          description: The AI behavior instructions for this agent — describes how it should respond, what tasks it handles, and any operational constraints.
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: The timestamp when this agent configuration was last updated.
-        agent_id:
-          type: integer
-          title: Agent
-          description: The ID of the agent this configuration belongs to.
-        attachments:
-          title: Attachments
-          description: Files attached to this agent configuration, such as knowledge base documents the agent can reference.
-        agent:
-          title: Agent
-          description: The agent this configuration belongs to.
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of the agent configuration.
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: The timestamp when this agent configuration was created.
-      description: Represents the configuration for an AI agent, including its AI behavior instructions and Slack integration trigger settings.
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -255,82 +246,68 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
+    resource_agent_config:
       type: object
-      title: Resource Identifier
+      title: Agent Config Resource
+      description: Represents the configuration for an AI agent, including its AI behavior instructions and Slack integration trigger settings.
       properties:
+        reasoning_effort:
+          enum:
+            - low
+            - medium
+            - high
+          type: string
+          title: Reasoning Effort
+          nullable: true
+          description: How much reasoning effort the agent spends before responding. When null, the platform default applies.
+        ai_model:
+          type: string
+          title: AI Model
+          nullable: true
+          description: The AI model this agent runs on. When null, the platform default applies.
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: The timestamp when this agent configuration was last updated.
+        agent_id:
+          type: integer
+          title: Agent
+          description: The ID of the agent this configuration belongs to.
+        attachments:
+          title: Attachments
+          description: Files attached to this agent configuration, such as knowledge base documents the agent can reference.
+        agent:
+          title: Agent
+          description: The agent this configuration belongs to.
         id:
           type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
+          title: Id
+          description: The unique identifier of the agent configuration.
+        created_at:
           type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
+          title: Created At
+          format: date-time
+          description: The timestamp when this agent configuration was created.
+        instructions:
+          type: string
+          title: Instructions
+          description: The AI behavior instructions for this agent — describes how it should respond, what tasks it handles, and any operational constraints.
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -340,8 +317,68 @@ components:
         data:
           type: tasks
           id: '42'
-  responses:
-    single_agent_config:
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+  requestBodies:
+    agent_config_update:
       content:
         application/vnd.api+json:
           schema:
@@ -353,55 +390,32 @@ components:
                   attributes:
                     type: object
                     properties:
-                      created_at:
-                        $ref: '#/components/schemas/resource_agent_config/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_agent_config/properties/updated_at'
+                      ai_model:
+                        $ref: '#/components/schemas/resource_agent_config/properties/ai_model'
                       instructions:
                         $ref: '#/components/schemas/resource_agent_config/properties/instructions'
-                  relationships:
-                    type: object
-                    properties:
-                      agent:
-                        $ref: '#/components/schemas/_single_relationship'
-                      attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: A single agent configuration record returned in JSON:API format.
-    collection_agent_config:
+                      reasoning_effort:
+                        $ref: '#/components/schemas/resource_agent_config/properties/reasoning_effort'
+    agent_config:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        created_at:
-                          $ref: '#/components/schemas/resource_agent_config/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_agent_config/properties/updated_at'
-                        instructions:
-                          $ref: '#/components/schemas/resource_agent_config/properties/instructions'
-                    relationships:
-                      type: object
-                      properties:
-                        agent:
-                          $ref: '#/components/schemas/_single_relationship'
-                        attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: A paginated collection of agent configurations returned in JSON:API format.
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      ai_model:
+                        $ref: '#/components/schemas/resource_agent_config/properties/ai_model'
+                      instructions:
+                        $ref: '#/components/schemas/resource_agent_config/properties/instructions'
+                      reasoning_effort:
+                        $ref: '#/components/schemas/resource_agent_config/properties/reasoning_effort'
+                      agent_id:
+                        $ref: '#/components/schemas/resource_agent_config/properties/agent_id'
+                    required:
+                      - agent_id
+      description: Request body for creating or updating an agent configuration, including AI behavior instructions and Slack trigger settings.

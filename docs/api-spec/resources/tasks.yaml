@@ -43,13 +43,6 @@ description: |-
   For Task dependencies please refer to [TaskDependency endpoint](https://developer.productive.io/taskdependency.html#taskdependency) documentation
 x-filters:
   task:
-    assignee_id:
-      description: Filter by assigned person (also matches open to-do assignees).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     task_list_status:
       description: Filter by task list open/archived status.
       operators:
@@ -157,13 +150,6 @@ x-filters:
         - not_eq
     service_id:
       description: Filter by associated service ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    full_query:
-      description: Full-text search across task fields.
       operators:
         - contains
         - eq
@@ -517,28 +503,27 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    full_query:
+      description: Full-text search across task fields.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    assignee_id:
+      description: Filter by assigned person (also matches open to-do assignees).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/tasks/copy:
     post:
       tags:
         - Tasks
       summary: Copies a task
-      responses:
-        '201':
-          $ref: '#/components/responses/single_task'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
       operationId: tasks-copy-copy
-      requestBody:
-        $ref: '#/components/requestBodies/task_copy'
       description: |-
         Creates a new task by copying a **source task** (`template_id`) into a target project, task list, and workflow status. By default only the task shell is copied; enable the `copy_*` flags to duplicate its details.
 
@@ -608,27 +593,10 @@ paths:
           }
         }
         ```
-  /api/v2/tasks:
-    get:
-      tags:
-        - Tasks
-      summary: Get tasks
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_task'
       parameters:
-        - $ref: '#/components/parameters/filter_task'
-        - $ref: '#/components/parameters/sort_task'
         - $ref: '#/components/parameters/header_organization'
-      operationId: tasks-index
-      description: |-
-        Returns a paginated list of tasks — the assignable work items inside a project's task lists. 
-        Supports filtering by project, task list, folder, parent task, assignee, creator, workflow status, dates (created, due, start, closed, last activity), tags, custom fields, subscribers, dependencies, and free-text query. 
-        Sortable by task number, due date, start date, last activity, placement, and workflow status.
-    post:
-      tags:
-        - Tasks
-      summary: Create a task
+      requestBody:
+        $ref: '#/components/requestBodies/task_copy'
       responses:
         '201':
           $ref: '#/components/responses/single_task'
@@ -640,11 +608,28 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
+  /api/v2/tasks:
+    get:
+      tags:
+        - Tasks
+      summary: Get tasks
+      operationId: tasks-index
+      description: |-
+        Returns a paginated list of tasks — the assignable work items inside a project's task lists. 
+        Supports filtering by project, task list, folder, parent task, assignee, creator, workflow status, dates (created, due, start, closed, last activity), tags, custom fields, subscribers, dependencies, and free-text query. 
+        Sortable by task number, due date, start date, last activity, placement, and workflow status.
       parameters:
+        - $ref: '#/components/parameters/filter_task'
+        - $ref: '#/components/parameters/sort_task'
         - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_task'
+    post:
+      tags:
+        - Tasks
+      summary: Create a task
       operationId: tasks-create
-      requestBody:
-        $ref: '#/components/requestBodies/task'
       description: |-
         Creates a task inside a task list. Requires `title`, `project_id`, `task_list_id`, and `workflow_status_id`. To create the task as a subtask of another task, also set `parent_task_id`.
 
@@ -663,14 +648,28 @@ paths:
           }
         }
         ```
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/task'
+      responses:
+        '201':
+          $ref: '#/components/responses/single_task'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
   /api/v2/tasks/{id}:
     get:
       tags:
         - Tasks
       summary: Gets a task
-      responses:
-        '200':
-          $ref: '#/components/responses/single_task'
+      operationId: tasks-show
+      description: Returns a single task by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -679,12 +678,28 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: tasks-show
-      description: Returns a single task by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_task'
     patch:
       tags:
         - Tasks
       summary: Update a task
+      operationId: tasks-update
+      description: |-
+        Updates a task. Only the provided attributes are modified — rename it via `title`, change its workflow status via `workflow_status_id`, reassign via `assignee_id`, toggle `private`, or move it to a different task list via `task_list_id`. 
+        To reorder the task within its task list, use [`PATCH /tasks/{id}/reposition`](#tag/Tasks/operation/tasks-reposition-reposition). 
+        To shift the task and its blocking dependent tasks by working days, use [`PATCH /tasks/{id}/move_dependent`](#tag/Tasks/operation/tasks-move-dependent-move-dependent).
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/task'
       responses:
         '200':
           $ref: '#/components/responses/single_task'
@@ -696,28 +711,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: tasks-update
-      requestBody:
-        $ref: '#/components/requestBodies/task'
-      description: |-
-        Updates a task. Only the provided attributes are modified — rename it via `title`, change its workflow status via `workflow_status_id`, reassign via `assignee_id`, toggle `private`, or move it to a different task list via `task_list_id`. 
-        To reorder the task within its task list, use [`PATCH /tasks/{id}/reposition`](#tag/Tasks/operation/tasks-reposition-reposition). 
-        To shift the task and its blocking dependent tasks by working days, use [`PATCH /tasks/{id}/move_dependent`](#tag/Tasks/operation/tasks-move-dependent-move-dependent).
     delete:
       tags:
         - Tasks
       summary: Deletes a task
-      responses:
-        '204':
-          description: No Content
+      operationId: tasks-destroy
+      description: Permanently deletes a task by ID.
       parameters:
         - in: path
           name: id
@@ -726,35 +725,15 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: tasks-destroy
-      description: Permanently deletes a task by ID.
+      responses:
+        '204':
+          description: No Content
   /api/v2/tasks/{id}/move_dependent:
     patch:
       tags:
         - Tasks
       summary: Moves a task and its dependent tasks by a given number of working days
-      responses:
-        '200':
-          $ref: '#/components/responses/single_task'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
       operationId: tasks-move-dependent-move-dependent
-      requestBody:
-        $ref: '#/components/requestBodies/task_move_dependent'
       description: |-
         Shifts a task and all of its **blocking-dependent** tasks forward or backward by a number of **working days**. Useful for re-baselining a Gantt schedule when an upstream task slips.
 
@@ -779,25 +758,33 @@ paths:
           }
         }
         ```
-  /api/v2/tasks/{id}/reposition:
-    patch:
-      tags:
-        - Tasks
-      summary: Repositions a task
-      responses:
-        '204':
-          description: No Content
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: tasks-reposition-reposition
       requestBody:
-        $ref: '#/components/requestBodies/task_reposition'
+        $ref: '#/components/requestBodies/task_move_dependent'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_task'
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
+  /api/v2/tasks/{id}/reposition:
+    patch:
+      tags:
+        - Tasks
+      summary: Repositions a task
+      operationId: tasks-reposition-reposition
       description: |-
         Reorders a task within its task list. Pass `move_before_id` and/or `move_after_id` — the IDs of sibling tasks to position it relative to. When both are provided, the task is placed between them.
 
@@ -811,6 +798,19 @@ paths:
           }
         }
         ```
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/task_reposition'
+      responses:
+        '204':
+          description: No Content
 components:
   requestBodies:
     task_reposition:
@@ -818,123 +818,216 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single task record in JSON:API format.
             properties:
               data:
                 type: object
+                description: A task resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Attributes describing the reorder — relative position and scope.
                     properties:
                       subtask:
                         type: boolean
-                        description: When true, reposition within the parent task's subtask order instead of within the task list.
+                        description: When `true`, reorder within the parent task's subtask order instead of within the task list. Defaults to `false`.
+                        example: true
                       move_after_id:
                         type: integer
-                        description: Place the task directly after the task with this ID. When both move_before_id and move_after_id are passed, the task is placed between them.
+                        description: Place the task directly after the task with this ID. When both `move_before_id` and `move_after_id` are passed, the task is placed between them.
+                        example: 555
                       move_before_id:
                         type: integer
                         description: Place the task directly before the task with this ID.
+                        example: 555
+                    example:
+                      move_after_id: 555
+                example:
+                  type: tasks
+                  attributes:
+                    move_after_id: 555
+            example:
+              data:
+                type: tasks
+                attributes:
+                  move_after_id: 555
       description: 'Request body for reordering a task — pass `move_before_id` and/or `move_after_id` to position relative to siblings. Set `subtask: true` to reorder within a parent task''s subtasks instead of within the task list.'
     task_move_dependent:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single task record in JSON:API format.
             properties:
               data:
                 type: object
+                description: A task resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - days_count
+                    description: Attributes describing the shift — working-day offset and root-task scope.
                     properties:
                       days_count:
                         type: integer
-                        description: Number of working days to shift the task and its blocking dependent tasks. Negative values shift earlier.
+                        description: Signed integer — number of **working days** to shift the task and its blocking-dependent tasks. Positive values shift forward; negative values shift backward. `0` is a no-op.
+                        example: 5
                       skip_root_task:
                         type: boolean
                         default: false
-                        description: When true, shifts only the dependent tasks and leaves the root task in place.
+                        description: When `true`, only the dependent tasks are shifted and the root task remains in place. Defaults to `false`.
+                        example: false
+                    required:
+                      - days_count
+                    example:
+                      days_count: 5
+                      skip_root_task: false
+                example:
+                  type: tasks
+                  attributes:
+                    days_count: 5
+                    skip_root_task: false
+            example:
+              data:
+                type: tasks
+                attributes:
+                  days_count: 5
+                  skip_root_task: false
       description: Request body for shifting a task and its blocking-dependent tasks by a number of working days. See [`PATCH /tasks/{id}/move_dependent`](#tag/Tasks/operation/tasks-move-dependent-move-dependent) for the full semantics.
     task:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single task record in JSON:API format.
             properties:
               data:
                 type: object
+                description: A task resource object.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - title
-                      - project_id
-                      - task_list_id
+                    description: Task attributes.
                     properties:
-                      title:
-                        $ref: '#/components/schemas/resource_task/properties/title'
                       private:
                         $ref: '#/components/schemas/resource_task/properties/private'
-                      type_id:
-                        $ref: '#/components/schemas/resource_task/properties/type_id'
-                      due_date:
-                        $ref: '#/components/schemas/resource_task/properties/due_date'
-                      due_time:
-                        $ref: '#/components/schemas/resource_task/properties/due_time'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_task/properties/tag_list'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_task/properties/subscriber_ids'
+                      attachment_ids:
+                        $ref: '#/components/schemas/resource_task/properties/attachment_ids'
+                      title:
+                        $ref: '#/components/schemas/resource_task/properties/title'
+                      task_list_id:
+                        $ref: '#/components/schemas/resource_task/properties/task_list_id'
+                      repeat_schedule_id:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_schedule_id'
+                      remaining_time:
+                        $ref: '#/components/schemas/resource_task/properties/remaining_time'
+                      repeat_on_weekday:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_on_weekday'
+                      workflow_status_id:
+                        $ref: '#/components/schemas/resource_task/properties/workflow_status_id'
+                      repeat_on_interval:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_on_interval'
                       project_id:
                         $ref: '#/components/schemas/resource_task/properties/project_id'
-                      service_id:
-                        $ref: '#/components/schemas/resource_task/properties/service_id'
-                      start_date:
-                        $ref: '#/components/schemas/resource_task/properties/start_date'
+                      skip_reposition:
+                        $ref: '#/components/schemas/resource_task/properties/skip_reposition'
+                      parent_task_id:
+                        $ref: '#/components/schemas/resource_task/properties/parent_task_id'
+                      due_date:
+                        $ref: '#/components/schemas/resource_task/properties/due_date'
+                      repeat_on_monthday:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_on_monthday'
+                      repeat_on_date:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_on_date'
                       assignee_id:
                         $ref: '#/components/schemas/resource_task/properties/assignee_id'
                       description:
                         $ref: '#/components/schemas/resource_task/properties/description'
-                      task_list_id:
-                        $ref: '#/components/schemas/resource_task/properties/task_list_id'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_task/properties/custom_fields'
-                      attachment_ids:
-                        $ref: '#/components/schemas/resource_task/properties/attachment_ids'
-                      parent_task_id:
-                        $ref: '#/components/schemas/resource_task/properties/parent_task_id'
-                      remaining_time:
-                        $ref: '#/components/schemas/resource_task/properties/remaining_time'
-                      repeat_on_date:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_on_date'
-                      subscriber_ids:
-                        $ref: '#/components/schemas/resource_task/properties/subscriber_ids'
-                      skip_reposition:
-                        $ref: '#/components/schemas/resource_task/properties/skip_reposition'
                       initial_estimate:
                         $ref: '#/components/schemas/resource_task/properties/initial_estimate'
-                      repeat_on_weekday:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_on_weekday'
-                      repeat_on_interval:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_on_interval'
-                      repeat_on_monthday:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_on_monthday'
-                      repeat_schedule_id:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_schedule_id'
-                      workflow_status_id:
-                        $ref: '#/components/schemas/resource_task/properties/workflow_status_id'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_task/properties/tag_list'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_task/properties/custom_fields'
+                      start_date:
+                        $ref: '#/components/schemas/resource_task/properties/start_date'
+                      type_id:
+                        $ref: '#/components/schemas/resource_task/properties/type_id'
+                      due_time:
+                        $ref: '#/components/schemas/resource_task/properties/due_time'
+                      service_id:
+                        $ref: '#/components/schemas/resource_task/properties/service_id'
+                    required:
+                      - title
+                      - project_id
+                      - task_list_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: tasks
+                attributes:
+                  title: Implement user authentication
+                  description: Set up OAuth2 authentication with Google and GitHub providers
+                  due_date: '2026-03-31'
+                  start_date: '2026-03-15'
+                  private: false
+                relationships:
+                  task_list:
+                    data:
+                      type: task_lists
+                      id: '14308'
+                  assignee:
+                    data:
+                      type: people
+                      id: '12'
+                  workflow_status:
+                    data:
+                      type: workflow_statuses
+                      id: '224'
       description: Request body for creating or updating a task.
     task_copy:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single task record in JSON:API format.
             properties:
               data:
                 type: object
+                description: A task resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Attributes describing the copy operation — source task, placement, and optional template/subtask modifiers.
+                    properties:
+                      template_description:
+                        type: string
+                        description: Descriptive text shown for the template when `copy_as_task_template` is `true`.
+                        example: Standard intake checklist for new customers.
+                      copy_as_task_template:
+                        type: boolean
+                        description: When `true`, registers the result as a reusable task template instead of a regular task. Incompatible with `copy_task_dependencies`.
+                        example: true
+                      project_id:
+                        $ref: '#/components/schemas/resource_task/properties/project_id'
+                      parent_task_id:
+                        $ref: '#/components/schemas/resource_task/properties/parent_task_id'
+                      template_id:
+                        type: integer
+                        description: ID of the source task being copied.
+                        example: 123456
+                      task_list_id:
+                        $ref: '#/components/schemas/resource_task/properties/task_list_id'
+                      workflow_status_id:
+                        $ref: '#/components/schemas/resource_task/properties/workflow_status_id'
+                      private:
+                        $ref: '#/components/schemas/resource_task/properties/private'
+                      title:
+                        $ref: '#/components/schemas/resource_task/properties/title'
                     required:
                       - title
                       - template_id
@@ -942,28 +1035,44 @@ components:
                       - task_list_id
                       - workflow_status_id
                       - private
-                    properties:
-                      title:
-                        $ref: '#/components/schemas/resource_task/properties/title'
-                      private:
-                        $ref: '#/components/schemas/resource_task/properties/private'
-                      project_id:
-                        $ref: '#/components/schemas/resource_task/properties/project_id'
-                      template_id:
-                        type: integer
-                        description: ID of the source task being copied.
-                      task_list_id:
-                        $ref: '#/components/schemas/resource_task/properties/task_list_id'
-                      parent_task_id:
-                        $ref: '#/components/schemas/resource_task/properties/parent_task_id'
-                      workflow_status_id:
-                        $ref: '#/components/schemas/resource_task/properties/workflow_status_id'
-                      template_description:
-                        type: string
-                        description: Description for the new task template. Used together with copy_as_task_template.
-                      copy_as_task_template:
-                        type: boolean
-                        description: When true, registers the copied task as a reusable task template.
+                    example:
+                      title: 'Copy of: Triage incoming support ticket'
+                      template_id: 123456
+                      project_id: 999
+                      task_list_id: 4242
+                      workflow_status_id: 1
+                      private: false
+                      copy_assignee: true
+                      copy_description: true
+                      copy_open_todos: true
+                      copy_date: true
+                example:
+                  type: tasks
+                  attributes:
+                    title: 'Copy of: Triage incoming support ticket'
+                    template_id: 123456
+                    project_id: 999
+                    task_list_id: 4242
+                    workflow_status_id: 1
+                    private: false
+                    copy_assignee: true
+                    copy_description: true
+                    copy_open_todos: true
+                    copy_date: true
+            example:
+              data:
+                type: tasks
+                attributes:
+                  title: 'Copy of: Triage incoming support ticket'
+                  template_id: 123456
+                  project_id: 999
+                  task_list_id: 4242
+                  workflow_status_id: 1
+                  private: false
+                  copy_assignee: true
+                  copy_description: true
+                  copy_open_todos: true
+                  copy_date: true
       description: 'Request body for copying a task — pass the source `template_id` and target placement (`project_id`, `task_list_id`, `workflow_status_id`). Optionally set `parent_task_id` to copy as a subtask, or `copy_as_task_template: true` + `template_description` to register the result as a reusable task template.'
   parameters:
     header_organization:
@@ -1061,273 +1170,443 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single task record in JSON:API format.
             properties:
               data:
                 type: object
+                description: A task resource object.
                 properties:
-                  attributes:
-                    type: object
-                    properties:
-                      title:
-                        $ref: '#/components/schemas/resource_task/properties/title'
-                      closed:
-                        $ref: '#/components/schemas/resource_task/properties/closed'
-                      number:
-                        $ref: '#/components/schemas/resource_task/properties/number'
-                      private:
-                        $ref: '#/components/schemas/resource_task/properties/private'
-                      type_id:
-                        $ref: '#/components/schemas/resource_task/properties/type_id'
-                      due_date:
-                        $ref: '#/components/schemas/resource_task/properties/due_date'
-                      due_time:
-                        $ref: '#/components/schemas/resource_task/properties/due_time'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_task/properties/tag_list'
-                      closed_at:
-                        $ref: '#/components/schemas/resource_task/properties/closed_at'
-                      email_key:
-                        $ref: '#/components/schemas/resource_task/properties/email_key'
-                      placement:
-                        $ref: '#/components/schemas/resource_task/properties/placement'
-                      created_at:
-                        $ref: '#/components/schemas/resource_task/properties/created_at'
-                      deleted_at:
-                        $ref: '#/components/schemas/resource_task/properties/deleted_at'
-                      start_date:
-                        $ref: '#/components/schemas/resource_task/properties/start_date'
-                      todo_count:
-                        $ref: '#/components/schemas/resource_task/properties/todo_count'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_task/properties/updated_at'
-                      booked_time:
-                        $ref: '#/components/schemas/resource_task/properties/booked_time'
-                      task_number:
-                        $ref: '#/components/schemas/resource_task/properties/task_number'
-                      worked_time:
-                        $ref: '#/components/schemas/resource_task/properties/worked_time'
-                      billable_time:
-                        $ref: '#/components/schemas/resource_task/properties/billable_time'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_task/properties/custom_fields'
-                      subtask_count:
-                        $ref: '#/components/schemas/resource_task/properties/subtask_count'
-                      bookings_count:
-                        $ref: '#/components/schemas/resource_task/properties/bookings_count'
-                      remaining_time:
-                        $ref: '#/components/schemas/resource_task/properties/remaining_time'
-                      repeat_on_date:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_on_date'
-                      open_todo_count:
-                        $ref: '#/components/schemas/resource_task/properties/open_todo_count'
-                      initial_estimate:
-                        $ref: '#/components/schemas/resource_task/properties/initial_estimate'
-                      last_activity_at:
-                        $ref: '#/components/schemas/resource_task/properties/last_activity_at'
-                      repeat_origin_id:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_origin_id'
-                      repeat_on_weekday:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_on_weekday'
-                      subtask_placement:
-                        $ref: '#/components/schemas/resource_task/properties/subtask_placement'
-                      todo_assignee_ids:
-                        $ref: '#/components/schemas/resource_task/properties/todo_assignee_ids'
-                      creation_method_id:
-                        $ref: '#/components/schemas/resource_task/properties/creation_method_id'
-                      future_booked_time:
-                        $ref: '#/components/schemas/resource_task/properties/future_booked_time'
-                      open_subtask_count:
-                        $ref: '#/components/schemas/resource_task/properties/open_subtask_count'
-                      repeat_on_interval:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_on_interval'
-                      repeat_on_monthday:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_on_monthday'
-                      repeat_schedule_id:
-                        $ref: '#/components/schemas/resource_task/properties/repeat_schedule_id'
-                      task_dependency_count:
-                        $ref: '#/components/schemas/resource_task/properties/task_dependency_count'
-                      linked_dependency_count:
-                        $ref: '#/components/schemas/resource_task/properties/linked_dependency_count'
-                      blocking_dependency_count:
-                        $ref: '#/components/schemas/resource_task/properties/blocking_dependency_count'
-                      waiting_on_dependency_count:
-                        $ref: '#/components/schemas/resource_task/properties/waiting_on_dependency_count'
                   relationships:
                     type: object
+                    description: Task relationships.
                     properties:
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
                       service:
                         $ref: '#/components/schemas/_single_relationship'
-                      assignee:
-                        $ref: '#/components/schemas/_single_relationship'
-                      task_list:
+                      creator:
                         $ref: '#/components/schemas/_single_relationship'
                       last_actor:
                         $ref: '#/components/schemas/_single_relationship'
-                      attachments:
+                      custom_field_people:
                         $ref: '#/components/schemas/_collection_relationship'
-                      parent_task:
+                      workflow_status:
                         $ref: '#/components/schemas/_single_relationship'
-                      organization:
+                      project:
                         $ref: '#/components/schemas/_single_relationship'
                       repeated_task:
                         $ref: '#/components/schemas/_single_relationship'
+                      assignee:
+                        $ref: '#/components/schemas/_single_relationship'
                       template_object:
                         $ref: '#/components/schemas/_single_relationship'
-                      workflow_status:
+                      organization:
                         $ref: '#/components/schemas/_single_relationship'
-                      custom_field_people:
+                      parent_task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task_list:
+                        $ref: '#/components/schemas/_single_relationship'
+                      attachments:
                         $ref: '#/components/schemas/_collection_relationship'
                       custom_field_attachments:
                         $ref: '#/components/schemas/_collection_relationship'
+                    example:
+                      eq: value
+                  attributes:
+                    type: object
+                    description: Task attributes.
+                    properties:
+                      future_booked_time:
+                        $ref: '#/components/schemas/resource_task/properties/future_booked_time'
+                      repeat_on_monthday:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_on_monthday'
+                      bookings_count:
+                        $ref: '#/components/schemas/resource_task/properties/bookings_count'
+                      worked_time:
+                        $ref: '#/components/schemas/resource_task/properties/worked_time'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_task/properties/tag_list'
+                      repeat_schedule_id:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_schedule_id'
+                      closed:
+                        $ref: '#/components/schemas/resource_task/properties/closed'
+                      repeat_on_interval:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_on_interval'
+                      task_number:
+                        $ref: '#/components/schemas/resource_task/properties/task_number'
+                      created_at:
+                        $ref: '#/components/schemas/resource_task/properties/created_at'
+                      number:
+                        $ref: '#/components/schemas/resource_task/properties/number'
+                      linked_dependency_count:
+                        $ref: '#/components/schemas/resource_task/properties/linked_dependency_count'
+                      open_subtask_count:
+                        $ref: '#/components/schemas/resource_task/properties/open_subtask_count'
+                      placement:
+                        $ref: '#/components/schemas/resource_task/properties/placement'
+                      waiting_on_dependency_count:
+                        $ref: '#/components/schemas/resource_task/properties/waiting_on_dependency_count'
+                      blocking_dependency_count:
+                        $ref: '#/components/schemas/resource_task/properties/blocking_dependency_count'
+                      booked_time:
+                        $ref: '#/components/schemas/resource_task/properties/booked_time'
+                      title:
+                        $ref: '#/components/schemas/resource_task/properties/title'
+                      closed_at:
+                        $ref: '#/components/schemas/resource_task/properties/closed_at'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_task/properties/last_activity_at'
+                      remaining_time:
+                        $ref: '#/components/schemas/resource_task/properties/remaining_time'
+                      creation_method_id:
+                        $ref: '#/components/schemas/resource_task/properties/creation_method_id'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_task/properties/custom_fields'
+                      due_time:
+                        $ref: '#/components/schemas/resource_task/properties/due_time'
+                      repeat_on_weekday:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_on_weekday'
+                      repeat_origin_id:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_origin_id'
+                      task_dependency_count:
+                        $ref: '#/components/schemas/resource_task/properties/task_dependency_count'
+                      email_key:
+                        $ref: '#/components/schemas/resource_task/properties/email_key'
+                      billable_time:
+                        $ref: '#/components/schemas/resource_task/properties/billable_time'
+                      start_date:
+                        $ref: '#/components/schemas/resource_task/properties/start_date'
+                      deleted_at:
+                        $ref: '#/components/schemas/resource_task/properties/deleted_at'
+                      due_date:
+                        $ref: '#/components/schemas/resource_task/properties/due_date'
+                      todo_count:
+                        $ref: '#/components/schemas/resource_task/properties/todo_count'
+                      subtask_count:
+                        $ref: '#/components/schemas/resource_task/properties/subtask_count'
+                      type_id:
+                        $ref: '#/components/schemas/resource_task/properties/type_id'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_task/properties/updated_at'
+                      subtask_placement:
+                        $ref: '#/components/schemas/resource_task/properties/subtask_placement'
+                      initial_estimate:
+                        $ref: '#/components/schemas/resource_task/properties/initial_estimate'
+                      repeat_on_date:
+                        $ref: '#/components/schemas/resource_task/properties/repeat_on_date'
+                      todo_assignee_ids:
+                        $ref: '#/components/schemas/resource_task/properties/todo_assignee_ids'
+                      open_todo_count:
+                        $ref: '#/components/schemas/resource_task/properties/open_todo_count'
+                      private:
+                        $ref: '#/components/schemas/resource_task/properties/private'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: Sideloaded related resources.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '120501'
+                type: tasks
+                attributes:
+                  title: Implement user authentication
+                  description: Set up OAuth2 authentication with Google and GitHub providers
+                  number: '42'
+                  task_number: '42'
+                  private: false
+                  due_date: '2026-03-31'
+                  start_date: '2026-03-15'
+                  closed_at: null
+                  closed: false
+                  created_at: '2026-01-15T10:00:00.000+00:00'
+                  updated_at: '2026-03-10T14:30:00.000+00:00'
+                  email_key: 7a083181e1e5f5dc5c11920d72804716
+                  custom_fields: null
+                  todo_count: 3
+                  open_todo_count: 1
+                  subtask_count: 2
+                  open_subtask_count: 1
+                  task_dependency_count: 0
+                  type_id: 1
+                  blocking_dependency_count: 0
+                  waiting_on_dependency_count: 0
+                  linked_dependency_count: 0
+                  placement: 1000000
+                  subtask_placement: null
+                  tag_list:
+                    - backend
+                    - security
+                  last_activity_at: '2026-03-10T14:30:00.000+00:00'
+                  initial_estimate: 480
+                  remaining_time: 240
+                  billable_time: 120
+                  worked_time: 240
+                  deleted_at: null
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+                  creator:
+                    data:
+                      type: people
+                      id: '12'
+                  assignee:
+                    data:
+                      type: people
+                      id: '12'
+                  task_list:
+                    data:
+                      type: task_lists
+                      id: '14308'
+                  workflow_status:
+                    data:
+                      type: workflow_statuses
+                      id: '224'
+                  service:
+                    data: null
+                  parent_task:
+                    data: null
+              included: []
       description: Single task
     collection_task:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of task records in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: array
                 items:
                   type: object
+                  description: A task resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Task attributes.
                       properties:
-                        title:
-                          $ref: '#/components/schemas/resource_task/properties/title'
-                        closed:
-                          $ref: '#/components/schemas/resource_task/properties/closed'
-                        number:
-                          $ref: '#/components/schemas/resource_task/properties/number'
-                        private:
-                          $ref: '#/components/schemas/resource_task/properties/private'
-                        type_id:
-                          $ref: '#/components/schemas/resource_task/properties/type_id'
-                        due_date:
-                          $ref: '#/components/schemas/resource_task/properties/due_date'
-                        due_time:
-                          $ref: '#/components/schemas/resource_task/properties/due_time'
-                        tag_list:
-                          $ref: '#/components/schemas/resource_task/properties/tag_list'
-                        closed_at:
-                          $ref: '#/components/schemas/resource_task/properties/closed_at'
-                        email_key:
-                          $ref: '#/components/schemas/resource_task/properties/email_key'
-                        placement:
-                          $ref: '#/components/schemas/resource_task/properties/placement'
-                        created_at:
-                          $ref: '#/components/schemas/resource_task/properties/created_at'
-                        deleted_at:
-                          $ref: '#/components/schemas/resource_task/properties/deleted_at'
-                        start_date:
-                          $ref: '#/components/schemas/resource_task/properties/start_date'
-                        todo_count:
-                          $ref: '#/components/schemas/resource_task/properties/todo_count'
                         updated_at:
                           $ref: '#/components/schemas/resource_task/properties/updated_at'
-                        booked_time:
-                          $ref: '#/components/schemas/resource_task/properties/booked_time'
-                        task_number:
-                          $ref: '#/components/schemas/resource_task/properties/task_number'
-                        worked_time:
-                          $ref: '#/components/schemas/resource_task/properties/worked_time'
-                        billable_time:
-                          $ref: '#/components/schemas/resource_task/properties/billable_time'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_task/properties/custom_fields'
-                        subtask_count:
-                          $ref: '#/components/schemas/resource_task/properties/subtask_count'
-                        bookings_count:
-                          $ref: '#/components/schemas/resource_task/properties/bookings_count'
-                        remaining_time:
-                          $ref: '#/components/schemas/resource_task/properties/remaining_time'
-                        repeat_on_date:
-                          $ref: '#/components/schemas/resource_task/properties/repeat_on_date'
-                        open_todo_count:
-                          $ref: '#/components/schemas/resource_task/properties/open_todo_count'
-                        initial_estimate:
-                          $ref: '#/components/schemas/resource_task/properties/initial_estimate'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_task/properties/last_activity_at'
-                        repeat_origin_id:
-                          $ref: '#/components/schemas/resource_task/properties/repeat_origin_id'
-                        repeat_on_weekday:
-                          $ref: '#/components/schemas/resource_task/properties/repeat_on_weekday'
-                        subtask_placement:
-                          $ref: '#/components/schemas/resource_task/properties/subtask_placement'
-                        todo_assignee_ids:
-                          $ref: '#/components/schemas/resource_task/properties/todo_assignee_ids'
+                        created_at:
+                          $ref: '#/components/schemas/resource_task/properties/created_at'
                         creation_method_id:
                           $ref: '#/components/schemas/resource_task/properties/creation_method_id'
-                        future_booked_time:
-                          $ref: '#/components/schemas/resource_task/properties/future_booked_time'
-                        open_subtask_count:
-                          $ref: '#/components/schemas/resource_task/properties/open_subtask_count'
+                        initial_estimate:
+                          $ref: '#/components/schemas/resource_task/properties/initial_estimate'
+                        booked_time:
+                          $ref: '#/components/schemas/resource_task/properties/booked_time'
+                        email_key:
+                          $ref: '#/components/schemas/resource_task/properties/email_key'
                         repeat_on_interval:
                           $ref: '#/components/schemas/resource_task/properties/repeat_on_interval'
+                        open_subtask_count:
+                          $ref: '#/components/schemas/resource_task/properties/open_subtask_count'
+                        open_todo_count:
+                          $ref: '#/components/schemas/resource_task/properties/open_todo_count'
+                        todo_count:
+                          $ref: '#/components/schemas/resource_task/properties/todo_count'
+                        repeat_origin_id:
+                          $ref: '#/components/schemas/resource_task/properties/repeat_origin_id'
+                        deleted_at:
+                          $ref: '#/components/schemas/resource_task/properties/deleted_at'
+                        number:
+                          $ref: '#/components/schemas/resource_task/properties/number'
                         repeat_on_monthday:
                           $ref: '#/components/schemas/resource_task/properties/repeat_on_monthday'
-                        repeat_schedule_id:
-                          $ref: '#/components/schemas/resource_task/properties/repeat_schedule_id'
-                        task_dependency_count:
-                          $ref: '#/components/schemas/resource_task/properties/task_dependency_count'
+                        bookings_count:
+                          $ref: '#/components/schemas/resource_task/properties/bookings_count'
+                        closed_at:
+                          $ref: '#/components/schemas/resource_task/properties/closed_at'
                         linked_dependency_count:
                           $ref: '#/components/schemas/resource_task/properties/linked_dependency_count'
+                        repeat_on_date:
+                          $ref: '#/components/schemas/resource_task/properties/repeat_on_date'
+                        tag_list:
+                          $ref: '#/components/schemas/resource_task/properties/tag_list'
+                        private:
+                          $ref: '#/components/schemas/resource_task/properties/private'
                         blocking_dependency_count:
                           $ref: '#/components/schemas/resource_task/properties/blocking_dependency_count'
+                        subtask_count:
+                          $ref: '#/components/schemas/resource_task/properties/subtask_count'
                         waiting_on_dependency_count:
                           $ref: '#/components/schemas/resource_task/properties/waiting_on_dependency_count'
+                        start_date:
+                          $ref: '#/components/schemas/resource_task/properties/start_date'
+                        task_number:
+                          $ref: '#/components/schemas/resource_task/properties/task_number'
+                        type_id:
+                          $ref: '#/components/schemas/resource_task/properties/type_id'
+                        billable_time:
+                          $ref: '#/components/schemas/resource_task/properties/billable_time'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_task/properties/last_activity_at'
+                        worked_time:
+                          $ref: '#/components/schemas/resource_task/properties/worked_time'
+                        due_date:
+                          $ref: '#/components/schemas/resource_task/properties/due_date'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_task/properties/custom_fields'
+                        placement:
+                          $ref: '#/components/schemas/resource_task/properties/placement'
+                        repeat_on_weekday:
+                          $ref: '#/components/schemas/resource_task/properties/repeat_on_weekday'
+                        due_time:
+                          $ref: '#/components/schemas/resource_task/properties/due_time'
+                        future_booked_time:
+                          $ref: '#/components/schemas/resource_task/properties/future_booked_time'
+                        title:
+                          $ref: '#/components/schemas/resource_task/properties/title'
+                        remaining_time:
+                          $ref: '#/components/schemas/resource_task/properties/remaining_time'
+                        todo_assignee_ids:
+                          $ref: '#/components/schemas/resource_task/properties/todo_assignee_ids'
+                        task_dependency_count:
+                          $ref: '#/components/schemas/resource_task/properties/task_dependency_count'
+                        closed:
+                          $ref: '#/components/schemas/resource_task/properties/closed'
+                        repeat_schedule_id:
+                          $ref: '#/components/schemas/resource_task/properties/repeat_schedule_id'
+                        subtask_placement:
+                          $ref: '#/components/schemas/resource_task/properties/subtask_placement'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Task relationships.
                       properties:
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service:
-                          $ref: '#/components/schemas/_single_relationship'
-                        assignee:
-                          $ref: '#/components/schemas/_single_relationship'
-                        task_list:
-                          $ref: '#/components/schemas/_single_relationship'
-                        last_actor:
-                          $ref: '#/components/schemas/_single_relationship'
                         attachments:
                           $ref: '#/components/schemas/_collection_relationship'
-                        parent_task:
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        service:
                           $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
-                        repeated_task:
-                          $ref: '#/components/schemas/_single_relationship'
                         template_object:
+                          $ref: '#/components/schemas/_single_relationship'
+                        repeated_task:
                           $ref: '#/components/schemas/_single_relationship'
                         workflow_status:
                           $ref: '#/components/schemas/_single_relationship'
                         custom_field_people:
                           $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                        last_actor:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        task_list:
+                          $ref: '#/components/schemas/_single_relationship'
+                        parent_task:
+                          $ref: '#/components/schemas/_single_relationship'
+                        assignee:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: A task resource object.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: Sideloaded related resources.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '120501'
+                  type: tasks
+                  attributes:
+                    title: Implement user authentication
+                    description: Set up OAuth2 authentication with Google and GitHub providers
+                    number: '42'
+                    task_number: '42'
+                    private: false
+                    due_date: '2026-03-31'
+                    start_date: '2026-03-15'
+                    closed_at: null
+                    closed: false
+                    created_at: '2026-01-15T10:00:00.000+00:00'
+                    updated_at: '2026-03-10T14:30:00.000+00:00'
+                    email_key: 7a083181e1e5f5dc5c11920d72804716
+                    custom_fields: null
+                    todo_count: 3
+                    open_todo_count: 1
+                    subtask_count: 2
+                    open_subtask_count: 1
+                    task_dependency_count: 0
+                    type_id: 1
+                    blocking_dependency_count: 0
+                    waiting_on_dependency_count: 0
+                    linked_dependency_count: 0
+                    placement: 1000000
+                    subtask_placement: null
+                    tag_list:
+                      - backend
+                      - security
+                    last_activity_at: '2026-03-10T14:30:00.000+00:00'
+                    initial_estimate: 480
+                    remaining_time: 240
+                    billable_time: 120
+                    worked_time: 240
+                    deleted_at: null
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+                    creator:
+                      data:
+                        type: people
+                        id: '12'
+                    assignee:
+                      data:
+                        type: people
+                        id: '12'
+                    task_list:
+                      data:
+                        type: task_lists
+                        id: '14308'
+                    workflow_status:
+                      data:
+                        type: workflow_statuses
+                        id: '224'
+                    service:
+                      data: null
+                    parent_task:
+                      data: null
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection task
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -1360,107 +1639,17 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
     resource_task:
       type: object
       title: Task Resource
+      description: An assignable work item within a project. Tasks progress through workflow statuses, can have subtasks, belong to task lists and folders, and link to services for time tracking and billing.
       properties:
-        last_activity_before:
-          type: string
-          title: Last Activity Before
-          format: date
-          description: Return tasks with last activity before this date.
-          example:
-            eq: value
-        template_object:
-          title: Template Object
-          description: The template this task was created from, if applicable.
-          example:
-            eq: value
         closed:
           title: Closed
           description: Whether the task is closed (derived from closed_at).
@@ -1652,26 +1841,6 @@ components:
         project_name:
           title: Project Name
           description: The name of the project this task belongs to.
-          example:
-            eq: value
-        repeat_on_date:
-          type: string
-          title: Repeat On Date
-          format: date
-          description: Specific date for date-based recurring tasks.
-          example:
-            gt: '2026-01-01'
-        attachment_ids:
-          title: Attachment Ids
-          description: Files attached to this task.
-          example:
-            - 123
-            - 456
-        date_range:
-          type: string
-          title: Date Range
-          format: date
-          description: Filter tasks overlapping a date range (for timeline/Gantt views).
           example:
             eq: value
         full_query:
@@ -2240,6 +2409,33 @@ components:
           description: 'Filter by status category: not started (1), started (2), or closed (3).'
           example:
             - 123
+        last_activity_before:
+          type: string
+          title: Last Activity Before
+          format: date
+          description: Return tasks with last activity before this date.
+          example:
+            eq: value
+        repeat_on_date:
+          type: string
+          title: Repeat On Date
+          format: date
+          description: Specific date for date-based recurring tasks.
+          example:
+            gt: '2026-01-01'
+        attachment_ids:
+          title: Attachment Ids
+          description: Files attached to this task.
+          example:
+            - 123
+            - 456
+        date_range:
+          type: string
+          title: Date Range
+          format: date
+          description: Filter tasks overlapping a date range (for timeline/Gantt views).
+          example:
+            eq: value
         workflow_status:
           title: Workflow Status
           description: Current workflow status of this task (e.g. 'To Do', 'In Progress', 'Done').
@@ -2259,7 +2455,11 @@ components:
           description: Filter by the project's responsible person.
           example:
             - 123
-      description: An assignable work item within a project. Tasks progress through workflow statuses, can have subtasks, belong to task lists and folders, and link to services for time tracking and billing.
+        template_object:
+          title: Template Object
+          description: The template this task was created from, if applicable.
+          example:
+            eq: value
       example:
         id: '120501'
         type: tasks
@@ -2322,3 +2522,81 @@ components:
             data: null
           parent_task:
             data: null
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'

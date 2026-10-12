@@ -299,19 +299,25 @@ paths:
       tags:
         - Bookings
       summary: Get bookings
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_booking'
+      operationId: bookings-index
+      description: List bookings with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_booking'
         - $ref: '#/components/parameters/sort_booking'
-      operationId: bookings-index
-      description: List bookings with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_booking'
     post:
       tags:
         - Bookings
       summary: Create a booking
+      operationId: bookings-create
+      description: Create a new booking.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/booking'
       responses:
         '201':
           $ref: '#/components/responses/single_booking'
@@ -339,20 +345,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: bookings-create
-      requestBody:
-        $ref: '#/components/requestBodies/booking'
-      description: Create a new booking.
   /api/v2/bookings/{id}:
     get:
       tags:
         - Bookings
       summary: Gets a booking
-      responses:
-        '200':
-          $ref: '#/components/responses/single_booking'
+      operationId: bookings-show
+      description: Retrieve a single booking by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -361,12 +360,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: bookings-show
-      description: Retrieve a single booking by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_booking'
     patch:
       tags:
         - Bookings
       summary: Update a booking
+      operationId: bookings-update
+      description: Update a booking.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/booking'
       responses:
         '200':
           $ref: '#/components/responses/single_booking'
@@ -378,25 +390,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: bookings-update
-      requestBody:
-        $ref: '#/components/requestBodies/booking'
-      description: Update a booking.
     delete:
       tags:
         - Bookings
       summary: Deletes a booking
-      responses:
-        '204':
-          description: No Content
+      operationId: bookings-destroy
+      description: Delete a booking.
       parameters:
         - in: path
           name: id
@@ -405,8 +404,9 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: bookings-destroy
-      description: Delete a booking.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -444,80 +444,392 @@ components:
         description: Filter keys and their operators are listed under x-filters.booking at the top of this file.
       required: false
       description: Filters
-  requestBodies:
-    booking:
+  responses:
+    single_booking:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single booking record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned booking resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Booking relationships.
+                    properties:
+                      origin:
+                        $ref: '#/components/schemas/_single_relationship'
+                      service:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      rejecter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      event:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      scenario_item:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approver:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approval_statuses:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      canceler:
+                        $ref: '#/components/schemas/_single_relationship'
+                      resource_request:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
-                    required:
-                      - person_id
-                      - started_on
-                      - ended_on
+                    description: Booking attributes.
                     properties:
-                      note:
-                        $ref: '#/components/schemas/resource_booking/properties/note'
-                      time:
-                        $ref: '#/components/schemas/resource_booking/properties/time'
                       draft:
                         $ref: '#/components/schemas/resource_booking/properties/draft'
-                      task_id:
-                        $ref: '#/components/schemas/resource_booking/properties/task_id'
-                      ended_on:
-                        $ref: '#/components/schemas/resource_booking/properties/ended_on'
-                      event_id:
-                        $ref: '#/components/schemas/resource_booking/properties/event_id'
-                      origin_id:
-                        $ref: '#/components/schemas/resource_booking/properties/origin_id'
-                      person_id:
-                        $ref: '#/components/schemas/resource_booking/properties/person_id'
-                      percentage:
-                        $ref: '#/components/schemas/resource_booking/properties/percentage'
-                      service_id:
-                        $ref: '#/components/schemas/resource_booking/properties/service_id'
-                      started_on:
-                        $ref: '#/components/schemas/resource_booking/properties/started_on'
-                      total_time:
-                        $ref: '#/components/schemas/resource_booking/properties/total_time'
-                      approver_id:
-                        $ref: '#/components/schemas/resource_booking/properties/approver_id'
-                      autotracking:
-                        $ref: '#/components/schemas/resource_booking/properties/autotracking'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_booking/properties/custom_fields'
-                      attachment_ids:
-                        $ref: '#/components/schemas/resource_booking/properties/attachment_ids'
+                      hours:
+                        $ref: '#/components/schemas/resource_booking/properties/hours'
+                      stage_type:
+                        $ref: '#/components/schemas/resource_booking/properties/stage_type'
                       rejected_reason:
                         $ref: '#/components/schemas/resource_booking/properties/rejected_reason'
+                      percentage:
+                        $ref: '#/components/schemas/resource_booking/properties/percentage'
+                      autotracking:
+                        $ref: '#/components/schemas/resource_booking/properties/autotracking'
+                      canceled_at:
+                        $ref: '#/components/schemas/resource_booking/properties/canceled_at'
+                      time:
+                        $ref: '#/components/schemas/resource_booking/properties/time'
+                      note:
+                        $ref: '#/components/schemas/resource_booking/properties/note'
+                      approved_at:
+                        $ref: '#/components/schemas/resource_booking/properties/approved_at'
+                      people_custom_fields:
+                        $ref: '#/components/schemas/resource_booking/properties/people_custom_fields'
+                      rejected_at:
+                        $ref: '#/components/schemas/resource_booking/properties/rejected_at'
+                      approved:
+                        $ref: '#/components/schemas/resource_booking/properties/approved'
                       booking_method_id:
                         $ref: '#/components/schemas/resource_booking/properties/booking_method_id'
-                      resource_request_id:
-                        $ref: '#/components/schemas/resource_booking/properties/resource_request_id'
-                      use_salary_currency:
-                        $ref: '#/components/schemas/resource_booking/properties/use_salary_currency'
-      description: Request body for creating or updating a booking.
+                      rejected:
+                        $ref: '#/components/schemas/resource_booking/properties/rejected'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_booking/properties/updated_at'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_booking/properties/last_activity_at'
+                      started_on:
+                        $ref: '#/components/schemas/resource_booking/properties/started_on'
+                      ended_on:
+                        $ref: '#/components/schemas/resource_booking/properties/ended_on'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_booking/properties/custom_fields'
+                      total_working_days:
+                        $ref: '#/components/schemas/resource_booking/properties/total_working_days'
+                      external_id:
+                        $ref: '#/components/schemas/resource_booking/properties/external_id'
+                      created_at:
+                        $ref: '#/components/schemas/resource_booking/properties/created_at'
+                      total_time:
+                        $ref: '#/components/schemas/resource_booking/properties/total_time'
+                      canceled:
+                        $ref: '#/components/schemas/resource_booking/properties/canceled'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '1594'
+                type: bookings
+                attributes:
+                  hours: 8
+                  time: 480
+                  started_on: '2026-03-17'
+                  ended_on: '2026-03-21'
+                  total_time: 2400
+                  total_working_days: 5
+                  percentage: null
+                  note: null
+                  created_at: '2026-03-01T09:00:00.000+00:00'
+                  updated_at: '2026-03-01T09:00:00.000+00:00'
+                  people_custom_fields: {}
+                  approved: false
+                  approved_at: null
+                  rejected: false
+                  rejected_reason: null
+                  rejected_at: null
+                  canceled: false
+                  canceled_at: null
+                  booking_method_id: 1
+                  autotracking: false
+                  draft: false
+                  custom_fields: null
+                  last_activity_at: '2026-03-01T09:00:00.000+00:00'
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+                  event:
+                    data: null
+                  task:
+                    data: null
+              included: []
+      description: Single booking
+    collection_booking:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of booking records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A booking resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Booking attributes.
+                      properties:
+                        note:
+                          $ref: '#/components/schemas/resource_booking/properties/note'
+                        approved:
+                          $ref: '#/components/schemas/resource_booking/properties/approved'
+                        draft:
+                          $ref: '#/components/schemas/resource_booking/properties/draft'
+                        time:
+                          $ref: '#/components/schemas/resource_booking/properties/time'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_booking/properties/updated_at'
+                        canceled:
+                          $ref: '#/components/schemas/resource_booking/properties/canceled'
+                        created_at:
+                          $ref: '#/components/schemas/resource_booking/properties/created_at'
+                        rejected_reason:
+                          $ref: '#/components/schemas/resource_booking/properties/rejected_reason'
+                        total_time:
+                          $ref: '#/components/schemas/resource_booking/properties/total_time'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_booking/properties/last_activity_at'
+                        people_custom_fields:
+                          $ref: '#/components/schemas/resource_booking/properties/people_custom_fields'
+                        canceled_at:
+                          $ref: '#/components/schemas/resource_booking/properties/canceled_at'
+                        external_id:
+                          $ref: '#/components/schemas/resource_booking/properties/external_id'
+                        total_working_days:
+                          $ref: '#/components/schemas/resource_booking/properties/total_working_days'
+                        stage_type:
+                          $ref: '#/components/schemas/resource_booking/properties/stage_type'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_booking/properties/custom_fields'
+                        started_on:
+                          $ref: '#/components/schemas/resource_booking/properties/started_on'
+                        booking_method_id:
+                          $ref: '#/components/schemas/resource_booking/properties/booking_method_id'
+                        percentage:
+                          $ref: '#/components/schemas/resource_booking/properties/percentage'
+                        rejected_at:
+                          $ref: '#/components/schemas/resource_booking/properties/rejected_at'
+                        autotracking:
+                          $ref: '#/components/schemas/resource_booking/properties/autotracking'
+                        approved_at:
+                          $ref: '#/components/schemas/resource_booking/properties/approved_at'
+                        hours:
+                          $ref: '#/components/schemas/resource_booking/properties/hours'
+                        rejected:
+                          $ref: '#/components/schemas/resource_booking/properties/rejected'
+                        ended_on:
+                          $ref: '#/components/schemas/resource_booking/properties/ended_on'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Booking relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        canceler:
+                          $ref: '#/components/schemas/_single_relationship'
+                        resource_request:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        origin:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        task:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        approval_statuses:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        rejecter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        scenario_item:
+                          $ref: '#/components/schemas/_single_relationship'
+                        event:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                        approver:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of booking resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '1594'
+                  type: bookings
+                  attributes:
+                    hours: 8
+                    time: 480
+                    started_on: '2026-03-17'
+                    ended_on: '2026-03-21'
+                    total_time: 2400
+                    total_working_days: 5
+                    percentage: null
+                    note: null
+                    created_at: '2026-03-01T09:00:00.000+00:00'
+                    updated_at: '2026-03-01T09:00:00.000+00:00'
+                    people_custom_fields: {}
+                    approved: false
+                    approved_at: null
+                    rejected: false
+                    rejected_reason: null
+                    rejected_at: null
+                    canceled: false
+                    canceled_at: null
+                    booking_method_id: 1
+                    autotracking: false
+                    draft: false
+                    custom_fields: null
+                    last_activity_at: '2026-03-01T09:00:00.000+00:00'
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    service:
+                      data:
+                        type: services
+                        id: '1856422'
+                    event:
+                      data: null
+                    task:
+                      data: null
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection booking
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_booking:
       type: object
       title: Booking Resource
+      description: A booking represents planned work or an absence scheduled for a person, linked to a service or absence category.
       properties:
-        resource_request_id:
-          type: integer
-          title: Resource Request
-          description: ID of the resource request this booking fulfills.
-          example:
-            - 123
-        canceler:
-          title: Canceler
-          description: The person who canceled this booking.
-          example:
-            eq: value
         created_at:
           type: string
           title: Created At
@@ -918,7 +1230,17 @@ components:
           description: The ID of the person who approved this booking.
           example:
             - 123
-      description: A booking represents planned work or an absence scheduled for a person, linked to a service or absence category.
+        resource_request_id:
+          type: integer
+          title: Resource Request
+          description: ID of the resource request this booking fulfills.
+          example:
+            - 123
+        canceler:
+          title: Canceler
+          description: The person who canceled this booking.
+          example:
+            eq: value
       example:
         id: '1594'
         type: bookings
@@ -959,117 +1281,15 @@ components:
             data: null
           task:
             data: null
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -1079,216 +1299,144 @@ components:
         data:
           type: tasks
           id: '42'
-  responses:
-    single_booking:
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+  requestBodies:
+    booking:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a booking.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the booking resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Booking attributes.
                     properties:
-                      note:
-                        $ref: '#/components/schemas/resource_booking/properties/note'
-                      time:
-                        $ref: '#/components/schemas/resource_booking/properties/time'
-                      draft:
-                        $ref: '#/components/schemas/resource_booking/properties/draft'
-                      hours:
-                        $ref: '#/components/schemas/resource_booking/properties/hours'
-                      approved:
-                        $ref: '#/components/schemas/resource_booking/properties/approved'
-                      canceled:
-                        $ref: '#/components/schemas/resource_booking/properties/canceled'
-                      ended_on:
-                        $ref: '#/components/schemas/resource_booking/properties/ended_on'
-                      rejected:
-                        $ref: '#/components/schemas/resource_booking/properties/rejected'
-                      created_at:
-                        $ref: '#/components/schemas/resource_booking/properties/created_at'
-                      percentage:
-                        $ref: '#/components/schemas/resource_booking/properties/percentage'
-                      stage_type:
-                        $ref: '#/components/schemas/resource_booking/properties/stage_type'
-                      started_on:
-                        $ref: '#/components/schemas/resource_booking/properties/started_on'
-                      total_time:
-                        $ref: '#/components/schemas/resource_booking/properties/total_time'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_booking/properties/updated_at'
-                      approved_at:
-                        $ref: '#/components/schemas/resource_booking/properties/approved_at'
-                      canceled_at:
-                        $ref: '#/components/schemas/resource_booking/properties/canceled_at'
-                      external_id:
-                        $ref: '#/components/schemas/resource_booking/properties/external_id'
-                      rejected_at:
-                        $ref: '#/components/schemas/resource_booking/properties/rejected_at'
-                      autotracking:
-                        $ref: '#/components/schemas/resource_booking/properties/autotracking'
                       custom_fields:
                         $ref: '#/components/schemas/resource_booking/properties/custom_fields'
+                      total_time:
+                        $ref: '#/components/schemas/resource_booking/properties/total_time'
+                      origin_id:
+                        $ref: '#/components/schemas/resource_booking/properties/origin_id'
+                      percentage:
+                        $ref: '#/components/schemas/resource_booking/properties/percentage'
+                      person_id:
+                        $ref: '#/components/schemas/resource_booking/properties/person_id'
                       rejected_reason:
                         $ref: '#/components/schemas/resource_booking/properties/rejected_reason'
-                      last_activity_at:
-                        $ref: '#/components/schemas/resource_booking/properties/last_activity_at'
+                      ended_on:
+                        $ref: '#/components/schemas/resource_booking/properties/ended_on'
                       booking_method_id:
                         $ref: '#/components/schemas/resource_booking/properties/booking_method_id'
-                      total_working_days:
-                        $ref: '#/components/schemas/resource_booking/properties/total_working_days'
-                      people_custom_fields:
-                        $ref: '#/components/schemas/resource_booking/properties/people_custom_fields'
-                  relationships:
-                    type: object
-                    properties:
-                      task:
-                        $ref: '#/components/schemas/_single_relationship'
-                      event:
-                        $ref: '#/components/schemas/_single_relationship'
-                      origin:
-                        $ref: '#/components/schemas/_single_relationship'
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      service:
-                        $ref: '#/components/schemas/_single_relationship'
-                      updater:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approver:
-                        $ref: '#/components/schemas/_single_relationship'
-                      canceler:
-                        $ref: '#/components/schemas/_single_relationship'
-                      rejecter:
-                        $ref: '#/components/schemas/_single_relationship'
-                      attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      scenario_item:
-                        $ref: '#/components/schemas/_single_relationship'
-                      resource_request:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approval_statuses:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      custom_field_attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single booking
-    collection_booking:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      autotracking:
+                        $ref: '#/components/schemas/resource_booking/properties/autotracking'
+                      time:
+                        $ref: '#/components/schemas/resource_booking/properties/time'
+                      task_id:
+                        $ref: '#/components/schemas/resource_booking/properties/task_id'
+                      resource_request_id:
+                        $ref: '#/components/schemas/resource_booking/properties/resource_request_id'
+                      approver_id:
+                        $ref: '#/components/schemas/resource_booking/properties/approver_id'
+                      draft:
+                        $ref: '#/components/schemas/resource_booking/properties/draft'
+                      use_salary_currency:
+                        $ref: '#/components/schemas/resource_booking/properties/use_salary_currency'
+                      service_id:
+                        $ref: '#/components/schemas/resource_booking/properties/service_id'
+                      event_id:
+                        $ref: '#/components/schemas/resource_booking/properties/event_id'
+                      attachment_ids:
+                        $ref: '#/components/schemas/resource_booking/properties/attachment_ids'
+                      started_on:
+                        $ref: '#/components/schemas/resource_booking/properties/started_on'
+                      note:
+                        $ref: '#/components/schemas/resource_booking/properties/note'
+                    required:
+                      - person_id
+                      - started_on
+                      - ended_on
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        note:
-                          $ref: '#/components/schemas/resource_booking/properties/note'
-                        time:
-                          $ref: '#/components/schemas/resource_booking/properties/time'
-                        draft:
-                          $ref: '#/components/schemas/resource_booking/properties/draft'
-                        hours:
-                          $ref: '#/components/schemas/resource_booking/properties/hours'
-                        approved:
-                          $ref: '#/components/schemas/resource_booking/properties/approved'
-                        canceled:
-                          $ref: '#/components/schemas/resource_booking/properties/canceled'
-                        ended_on:
-                          $ref: '#/components/schemas/resource_booking/properties/ended_on'
-                        rejected:
-                          $ref: '#/components/schemas/resource_booking/properties/rejected'
-                        created_at:
-                          $ref: '#/components/schemas/resource_booking/properties/created_at'
-                        percentage:
-                          $ref: '#/components/schemas/resource_booking/properties/percentage'
-                        stage_type:
-                          $ref: '#/components/schemas/resource_booking/properties/stage_type'
-                        started_on:
-                          $ref: '#/components/schemas/resource_booking/properties/started_on'
-                        total_time:
-                          $ref: '#/components/schemas/resource_booking/properties/total_time'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_booking/properties/updated_at'
-                        approved_at:
-                          $ref: '#/components/schemas/resource_booking/properties/approved_at'
-                        canceled_at:
-                          $ref: '#/components/schemas/resource_booking/properties/canceled_at'
-                        external_id:
-                          $ref: '#/components/schemas/resource_booking/properties/external_id'
-                        rejected_at:
-                          $ref: '#/components/schemas/resource_booking/properties/rejected_at'
-                        autotracking:
-                          $ref: '#/components/schemas/resource_booking/properties/autotracking'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_booking/properties/custom_fields'
-                        rejected_reason:
-                          $ref: '#/components/schemas/resource_booking/properties/rejected_reason'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_booking/properties/last_activity_at'
-                        booking_method_id:
-                          $ref: '#/components/schemas/resource_booking/properties/booking_method_id'
-                        total_working_days:
-                          $ref: '#/components/schemas/resource_booking/properties/total_working_days'
-                        people_custom_fields:
-                          $ref: '#/components/schemas/resource_booking/properties/people_custom_fields'
-                    relationships:
-                      type: object
-                      properties:
-                        task:
-                          $ref: '#/components/schemas/_single_relationship'
-                        event:
-                          $ref: '#/components/schemas/_single_relationship'
-                        origin:
-                          $ref: '#/components/schemas/_single_relationship'
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service:
-                          $ref: '#/components/schemas/_single_relationship'
-                        updater:
-                          $ref: '#/components/schemas/_single_relationship'
-                        approver:
-                          $ref: '#/components/schemas/_single_relationship'
-                        canceler:
-                          $ref: '#/components/schemas/_single_relationship'
-                        rejecter:
-                          $ref: '#/components/schemas/_single_relationship'
-                        attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        scenario_item:
-                          $ref: '#/components/schemas/_single_relationship'
-                        resource_request:
-                          $ref: '#/components/schemas/_single_relationship'
-                        approval_statuses:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection booking
+                type: bookings
+                attributes:
+                  hours: 8
+                  started_on: '2026-03-17'
+                  ended_on: '2026-03-21'
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+      description: Request body for creating or updating a booking.

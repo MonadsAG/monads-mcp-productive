@@ -12,6 +12,12 @@ paths:
       tags:
         - Invitations
       summary: Create an invitation
+      operationId: invitations-create
+      description: Create a new invitation.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/invitation'
       responses:
         '201':
           $ref: '#/components/responses/single_invitation'
@@ -23,17 +29,21 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: invitations-create
-      requestBody:
-        $ref: '#/components/requestBodies/invitation'
-      description: Create a new invitation.
   /api/v2/invitations/{id}:
     get:
       tags:
         - Invitations
       summary: Get an invitation
+      operationId: invitations-show
+      description: Retrieve a single invitation.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_invitation'
@@ -45,20 +55,22 @@ paths:
               schema:
                 type: string
           description: Not Found
+    patch:
+      tags:
+        - Invitations
+      summary: Update an invitation
+      operationId: invitations-update
+      description: Accept an invitation.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: invitations-show
-      description: Retrieve a single invitation.
-    patch:
-      tags:
-        - Invitations
-      summary: Update an invitation
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/invitation'
       responses:
         '200':
           $ref: '#/components/responses/single_invitation'
@@ -75,45 +87,110 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: invitations-update
-      requestBody:
-        $ref: '#/components/requestBodies/invitation'
-      description: Accept an invitation.
 components:
-  requestBodies:
-    invitation:
+  responses:
+    single_invitation:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single invitation record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned invitation resource.
                 properties:
+                  relationships:
+                    type: object
+                    properties: {}
+                    description: Invitation relationships.
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Invitation attributes.
                     properties:
-                      password:
-                        $ref: '#/components/schemas/resource_invitation/properties/password'
+                      email:
+                        $ref: '#/components/schemas/resource_invitation/properties/email'
                       last_name:
                         $ref: '#/components/schemas/resource_invitation/properties/last_name'
                       first_name:
                         $ref: '#/components/schemas/resource_invitation/properties/first_name'
-                      newsletter_consent:
-                        $ref: '#/components/schemas/resource_invitation/properties/newsletter_consent'
-      description: Request body for creating or updating an invitation.
+                      time_zone:
+                        $ref: '#/components/schemas/resource_invitation/properties/time_zone'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '56'
+                type: invitations
+                attributes:
+                  email: newdev@example.com
+                  first_name: Jordan
+                  last_name: Lee
+                  time_zone: Europe/London
+              included: []
+      description: Single invitation
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_invitation:
       type: object
       title: Invitation Resource
+      description: A pending user invitation to join a Productive organization, identified by an invitation token.
       properties:
         first_name:
           type: string
@@ -150,7 +227,6 @@ components:
           description: Whether the invited user consented to receive marketing emails.
           example:
             eq: value
-      description: A pending user invitation to join a Productive organization, identified by an invitation token.
       example:
         id: '123'
         type: invitations
@@ -160,48 +236,43 @@ components:
           status: pending
           sent_at: '2026-01-15T10:00:00Z'
         relationships: {}
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
+  requestBodies:
+    invitation:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating or updating an invitation.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object containing the invitation resource attributes and relationships.
+                properties:
+                  attributes:
+                    type: object
+                    description: Invitation attributes.
+                    properties:
+                      first_name:
+                        $ref: '#/components/schemas/resource_invitation/properties/first_name'
+                      newsletter_consent:
+                        $ref: '#/components/schemas/resource_invitation/properties/newsletter_consent'
+                      password:
+                        $ref: '#/components/schemas/resource_invitation/properties/password'
+                      last_name:
+                        $ref: '#/components/schemas/resource_invitation/properties/last_name'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: invitations
+                attributes:
+                  email: newdev@example.com
+                  first_name: Jordan
+                  last_name: Lee
+                  time_zone: Europe/London
+      description: Request body for creating or updating an invitation.
   parameters:
     header_organization:
       in: header
@@ -210,33 +281,3 @@ components:
         type: string
       required: true
       description: Organization ID
-  responses:
-    single_invitation:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      email:
-                        $ref: '#/components/schemas/resource_invitation/properties/email'
-                      last_name:
-                        $ref: '#/components/schemas/resource_invitation/properties/last_name'
-                      time_zone:
-                        $ref: '#/components/schemas/resource_invitation/properties/time_zone'
-                      first_name:
-                        $ref: '#/components/schemas/resource_invitation/properties/first_name'
-                  relationships:
-                    type: object
-                    properties: {}
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single invitation

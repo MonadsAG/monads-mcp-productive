@@ -94,43 +94,20 @@ paths:
       tags:
         - Todos
       summary: Get todos
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_todo'
+      operationId: todos-index
+      description: Returns a paginated list of todos — checklist items attached to tasks or deals. Supports filtering by assignee, due date, task, deal, todoable type, and status (open/closed).
       parameters:
         - $ref: '#/components/parameters/filter_todo'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_todo'
-      operationId: todos-index
-      description: Returns a paginated list of todos — checklist items attached to tasks or deals. Supports filtering by assignee, due date, task, deal, todoable type, and status (open/closed).
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_todo'
     post:
       tags:
         - Todos
       summary: Create a todo
-      responses:
-        '201':
-          $ref: '#/components/responses/single_todo'
-        '403':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Forbidden
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
       operationId: todos-create
-      requestBody:
-        $ref: '#/components/requestBodies/todo'
       description: |-
         Creates a todo on either a task or a deal — provide the `description` and one of `task_id` or `deal_id`. Optionally set `assignee_id` and `closed`.
 
@@ -164,14 +141,36 @@ paths:
           }
         }
         ```
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/todo'
+      responses:
+        '201':
+          $ref: '#/components/responses/single_todo'
+        '403':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Forbidden
+        '422':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Unprocessable Entity
   /api/v2/todos/{id}:
     get:
       tags:
         - Todos
       summary: Gets a todo
-      responses:
-        '200':
-          $ref: '#/components/responses/single_todo'
+      operationId: todos-show
+      description: Returns a single todo by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -180,12 +179,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: todos-show
-      description: Returns a single todo by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_todo'
     patch:
       tags:
         - Todos
       summary: Update a todo
+      operationId: todos-update
+      description: Updates a todo. Only the provided attributes are modified — typically to toggle `closed`, change the `assignee_id`, or adjust the `description` or `due_date`.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/todo'
       responses:
         '200':
           $ref: '#/components/responses/single_todo'
@@ -205,25 +217,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: todos-update
-      requestBody:
-        $ref: '#/components/requestBodies/todo'
-      description: Updates a todo. Only the provided attributes are modified — typically to toggle `closed`, change the `assignee_id`, or adjust the `description` or `due_date`.
     delete:
       tags:
         - Todos
       summary: Deletes a todo
-      responses:
-        '204':
-          description: No Content
+      operationId: todos-destroy
+      description: Deletes a todo.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -232,8 +231,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: todos-destroy
-      description: Deletes a todo.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -264,48 +264,250 @@ components:
         description: Filter keys and their operators are listed under x-filters.todo at the top of this file.
       required: false
       description: Filters
-  requestBodies:
-    todo:
+  responses:
+    single_todo:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single todo record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned todo resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - description
+                    description: Todo attributes.
                     properties:
-                      closed:
-                        $ref: '#/components/schemas/resource_todo/properties/closed'
-                      deal_id:
-                        $ref: '#/components/schemas/resource_todo/properties/deal_id'
-                      task_id:
-                        $ref: '#/components/schemas/resource_todo/properties/task_id'
+                      created_at:
+                        $ref: '#/components/schemas/resource_todo/properties/created_at'
                       due_date:
                         $ref: '#/components/schemas/resource_todo/properties/due_date'
                       position:
                         $ref: '#/components/schemas/resource_todo/properties/position'
-                      assignee_id:
-                        $ref: '#/components/schemas/resource_todo/properties/assignee_id'
+                      due_time:
+                        $ref: '#/components/schemas/resource_todo/properties/due_time'
+                      closed_at:
+                        $ref: '#/components/schemas/resource_todo/properties/closed_at'
+                      closed:
+                        $ref: '#/components/schemas/resource_todo/properties/closed'
                       description:
                         $ref: '#/components/schemas/resource_todo/properties/description'
-      description: Request body for creating or updating a todo (checklist item). Specify the description, parent resource (task or deal), optional assignee, due date, due time, and position. Set closed_at to mark as complete.
+                      todoable_type:
+                        $ref: '#/components/schemas/resource_todo/properties/todoable_type'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Todo relationships.
+                    properties:
+                      assignee:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '24747'
+                type: todos
+                attributes:
+                  description: Write unit tests for authentication module
+                  closed: false
+                  closed_at: null
+                  due_date: '2026-03-20'
+                  due_time: null
+                  created_at: '2026-03-01T10:00:00.000+00:00'
+                  todoable_type: task
+                  position: 1
+                relationships:
+                  assignee:
+                    data:
+                      type: people
+                      id: '12'
+                  task:
+                    data:
+                      type: tasks
+                      id: '120501'
+                  deal:
+                    data: null
+              included: []
+      description: Single todo
+    collection_todo:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of todo records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A todo resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Todo attributes.
+                      properties:
+                        due_date:
+                          $ref: '#/components/schemas/resource_todo/properties/due_date'
+                        closed:
+                          $ref: '#/components/schemas/resource_todo/properties/closed'
+                        due_time:
+                          $ref: '#/components/schemas/resource_todo/properties/due_time'
+                        description:
+                          $ref: '#/components/schemas/resource_todo/properties/description'
+                        position:
+                          $ref: '#/components/schemas/resource_todo/properties/position'
+                        todoable_type:
+                          $ref: '#/components/schemas/resource_todo/properties/todoable_type'
+                        closed_at:
+                          $ref: '#/components/schemas/resource_todo/properties/closed_at'
+                        created_at:
+                          $ref: '#/components/schemas/resource_todo/properties/created_at'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Todo relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        assignee:
+                          $ref: '#/components/schemas/_single_relationship'
+                        task:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of todo resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '24747'
+                  type: todos
+                  attributes:
+                    description: Write unit tests for authentication module
+                    closed: false
+                    closed_at: null
+                    due_date: '2026-03-20'
+                    due_time: null
+                    created_at: '2026-03-01T10:00:00.000+00:00'
+                    todoable_type: task
+                    position: 1
+                  relationships:
+                    assignee:
+                      data:
+                        type: people
+                        id: '12'
+                    task:
+                      data:
+                        type: tasks
+                        id: '120501'
+                    deal:
+                      data: null
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection todo
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_todo:
       type: object
       title: Todo Resource
+      description: Checklist item on a task or deal. Supports description, assignee, due date (with optional time), position ordering, and completion tracking via closed_at timestamp.
       properties:
-        due_date:
-          type: string
-          title: Due Date
-          format: date
-          description: The due date for completing this checklist item.
-          example:
-            gt: '2026-01-01'
         position:
           type: integer
           title: Position
@@ -401,7 +603,13 @@ components:
           description: The type of the parent resource this todo is attached to (task or deal).
           example:
             eq: active
-      description: Checklist item on a task or deal. Supports description, assignee, due date (with optional time), position ordering, and completion tracking via closed_at timestamp.
+        due_date:
+          type: string
+          title: Due Date
+          format: date
+          description: The due date for completing this checklist item.
+          example:
+            gt: '2026-01-01'
       example:
         id: '24747'
         type: todos
@@ -428,6 +636,7 @@ components:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -460,157 +669,61 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_todo:
+  requestBodies:
+    todo:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a todo.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the todo resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Todo attributes.
                     properties:
-                      closed:
-                        $ref: '#/components/schemas/resource_todo/properties/closed'
                       due_date:
                         $ref: '#/components/schemas/resource_todo/properties/due_date'
-                      due_time:
-                        $ref: '#/components/schemas/resource_todo/properties/due_time'
                       position:
                         $ref: '#/components/schemas/resource_todo/properties/position'
-                      closed_at:
-                        $ref: '#/components/schemas/resource_todo/properties/closed_at'
-                      created_at:
-                        $ref: '#/components/schemas/resource_todo/properties/created_at'
+                      deal_id:
+                        $ref: '#/components/schemas/resource_todo/properties/deal_id'
+                      closed:
+                        $ref: '#/components/schemas/resource_todo/properties/closed'
+                      task_id:
+                        $ref: '#/components/schemas/resource_todo/properties/task_id'
                       description:
                         $ref: '#/components/schemas/resource_todo/properties/description'
-                      todoable_type:
-                        $ref: '#/components/schemas/resource_todo/properties/todoable_type'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      task:
-                        $ref: '#/components/schemas/_single_relationship'
-                      assignee:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single todo
-    collection_todo:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      assignee_id:
+                        $ref: '#/components/schemas/resource_todo/properties/assignee_id'
+                    required:
+                      - description
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        closed:
-                          $ref: '#/components/schemas/resource_todo/properties/closed'
-                        due_date:
-                          $ref: '#/components/schemas/resource_todo/properties/due_date'
-                        due_time:
-                          $ref: '#/components/schemas/resource_todo/properties/due_time'
-                        position:
-                          $ref: '#/components/schemas/resource_todo/properties/position'
-                        closed_at:
-                          $ref: '#/components/schemas/resource_todo/properties/closed_at'
-                        created_at:
-                          $ref: '#/components/schemas/resource_todo/properties/created_at'
-                        description:
-                          $ref: '#/components/schemas/resource_todo/properties/description'
-                        todoable_type:
-                          $ref: '#/components/schemas/resource_todo/properties/todoable_type'
-                    relationships:
-                      type: object
-                      properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        task:
-                          $ref: '#/components/schemas/_single_relationship'
-                        assignee:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection todo
+                type: todos
+                attributes:
+                  description: Write unit tests for authentication module
+                  due_date: '2026-03-20'
+                relationships:
+                  task:
+                    data:
+                      type: tasks
+                      id: '120501'
+                  assignee:
+                    data:
+                      type: people
+                      id: '12'
+      description: Request body for creating or updating a todo (checklist item). Specify the description, parent resource (task or deal), optional assignee, due date, due time, and position. Set closed_at to mark as complete.

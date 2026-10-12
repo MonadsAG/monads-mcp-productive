@@ -32,19 +32,25 @@ paths:
       tags:
         - Sessions
       summary: Get all sessions
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_session'
+      operationId: sessions-index
+      description: List all active sessions.
       parameters:
         - $ref: '#/components/parameters/sort_session'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_session'
-      operationId: sessions-index
-      description: List all active sessions.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_session'
     post:
       tags:
         - Sessions
       summary: Create a session
+      operationId: sessions-create
+      description: Create a new session (sign in).
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/session'
       responses:
         '201':
           $ref: '#/components/responses/single_session'
@@ -56,20 +62,13 @@ paths:
               schema:
                 type: string
           description: Unauthorized
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: sessions-create
-      requestBody:
-        $ref: '#/components/requestBodies/session'
-      description: Create a new session (sign in).
   /api/v2/sessions/{id}:
     delete:
       tags:
         - Sessions
       summary: Deletes a session
-      responses:
-        '204':
-          description: No Content
+      operationId: sessions-destroy
+      description: Delete a session (sign out) by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -78,13 +77,18 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: sessions-destroy
-      description: Delete a session (sign out) by ID.
+      responses:
+        '204':
+          description: No Content
   /api/v2/sessions/machine:
     post:
       tags:
         - Sessions
       summary: Create a machine session
+      operationId: sessions-machine-machine
+      description: Create a machine session for API access.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_session'
@@ -105,15 +109,21 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: sessions-machine-machine
-      description: Create a machine session for API access.
   /api/v2/sessions/{id}/validate_otp:
     put:
       tags:
         - Sessions
       summary: Validate session OTP
+      operationId: sessions-validate_otp-validate_otp
+      description: Validate a one-time password for a session.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_session'
@@ -133,176 +143,200 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: sessions-validate_otp-validate_otp
-      description: Validate a one-time password for a session.
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_session:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.session at the top of this file.
-      required: false
-      description: Filters
-    sort_session:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - id
-            - -id
-            - last_activity_at
-            - -last_activity_at
-          type: string
-        title: Sort session
-      explode: false
-      required: false
-      description: Sort session
   responses:
     single_session:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single session record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned session resource.
                 properties:
                   attributes:
                     type: object
+                    description: Session attributes.
                     properties:
+                      agent_first_name:
+                        $ref: '#/components/schemas/resource_session/properties/agent_first_name'
+                      machine:
+                        $ref: '#/components/schemas/resource_session/properties/machine'
                       name:
                         $ref: '#/components/schemas/resource_session/properties/name'
+                      two_factor_auth:
+                        $ref: '#/components/schemas/resource_session/properties/two_factor_auth'
+                      last_ip:
+                        $ref: '#/components/schemas/resource_session/properties/last_ip'
+                      platform:
+                        $ref: '#/components/schemas/resource_session/properties/platform'
+                      browser:
+                        $ref: '#/components/schemas/resource_session/properties/browser'
+                      last_activity_at:
+                        $ref: '#/components/schemas/resource_session/properties/last_activity_at'
+                      agent_last_name:
+                        $ref: '#/components/schemas/resource_session/properties/agent_last_name'
                       note:
                         $ref: '#/components/schemas/resource_session/properties/note'
                       token:
                         $ref: '#/components/schemas/resource_session/properties/token'
+                      single_sign_on:
+                        $ref: '#/components/schemas/resource_session/properties/single_sign_on'
+                      read_only:
+                        $ref: '#/components/schemas/resource_session/properties/read_only'
                       device:
                         $ref: '#/components/schemas/resource_session/properties/device'
-                      browser:
-                        $ref: '#/components/schemas/resource_session/properties/browser'
-                      last_ip:
-                        $ref: '#/components/schemas/resource_session/properties/last_ip'
-                      machine:
-                        $ref: '#/components/schemas/resource_session/properties/machine'
                       user_id:
                         $ref: '#/components/schemas/resource_session/properties/user_id'
                       location:
                         $ref: '#/components/schemas/resource_session/properties/location'
-                      platform:
-                        $ref: '#/components/schemas/resource_session/properties/platform'
-                      read_only:
-                        $ref: '#/components/schemas/resource_session/properties/read_only'
-                      agent_avatar:
-                        $ref: '#/components/schemas/resource_session/properties/agent_avatar'
-                      single_sign_on:
-                        $ref: '#/components/schemas/resource_session/properties/single_sign_on'
-                      agent_last_name:
-                        $ref: '#/components/schemas/resource_session/properties/agent_last_name'
-                      two_factor_auth:
-                        $ref: '#/components/schemas/resource_session/properties/two_factor_auth'
-                      agent_first_name:
-                        $ref: '#/components/schemas/resource_session/properties/agent_first_name'
-                      last_activity_at:
-                        $ref: '#/components/schemas/resource_session/properties/last_activity_at'
                       token_expires_at:
                         $ref: '#/components/schemas/resource_session/properties/token_expires_at'
+                      agent_avatar:
+                        $ref: '#/components/schemas/resource_session/properties/agent_avatar'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Session relationships.
                     properties:
                       user:
                         $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '789'
+                type: sessions
+                attributes:
+                  token: null
+                  created_at: '2026-03-15T09:00:00.000+00:00'
+                relationships:
+                  user:
+                    data:
+                      type: users
+                      id: '456'
+              included: []
       description: Single session
     collection_session:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of session records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A session resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Session attributes.
                       properties:
-                        name:
-                          $ref: '#/components/schemas/resource_session/properties/name'
-                        note:
-                          $ref: '#/components/schemas/resource_session/properties/note'
-                        token:
-                          $ref: '#/components/schemas/resource_session/properties/token'
-                        device:
-                          $ref: '#/components/schemas/resource_session/properties/device'
-                        browser:
-                          $ref: '#/components/schemas/resource_session/properties/browser'
-                        last_ip:
-                          $ref: '#/components/schemas/resource_session/properties/last_ip'
-                        machine:
-                          $ref: '#/components/schemas/resource_session/properties/machine'
                         user_id:
                           $ref: '#/components/schemas/resource_session/properties/user_id'
-                        location:
-                          $ref: '#/components/schemas/resource_session/properties/location'
-                        platform:
-                          $ref: '#/components/schemas/resource_session/properties/platform'
-                        read_only:
-                          $ref: '#/components/schemas/resource_session/properties/read_only'
-                        agent_avatar:
-                          $ref: '#/components/schemas/resource_session/properties/agent_avatar'
+                        name:
+                          $ref: '#/components/schemas/resource_session/properties/name'
                         single_sign_on:
                           $ref: '#/components/schemas/resource_session/properties/single_sign_on'
-                        agent_last_name:
-                          $ref: '#/components/schemas/resource_session/properties/agent_last_name'
-                        two_factor_auth:
-                          $ref: '#/components/schemas/resource_session/properties/two_factor_auth'
+                        device:
+                          $ref: '#/components/schemas/resource_session/properties/device'
                         agent_first_name:
                           $ref: '#/components/schemas/resource_session/properties/agent_first_name'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_session/properties/last_activity_at'
+                        last_ip:
+                          $ref: '#/components/schemas/resource_session/properties/last_ip'
+                        platform:
+                          $ref: '#/components/schemas/resource_session/properties/platform'
+                        agent_avatar:
+                          $ref: '#/components/schemas/resource_session/properties/agent_avatar'
+                        token:
+                          $ref: '#/components/schemas/resource_session/properties/token'
+                        note:
+                          $ref: '#/components/schemas/resource_session/properties/note'
                         token_expires_at:
                           $ref: '#/components/schemas/resource_session/properties/token_expires_at'
+                        read_only:
+                          $ref: '#/components/schemas/resource_session/properties/read_only'
+                        machine:
+                          $ref: '#/components/schemas/resource_session/properties/machine'
+                        agent_last_name:
+                          $ref: '#/components/schemas/resource_session/properties/agent_last_name'
+                        last_activity_at:
+                          $ref: '#/components/schemas/resource_session/properties/last_activity_at'
+                        two_factor_auth:
+                          $ref: '#/components/schemas/resource_session/properties/two_factor_auth'
+                        location:
+                          $ref: '#/components/schemas/resource_session/properties/location'
+                        browser:
+                          $ref: '#/components/schemas/resource_session/properties/browser'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Session relationships.
                       properties:
                         user:
                           $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of session resource objects.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '789'
+                  type: sessions
+                  attributes:
+                    token: null
+                    created_at: '2026-03-15T09:00:00.000+00:00'
+                  relationships:
+                    user:
+                      data:
+                        type: users
+                        id: '456'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection session
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -335,7 +369,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
@@ -347,10 +380,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -363,6 +396,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -372,16 +406,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -389,16 +424,15 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
     resource_session:
       type: object
       title: Session Resource
+      description: An API access token session for a user, tracking device, browser, and IP information.
       properties:
         read_only:
           type: boolean
@@ -552,7 +586,6 @@ components:
           description: ID of the user this session belongs to.
           example:
             - 123
-      description: An API access token session for a user, tracking device, browser, and IP information.
       example:
         id: '86742'
         type: sessions
@@ -579,39 +612,86 @@ components:
           user:
             meta:
               included: false
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_session:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.session at the top of this file.
+      required: false
+      description: Filters
+    sort_session:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - id
+            - -id
+            - last_activity_at
+            - -last_activity_at
+          type: string
+        title: Sort session
+      explode: false
+      required: false
+      description: Sort session
   requestBodies:
     session:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a session.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the session resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Session attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_session/properties/name'
-                      device:
-                        $ref: '#/components/schemas/resource_session/properties/device'
-                      browser:
-                        $ref: '#/components/schemas/resource_session/properties/browser'
+                      firebase_token:
+                        $ref: '#/components/schemas/resource_session/properties/firebase_token'
                       platform:
                         $ref: '#/components/schemas/resource_session/properties/platform'
                       read_only:
                         $ref: '#/components/schemas/resource_session/properties/read_only'
-                      app_version:
-                        $ref: '#/components/schemas/resource_session/properties/app_version'
-                      firebase_token:
-                        $ref: '#/components/schemas/resource_session/properties/firebase_token'
-                      cordova_device_uid:
-                        $ref: '#/components/schemas/resource_session/properties/cordova_device_uid'
-                      cordova_device_model:
-                        $ref: '#/components/schemas/resource_session/properties/cordova_device_model'
                       cordova_device_version:
                         $ref: '#/components/schemas/resource_session/properties/cordova_device_version'
+                      cordova_device_uid:
+                        $ref: '#/components/schemas/resource_session/properties/cordova_device_uid'
                       cordova_device_platform:
                         $ref: '#/components/schemas/resource_session/properties/cordova_device_platform'
+                      app_version:
+                        $ref: '#/components/schemas/resource_session/properties/app_version'
+                      device:
+                        $ref: '#/components/schemas/resource_session/properties/device'
+                      cordova_device_model:
+                        $ref: '#/components/schemas/resource_session/properties/cordova_device_model'
+                      browser:
+                        $ref: '#/components/schemas/resource_session/properties/browser'
+                      name:
+                        $ref: '#/components/schemas/resource_session/properties/name'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: sessions
+                attributes:
+                  email: alex.smith@example.com
+                  password: ••••••••
       description: Request body for creating or updating a session.

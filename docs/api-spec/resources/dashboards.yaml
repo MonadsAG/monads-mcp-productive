@@ -37,6 +37,10 @@ paths:
       tags:
         - Dashboards
       summary: Copy a dashboard
+      operationId: dashboards-copy-copy
+      description: Copy a dashboard.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_dashboard'
@@ -48,28 +52,30 @@ paths:
               schema:
                 type: string
           description: Created
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: dashboards-copy-copy
-      description: Copy a dashboard.
   /api/v2/dashboards:
     get:
       tags:
         - Dashboards
       summary: Get all dashboards
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_dashboard'
+      operationId: dashboards-index
+      description: List dashboards with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/sort_dashboard'
         - $ref: '#/components/parameters/filter_dashboard'
         - $ref: '#/components/parameters/header_organization'
-      operationId: dashboards-index
-      description: List dashboards with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_dashboard'
     post:
       tags:
         - Dashboards
       summary: Create a dashboard
+      operationId: dashboards-create
+      description: Create a new dashboard.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/dashboard'
       responses:
         '201':
           $ref: '#/components/responses/single_dashboard'
@@ -81,20 +87,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: dashboards-create
-      requestBody:
-        $ref: '#/components/requestBodies/dashboard'
-      description: Create a new dashboard.
   /api/v2/dashboards/{id}:
     get:
       tags:
         - Dashboards
       summary: Get a dashboard
-      responses:
-        '200':
-          $ref: '#/components/responses/single_dashboard'
+      operationId: dashboards-show
+      description: Retrieve a single dashboard by ID.
       parameters:
         - in: path
           name: id
@@ -103,15 +102,15 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: dashboards-show
-      description: Retrieve a single dashboard by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_dashboard'
     patch:
       tags:
         - Dashboards
       summary: Update a dashboard
-      responses:
-        '200':
-          $ref: '#/components/responses/single_dashboard'
+      operationId: dashboards-update
+      description: Update a dashboard.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -120,17 +119,17 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: dashboards-update
       requestBody:
         $ref: '#/components/requestBodies/dashboard'
-      description: Update a dashboard.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_dashboard'
     delete:
       tags:
         - Dashboards
       summary: Delete a dashboard
-      responses:
-        '204':
-          description: No Content
+      operationId: dashboards-destroy
+      description: Delete a dashboard.
       parameters:
         - in: path
           name: id
@@ -139,8 +138,9 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: dashboards-destroy
-      description: Delete a dashboard.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -171,34 +171,212 @@ components:
       explode: false
       required: false
       description: Sort dashboard
-  requestBodies:
-    dashboard:
+  responses:
+    single_dashboard:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single dashboard record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned dashboard resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
+                    description: Dashboard attributes.
                     properties:
+                      updated_at:
+                        $ref: '#/components/schemas/resource_dashboard/properties/updated_at'
                       name:
                         $ref: '#/components/schemas/resource_dashboard/properties/name'
                       is_private:
                         $ref: '#/components/schemas/resource_dashboard/properties/is_private'
-                      project_id:
-                        $ref: '#/components/schemas/resource_dashboard/properties/project_id'
-                      dashboard_filters:
-                        $ref: '#/components/schemas/resource_dashboard/properties/dashboard_filters'
-      description: Request body for creating or updating a dashboard.
+                      created_at:
+                        $ref: '#/components/schemas/resource_dashboard/properties/created_at'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Dashboard relationships.
+                    properties:
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '34'
+                type: dashboards
+                attributes:
+                  name: Project Overview
+                  shared: false
+                  created_at: '2026-01-20T09:00:00.000+00:00'
+                  updated_at: '2026-03-01T10:00:00.000+00:00'
+                relationships:
+                  owner:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
+      description: Single dashboard
+    collection_dashboard:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of dashboard records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A dashboard resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Dashboard relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Dashboard attributes.
+                      properties:
+                        is_private:
+                          $ref: '#/components/schemas/resource_dashboard/properties/is_private'
+                        name:
+                          $ref: '#/components/schemas/resource_dashboard/properties/name'
+                        created_at:
+                          $ref: '#/components/schemas/resource_dashboard/properties/created_at'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_dashboard/properties/updated_at'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of dashboard resource objects.
+                example:
+                  - id: '123'
+                    type: dashboards
+                    attributes: {}
+                    relationships: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '34'
+                  type: dashboards
+                  attributes:
+                    name: Project Overview
+                    shared: false
+                    created_at: '2026-01-20T09:00:00.000+00:00'
+                    updated_at: '2026-03-01T10:00:00.000+00:00'
+                  relationships:
+                    owner:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection dashboard
   schemas:
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_dashboard:
       type: object
       title: Dashboard Resource
+      description: A configurable dashboard with widgets displaying KPIs, charts, and project summaries.
       properties:
         project_id:
           type: integer
@@ -259,7 +437,6 @@ components:
           description: The organization this dashboard belongs to.
           example:
             eq: value
-      description: A configurable dashboard with widgets displaying KPIs, charts, and project summaries.
       example:
         id: '34'
         type: dashboards
@@ -276,6 +453,7 @@ components:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -308,141 +486,44 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_dashboard:
+  requestBodies:
+    dashboard:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a dashboard.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the dashboard resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Dashboard attributes.
                     properties:
                       name:
                         $ref: '#/components/schemas/resource_dashboard/properties/name'
-                      created_at:
-                        $ref: '#/components/schemas/resource_dashboard/properties/created_at'
+                      project_id:
+                        $ref: '#/components/schemas/resource_dashboard/properties/project_id'
                       is_private:
                         $ref: '#/components/schemas/resource_dashboard/properties/is_private'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_dashboard/properties/updated_at'
-                      dashboard_filters:
-                        $ref: '#/components/schemas/resource_dashboard/properties/dashboard_filters'
-                  relationships:
-                    type: object
-                    properties:
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single dashboard
-    collection_dashboard:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                    required:
+                      - name
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_dashboard/properties/name'
-                        created_at:
-                          $ref: '#/components/schemas/resource_dashboard/properties/created_at'
-                        is_private:
-                          $ref: '#/components/schemas/resource_dashboard/properties/is_private'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_dashboard/properties/updated_at'
-                        dashboard_filters:
-                          $ref: '#/components/schemas/resource_dashboard/properties/dashboard_filters'
-                    relationships:
-                      type: object
-                      properties:
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection dashboard
+                type: dashboards
+                attributes:
+                  name: Project Overview
+                  shared: false
+      description: Request body for creating or updating a dashboard.
