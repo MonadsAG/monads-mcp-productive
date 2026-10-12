@@ -39,19 +39,25 @@ paths:
       tags:
         - Salaries
       summary: Get salaries
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_salary'
+      operationId: salaries-index
+      description: List all salaries.
       parameters:
         - $ref: '#/components/parameters/sort_salary'
         - $ref: '#/components/parameters/filter_salary'
         - $ref: '#/components/parameters/header_organization'
-      operationId: salaries-index
-      description: List all salaries.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_salary'
     post:
       tags:
         - Salaries
       summary: Create a salary
+      operationId: salaries-create
+      description: Create a new salary.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/salary'
       responses:
         '201':
           $ref: '#/components/responses/single_salary'
@@ -63,20 +69,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: salaries-create
-      requestBody:
-        $ref: '#/components/requestBodies/salary'
-      description: Create a new salary.
   /api/v2/salaries/{id}:
     get:
       tags:
         - Salaries
       summary: Gets a salary
-      responses:
-        '200':
-          $ref: '#/components/responses/single_salary'
+      operationId: salaries-show
+      description: Retrieve a single salary by ID.
       parameters:
         - in: path
           name: id
@@ -85,12 +84,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: salaries-show
-      description: Retrieve a single salary by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_salary'
     patch:
       tags:
         - Salaries
       summary: Update a salary
+      operationId: salaries-update
+      description: Update a salary.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/salary'
       responses:
         '200':
           $ref: '#/components/responses/single_salary'
@@ -102,25 +114,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: salaries-update
-      requestBody:
-        $ref: '#/components/requestBodies/salary'
-      description: Update a salary.
     delete:
       tags:
         - Salaries
       summary: Deletes a salary
-      responses:
-        '204':
-          description: No Content
+      operationId: salaries-destroy
+      description: Delete a salary by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -129,8 +128,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: salaries-destroy
-      description: Delete a salary by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -161,52 +161,281 @@ components:
       explode: false
       required: false
       description: Sort salary
-  requestBodies:
-    salary:
+  responses:
+    single_salary:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single salary record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned salary resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Salary relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      holiday_calendar:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
-                    required:
-                      - person_id
-                      - salary_type_id
-                      - cost
-                      - currency
-                      - working_hours
+                    description: Salary attributes.
                     properties:
-                      cost:
-                        $ref: '#/components/schemas/resource_salary/properties/cost'
-                      note:
-                        $ref: '#/components/schemas/resource_salary/properties/note'
-                      currency:
-                        $ref: '#/components/schemas/resource_salary/properties/currency'
-                      ended_on:
-                        $ref: '#/components/schemas/resource_salary/properties/ended_on'
-                      overhead:
-                        $ref: '#/components/schemas/resource_salary/properties/overhead'
-                      person_id:
-                        $ref: '#/components/schemas/resource_salary/properties/person_id'
-                      started_on:
-                        $ref: '#/components/schemas/resource_salary/properties/started_on'
-                      working_hours:
-                        $ref: '#/components/schemas/resource_salary/properties/working_hours'
-                      salary_type_id:
-                        $ref: '#/components/schemas/resource_salary/properties/salary_type_id'
                       alternating_hours:
                         $ref: '#/components/schemas/resource_salary/properties/alternating_hours'
-                      holiday_calendar_id:
-                        $ref: '#/components/schemas/resource_salary/properties/holiday_calendar_id'
-      description: Request body for creating or updating a salary (cost rate and working capacity record, called an Engagement internally). Specify the person, start/end dates, hourly cost rate, working hours, salary type, overhead inclusion flag, and optionally a holiday calendar.
+                      note:
+                        $ref: '#/components/schemas/resource_salary/properties/note'
+                      overhead:
+                        $ref: '#/components/schemas/resource_salary/properties/overhead'
+                      hourly_rate_normalized:
+                        $ref: '#/components/schemas/resource_salary/properties/hourly_rate_normalized'
+                      cost_normalized:
+                        $ref: '#/components/schemas/resource_salary/properties/cost_normalized'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_salary/properties/currency_default'
+                      salary_type_id:
+                        $ref: '#/components/schemas/resource_salary/properties/salary_type_id'
+                      hourly_rate_default:
+                        $ref: '#/components/schemas/resource_salary/properties/hourly_rate_default'
+                      ended_on:
+                        $ref: '#/components/schemas/resource_salary/properties/ended_on'
+                      exchange_rate:
+                        $ref: '#/components/schemas/resource_salary/properties/exchange_rate'
+                      cost:
+                        $ref: '#/components/schemas/resource_salary/properties/cost'
+                      hourly_rate:
+                        $ref: '#/components/schemas/resource_salary/properties/hourly_rate'
+                      exchange_date:
+                        $ref: '#/components/schemas/resource_salary/properties/exchange_date'
+                      started_on:
+                        $ref: '#/components/schemas/resource_salary/properties/started_on'
+                      default_salary:
+                        $ref: '#/components/schemas/resource_salary/properties/default_salary'
+                      currency:
+                        $ref: '#/components/schemas/resource_salary/properties/currency'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_salary/properties/currency_normalized'
+                      cost_default:
+                        $ref: '#/components/schemas/resource_salary/properties/cost_default'
+                      working_hours:
+                        $ref: '#/components/schemas/resource_salary/properties/working_hours'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '34'
+                type: salaries
+                attributes:
+                  default_salary: true
+                  started_on: '2026-01-01'
+                  ended_on: null
+                  salary_type_id: 1
+                  working_hours: 40
+                  overhead: false
+                  note: null
+                  exchange_rate: null
+                  exchange_date: null
+                  currency: USD
+                  cost: '85000.00'
+                  hourly_rate: '51.44'
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  holiday_calendar:
+                    data:
+                      type: holiday_calendars
+                      id: '3'
+              included: []
+      description: Single salary
+    collection_salary:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of salary records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A salary resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Salary attributes.
+                      properties:
+                        exchange_rate:
+                          $ref: '#/components/schemas/resource_salary/properties/exchange_rate'
+                        hourly_rate:
+                          $ref: '#/components/schemas/resource_salary/properties/hourly_rate'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_salary/properties/currency_default'
+                        exchange_date:
+                          $ref: '#/components/schemas/resource_salary/properties/exchange_date'
+                        cost_normalized:
+                          $ref: '#/components/schemas/resource_salary/properties/cost_normalized'
+                        default_salary:
+                          $ref: '#/components/schemas/resource_salary/properties/default_salary'
+                        cost_default:
+                          $ref: '#/components/schemas/resource_salary/properties/cost_default'
+                        alternating_hours:
+                          $ref: '#/components/schemas/resource_salary/properties/alternating_hours'
+                        hourly_rate_default:
+                          $ref: '#/components/schemas/resource_salary/properties/hourly_rate_default'
+                        cost:
+                          $ref: '#/components/schemas/resource_salary/properties/cost'
+                        salary_type_id:
+                          $ref: '#/components/schemas/resource_salary/properties/salary_type_id'
+                        currency:
+                          $ref: '#/components/schemas/resource_salary/properties/currency'
+                        ended_on:
+                          $ref: '#/components/schemas/resource_salary/properties/ended_on'
+                        overhead:
+                          $ref: '#/components/schemas/resource_salary/properties/overhead'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_salary/properties/currency_normalized'
+                        started_on:
+                          $ref: '#/components/schemas/resource_salary/properties/started_on'
+                        hourly_rate_normalized:
+                          $ref: '#/components/schemas/resource_salary/properties/hourly_rate_normalized'
+                        working_hours:
+                          $ref: '#/components/schemas/resource_salary/properties/working_hours'
+                        note:
+                          $ref: '#/components/schemas/resource_salary/properties/note'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Salary relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        holiday_calendar:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of salary resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '34'
+                  type: salaries
+                  attributes:
+                    default_salary: true
+                    started_on: '2026-01-01'
+                    ended_on: null
+                    salary_type_id: 1
+                    working_hours: 40
+                    overhead: false
+                    note: null
+                    exchange_rate: null
+                    exchange_date: null
+                    currency: USD
+                    cost: '85000.00'
+                    hourly_rate: '51.44'
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    holiday_calendar:
+                      data:
+                        type: holiday_calendars
+                        id: '3'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection salary
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_salary:
       type: object
       title: Salary Resource
+      description: A person's cost rate and working capacity configuration defining hourly cost, daily availability, and overhead rates.
       properties:
         exchange_date:
           type: string
@@ -356,7 +585,6 @@ components:
           description: ID of the salary type for this record (e.g. hourly, monthly).
           example:
             - 123
-      description: A person's cost rate and working capacity configuration defining hourly cost, daily availability, and overhead rates.
       example:
         id: '123'
         type: salaries
@@ -370,57 +598,15 @@ components:
             data:
               type: people
               id: '12'
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -433,6 +619,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -442,16 +629,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -459,30 +647,29 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
-  responses:
-    single_salary:
+  requestBodies:
+    salary:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a salary (person cost rate).
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the salary resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Salary attributes.
                     properties:
-                      cost:
-                        $ref: '#/components/schemas/resource_salary/properties/cost'
-                      note:
-                        $ref: '#/components/schemas/resource_salary/properties/note'
+                      working_hours:
+                        $ref: '#/components/schemas/resource_salary/properties/working_hours'
                       currency:
                         $ref: '#/components/schemas/resource_salary/properties/currency'
                       ended_on:
@@ -491,111 +678,44 @@ components:
                         $ref: '#/components/schemas/resource_salary/properties/overhead'
                       started_on:
                         $ref: '#/components/schemas/resource_salary/properties/started_on'
-                      hourly_rate:
-                        $ref: '#/components/schemas/resource_salary/properties/hourly_rate'
-                      cost_default:
-                        $ref: '#/components/schemas/resource_salary/properties/cost_default'
-                      exchange_date:
-                        $ref: '#/components/schemas/resource_salary/properties/exchange_date'
-                      exchange_rate:
-                        $ref: '#/components/schemas/resource_salary/properties/exchange_rate'
-                      working_hours:
-                        $ref: '#/components/schemas/resource_salary/properties/working_hours'
-                      default_salary:
-                        $ref: '#/components/schemas/resource_salary/properties/default_salary'
+                      note:
+                        $ref: '#/components/schemas/resource_salary/properties/note'
+                      cost:
+                        $ref: '#/components/schemas/resource_salary/properties/cost'
                       salary_type_id:
                         $ref: '#/components/schemas/resource_salary/properties/salary_type_id'
-                      cost_normalized:
-                        $ref: '#/components/schemas/resource_salary/properties/cost_normalized'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_salary/properties/currency_default'
+                      holiday_calendar_id:
+                        $ref: '#/components/schemas/resource_salary/properties/holiday_calendar_id'
+                      person_id:
+                        $ref: '#/components/schemas/resource_salary/properties/person_id'
                       alternating_hours:
                         $ref: '#/components/schemas/resource_salary/properties/alternating_hours'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_salary/properties/currency_normalized'
-                      hourly_rate_default:
-                        $ref: '#/components/schemas/resource_salary/properties/hourly_rate_default'
-                      hourly_rate_normalized:
-                        $ref: '#/components/schemas/resource_salary/properties/hourly_rate_normalized'
-                  relationships:
-                    type: object
-                    properties:
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      holiday_calendar:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single salary
-    collection_salary:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                    required:
+                      - person_id
+                      - salary_type_id
+                      - cost
+                      - currency
+                      - working_hours
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        cost:
-                          $ref: '#/components/schemas/resource_salary/properties/cost'
-                        note:
-                          $ref: '#/components/schemas/resource_salary/properties/note'
-                        currency:
-                          $ref: '#/components/schemas/resource_salary/properties/currency'
-                        ended_on:
-                          $ref: '#/components/schemas/resource_salary/properties/ended_on'
-                        overhead:
-                          $ref: '#/components/schemas/resource_salary/properties/overhead'
-                        started_on:
-                          $ref: '#/components/schemas/resource_salary/properties/started_on'
-                        hourly_rate:
-                          $ref: '#/components/schemas/resource_salary/properties/hourly_rate'
-                        cost_default:
-                          $ref: '#/components/schemas/resource_salary/properties/cost_default'
-                        exchange_date:
-                          $ref: '#/components/schemas/resource_salary/properties/exchange_date'
-                        exchange_rate:
-                          $ref: '#/components/schemas/resource_salary/properties/exchange_rate'
-                        working_hours:
-                          $ref: '#/components/schemas/resource_salary/properties/working_hours'
-                        default_salary:
-                          $ref: '#/components/schemas/resource_salary/properties/default_salary'
-                        salary_type_id:
-                          $ref: '#/components/schemas/resource_salary/properties/salary_type_id'
-                        cost_normalized:
-                          $ref: '#/components/schemas/resource_salary/properties/cost_normalized'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_salary/properties/currency_default'
-                        alternating_hours:
-                          $ref: '#/components/schemas/resource_salary/properties/alternating_hours'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_salary/properties/currency_normalized'
-                        hourly_rate_default:
-                          $ref: '#/components/schemas/resource_salary/properties/hourly_rate_default'
-                        hourly_rate_normalized:
-                          $ref: '#/components/schemas/resource_salary/properties/hourly_rate_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        holiday_calendar:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection salary
+                type: salaries
+                attributes:
+                  started_on: '2026-01-01'
+                  salary_type_id: 1
+                  working_hours: 40
+                  cost: '85000.00'
+                  currency: USD
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  holiday_calendar:
+                    data:
+                      type: holiday_calendars
+                      id: '3'
+      description: Request body for creating or updating a salary (cost rate and working capacity record, called an Engagement internally). Specify the person, start/end dates, hourly cost rate, working hours, salary type, overhead inclusion flag, and optionally a holiday calendar.

@@ -52,18 +52,23 @@ paths:
       tags:
         - Skills
       summary: Get skills
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_skill'
+      operationId: skills-index
       parameters:
         - $ref: '#/components/parameters/sort_skill'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_skill'
-      operationId: skills-index
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_skill'
     post:
       tags:
         - Skills
       summary: Create a skill
+      operationId: skills-create
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/skill'
       responses:
         '201':
           $ref: '#/components/responses/single_skill'
@@ -75,19 +80,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: skills-create
-      requestBody:
-        $ref: '#/components/requestBodies/skill'
   /api/v2/skills/{id}:
     get:
       tags:
         - Skills
       summary: Get a skill
-      responses:
-        '200':
-          $ref: '#/components/responses/single_skill'
+      operationId: skills-show
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -95,11 +93,23 @@ paths:
           schema:
             type: string
           required: true
-      operationId: skills-show
+      responses:
+        '200':
+          $ref: '#/components/responses/single_skill'
     patch:
       tags:
         - Skills
       summary: Update a skill
+      operationId: skills-update
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/skill'
       responses:
         '200':
           $ref: '#/components/responses/single_skill'
@@ -111,23 +121,11 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-        - $ref: '#/components/parameters/header_organization'
-      operationId: skills-update
-      requestBody:
-        $ref: '#/components/requestBodies/skill'
     delete:
       tags:
         - Skills
       summary: Deletes a skill
-      responses:
-        '204':
-          description: No Content
+      operationId: skills-destroy
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -135,7 +133,9 @@ paths:
           schema:
             type: string
           required: true
-      operationId: skills-destroy
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -164,8 +164,8 @@ components:
         title: Sort skill
       explode: false
       required: false
-  requestBodies:
-    skill:
+  responses:
+    single_skill:
       content:
         application/vnd.api+json:
           schema:
@@ -174,30 +174,124 @@ components:
               data:
                 type: object
                 properties:
+                  relationships:
+                    type: object
+                    properties:
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      memberships:
+                        $ref: '#/components/schemas/_collection_relationship'
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - description
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_skill/properties/name'
-                      auto_load:
-                        $ref: '#/components/schemas/resource_skill/properties/auto_load'
-                      description:
-                        $ref: '#/components/schemas/resource_skill/properties/description'
                       instructions:
                         $ref: '#/components/schemas/resource_skill/properties/instructions'
                       smart_action_locations:
                         $ref: '#/components/schemas/resource_skill/properties/smart_action_locations'
+                      created_at:
+                        $ref: '#/components/schemas/resource_skill/properties/created_at'
+                      auto_load:
+                        $ref: '#/components/schemas/resource_skill/properties/auto_load'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_skill/properties/updated_at'
+                      description:
+                        $ref: '#/components/schemas/resource_skill/properties/description'
+                      name:
+                        $ref: '#/components/schemas/resource_skill/properties/name'
+              included:
+                type: array
+                items: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+      description: Single skill
+    collection_skill:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              included:
+                type: array
+                items: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        name:
+                          $ref: '#/components/schemas/resource_skill/properties/name'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_skill/properties/updated_at'
+                        created_at:
+                          $ref: '#/components/schemas/resource_skill/properties/created_at'
+                        smart_action_locations:
+                          $ref: '#/components/schemas/resource_skill/properties/smart_action_locations'
+                        auto_load:
+                          $ref: '#/components/schemas/resource_skill/properties/auto_load'
+                        description:
+                          $ref: '#/components/schemas/resource_skill/properties/description'
+                        instructions:
+                          $ref: '#/components/schemas/resource_skill/properties/instructions'
+                    relationships:
+                      type: object
+                      properties:
+                        memberships:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+      description: Collection skill
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_skill:
       type: object
       title: Skill Resource
       properties:
-        creator_id:
-          type: integer
-          title: Creator
         description:
           type: string
           title: Description
@@ -261,53 +355,15 @@ components:
           title: Name
         memberships:
           title: Memberships
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
+        creator_id:
           type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
+          title: Creator
     _collection_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
           properties:
             data:
               type: array
@@ -317,7 +373,6 @@ components:
               example:
                 - type: tasks
                   id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
           example:
             data:
               - type: tasks
@@ -330,6 +385,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -339,16 +395,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -356,10 +413,8 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
@@ -368,10 +423,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -381,8 +436,8 @@ components:
         data:
           type: tasks
           id: '42'
-  responses:
-    single_skill:
+  requestBodies:
+    skill:
       content:
         application/vnd.api+json:
           schema:
@@ -394,71 +449,16 @@ components:
                   attributes:
                     type: object
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_skill/properties/name'
-                      auto_load:
-                        $ref: '#/components/schemas/resource_skill/properties/auto_load'
-                      created_at:
-                        $ref: '#/components/schemas/resource_skill/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_skill/properties/updated_at'
-                      description:
-                        $ref: '#/components/schemas/resource_skill/properties/description'
                       instructions:
                         $ref: '#/components/schemas/resource_skill/properties/instructions'
+                      description:
+                        $ref: '#/components/schemas/resource_skill/properties/description'
                       smart_action_locations:
                         $ref: '#/components/schemas/resource_skill/properties/smart_action_locations'
-                  relationships:
-                    type: object
-                    properties:
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      memberships:
-                        $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single skill
-    collection_skill:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_skill/properties/name'
-                        auto_load:
-                          $ref: '#/components/schemas/resource_skill/properties/auto_load'
-                        created_at:
-                          $ref: '#/components/schemas/resource_skill/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_skill/properties/updated_at'
-                        description:
-                          $ref: '#/components/schemas/resource_skill/properties/description'
-                        instructions:
-                          $ref: '#/components/schemas/resource_skill/properties/instructions'
-                        smart_action_locations:
-                          $ref: '#/components/schemas/resource_skill/properties/smart_action_locations'
-                    relationships:
-                      type: object
-                      properties:
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        memberships:
-                          $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection skill
+                      auto_load:
+                        $ref: '#/components/schemas/resource_skill/properties/auto_load'
+                      name:
+                        $ref: '#/components/schemas/resource_skill/properties/name'
+                    required:
+                      - name
+                      - description

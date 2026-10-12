@@ -76,19 +76,25 @@ paths:
       tags:
         - Timers
       summary: Get timers
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_timer'
+      operationId: timers-index
+      description: List all timers.
       parameters:
         - $ref: '#/components/parameters/filter_timer'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_timer'
-      operationId: timers-index
-      description: List all timers.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_timer'
     post:
       tags:
         - Timers
       summary: Create an timer
+      operationId: timers-create
+      description: Create a new timer.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/timer'
       responses:
         '201':
           $ref: '#/components/responses/single_timer'
@@ -100,20 +106,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: timers-create
-      requestBody:
-        $ref: '#/components/requestBodies/timer'
-      description: Create a new timer.
   /api/v2/timers/{id}:
     get:
       tags:
         - Timers
       summary: Gets a timer
-      responses:
-        '200':
-          $ref: '#/components/responses/single_timer'
+      operationId: timers-show
+      description: Retrieve a single timer by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -122,16 +121,16 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: timers-show
-      description: Retrieve a single timer by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_timer'
   /api/v2/timers/{id}/stop:
     patch:
       tags:
         - Timers
       summary: Stops a timer
-      responses:
-        '200':
-          $ref: '#/components/responses/single_timer'
+      operationId: timers-stop-stop
+      description: Stop a running timer.
       parameters:
         - in: path
           name: id
@@ -140,116 +139,155 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: timers-stop-stop
-      description: Stop a running timer.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_timer'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_timer:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - started_at
-            - -started_at
-            - stopped_at
-            - -stopped_at
-          type: string
-        title: Sort timer
-      explode: false
-      required: false
-      description: Sort timer
-    filter_timer:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.timer at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_timer:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single timer record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned timer resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Timer relationships.
+                    properties:
+                      time_entry:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Timer attributes.
                     properties:
+                      total_time:
+                        $ref: '#/components/schemas/resource_timer/properties/total_time'
                       person_id:
                         $ref: '#/components/schemas/resource_timer/properties/person_id'
                       started_at:
                         $ref: '#/components/schemas/resource_timer/properties/started_at'
                       stopped_at:
                         $ref: '#/components/schemas/resource_timer/properties/stopped_at'
-                      total_time:
-                        $ref: '#/components/schemas/resource_timer/properties/total_time'
-                  relationships:
-                    type: object
-                    properties:
-                      time_entry:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '89'
+                type: timers
+                attributes:
+                  person_id: 12
+                  started_at: '2026-03-15T09:00:00.000+00:00'
+                  stopped_at: null
+                  total_time: 3600
+                relationships:
+                  time_entry:
+                    data:
+                      type: time_entries
+                      id: '84848214'
+              included: []
       description: Single timer
     collection_timer:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of timer records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A timer resource object.
                   properties:
-                    attributes:
-                      type: object
-                      properties:
-                        person_id:
-                          $ref: '#/components/schemas/resource_timer/properties/person_id'
-                        started_at:
-                          $ref: '#/components/schemas/resource_timer/properties/started_at'
-                        stopped_at:
-                          $ref: '#/components/schemas/resource_timer/properties/stopped_at'
-                        total_time:
-                          $ref: '#/components/schemas/resource_timer/properties/total_time'
                     relationships:
                       type: object
+                      description: Timer relationships.
                       properties:
                         time_entry:
                           $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Timer attributes.
+                      properties:
+                        started_at:
+                          $ref: '#/components/schemas/resource_timer/properties/started_at'
+                        stopped_at:
+                          $ref: '#/components/schemas/resource_timer/properties/stopped_at'
+                        person_id:
+                          $ref: '#/components/schemas/resource_timer/properties/person_id'
+                        total_time:
+                          $ref: '#/components/schemas/resource_timer/properties/total_time'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of timer resource objects.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '89'
+                  type: timers
+                  attributes:
+                    person_id: 12
+                    started_at: '2026-03-15T09:00:00.000+00:00'
+                    stopped_at: null
+                    total_time: 3600
+                  relationships:
+                    time_entry:
+                      data:
+                        type: time_entries
+                        id: '84848214'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection timer
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -282,70 +320,16 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
     resource_timer:
       type: object
       title: Timer Resource
+      description: An active stopwatch session linked to a time entry. The timer duration is saved to the time entry when stopped.
       properties:
         time_entry_id:
           type: integer
@@ -395,7 +379,6 @@ components:
           description: The ID of the service this timer is tracking time for.
           example:
             - 123
-      description: An active stopwatch session linked to a time entry. The timer duration is saved to the time entry when stopped.
       example:
         id: '123'
         type: timers
@@ -408,25 +391,130 @@ components:
             data:
               type: time_entries
               id: '789'
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_timer:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - started_at
+            - -started_at
+            - stopped_at
+            - -stopped_at
+          type: string
+        title: Sort timer
+      explode: false
+      required: false
+      description: Sort timer
+    filter_timer:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.timer at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     timer:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a timer.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the timer resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Timer attributes.
                     properties:
                       person_id:
                         $ref: '#/components/schemas/resource_timer/properties/person_id'
-                      service_id:
-                        $ref: '#/components/schemas/resource_timer/properties/service_id'
                       started_at:
                         $ref: '#/components/schemas/resource_timer/properties/started_at'
                       time_entry_id:
                         $ref: '#/components/schemas/resource_timer/properties/time_entry_id'
+                      service_id:
+                        $ref: '#/components/schemas/resource_timer/properties/service_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: timers
+                attributes:
+                  started_at: '2026-03-15T09:00:00.000+00:00'
+                relationships:
+                  time_entry:
+                    data:
+                      type: time_entries
+                      id: '84848214'
       description: Request body for creating or updating a timer.

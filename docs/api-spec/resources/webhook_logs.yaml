@@ -53,49 +53,199 @@ paths:
       tags:
         - Webhook Logs
       summary: Get webhook logs
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_webhook_log'
+      operationId: webhook_logs-index
+      description: List all webhook logs.
       parameters:
         - $ref: '#/components/parameters/filter_webhook_log'
         - $ref: '#/components/parameters/sort_webhook_log'
         - $ref: '#/components/parameters/header_organization'
-      operationId: webhook_logs-index
-      description: List all webhook logs.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_webhook_log'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_webhook_log:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          type: string
-        title: Sort webhook log
-      explode: false
-      required: false
-      description: Sort webhook log
-    filter_webhook_log:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.webhook_log at the top of this file.
-      required: false
-      description: Filters
+  responses:
+    collection_webhook_log:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of webhook log records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A webhook log resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Webhook log attributes.
+                      properties:
+                        retry_job_id:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/retry_job_id'
+                        retry_attempt:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/retry_attempt'
+                        status_code:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/status_code'
+                        created_at:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/created_at'
+                        payload:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/payload'
+                        target_url:
+                          $ref: '#/components/schemas/resource_webhook_log/properties/target_url'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Webhook log relationships.
+                      properties:
+                        webhook:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of webhook log resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '5678'
+                  type: webhook_logs
+                  attributes:
+                    event_type: task.created
+                    response_code: 200
+                    response_body: '{"ok":true}'
+                    sent_at: '2026-03-15T10:00:05.000+00:00'
+                    success: true
+                    url: https://hooks.example.com/productive
+                  relationships:
+                    webhook:
+                      data:
+                        type: webhooks
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection webhook log
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     resource_webhook_log:
       type: object
       title: Webhook log Resource
+      description: A webhook log records a single delivery attempt of a webhook event to its target URL, capturing the payload sent, HTTP response code, and retry details.
       properties:
         target_url:
           type: string
@@ -170,7 +320,6 @@ components:
           description: The webhook that generated this log entry.
           example:
             eq: value
-      description: A webhook log records a single delivery attempt of a webhook event to its target URL, capturing the payload sent, HTTP response code, and retry details.
       example:
         id: '123'
         type: webhook_logs
@@ -180,139 +329,32 @@ components:
           response_code: 200
           sent_at: '2026-01-15T10:00:00Z'
         relationships: {}
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_webhook_log:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
           type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    collection_webhook_log:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        payload:
-                          $ref: '#/components/schemas/resource_webhook_log/properties/payload'
-                        created_at:
-                          $ref: '#/components/schemas/resource_webhook_log/properties/created_at'
-                        target_url:
-                          $ref: '#/components/schemas/resource_webhook_log/properties/target_url'
-                        status_code:
-                          $ref: '#/components/schemas/resource_webhook_log/properties/status_code'
-                        retry_job_id:
-                          $ref: '#/components/schemas/resource_webhook_log/properties/retry_job_id'
-                        retry_attempt:
-                          $ref: '#/components/schemas/resource_webhook_log/properties/retry_attempt'
-                    relationships:
-                      type: object
-                      properties:
-                        webhook:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection webhook log
+        title: Sort webhook log
+      explode: false
+      required: false
+      description: Sort webhook log
+    filter_webhook_log:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.webhook_log at the top of this file.
+      required: false
+      description: Filters

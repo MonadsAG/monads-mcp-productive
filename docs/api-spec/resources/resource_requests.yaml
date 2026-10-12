@@ -5,20 +5,6 @@ info:
 description: Operations for managing resource requests — requests to allocate or hire resources for a project service.
 x-filters:
   resource_request:
-    time_to_close:
-      description: Filter by the time to close in minutes from creation to resolution.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    time:
-      description: Filter by the requested time in minutes per day of the resource request.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     deleted_at:
       description: Filter by deleted_at date range.
       operators:
@@ -145,8 +131,22 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    time_to_close:
+      description: Filter by the time to close in minutes from creation to resolution.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     service_id:
       description: Filter by the ID of the service (billing point) the resource request belongs to.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    time:
+      description: Filter by the requested time in minutes per day of the resource request.
       operators:
         - contains
         - eq
@@ -158,9 +158,8 @@ paths:
       tags:
         - Resource Requests
       summary: Cancel a resource request
-      responses:
-        '200':
-          $ref: '#/components/responses/single_resource_request'
+      operationId: resource_requests-cancel-cancel
+      description: Cancels a resource request by ID, setting its status to canceled.
       parameters:
         - in: path
           name: id
@@ -169,26 +168,31 @@ paths:
           required: true
           description: The ID of the resource request to cancel.
         - $ref: '#/components/parameters/header_organization'
-      operationId: resource_requests-cancel-cancel
-      description: Cancels a resource request by ID, setting its status to canceled.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_resource_request'
   /api/v2/resource_requests:
     get:
       tags:
         - Resource Requests
       summary: Get resource requests
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_resource_request'
+      operationId: resource_requests-index
+      description: Returns a paginated list of resource requests, optionally filtered and sorted.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_resource_request'
         - $ref: '#/components/parameters/filter_resource_request'
-      operationId: resource_requests-index
-      description: Returns a paginated list of resource requests, optionally filtered and sorted.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_resource_request'
     post:
       tags:
         - Resource Requests
       summary: Create a resource request
+      operationId: resource_requests-create
+      description: Creates a new resource request for a service.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '201':
           $ref: '#/components/responses/single_resource_request'
@@ -208,18 +212,13 @@ paths:
               schema:
                 type: string
           description: The resource request could not be created due to validation errors.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: resource_requests-create
-      description: Creates a new resource request for a service.
   /api/v2/resource_requests/{id}:
     get:
       tags:
         - Resource Requests
       summary: Gets a resource request
-      responses:
-        '200':
-          $ref: '#/components/responses/single_resource_request'
+      operationId: resource_requests-show
+      description: Returns a single resource request by ID.
       parameters:
         - in: path
           name: id
@@ -228,12 +227,23 @@ paths:
           required: true
           description: The ID of the resource request to retrieve.
         - $ref: '#/components/parameters/header_organization'
-      operationId: resource_requests-show
-      description: Returns a single resource request by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_resource_request'
     patch:
       tags:
         - Resource Requests
       summary: Update a resource request
+      operationId: resource_requests-update
+      description: Updates an existing resource request by ID.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the resource request to update.
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_resource_request'
@@ -245,23 +255,12 @@ paths:
               schema:
                 type: string
           description: The resource request could not be updated due to validation errors.
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the resource request to update.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: resource_requests-update
-      description: Updates an existing resource request by ID.
     delete:
       tags:
         - Resource Requests
       summary: Deletes a resource request
-      responses:
-        '204':
-          description: The resource request was successfully deleted.
+      operationId: resource_requests-destroy
+      description: Deletes a resource request by ID.
       parameters:
         - in: path
           name: id
@@ -270,16 +269,16 @@ paths:
           required: true
           description: The ID of the resource request to delete.
         - $ref: '#/components/parameters/header_organization'
-      operationId: resource_requests-destroy
-      description: Deletes a resource request by ID.
+      responses:
+        '204':
+          description: The resource request was successfully deleted.
   /api/v2/resource_requests/{id}/reject:
     patch:
       tags:
         - Resource Requests
       summary: Reject a resource request
-      responses:
-        '200':
-          $ref: '#/components/responses/single_resource_request'
+      operationId: resource_requests-reject-reject
+      description: Rejects a resource request by ID, setting its status to rejected.
       parameters:
         - in: path
           name: id
@@ -288,13 +287,24 @@ paths:
           required: true
           description: The ID of the resource request to reject.
         - $ref: '#/components/parameters/header_organization'
-      operationId: resource_requests-reject-reject
-      description: Rejects a resource request by ID, setting its status to rejected.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_resource_request'
   /api/v2/resource_requests/{id}/resolve:
     post:
       tags:
         - Resource Requests
       summary: Resolve a resource request by creating bookings
+      operationId: resource_requests-resolve-resolve
+      description: Resolves a resource request by ID, setting its status to resolved.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the resource request to resolve.
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_resource_request'
@@ -306,246 +316,264 @@ paths:
               schema:
                 type: string
           description: The resource request could not be resolved due to validation errors.
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the resource request to resolve.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: resource_requests-resolve-resolve
-      description: Resolves a resource request by ID, setting its status to resolved.
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_resource_request:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.resource_request at the top of this file.
-      required: false
-      description: Filter parameters for listing resource requests.
-    sort_resource_request:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - booking_method_id
-            - -booking_method_id
-            - created_at
-            - -created_at
-            - creator
-            - -creator
-            - ended_on
-            - -ended_on
-            - id
-            - -id
-            - percentage
-            - -percentage
-            - resolved_at
-            - -resolved_at
-            - resolver
-            - -resolver
-            - service
-            - -service
-            - started_on
-            - -started_on
-            - status
-            - -status
-            - time
-            - -time
-            - total_time
-            - -total_time
-          type: string
-        title: Sort resource request
-      explode: false
-      required: false
-      description: Sort order for resource request list results. Accepts field names, comma-separated; prefix with - for descending.
   responses:
     single_resource_request:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: The JSON:API response body schema for a single resource request.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned resource request.
                 properties:
                   attributes:
                     type: object
+                    description: The attributes of the returned resource request.
                     properties:
-                      note:
-                        $ref: '#/components/schemas/resource_resource_request/properties/note'
-                      time:
-                        $ref: '#/components/schemas/resource_resource_request/properties/time'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_resource_request/properties/custom_fields'
                       title:
                         $ref: '#/components/schemas/resource_resource_request/properties/title'
-                      fields:
-                        $ref: '#/components/schemas/resource_resource_request/properties/fields'
-                      status:
-                        $ref: '#/components/schemas/resource_resource_request/properties/status'
-                      currency:
-                        $ref: '#/components/schemas/resource_resource_request/properties/currency'
+                      rejected_reason:
+                        $ref: '#/components/schemas/resource_resource_request/properties/rejected_reason'
+                      max_cost_per_hour:
+                        $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour'
+                      resolved_at:
+                        $ref: '#/components/schemas/resource_resource_request/properties/resolved_at'
                       ended_on:
                         $ref: '#/components/schemas/resource_resource_request/properties/ended_on'
+                      max_cost_per_hour_default:
+                        $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour_default'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_resource_request/properties/currency_normalized'
+                      currency:
+                        $ref: '#/components/schemas/resource_resource_request/properties/currency'
+                      fields:
+                        $ref: '#/components/schemas/resource_resource_request/properties/fields'
+                      exchange_rate:
+                        $ref: '#/components/schemas/resource_resource_request/properties/exchange_rate'
+                      total_time:
+                        $ref: '#/components/schemas/resource_resource_request/properties/total_time'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_resource_request/properties/currency_default'
+                      max_cost_per_hour_normalized:
+                        $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour_normalized'
                       created_at:
                         $ref: '#/components/schemas/resource_resource_request/properties/created_at'
                       percentage:
                         $ref: '#/components/schemas/resource_resource_request/properties/percentage'
-                      started_on:
-                        $ref: '#/components/schemas/resource_resource_request/properties/started_on'
-                      total_time:
-                        $ref: '#/components/schemas/resource_resource_request/properties/total_time'
                       canceled_at:
                         $ref: '#/components/schemas/resource_resource_request/properties/canceled_at'
-                      resolved_at:
-                        $ref: '#/components/schemas/resource_resource_request/properties/resolved_at'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_resource_request/properties/custom_fields'
                       exchange_date:
                         $ref: '#/components/schemas/resource_resource_request/properties/exchange_date'
-                      exchange_rate:
-                        $ref: '#/components/schemas/resource_resource_request/properties/exchange_rate'
+                      status:
+                        $ref: '#/components/schemas/resource_resource_request/properties/status'
                       time_to_close:
                         $ref: '#/components/schemas/resource_resource_request/properties/time_to_close'
-                      rejected_reason:
-                        $ref: '#/components/schemas/resource_resource_request/properties/rejected_reason'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_resource_request/properties/currency_default'
+                      started_on:
+                        $ref: '#/components/schemas/resource_resource_request/properties/started_on'
+                      time:
+                        $ref: '#/components/schemas/resource_resource_request/properties/time'
+                      note:
+                        $ref: '#/components/schemas/resource_resource_request/properties/note'
                       booking_method_id:
                         $ref: '#/components/schemas/resource_resource_request/properties/booking_method_id'
-                      max_cost_per_hour:
-                        $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_resource_request/properties/currency_normalized'
                       exchange_rate_normalized:
                         $ref: '#/components/schemas/resource_resource_request/properties/exchange_rate_normalized'
-                      max_cost_per_hour_default:
-                        $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour_default'
-                      max_cost_per_hour_normalized:
-                        $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour_normalized'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: The JSON:API relationships of the returned resource request.
                     properties:
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
                       service:
                         $ref: '#/components/schemas/_single_relationship'
-                      resolver:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
+                      creator:
                         $ref: '#/components/schemas/_single_relationship'
                       custom_field_people:
                         $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      resolver:
+                        $ref: '#/components/schemas/_single_relationship'
                       custom_field_attachments:
                         $ref: '#/components/schemas/_collection_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource included in the response.
+                  example:
+                    eq: value
+                description: An array of sideloaded related resources included with the single resource request response.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '34'
+                type: resource_requests
+                attributes:
+                  status: pending
+                  requested_hours: 160
+                  start_date: '2026-04-01'
+                  end_date: '2026-04-30'
+                  note: Need a senior React developer for the dashboard feature
+                  created_at: '2026-03-15T10:00:00.000+00:00'
+                relationships:
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+                  requester:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
       description: A single resource request response.
     collection_resource_request:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: The JSON:API response body schema for a collection of resource requests.
             properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        note:
-                          $ref: '#/components/schemas/resource_resource_request/properties/note'
-                        time:
-                          $ref: '#/components/schemas/resource_resource_request/properties/time'
-                        title:
-                          $ref: '#/components/schemas/resource_resource_request/properties/title'
-                        fields:
-                          $ref: '#/components/schemas/resource_resource_request/properties/fields'
-                        status:
-                          $ref: '#/components/schemas/resource_resource_request/properties/status'
-                        currency:
-                          $ref: '#/components/schemas/resource_resource_request/properties/currency'
-                        ended_on:
-                          $ref: '#/components/schemas/resource_resource_request/properties/ended_on'
-                        created_at:
-                          $ref: '#/components/schemas/resource_resource_request/properties/created_at'
-                        percentage:
-                          $ref: '#/components/schemas/resource_resource_request/properties/percentage'
-                        started_on:
-                          $ref: '#/components/schemas/resource_resource_request/properties/started_on'
-                        total_time:
-                          $ref: '#/components/schemas/resource_resource_request/properties/total_time'
-                        canceled_at:
-                          $ref: '#/components/schemas/resource_resource_request/properties/canceled_at'
-                        resolved_at:
-                          $ref: '#/components/schemas/resource_resource_request/properties/resolved_at'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_resource_request/properties/custom_fields'
-                        exchange_date:
-                          $ref: '#/components/schemas/resource_resource_request/properties/exchange_date'
-                        exchange_rate:
-                          $ref: '#/components/schemas/resource_resource_request/properties/exchange_rate'
-                        time_to_close:
-                          $ref: '#/components/schemas/resource_resource_request/properties/time_to_close'
-                        rejected_reason:
-                          $ref: '#/components/schemas/resource_resource_request/properties/rejected_reason'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_resource_request/properties/currency_default'
-                        booking_method_id:
-                          $ref: '#/components/schemas/resource_resource_request/properties/booking_method_id'
-                        max_cost_per_hour:
-                          $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_resource_request/properties/currency_normalized'
-                        exchange_rate_normalized:
-                          $ref: '#/components/schemas/resource_resource_request/properties/exchange_rate_normalized'
-                        max_cost_per_hour_default:
-                          $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour_default'
-                        max_cost_per_hour_normalized:
-                          $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service:
-                          $ref: '#/components/schemas/_single_relationship'
-                        resolver:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource included in the response.
+                  example:
+                    eq: value
+                description: An array of sideloaded related resources included with the collection response.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A single resource request item in the collection.
+                  properties:
+                    attributes:
+                      type: object
+                      description: The attributes of a resource request item in the collection.
+                      properties:
+                        max_cost_per_hour:
+                          $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour'
+                        currency:
+                          $ref: '#/components/schemas/resource_resource_request/properties/currency'
+                        exchange_rate:
+                          $ref: '#/components/schemas/resource_resource_request/properties/exchange_rate'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_resource_request/properties/currency_default'
+                        max_cost_per_hour_default:
+                          $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour_default'
+                        canceled_at:
+                          $ref: '#/components/schemas/resource_resource_request/properties/canceled_at'
+                        exchange_date:
+                          $ref: '#/components/schemas/resource_resource_request/properties/exchange_date'
+                        percentage:
+                          $ref: '#/components/schemas/resource_resource_request/properties/percentage'
+                        started_on:
+                          $ref: '#/components/schemas/resource_resource_request/properties/started_on'
+                        booking_method_id:
+                          $ref: '#/components/schemas/resource_resource_request/properties/booking_method_id'
+                        total_time:
+                          $ref: '#/components/schemas/resource_resource_request/properties/total_time'
+                        rejected_reason:
+                          $ref: '#/components/schemas/resource_resource_request/properties/rejected_reason'
+                        title:
+                          $ref: '#/components/schemas/resource_resource_request/properties/title'
+                        ended_on:
+                          $ref: '#/components/schemas/resource_resource_request/properties/ended_on'
+                        max_cost_per_hour_normalized:
+                          $ref: '#/components/schemas/resource_resource_request/properties/max_cost_per_hour_normalized'
+                        status:
+                          $ref: '#/components/schemas/resource_resource_request/properties/status'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_resource_request/properties/currency_normalized'
+                        time:
+                          $ref: '#/components/schemas/resource_resource_request/properties/time'
+                        resolved_at:
+                          $ref: '#/components/schemas/resource_resource_request/properties/resolved_at'
+                        fields:
+                          $ref: '#/components/schemas/resource_resource_request/properties/fields'
+                        time_to_close:
+                          $ref: '#/components/schemas/resource_resource_request/properties/time_to_close'
+                        note:
+                          $ref: '#/components/schemas/resource_resource_request/properties/note'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_resource_request/properties/custom_fields'
+                        exchange_rate_normalized:
+                          $ref: '#/components/schemas/resource_resource_request/properties/exchange_rate_normalized'
+                        created_at:
+                          $ref: '#/components/schemas/resource_resource_request/properties/created_at'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: The JSON:API relationships of a resource request item in the collection.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        resolver:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: The JSON:API data array containing the list of returned resource request objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '34'
+                  type: resource_requests
+                  attributes:
+                    status: pending
+                    requested_hours: 160
+                    start_date: '2026-04-01'
+                    end_date: '2026-04-30'
+                    note: Need a senior React developer for the dashboard feature
+                    created_at: '2026-03-15T10:00:00.000+00:00'
+                  relationships:
+                    service:
+                      data:
+                        type: services
+                        id: '1856422'
+                    requester:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: A paginated collection of resource requests.
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -578,7 +606,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
@@ -590,6 +617,7 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
           properties:
             data:
               type: array
@@ -599,7 +627,6 @@ components:
               example:
                 - type: tasks
                   id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
           example:
             data:
               - type: tasks
@@ -612,6 +639,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -621,16 +649,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -638,10 +667,8 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
@@ -650,10 +677,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -666,23 +693,8 @@ components:
     resource_resource_request:
       type: object
       title: Resource request Resource
+      description: Schema for a resource request resource object.
       properties:
-        exchange_rate:
-          type: number
-          title: Exchange Rate
-          description: The exchange rate from the resource request currency to the default account currency.
-          example:
-            gt: 0
-        custom_field_attachments:
-          title: Custom Field Attachments
-          description: The JSON:API relationship objects for file attachments linked via custom fields.
-          example:
-            gt: '2026-01-01'
-        max_cost_per_hour:
-          title: Max Cost Per Hour
-          description: The maximum cost per hour for the requested resource in the request currency.
-          example:
-            eq: value
         custom_fields:
           type: object
           title: Custom Fields
@@ -747,6 +759,11 @@ components:
           description: Timestamp when this resource request was created.
           example:
             gt: '2026-01-01'
+        max_cost_per_hour:
+          title: Max Cost Per Hour
+          description: The maximum cost per hour for the requested resource in the request currency.
+          example:
+            eq: value
         job_title:
           type: string
           title: Job Title
@@ -930,7 +947,17 @@ components:
           description: The JSON:API relationship object for the service this resource request belongs to.
           example:
             eq: value
-      description: Schema for a resource request resource object.
+        exchange_rate:
+          type: number
+          title: Exchange Rate
+          description: The exchange rate from the resource request currency to the default account currency.
+          example:
+            gt: 0
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: The JSON:API relationship objects for file attachments linked via custom fields.
+          example:
+            gt: '2026-01-01'
       example:
         id: '123'
         type: resource_requests
@@ -940,3 +967,59 @@ components:
           start_date: '2026-02-01'
           end_date: '2026-02-28'
         relationships: {}
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_resource_request:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.resource_request at the top of this file.
+      required: false
+      description: Filter parameters for listing resource requests.
+    sort_resource_request:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - booking_method_id
+            - -booking_method_id
+            - created_at
+            - -created_at
+            - creator
+            - -creator
+            - ended_on
+            - -ended_on
+            - id
+            - -id
+            - percentage
+            - -percentage
+            - resolved_at
+            - -resolved_at
+            - resolver
+            - -resolver
+            - service
+            - -service
+            - started_on
+            - -started_on
+            - status
+            - -status
+            - time
+            - -time
+            - total_time
+            - -total_time
+          type: string
+        title: Sort resource request
+      explode: false
+      required: false
+      description: Sort order for resource request list results. Accepts field names, comma-separated; prefix with - for descending.

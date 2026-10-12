@@ -39,19 +39,25 @@ paths:
       tags:
         - Team Memberships
       summary: Get team memberships
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_team_membership'
+      operationId: team_memberships-index
+      description: List all team memberships.
       parameters:
         - $ref: '#/components/parameters/filter_team_membership'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_team_membership'
-      operationId: team_memberships-index
-      description: List all team memberships.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_team_membership'
     post:
       tags:
         - Team Memberships
       summary: Create a team membership
+      operationId: team_memberships-create
+      description: Create a new team membership.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/team_membership'
       responses:
         '201':
           $ref: '#/components/responses/single_team_membership'
@@ -63,20 +69,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: team_memberships-create
-      requestBody:
-        $ref: '#/components/requestBodies/team_membership'
-      description: Create a new team membership.
   /api/v2/team_memberships/{id}:
     get:
       tags:
         - Team Memberships
       summary: Gets a team membership
-      responses:
-        '200':
-          $ref: '#/components/responses/single_team_membership'
+      operationId: team_memberships-show
+      description: Retrieve a single team membership by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -85,15 +84,15 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: team_memberships-show
-      description: Retrieve a single team membership by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_team_membership'
     delete:
       tags:
         - Team Memberships
       summary: Deletes a team membership
-      responses:
-        '204':
-          description: No Content
+      operationId: team_memberships-destroy
+      description: Delete a team membership by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -102,8 +101,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: team_memberships-destroy
-      description: Delete a team membership by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -143,61 +143,133 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single team_membership record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned team_membership resource.
                 properties:
                   attributes:
                     type: object
                     properties: {}
+                    description: Team membership attributes.
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Team membership relationships.
                     properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
                       team:
                         $ref: '#/components/schemas/_single_relationship'
                       person:
                         $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '78'
+                type: team_memberships
+                attributes: {}
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  team:
+                    data:
+                      type: teams
+                      id: '3'
+              included: []
       description: Single team membership
     collection_team_membership:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of team membership records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A team membership resource object.
                   properties:
                     attributes:
                       type: object
                       properties: {}
+                      description: Team membership attributes.
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Team membership relationships.
                       properties:
-                        team:
+                        organization:
                           $ref: '#/components/schemas/_single_relationship'
                         person:
                           $ref: '#/components/schemas/_single_relationship'
-                        organization:
+                        team:
                           $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of team membership resource objects.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '78'
+                  type: team_memberships
+                  attributes: {}
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    team:
+                      data:
+                        type: teams
+                        id: '3'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection team membership
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -230,7 +302,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
@@ -242,10 +313,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -258,6 +329,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -267,16 +339,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -284,22 +357,16 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
     resource_team_membership:
       type: object
       title: Team membership Resource
+      description: Person-team link record. Associates a person with a team for access control and reporting purposes.
       properties:
-        team:
-          title: Team
-          description: The team this membership belongs to.
-          example:
-            eq: value
         person_id:
           type: integer
           title: Person
@@ -332,13 +399,17 @@ components:
           title: Active
           description: Whether this team membership is currently active.
           example: true
+        team:
+          title: Team
+          description: The team this membership belongs to.
+          example:
+            eq: value
         team_id:
           type: integer
           title: Team
           description: ID of the team this membership belongs to.
           example:
             - 123
-      description: Person-team link record. Associates a person with a team for access control and reporting purposes.
       example:
         id: '123'
         type: team_memberships
@@ -360,18 +431,37 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a team membership.
             properties:
               data:
                 type: object
+                description: The team membership resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Team membership attributes.
+                    properties:
+                      person_id:
+                        $ref: '#/components/schemas/resource_team_membership/properties/person_id'
+                      team_id:
+                        $ref: '#/components/schemas/resource_team_membership/properties/team_id'
                     required:
                       - person_id
                       - team_id
-                    properties:
-                      team_id:
-                        $ref: '#/components/schemas/resource_team_membership/properties/team_id'
-                      person_id:
-                        $ref: '#/components/schemas/resource_team_membership/properties/person_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: team_memberships
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  team:
+                    data:
+                      type: teams
+                      id: '3'
       description: Request body for creating or deleting a team membership. Specify the team and person to add as a member.

@@ -32,9 +32,8 @@ paths:
       tags:
         - Survey Field Options
       summary: Archives a survey field option
-      responses:
-        '200':
-          $ref: '#/components/responses/single_survey_field_option'
+      operationId: survey_field_options-archive-archive
+      description: Archive a survey field option to deactivate it.
       parameters:
         - in: path
           name: id
@@ -43,26 +42,33 @@ paths:
           required: true
           description: The ID of the survey field option to archive.
         - $ref: '#/components/parameters/header_organization'
-      operationId: survey_field_options-archive-archive
-      description: Archive a survey field option to deactivate it.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey_field_option'
   /api/v2/survey_field_options:
     get:
       tags:
         - Survey Field Options
       summary: Get survey field options
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_survey_field_option'
+      operationId: survey_field_options-index
+      description: List all survey field options.
       parameters:
         - $ref: '#/components/parameters/filter_survey_field_option'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/sort_survey_field_option'
-      operationId: survey_field_options-index
-      description: List all survey field options.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_survey_field_option'
     post:
       tags:
         - Survey Field Options
       summary: Creates a survey field option
+      operationId: survey_field_options-create
+      description: Create a new survey field option.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/survey_field_option'
       responses:
         '201':
           $ref: '#/components/responses/single_survey_field_option'
@@ -74,20 +80,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: survey_field_options-create
-      requestBody:
-        $ref: '#/components/requestBodies/survey_field_option'
-      description: Create a new survey field option.
   /api/v2/survey_field_options/{id}:
     get:
       tags:
         - Survey Field Options
       summary: Gets a survey field option
-      responses:
-        '200':
-          $ref: '#/components/responses/single_survey_field_option'
+      operationId: survey_field_options-show
+      description: Retrieve a single survey field option by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -96,12 +95,25 @@ paths:
             type: string
           required: true
           description: The ID of the survey field option to retrieve.
-      operationId: survey_field_options-show
-      description: Retrieve a single survey field option by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey_field_option'
     patch:
       tags:
         - Survey Field Options
       summary: Updates a survey field option
+      operationId: survey_field_options-update
+      description: Update a survey field option.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the survey field option to update.
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/survey_field_option'
       responses:
         '200':
           $ref: '#/components/responses/single_survey_field_option'
@@ -113,52 +125,151 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: The ID of the survey field option to update.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: survey_field_options-update
-      requestBody:
-        $ref: '#/components/requestBodies/survey_field_option'
-      description: Update a survey field option.
 components:
-  requestBodies:
-    survey_field_option:
+  responses:
+    single_survey_field_option:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single survey_field_option record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned survey_field_option resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Survey field option relationships.
+                    properties:
+                      survey_field:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Survey field option attributes.
                     properties:
                       name:
                         $ref: '#/components/schemas/resource_survey_field_option/properties/name'
                       color_id:
                         $ref: '#/components/schemas/resource_survey_field_option/properties/color_id'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_survey_field_option/properties/archived_at'
                       position:
                         $ref: '#/components/schemas/resource_survey_field_option/properties/position'
-                      survey_field_id:
-                        $ref: '#/components/schemas/resource_survey_field_option/properties/survey_field_id'
-      description: Request body for creating or updating a survey field option. Specify the parent survey field, option label, and position.
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '123'
+                type: survey_field_options
+                attributes:
+                  label: Very Satisfied
+                  value: '5'
+                  position: 1
+                relationships:
+                  survey_field:
+                    data:
+                      type: survey_fields
+                      id: '45'
+              included: []
+      description: Single survey field option
+    collection_survey_field_option:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of survey field option records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A survey field option resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Survey field option relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        survey_field:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Survey field option attributes.
+                      properties:
+                        archived_at:
+                          $ref: '#/components/schemas/resource_survey_field_option/properties/archived_at'
+                        name:
+                          $ref: '#/components/schemas/resource_survey_field_option/properties/name'
+                        color_id:
+                          $ref: '#/components/schemas/resource_survey_field_option/properties/color_id'
+                        position:
+                          $ref: '#/components/schemas/resource_survey_field_option/properties/position'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of survey field option resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '123'
+                  type: survey_field_options
+                  attributes:
+                    label: Very Satisfied
+                    value: '5'
+                    position: 1
+                  relationships:
+                    survey_field:
+                      data:
+                        type: survey_fields
+                        id: '45'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection survey field option
   schemas:
     resource_survey_field_option:
       type: object
       title: Survey field option Resource
+      description: Selectable option for a dropdown or multi-select survey field. Has a label and position for ordering.
       properties:
-        custom_field_id:
-          type: integer
-          title: Custom Field
-          description: ID of the survey field this option belongs to.
-          example:
-            - 123
         archived:
           type: boolean
           title: Archived
@@ -205,7 +316,12 @@ components:
           description: ID of the survey field this option belongs to.
           example:
             - 123
-      description: Selectable option for a dropdown or multi-select survey field. Has a label and position for ordering.
+        custom_field_id:
+          type: integer
+          title: Custom Field
+          description: ID of the survey field this option belongs to.
+          example:
+            - 123
       example:
         id: '123'
         type: survey_field_options
@@ -214,9 +330,64 @@ components:
           value: '5'
           position: 1
         relationships: {}
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -249,67 +420,52 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
+  requestBodies:
+    survey_field_option:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating or updating a survey field option.
+            properties:
+              data:
+                type: object
+                description: The survey field option resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Survey field option attributes.
+                    properties:
+                      survey_field_id:
+                        $ref: '#/components/schemas/resource_survey_field_option/properties/survey_field_id'
+                      position:
+                        $ref: '#/components/schemas/resource_survey_field_option/properties/position'
+                      color_id:
+                        $ref: '#/components/schemas/resource_survey_field_option/properties/color_id'
+                      name:
+                        $ref: '#/components/schemas/resource_survey_field_option/properties/name'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: survey_field_options
+                attributes:
+                  label: Very Satisfied
+                  value: '5'
+                relationships:
+                  survey_field:
+                    data:
+                      type: survey_fields
+                      id: '45'
+      description: Request body for creating or updating a survey field option. Specify the parent survey field, option label, and position.
   parameters:
     header_organization:
       in: header
@@ -339,72 +495,3 @@ components:
         description: Filter keys and their operators are listed under x-filters.survey_field_option at the top of this file.
       required: false
       description: Filter parameter for querying survey field options.
-  responses:
-    single_survey_field_option:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_survey_field_option/properties/name'
-                      color_id:
-                        $ref: '#/components/schemas/resource_survey_field_option/properties/color_id'
-                      position:
-                        $ref: '#/components/schemas/resource_survey_field_option/properties/position'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_survey_field_option/properties/archived_at'
-                  relationships:
-                    type: object
-                    properties:
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      survey_field:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single survey field option
-    collection_survey_field_option:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_survey_field_option/properties/name'
-                        color_id:
-                          $ref: '#/components/schemas/resource_survey_field_option/properties/color_id'
-                        position:
-                          $ref: '#/components/schemas/resource_survey_field_option/properties/position'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_survey_field_option/properties/archived_at'
-                    relationships:
-                      type: object
-                      properties:
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        survey_field:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection survey field option

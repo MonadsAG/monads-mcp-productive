@@ -104,9 +104,8 @@ paths:
       tags:
         - Custom Fields
       summary: Archives a custom field
-      responses:
-        '200':
-          $ref: '#/components/responses/single_custom_field'
+      operationId: custom_fields-archive-archive
+      description: Archive a custom field.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -115,26 +114,33 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: custom_fields-archive-archive
-      description: Archive a custom field.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_custom_field'
   /api/v2/custom_fields:
     get:
       tags:
         - Custom Fields
       summary: Get custom fields
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_custom_field'
+      operationId: custom_fields-index
+      description: List custom fields with optional filters and pagination.
       parameters:
         - $ref: '#/components/parameters/filter_custom_field'
         - $ref: '#/components/parameters/sort_custom_field'
         - $ref: '#/components/parameters/header_organization'
-      operationId: custom_fields-index
-      description: List custom fields with optional filters and pagination.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_custom_field'
     post:
       tags:
         - Custom Fields
       summary: Creates a custom field
+      operationId: custom_fields-create
+      description: Create a new custom field.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/custom_field'
       responses:
         '201':
           $ref: '#/components/responses/single_custom_field'
@@ -146,20 +152,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: custom_fields-create
-      requestBody:
-        $ref: '#/components/requestBodies/custom_field'
-      description: Create a new custom field.
   /api/v2/custom_fields/{id}:
     get:
       tags:
         - Custom Fields
       summary: Gets a custom field
-      responses:
-        '200':
-          $ref: '#/components/responses/single_custom_field'
+      operationId: custom_fields-show
+      description: Retrieve a single custom field by ID.
       parameters:
         - in: path
           name: id
@@ -168,15 +167,15 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: custom_fields-show
-      description: Retrieve a single custom field by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_custom_field'
     patch:
       tags:
         - Custom Fields
       summary: Updates a custom field
-      responses:
-        '200':
-          $ref: '#/components/responses/single_custom_field'
+      operationId: custom_fields-update
+      description: Update a custom field.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -185,72 +184,260 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: custom_fields-update
       requestBody:
         $ref: '#/components/requestBodies/custom_field'
-      description: Update a custom field.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_custom_field'
 components:
-  requestBodies:
-    custom_field:
+  responses:
+    single_custom_field:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single custom field record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The custom field resource object.
                 properties:
+                  relationships:
+                    type: object
+                    description: Custom field relationships.
+                    properties:
+                      options:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      section:
+                        $ref: '#/components/schemas/_single_relationship'
+                      survey:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - data_type_id
-                      - customizable_type
+                    description: Custom field attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_custom_field/properties/name'
-                      global:
-                        $ref: '#/components/schemas/resource_custom_field/properties/global'
-                      position:
-                        $ref: '#/components/schemas/resource_custom_field/properties/position'
-                      required:
-                        $ref: '#/components/schemas/resource_custom_field/properties/required'
                       sensitive:
                         $ref: '#/components/schemas/resource_custom_field/properties/sensitive'
-                      survey_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/survey_id'
-                      project_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/project_id'
-                      section_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/section_id'
-                      data_type_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/data_type_id'
-                      maximum_value:
-                        $ref: '#/components/schemas/resource_custom_field/properties/maximum_value'
-                      minimum_value:
-                        $ref: '#/components/schemas/resource_custom_field/properties/minimum_value'
-                      customizable_type:
-                        $ref: '#/components/schemas/resource_custom_field/properties/customizable_type'
-                      quick_add_enabled:
-                        $ref: '#/components/schemas/resource_custom_field/properties/quick_add_enabled'
-                      formatting_type_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/formatting_type_id'
-                      aggregation_type_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/aggregation_type_id'
+                      required:
+                        $ref: '#/components/schemas/resource_custom_field/properties/required'
                       show_in_add_edit_views:
                         $ref: '#/components/schemas/resource_custom_field/properties/show_in_add_edit_views'
-      description: Request body for creating or updating a custom field. Specify the customizable type, data type (data_type_id), name, and optional configuration (required, global, sensitive, show_in_add_edit_views, position, description). Link to a project or section to scope the field.
+                      formatting_type_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/formatting_type_id'
+                      created_at:
+                        $ref: '#/components/schemas/resource_custom_field/properties/created_at'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_custom_field/properties/updated_at'
+                      name:
+                        $ref: '#/components/schemas/resource_custom_field/properties/name'
+                      aggregation_type_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/aggregation_type_id'
+                      quick_add_enabled:
+                        $ref: '#/components/schemas/resource_custom_field/properties/quick_add_enabled'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_custom_field/properties/archived_at'
+                      data_type_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/data_type_id'
+                      position:
+                        $ref: '#/components/schemas/resource_custom_field/properties/position'
+                      global:
+                        $ref: '#/components/schemas/resource_custom_field/properties/global'
+                      customizable_type:
+                        $ref: '#/components/schemas/resource_custom_field/properties/customizable_type'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '53455'
+                type: custom_fields
+                attributes:
+                  name: Priority
+                  field_type: dropdown
+                  position: 1
+                  required: false
+                  filterable: true
+                  archived_at: null
+                relationships:
+                  custom_field_section:
+                    data:
+                      type: custom_field_sections
+                      id: '12'
+              included: []
+      description: Single custom field
+    collection_custom_field:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of custom field records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A custom field resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Custom field relationships.
+                      properties:
+                        options:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        survey:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        section:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Custom field attributes.
+                      properties:
+                        quick_add_enabled:
+                          $ref: '#/components/schemas/resource_custom_field/properties/quick_add_enabled'
+                        aggregation_type_id:
+                          $ref: '#/components/schemas/resource_custom_field/properties/aggregation_type_id'
+                        required:
+                          $ref: '#/components/schemas/resource_custom_field/properties/required'
+                        name:
+                          $ref: '#/components/schemas/resource_custom_field/properties/name'
+                        formatting_type_id:
+                          $ref: '#/components/schemas/resource_custom_field/properties/formatting_type_id'
+                        global:
+                          $ref: '#/components/schemas/resource_custom_field/properties/global'
+                        data_type_id:
+                          $ref: '#/components/schemas/resource_custom_field/properties/data_type_id'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_custom_field/properties/archived_at'
+                        customizable_type:
+                          $ref: '#/components/schemas/resource_custom_field/properties/customizable_type'
+                        position:
+                          $ref: '#/components/schemas/resource_custom_field/properties/position'
+                        created_at:
+                          $ref: '#/components/schemas/resource_custom_field/properties/created_at'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_custom_field/properties/updated_at'
+                        sensitive:
+                          $ref: '#/components/schemas/resource_custom_field/properties/sensitive'
+                        show_in_add_edit_views:
+                          $ref: '#/components/schemas/resource_custom_field/properties/show_in_add_edit_views'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of custom field resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '53455'
+                  type: custom_fields
+                  attributes:
+                    name: Priority
+                    field_type: dropdown
+                    position: 1
+                    required: false
+                    filterable: true
+                    archived_at: null
+                  relationships:
+                    custom_field_section:
+                      data:
+                        type: custom_field_sections
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection custom field
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_custom_field:
       type: object
       title: Custom field Resource
+      description: User-defined field on tasks, deals, people, pages, or other resources. Supports text, number, date, dropdown, multi-select, person, and file data types. Can be marked required, sensitive, global, or scoped to a project or section. Dropdown fields have selectable options via custom_field_options.
       properties:
-        sensitive:
-          type: boolean
-          title: Sensitive
-          description: Whether this custom field is sensitive and its values are restricted to authorized users.
-          example:
-            eq: value
         organization:
           title: Organization
           description: The organization this custom field belongs to.
@@ -272,6 +459,9 @@ components:
           description: The selectable options available for this custom field, applicable for dropdown and multi-select types.
           example:
             eq: value
+        maximum_value:
+          type: number
+          title: Maximum Value
         required:
           type: boolean
           title: Required
@@ -368,9 +558,18 @@ components:
           title: Archived
           description: Whether this custom field has been archived.
           example: true
+        minimum_value:
+          type: number
+          title: Minimum Value
         section:
           title: Section
           description: The custom field section this field belongs to for grouping in the UI.
+          example:
+            eq: value
+        sensitive:
+          type: boolean
+          title: Sensitive
+          description: Whether this custom field is sensitive and its values are restricted to authorized users.
           example:
             eq: value
         data_type_id:
@@ -400,7 +599,6 @@ components:
           description: The survey this custom field is associated with, if it was created from a survey response field.
           example:
             eq: value
-      description: User-defined field on tasks, deals, people, pages, or other resources. Supports text, number, date, dropdown, multi-select, person, and file data types. Can be marked required, sensitive, global, or scoped to a project or section. Dropdown fields have selectable options via custom_field_options.
       example:
         id: '53455'
         type: custom_fields
@@ -416,53 +614,12 @@ components:
             data:
               type: custom_field_sections
               id: '12'
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _collection_relationship:
       anyOf:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
           properties:
             data:
               type: array
@@ -472,7 +629,6 @@ components:
               example:
                 - type: tasks
                   id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
           example:
             data:
               - type: tasks
@@ -485,6 +641,7 @@ components:
     _resource:
       type: object
       title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
       properties:
         id:
           type: integer
@@ -494,16 +651,17 @@ components:
           type: string
           description: The resource type name (e.g. `tasks`, `people`, `deals`).
           example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
       example:
         type: tasks
         id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -511,10 +669,8 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
@@ -523,10 +679,10 @@ components:
         - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
@@ -536,6 +692,76 @@ components:
         data:
           type: tasks
           id: '42'
+  requestBodies:
+    custom_field:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body schema for a custom field.
+            properties:
+              data:
+                type: object
+                description: The custom field resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Custom field attributes.
+                    properties:
+                      section_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/section_id'
+                      position:
+                        $ref: '#/components/schemas/resource_custom_field/properties/position'
+                      sensitive:
+                        $ref: '#/components/schemas/resource_custom_field/properties/sensitive'
+                      quick_add_enabled:
+                        $ref: '#/components/schemas/resource_custom_field/properties/quick_add_enabled'
+                      aggregation_type_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/aggregation_type_id'
+                      project_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/project_id'
+                      data_type_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/data_type_id'
+                      maximum_value:
+                        $ref: '#/components/schemas/resource_custom_field/properties/maximum_value'
+                      required:
+                        $ref: '#/components/schemas/resource_custom_field/properties/required'
+                      global:
+                        $ref: '#/components/schemas/resource_custom_field/properties/global'
+                      minimum_value:
+                        $ref: '#/components/schemas/resource_custom_field/properties/minimum_value'
+                      formatting_type_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/formatting_type_id'
+                      customizable_type:
+                        $ref: '#/components/schemas/resource_custom_field/properties/customizable_type'
+                      survey_id:
+                        $ref: '#/components/schemas/resource_custom_field/properties/survey_id'
+                      show_in_add_edit_views:
+                        $ref: '#/components/schemas/resource_custom_field/properties/show_in_add_edit_views'
+                      name:
+                        $ref: '#/components/schemas/resource_custom_field/properties/name'
+                    required:
+                      - name
+                      - data_type_id
+                      - customizable_type
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: custom_fields
+                attributes:
+                  name: Priority
+                  field_type: dropdown
+                  required: false
+                  filterable: true
+                relationships:
+                  custom_field_section:
+                    data:
+                      type: custom_field_sections
+                      id: '12'
+      description: Request body for creating or updating a custom field. Specify the customizable type, data type (data_type_id), name, and optional configuration (required, global, sensitive, show_in_add_edit_views, position, description). Link to a project or section to scope the field.
   parameters:
     header_organization:
       in: header
@@ -565,128 +791,3 @@ components:
         description: Filter keys and their operators are listed under x-filters.custom_field at the top of this file.
       required: false
       description: Filters
-  responses:
-    single_custom_field:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_custom_field/properties/name'
-                      global:
-                        $ref: '#/components/schemas/resource_custom_field/properties/global'
-                      position:
-                        $ref: '#/components/schemas/resource_custom_field/properties/position'
-                      required:
-                        $ref: '#/components/schemas/resource_custom_field/properties/required'
-                      sensitive:
-                        $ref: '#/components/schemas/resource_custom_field/properties/sensitive'
-                      created_at:
-                        $ref: '#/components/schemas/resource_custom_field/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_custom_field/properties/updated_at'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_custom_field/properties/archived_at'
-                      data_type_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/data_type_id'
-                      customizable_type:
-                        $ref: '#/components/schemas/resource_custom_field/properties/customizable_type'
-                      quick_add_enabled:
-                        $ref: '#/components/schemas/resource_custom_field/properties/quick_add_enabled'
-                      formatting_type_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/formatting_type_id'
-                      aggregation_type_id:
-                        $ref: '#/components/schemas/resource_custom_field/properties/aggregation_type_id'
-                      show_in_add_edit_views:
-                        $ref: '#/components/schemas/resource_custom_field/properties/show_in_add_edit_views'
-                  relationships:
-                    type: object
-                    properties:
-                      survey:
-                        $ref: '#/components/schemas/_single_relationship'
-                      options:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      section:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single custom field
-    collection_custom_field:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_custom_field/properties/name'
-                        global:
-                          $ref: '#/components/schemas/resource_custom_field/properties/global'
-                        position:
-                          $ref: '#/components/schemas/resource_custom_field/properties/position'
-                        required:
-                          $ref: '#/components/schemas/resource_custom_field/properties/required'
-                        sensitive:
-                          $ref: '#/components/schemas/resource_custom_field/properties/sensitive'
-                        created_at:
-                          $ref: '#/components/schemas/resource_custom_field/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_custom_field/properties/updated_at'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_custom_field/properties/archived_at'
-                        data_type_id:
-                          $ref: '#/components/schemas/resource_custom_field/properties/data_type_id'
-                        customizable_type:
-                          $ref: '#/components/schemas/resource_custom_field/properties/customizable_type'
-                        quick_add_enabled:
-                          $ref: '#/components/schemas/resource_custom_field/properties/quick_add_enabled'
-                        formatting_type_id:
-                          $ref: '#/components/schemas/resource_custom_field/properties/formatting_type_id'
-                        aggregation_type_id:
-                          $ref: '#/components/schemas/resource_custom_field/properties/aggregation_type_id'
-                        show_in_add_edit_views:
-                          $ref: '#/components/schemas/resource_custom_field/properties/show_in_add_edit_views'
-                    relationships:
-                      type: object
-                      properties:
-                        survey:
-                          $ref: '#/components/schemas/_single_relationship'
-                        options:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        section:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection custom field

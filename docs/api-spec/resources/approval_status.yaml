@@ -66,9 +66,8 @@ paths:
       tags:
         - Approval Status
       summary: Approves an approval status
-      responses:
-        '200':
-          $ref: '#/components/responses/single_approval_status'
+      operationId: approval_statuses-approve-approve
+      description: Approves this approval status. Records the current user as the actual approver and advances the target's approval flow — once all required statuses are approved according to the workflow's rule, the target itself becomes approved. Accepts an optional `note`.
       parameters:
         - in: path
           name: id
@@ -76,7 +75,6 @@ paths:
             type: string
           required: true
         - $ref: '#/components/parameters/header_organization'
-      operationId: approval_statuses-approve-approve
       requestBody:
         content:
           application/vnd.api+json:
@@ -91,30 +89,30 @@ paths:
                       properties:
                         note:
                           allOf:
-                            - $ref: '#/components/schemas/resource_approval_status/properties/note'
                             - description: Optional note recorded alongside the approval.
-      description: Approves this approval status. Records the current user as the actual approver and advances the target's approval flow — once all required statuses are approved according to the workflow's rule, the target itself becomes approved. Accepts an optional `note`.
+                            - $ref: '#/components/schemas/resource_approval_status/properties/note'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_approval_status'
   /api/v2/approval_statuses:
     get:
       tags:
         - Approval Status
       summary: Get approval statuses
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_approval_status'
+      operationId: approval_statuses-index
+      description: Returns the collection of approval statuses visible to the current user. Use filters to narrow by target (`booking_id`, `time_entry_id`, `expense_id`), by approver, or by workflow.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_approval_status'
-      operationId: approval_statuses-index
-      description: Returns the collection of approval statuses visible to the current user. Use filters to narrow by target (`booking_id`, `time_entry_id`, `expense_id`), by approver, or by workflow.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_approval_status'
   /api/v2/approval_statuses/{id}/reject:
     patch:
       tags:
         - Approval Status
       summary: Rejects an approval status
-      responses:
-        '200':
-          $ref: '#/components/responses/single_approval_status'
+      operationId: approval_statuses-reject-reject
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -122,7 +120,6 @@ paths:
           schema:
             type: string
           required: true
-      operationId: approval_statuses-reject-reject
       requestBody:
         content:
           application/vnd.api+json:
@@ -137,16 +134,18 @@ paths:
                       properties:
                         note:
                           allOf:
-                            - $ref: '#/components/schemas/resource_approval_status/properties/note'
                             - description: Optional note explaining the rejection.
+                            - $ref: '#/components/schemas/resource_approval_status/properties/note'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_approval_status'
   /api/v2/approval_statuses/{id}:
     get:
       tags:
         - Approval Status
       summary: Gets the approval status
-      responses:
-        '200':
-          $ref: '#/components/responses/single_approval_status'
+      operationId: approval_statuses-show
+      description: Returns a single approval status by id.
       parameters:
         - in: path
           name: id
@@ -154,25 +153,10 @@ paths:
             type: string
           required: true
         - $ref: '#/components/parameters/header_organization'
-      operationId: approval_statuses-show
-      description: Returns a single approval status by id.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_approval_status'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_approval_status:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.approval_status at the top of this file.
-      required: false
   responses:
     single_approval_status:
       content:
@@ -182,44 +166,48 @@ components:
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned approval status resource.
                 properties:
+                  relationships:
+                    type: object
+                    properties:
+                      actual_approver:
+                        $ref: '#/components/schemas/_single_relationship'
+                      time_entry:
+                        $ref: '#/components/schemas/_single_relationship'
+                      booking:
+                        $ref: '#/components/schemas/_single_relationship'
+                      expense:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approval_workflow:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approver:
+                        $ref: '#/components/schemas/_single_relationship'
                   attributes:
                     type: object
                     properties:
                       note:
                         $ref: '#/components/schemas/resource_approval_status/properties/note'
+                      target_type:
+                        $ref: '#/components/schemas/resource_approval_status/properties/target_type'
+                      fallback_approver_type_id:
+                        $ref: '#/components/schemas/resource_approval_status/properties/fallback_approver_type_id'
                       approved_at:
                         $ref: '#/components/schemas/resource_approval_status/properties/approved_at'
                       rejected_at:
                         $ref: '#/components/schemas/resource_approval_status/properties/rejected_at'
-                      target_type:
-                        $ref: '#/components/schemas/resource_approval_status/properties/target_type'
-                      approver_group_key:
-                        $ref: '#/components/schemas/resource_approval_status/properties/approver_group_key'
                       dynamic_approver_type_id:
                         $ref: '#/components/schemas/resource_approval_status/properties/dynamic_approver_type_id'
-                      fallback_approver_type_id:
-                        $ref: '#/components/schemas/resource_approval_status/properties/fallback_approver_type_id'
-                  relationships:
-                    type: object
-                    properties:
-                      booking:
-                        $ref: '#/components/schemas/_single_relationship'
-                      expense:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approver:
-                        $ref: '#/components/schemas/_single_relationship'
-                      time_entry:
-                        $ref: '#/components/schemas/_single_relationship'
-                      actual_approver:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approval_workflow:
-                        $ref: '#/components/schemas/_single_relationship'
+                      approver_group_key:
+                        $ref: '#/components/schemas/resource_approval_status/properties/approver_group_key'
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
                 items: {}
+                description: |-
+                  Array of sideloaded related resources requested via the include query parameter. May contain approver, actual_approver,
+                  approval_workflow, booking, expense, or time_entry records referenced by this approval status's relationships.
       description: Single approval status
     collection_approval_status:
       content:
@@ -227,6 +215,8 @@ components:
           schema:
             type: object
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: array
                 items:
@@ -235,24 +225,24 @@ components:
                     attributes:
                       type: object
                       properties:
-                        note:
-                          $ref: '#/components/schemas/resource_approval_status/properties/note'
                         approved_at:
                           $ref: '#/components/schemas/resource_approval_status/properties/approved_at'
-                        rejected_at:
-                          $ref: '#/components/schemas/resource_approval_status/properties/rejected_at'
                         target_type:
                           $ref: '#/components/schemas/resource_approval_status/properties/target_type'
-                        approver_group_key:
-                          $ref: '#/components/schemas/resource_approval_status/properties/approver_group_key'
                         dynamic_approver_type_id:
                           $ref: '#/components/schemas/resource_approval_status/properties/dynamic_approver_type_id'
+                        rejected_at:
+                          $ref: '#/components/schemas/resource_approval_status/properties/rejected_at'
+                        approver_group_key:
+                          $ref: '#/components/schemas/resource_approval_status/properties/approver_group_key'
                         fallback_approver_type_id:
                           $ref: '#/components/schemas/resource_approval_status/properties/fallback_approver_type_id'
+                        note:
+                          $ref: '#/components/schemas/resource_approval_status/properties/note'
                     relationships:
                       type: object
                       properties:
-                        booking:
+                        approval_workflow:
                           $ref: '#/components/schemas/_single_relationship'
                         expense:
                           $ref: '#/components/schemas/_single_relationship'
@@ -260,20 +250,23 @@ components:
                           $ref: '#/components/schemas/_single_relationship'
                         time_entry:
                           $ref: '#/components/schemas/_single_relationship'
+                        booking:
+                          $ref: '#/components/schemas/_single_relationship'
                         actual_approver:
                           $ref: '#/components/schemas/_single_relationship'
-                        approval_workflow:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                description: Collection approval status
               included:
                 type: array
                 items: {}
+                description: |-
+                  Array of sideloaded related resources requested via the `include` query parameter. May contain `approver`, `actual_approver`,
+                    `approval_workflow`, `booking`, `expense`, or `time_entry` records referenced by this approval status's relationships.
       description: Collection approval status
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -306,75 +299,16 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
     resource_approval_status:
       type: object
       title: Approval status Resource
       properties:
-        approver_id:
-          type: integer
-          title: Approver
-          description: The ID of the person assigned to act on this approval status. Null when the approver is resolved dynamically.
         rejected_at:
           type: string
           title: Rejected At
@@ -459,3 +393,77 @@ components:
         time_entry:
           title: Time Entry
           description: The time entry awaiting approval. Present when `target_type` is `time_entry`.
+        approver_id:
+          type: integer
+          title: Approver
+          description: The ID of the person assigned to act on this approval status. Null when the approver is resolved dynamically.
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_not_included'
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      example:
+        type: tasks
+        id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    filter_approval_status:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.approval_status at the top of this file.
+      required: false

@@ -12,6 +12,12 @@ paths:
       tags:
         - Users
       summary: Gets users
+      operationId: users-index
+      description: List all users.
+      parameters:
+        - $ref: '#/components/parameters/filter_user'
+        - $ref: '#/components/parameters/sort_user'
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/collection_user'
@@ -23,17 +29,21 @@ paths:
               schema:
                 type: string
           description: Unauthorized
-      parameters:
-        - $ref: '#/components/parameters/filter_user'
-        - $ref: '#/components/parameters/sort_user'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: users-index
-      description: List all users.
   /api/v2/users/{id}:
     get:
       tags:
         - Users
       summary: Gets a user
+      operationId: users-show
+      description: Retrieve a single user by ID.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_user'
@@ -45,6 +55,12 @@ paths:
               schema:
                 type: string
           description: Not Found
+    patch:
+      tags:
+        - Users
+      summary: Update a user
+      operationId: users-update
+      description: Update a user.
       parameters:
         - in: path
           name: id
@@ -53,12 +69,8 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: users-show
-      description: Retrieve a single user by ID.
-    patch:
-      tags:
-        - Users
-      summary: Update a user
+      requestBody:
+        $ref: '#/components/requestBodies/user'
       responses:
         '200':
           $ref: '#/components/responses/single_user'
@@ -70,26 +82,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: users-update
-      requestBody:
-        $ref: '#/components/requestBodies/user'
-      description: Update a user.
   /api/v2/users/{id}/update_password:
     patch:
       tags:
         - Users
       summary: Update password for a user
-      responses:
-        '200':
-          $ref: '#/components/responses/single_user'
+      operationId: users-update_password-update_password
+      description: Update the password for a user.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -98,167 +97,217 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: users-update_password-update_password
-      description: Update the password for a user.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_user'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_user:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          type: string
-        title: Sort user
-      explode: false
-      required: false
-      description: Sort user
-    filter_user:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.user at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_user:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single user record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned user resource.
                 properties:
+                  relationships:
+                    type: object
+                    properties: {}
+                    description: User relationships.
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: User attributes.
                     properties:
-                      email:
-                        $ref: '#/components/schemas/resource_user/properties/email'
-                      flags:
-                        $ref: '#/components/schemas/resource_user/properties/flags'
-                      locale:
-                        $ref: '#/components/schemas/resource_user/properties/locale'
-                      sysadmin:
-                        $ref: '#/components/schemas/resource_user/properties/sysadmin'
-                      last_name:
-                        $ref: '#/components/schemas/resource_user/properties/last_name'
                       time_zone:
                         $ref: '#/components/schemas/resource_user/properties/time_zone'
-                      avatar_url:
-                        $ref: '#/components/schemas/resource_user/properties/avatar_url'
-                      first_name:
-                        $ref: '#/components/schemas/resource_user/properties/first_name'
-                      ical_token:
-                        $ref: '#/components/schemas/resource_user/properties/ical_token'
                       updated_at:
                         $ref: '#/components/schemas/resource_user/properties/updated_at'
-                      preferences:
-                        $ref: '#/components/schemas/resource_user/properties/preferences'
-                      intercom_hash:
-                        $ref: '#/components/schemas/resource_user/properties/intercom_hash'
-                      sso_provision:
-                        $ref: '#/components/schemas/resource_user/properties/sso_provision'
-                      two_factor_auth:
-                        $ref: '#/components/schemas/resource_user/properties/two_factor_auth'
-                      newsletter_consent:
-                        $ref: '#/components/schemas/resource_user/properties/newsletter_consent'
-                      sysadmin_permissions:
-                        $ref: '#/components/schemas/resource_user/properties/sysadmin_permissions'
+                      first_name:
+                        $ref: '#/components/schemas/resource_user/properties/first_name'
                       newsletter_consent_at:
                         $ref: '#/components/schemas/resource_user/properties/newsletter_consent_at'
                       default_organization_id:
                         $ref: '#/components/schemas/resource_user/properties/default_organization_id'
-                      account_access_expires_at:
-                        $ref: '#/components/schemas/resource_user/properties/account_access_expires_at'
+                      intercom_hash:
+                        $ref: '#/components/schemas/resource_user/properties/intercom_hash'
                       default_organization_slug:
                         $ref: '#/components/schemas/resource_user/properties/default_organization_slug'
-                  relationships:
-                    type: object
-                    properties: {}
+                      account_access_expires_at:
+                        $ref: '#/components/schemas/resource_user/properties/account_access_expires_at'
+                      sysadmin:
+                        $ref: '#/components/schemas/resource_user/properties/sysadmin'
+                      last_name:
+                        $ref: '#/components/schemas/resource_user/properties/last_name'
+                      preferences:
+                        $ref: '#/components/schemas/resource_user/properties/preferences'
+                      sso_provision:
+                        $ref: '#/components/schemas/resource_user/properties/sso_provision'
+                      ical_token:
+                        $ref: '#/components/schemas/resource_user/properties/ical_token'
+                      newsletter_consent:
+                        $ref: '#/components/schemas/resource_user/properties/newsletter_consent'
+                      flags:
+                        $ref: '#/components/schemas/resource_user/properties/flags'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_user/properties/avatar_url'
+                      two_factor_auth:
+                        $ref: '#/components/schemas/resource_user/properties/two_factor_auth'
+                      sysadmin_permissions:
+                        $ref: '#/components/schemas/resource_user/properties/sysadmin_permissions'
+                      locale:
+                        $ref: '#/components/schemas/resource_user/properties/locale'
+                      email:
+                        $ref: '#/components/schemas/resource_user/properties/email'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '456'
+                type: users
+                attributes:
+                  email: alex.smith@example.com
+                  first_name: Alex
+                  last_name: Smith
+                  time_zone: America/New_York
+                  avatar_url: null
+                  default_organization_id: 109
+                  default_organization_slug: myagency
+                  locale: en
+                  two_factor_auth: false
+                  newsletter_consent: true
+                  preferences: {}
+                  updated_at: '2026-03-15T10:00:00.000+00:00'
+              included: []
       description: Single user
     collection_user:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of user records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A user resource object.
                   properties:
+                    relationships:
+                      type: object
+                      properties: {}
+                      description: User relationships.
+                      example:
+                        eq: value
                     attributes:
                       type: object
+                      description: User attributes.
                       properties:
-                        email:
-                          $ref: '#/components/schemas/resource_user/properties/email'
-                        flags:
-                          $ref: '#/components/schemas/resource_user/properties/flags'
-                        locale:
-                          $ref: '#/components/schemas/resource_user/properties/locale'
-                        sysadmin:
-                          $ref: '#/components/schemas/resource_user/properties/sysadmin'
-                        last_name:
-                          $ref: '#/components/schemas/resource_user/properties/last_name'
-                        time_zone:
-                          $ref: '#/components/schemas/resource_user/properties/time_zone'
-                        avatar_url:
-                          $ref: '#/components/schemas/resource_user/properties/avatar_url'
-                        first_name:
-                          $ref: '#/components/schemas/resource_user/properties/first_name'
-                        ical_token:
-                          $ref: '#/components/schemas/resource_user/properties/ical_token'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_user/properties/updated_at'
-                        preferences:
-                          $ref: '#/components/schemas/resource_user/properties/preferences'
-                        intercom_hash:
-                          $ref: '#/components/schemas/resource_user/properties/intercom_hash'
-                        sso_provision:
-                          $ref: '#/components/schemas/resource_user/properties/sso_provision'
-                        two_factor_auth:
-                          $ref: '#/components/schemas/resource_user/properties/two_factor_auth'
                         newsletter_consent:
                           $ref: '#/components/schemas/resource_user/properties/newsletter_consent'
-                        sysadmin_permissions:
-                          $ref: '#/components/schemas/resource_user/properties/sysadmin_permissions'
+                        last_name:
+                          $ref: '#/components/schemas/resource_user/properties/last_name'
+                        email:
+                          $ref: '#/components/schemas/resource_user/properties/email'
                         newsletter_consent_at:
                           $ref: '#/components/schemas/resource_user/properties/newsletter_consent_at'
-                        default_organization_id:
-                          $ref: '#/components/schemas/resource_user/properties/default_organization_id'
+                        preferences:
+                          $ref: '#/components/schemas/resource_user/properties/preferences'
+                        time_zone:
+                          $ref: '#/components/schemas/resource_user/properties/time_zone'
+                        ical_token:
+                          $ref: '#/components/schemas/resource_user/properties/ical_token'
                         account_access_expires_at:
                           $ref: '#/components/schemas/resource_user/properties/account_access_expires_at'
                         default_organization_slug:
                           $ref: '#/components/schemas/resource_user/properties/default_organization_slug'
-                    relationships:
-                      type: object
-                      properties: {}
+                        sysadmin_permissions:
+                          $ref: '#/components/schemas/resource_user/properties/sysadmin_permissions'
+                        flags:
+                          $ref: '#/components/schemas/resource_user/properties/flags'
+                        locale:
+                          $ref: '#/components/schemas/resource_user/properties/locale'
+                        default_organization_id:
+                          $ref: '#/components/schemas/resource_user/properties/default_organization_id'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_user/properties/updated_at'
+                        two_factor_auth:
+                          $ref: '#/components/schemas/resource_user/properties/two_factor_auth'
+                        intercom_hash:
+                          $ref: '#/components/schemas/resource_user/properties/intercom_hash'
+                        avatar_url:
+                          $ref: '#/components/schemas/resource_user/properties/avatar_url'
+                        sysadmin:
+                          $ref: '#/components/schemas/resource_user/properties/sysadmin'
+                        sso_provision:
+                          $ref: '#/components/schemas/resource_user/properties/sso_provision'
+                        first_name:
+                          $ref: '#/components/schemas/resource_user/properties/first_name'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of user resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '456'
+                  type: users
+                  attributes:
+                    email: alex.smith@example.com
+                    first_name: Alex
+                    last_name: Smith
+                    time_zone: America/New_York
+                    avatar_url: null
+                    default_organization_id: 109
+                    default_organization_slug: myagency
+                    locale: en
+                    two_factor_auth: false
+                    newsletter_consent: true
+                    preferences: {}
+                    updated_at: '2026-03-15T10:00:00.000+00:00'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection user
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
         total_pages:
           type: integer
@@ -291,7 +340,6 @@ components:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
       example:
         current_page: 1
         total_pages: 5
@@ -301,13 +349,8 @@ components:
     resource_user:
       type: object
       title: User Resource
+      description: A user represents a login account in Productive, holding authentication credentials and preferences. It is distinct from a person, which represents the employee profile linked to an organization.
       properties:
-        default_organization_id:
-          type: integer
-          title: Default Organization
-          description: ID of the organization this user logs into by default.
-          example:
-            - 123
         updated_at:
           type: string
           title: Updated At
@@ -428,7 +471,12 @@ components:
           description: Feature flag overrides applied to this user's account.
           example:
             eq: value
-      description: A user represents a login account in Productive, holding authentication credentials and preferences. It is distinct from a person, which represents the employee profile linked to an organization.
+        default_organization_id:
+          type: integer
+          title: Default Organization
+          description: ID of the organization this user logs into by default.
+          example:
+            - 123
       example:
         id: '28'
         type: users
@@ -500,39 +548,83 @@ components:
           sso_provision: false
           account_access_expires_at: null
           locale: en_US
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_user:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort user
+      explode: false
+      required: false
+      description: Sort user
+    filter_user:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.user at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     user:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a user.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the user resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: User attributes.
                     properties:
-                      email:
-                        $ref: '#/components/schemas/resource_user/properties/email'
-                      locale:
-                        $ref: '#/components/schemas/resource_user/properties/locale'
-                      last_name:
-                        $ref: '#/components/schemas/resource_user/properties/last_name'
-                      time_zone:
-                        $ref: '#/components/schemas/resource_user/properties/time_zone'
-                      avatar_url:
-                        $ref: '#/components/schemas/resource_user/properties/avatar_url'
-                      first_name:
-                        $ref: '#/components/schemas/resource_user/properties/first_name'
-                      ical_token:
-                        $ref: '#/components/schemas/resource_user/properties/ical_token'
-                      preferences:
-                        $ref: '#/components/schemas/resource_user/properties/preferences'
                       newsletter_consent:
                         $ref: '#/components/schemas/resource_user/properties/newsletter_consent'
+                      avatar_url:
+                        $ref: '#/components/schemas/resource_user/properties/avatar_url'
+                      preferences:
+                        $ref: '#/components/schemas/resource_user/properties/preferences'
+                      time_zone:
+                        $ref: '#/components/schemas/resource_user/properties/time_zone'
+                      first_name:
+                        $ref: '#/components/schemas/resource_user/properties/first_name'
+                      last_name:
+                        $ref: '#/components/schemas/resource_user/properties/last_name'
                       default_organization_id:
                         $ref: '#/components/schemas/resource_user/properties/default_organization_id'
                       account_access_expires_at:
                         $ref: '#/components/schemas/resource_user/properties/account_access_expires_at'
+                      email:
+                        $ref: '#/components/schemas/resource_user/properties/email'
+                      ical_token:
+                        $ref: '#/components/schemas/resource_user/properties/ical_token'
+                      locale:
+                        $ref: '#/components/schemas/resource_user/properties/locale'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: users
+                attributes:
+                  first_name: Alex
+                  last_name: Smith
+                  time_zone: America/New_York
+                  locale: en
       description: Request body for creating or updating a user.
