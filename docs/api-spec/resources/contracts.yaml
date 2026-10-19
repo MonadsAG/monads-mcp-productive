@@ -17,8 +17,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    contract_interval_id:
-      description: Filter by the associated contract interval.
+    next_occurrence_on:
+      description: Filter by next occurrence date range (`next_occurrence_on`).
       operators:
         - contains
         - eq
@@ -31,15 +31,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by contract ID.
+    contract_interval_id:
+      description: Filter by the associated contract interval.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    next_occurrence_on:
-      description: Filter by next occurrence date range (`next_occurrence_on`).
+    id:
+      description: Filter by contract ID.
       operators:
         - contains
         - eq
@@ -51,19 +51,25 @@ paths:
       tags:
         - Contracts
       summary: Get contracts
+      operationId: contracts-index
+      description: List contracts with optional filters and pagination.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_contract'
+        - $ref: '#/components/parameters/sort_contract'
       responses:
         '200':
           $ref: '#/components/responses/collection_contract'
-      parameters:
-        - $ref: '#/components/parameters/sort_contract'
-        - $ref: '#/components/parameters/filter_contract'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: contracts-index
-      description: List contracts with optional filters and pagination.
     post:
       tags:
         - Contracts
       summary: Create a contract
+      operationId: contracts-create
+      description: Create a new contract.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/contract'
       responses:
         '201':
           $ref: '#/components/responses/single_contract'
@@ -75,34 +81,40 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: contracts-create
-      requestBody:
-        $ref: '#/components/requestBodies/contract'
-      description: Create a new contract.
   /api/v2/contracts/{id}:
     get:
       tags:
         - Contracts
       summary: Gets a contract
-      responses:
-        '200':
-          $ref: '#/components/responses/single_contract'
+      operationId: contracts-show
+      description: Retrieve a single contract by ID.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: contracts-show
-      description: Retrieve a single contract by ID.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_contract'
     patch:
       tags:
         - Contracts
       summary: Update a contract
+      operationId: contracts-update
+      description: Update a contract.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/contract'
       responses:
         '200':
           $ref: '#/components/responses/single_contract'
@@ -114,181 +126,214 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: contracts-update
-      requestBody:
-        $ref: '#/components/requestBodies/contract'
-      description: Update a contract.
     delete:
       tags:
         - Contracts
       summary: Deletes a contract
-      responses:
-        '204':
-          description: No Content
+      operationId: contracts-destroy
+      description: Delete a contract.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: contracts-destroy
-      description: Delete a contract.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '204':
+          description: No Content
   /api/v2/contracts/{id}/generate:
     post:
       tags:
         - Contracts
       summary: Generates new budget
-      responses:
-        '200':
-          $ref: '#/components/responses/single_contract'
+      operationId: contracts-generate-generate
+      description: Generate a contract.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: contracts-generate-generate
-      description: Generate a contract.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_contract'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_contract:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.contract at the top of this file.
-      required: false
-      description: Filters
-    sort_contract:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          type: string
-        title: Sort contract
-      explode: false
-      required: false
-      description: Sort contract
   responses:
     single_contract:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single contract record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned contract resource.
                 properties:
-                  attributes:
-                    type: object
-                    properties:
-                      ends_on:
-                        $ref: '#/components/schemas/resource_contract/properties/ends_on'
-                      starts_on:
-                        $ref: '#/components/schemas/resource_contract/properties/starts_on'
-                      interval_id:
-                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
-                      copy_expenses:
-                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
-                      next_occurrence_on:
-                        $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
-                      use_rollover_hours:
-                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
-                      copy_purchase_order_number:
-                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
                   relationships:
                     type: object
+                    description: Contract relationships.
                     properties:
                       template:
                         $ref: '#/components/schemas/_single_relationship'
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                  attributes:
+                    type: object
+                    description: Contract attributes.
+                    properties:
+                      copy_purchase_order_number:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                      ends_on:
+                        $ref: '#/components/schemas/resource_contract/properties/ends_on'
+                      use_rollover_hours:
+                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
+                      next_occurrence_on:
+                        $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                      interval_id:
+                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                      starts_on:
+                        $ref: '#/components/schemas/resource_contract/properties/starts_on'
+                      copy_expenses:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '11'
+                type: contracts
+                attributes:
+                  name: Master Services Agreement
+                  status: active
+                  start_date: '2026-01-01'
+                  end_date: '2026-12-31'
+                  created_at: '2026-01-01T00:00:00.000+00:00'
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+              included: []
       description: Single contract
     collection_contract:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of contract records in JSON:API format.
             properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A contract resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Contract attributes.
                       properties:
-                        ends_on:
-                          $ref: '#/components/schemas/resource_contract/properties/ends_on'
-                        starts_on:
-                          $ref: '#/components/schemas/resource_contract/properties/starts_on'
                         interval_id:
                           $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                        starts_on:
+                          $ref: '#/components/schemas/resource_contract/properties/starts_on'
+                        ends_on:
+                          $ref: '#/components/schemas/resource_contract/properties/ends_on'
                         copy_expenses:
                           $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
-                        next_occurrence_on:
-                          $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
                         use_rollover_hours:
                           $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
                         copy_purchase_order_number:
                           $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                        next_occurrence_on:
+                          $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Contract relationships.
                       properties:
-                        template:
-                          $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
+                        template:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of contract resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '11'
+                  type: contracts
+                  attributes:
+                    name: Master Services Agreement
+                    status: active
+                    start_date: '2026-01-01'
+                    end_date: '2026-12-31'
+                    created_at: '2026-01-01T00:00:00.000+00:00'
+                  relationships:
+                    company:
+                      data:
+                        type: companies
+                        id: '65111'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection contract
   schemas:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         total_count:
           type: integer
           description: Total number of records matching the current query across all pages.
           example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
         organization_features:
           type: object
           description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
@@ -300,111 +345,29 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
     resource_contract:
       type: object
       title: Contract Resource
+      description: A recurring retainer contract that auto-generates budgets at set intervals with optional rollover of unused amounts.
       properties:
-        contract_interval_id:
-          type: integer
-          title: Contract Interval
-          description: ID of the recurrence interval (e.g. monthly, quarterly, annually) for this contract.
-          example:
-            - 123
-        ends_on:
-          type: string
-          title: Ends On
-          format: date
-          description: Date when this contract ends, or null if it has no end date.
-          example:
-            eq: value
-        template:
-          title: Template
-          description: The budget used as the template for generating new budgets from this contract.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this contract belongs to.
-          example:
-            eq: value
         id:
           type: integer
           title: Id
           description: The unique identifier of this contract.
-          example:
-            - 123
-        template_id:
-          title: Template
-          description: ID of the budget used as the template for generating new budgets from this contract.
           example:
             - 123
         use_rollover_hours:
@@ -413,6 +376,28 @@ components:
           description: Whether to roll over unused hours.
           example:
             eq: value
+        copy_purchase_order_number:
+          type: boolean
+          title: Copy Purchase Order Number
+          description: Whether to copy the purchase order number.
+          example: PO-2024-017
+        interval_id:
+          type: integer
+          title: Interval
+          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this contract belongs to.
+          example:
+            eq: value
+        contract_interval_id:
+          type: integer
+          title: Contract Interval
+          description: ID of the recurrence interval (e.g. monthly, quarterly, annually) for this contract.
+          example:
+            - 123
         starts_on:
           type: string
           title: Starts On
@@ -420,11 +405,11 @@ components:
           description: Date when this contract starts.
           example:
             eq: value
-        next_occurrence_on:
+        ends_on:
           type: string
-          title: Next Occurrence On
+          title: Ends On
           format: date
-          description: The date of the next occurrence.
+          description: Date when this contract ends, or null if it has no end date.
           example:
             eq: value
         copy_expenses:
@@ -433,18 +418,23 @@ components:
           description: Whether to copy expenses from the template.
           example:
             eq: value
-        interval_id:
-          type: integer
-          title: Interval
-          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
+        template:
+          title: Template
+          description: The budget used as the template for generating new budgets from this contract.
+          example:
+            eq: value
+        template_id:
+          title: Template
+          description: ID of the budget used as the template for generating new budgets from this contract.
           example:
             - 123
-        copy_purchase_order_number:
-          type: boolean
-          title: Copy Purchase Order Number
-          description: Whether to copy the purchase order number.
-          example: PO-2024-017
-      description: A recurring retainer contract that auto-generates budgets at set intervals with optional rollover of unused amounts.
+        next_occurrence_on:
+          type: string
+          title: Next Occurrence On
+          format: date
+          description: The date of the next occurrence.
+          example:
+            eq: value
       example:
         id: '11'
         type: contracts
@@ -459,34 +449,136 @@ components:
             data:
               type: companies
               id: '65111'
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
+  parameters:
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID
+    sort_contract:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort contract
+      explode: false
+      required: false
+      description: Sort contract
+    filter_contract:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.contract at the top of this file.
+      required: false
+      description: Filters
   requestBodies:
     contract:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a contract.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the contract resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Contract attributes.
+                    properties:
+                      copy_purchase_order_number:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                      interval_id:
+                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                      next_occurrence_on:
+                        $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                      copy_expenses:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
+                      template_id:
+                        $ref: '#/components/schemas/resource_contract/properties/template_id'
+                      use_rollover_hours:
+                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
+                      ends_on:
+                        $ref: '#/components/schemas/resource_contract/properties/ends_on'
                     required:
                       - interval_id
                       - template_id
-                    properties:
-                      ends_on:
-                        $ref: '#/components/schemas/resource_contract/properties/ends_on'
-                      interval_id:
-                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
-                      template_id:
-                        $ref: '#/components/schemas/resource_contract/properties/template_id'
-                      copy_expenses:
-                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
-                      next_occurrence_on:
-                        $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
-                      use_rollover_hours:
-                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
-                      copy_purchase_order_number:
-                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: contracts
+                attributes:
+                  name: Master Services Agreement
+                  start_date: '2026-01-01'
+                  end_date: '2026-12-31'
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
       description: Request body for creating or updating a contract (recurring retainer). Specify the template deal, interval (monthly, quarterly, etc.), start and end dates, and options for rolling over hours and copying purchase order numbers and expenses.

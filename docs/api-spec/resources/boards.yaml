@@ -37,15 +37,15 @@ description: |-
   ```
 x-filters:
   board:
-    status:
-      description: Filter by active/archived status.
+    project_id:
+      description: Filter by the associated project.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    project_id:
-      description: Filter by the associated project.
+    status:
+      description: Filter by active/archived status.
       operators:
         - contains
         - eq
@@ -71,9 +71,8 @@ paths:
       tags:
         - Boards
       summary: Archives a board
-      responses:
-        '200':
-          $ref: '#/components/responses/single_board'
+      operationId: boards-archive-archive
+      description: Archive a board.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -82,13 +81,18 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: boards-archive-archive
-      description: Archive a board.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_board'
   /api/v2/boards/copy:
     post:
       tags:
         - Boards
       summary: Copy a board
+      operationId: boards-copy-copy
+      description: Copy a board.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_board'
@@ -100,28 +104,30 @@ paths:
               schema:
                 type: string
           description: Created
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: boards-copy-copy
-      description: Copy a board.
   /api/v2/boards:
     get:
       tags:
         - Boards
       summary: Get boards
+      operationId: boards-index
+      description: List boards with optional filters and pagination.
+      parameters:
+        - $ref: '#/components/parameters/sort_board'
+        - $ref: '#/components/parameters/filter_board'
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/collection_board'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_board'
-        - $ref: '#/components/parameters/sort_board'
-      operationId: boards-index
-      description: List boards with optional filters and pagination.
     post:
       tags:
         - Boards
       summary: Create a board
+      operationId: boards-create
+      description: Create a new board.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/board'
       responses:
         '201':
           $ref: '#/components/responses/single_board'
@@ -133,17 +139,21 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: boards-create
-      requestBody:
-        $ref: '#/components/requestBodies/board'
-      description: Create a new board.
   /api/v2/boards/{id}/move:
     patch:
       tags:
         - Boards
       summary: Move a board
+      operationId: boards-move-move
+      description: Move a board.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_board'
@@ -155,24 +165,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: boards-move-move
-      description: Move a board.
   /api/v2/boards/{id}/reposition:
     patch:
       tags:
         - Boards
       summary: Repoisition a board
-      responses:
-        '200':
-          $ref: '#/components/responses/single_board'
+      operationId: boards-reposition-reposition
+      description: Reposition a board.
       parameters:
         - in: path
           name: id
@@ -181,16 +180,16 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: boards-reposition-reposition
-      description: Reposition a board.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_board'
   /api/v2/boards/{id}/restore:
     patch:
       tags:
         - Boards
       summary: Restores a board
-      responses:
-        '200':
-          $ref: '#/components/responses/single_board'
+      operationId: boards-restore-restore
+      description: Restore a board.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -199,16 +198,16 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: boards-restore-restore
-      description: Restore a board.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_board'
   /api/v2/boards/{id}:
     get:
       tags:
         - Boards
       summary: Gets a board
-      responses:
-        '200':
-          $ref: '#/components/responses/single_board'
+      operationId: boards-show
+      description: Retrieve a single board by ID.
       parameters:
         - in: path
           name: id
@@ -217,12 +216,25 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: boards-show
-      description: Retrieve a single board by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_board'
     patch:
       tags:
         - Boards
       summary: Update a board
+      operationId: boards-update
+      description: Update a board.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/board'
       responses:
         '200':
           $ref: '#/components/responses/single_board'
@@ -234,70 +246,232 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: boards-update
-      requestBody:
-        $ref: '#/components/requestBodies/board'
-      description: Update a board.
 components:
-  requestBodies:
-    board:
+  responses:
+    single_board:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single board (task list) record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned board resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Board relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
-                    required:
-                      - name
+                    description: Board attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_board/properties/name'
+                      archived_at:
+                        $ref: '#/components/schemas/resource_board/properties/archived_at'
                       hidden:
                         $ref: '#/components/schemas/resource_board/properties/hidden'
+                      name:
+                        $ref: '#/components/schemas/resource_board/properties/name'
+                      placement:
+                        $ref: '#/components/schemas/resource_board/properties/placement'
                       position:
                         $ref: '#/components/schemas/resource_board/properties/position'
-                      project_id:
-                        $ref: '#/components/schemas/resource_board/properties/project_id'
-      description: Request body for creating or updating a board (folder). Specify the project, name, position, placement (top or bottom), and optional archived status or hidden flag.
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '456'
+                type: boards
+                attributes:
+                  name: Kanban Board
+                  position: 1
+                  placement: 1000000
+                  archived_at: null
+                  hidden: false
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+              included: []
+      description: Single board
+    collection_board:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of board records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A board resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Board relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Board attributes.
+                      properties:
+                        hidden:
+                          $ref: '#/components/schemas/resource_board/properties/hidden'
+                        placement:
+                          $ref: '#/components/schemas/resource_board/properties/placement'
+                        archived_at:
+                          $ref: '#/components/schemas/resource_board/properties/archived_at'
+                        position:
+                          $ref: '#/components/schemas/resource_board/properties/position'
+                        name:
+                          $ref: '#/components/schemas/resource_board/properties/name'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of board resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '456'
+                  type: boards
+                  attributes:
+                    name: Kanban Board
+                    position: 1
+                    placement: 1000000
+                    archived_at: null
+                    hidden: false
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection board
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_board:
       type: object
       title: Board Resource
+      description: Folder (called Board internally) grouping task lists within a project. Supports name, position ordering, placement (top or bottom), archiving, and hidden visibility. Used to organize task lists into phases or sprints.
       properties:
-        project:
-          title: Project
-          description: The project this folder belongs to.
+        name:
+          type: string
+          title: Name
+          description: The display name of the folder.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this folder belongs to.
-          example:
-            eq: value
-        placement:
+        project_id:
           type: integer
-          title: Placement
-          description: Indicates the folder's placement context (e.g. project or global).
+          title: Project
+          description: The ID of the project this folder belongs to.
           example:
-            eq: value
+            - 123
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when the folder was archived, or null if active.
+          example:
+            gt: '2026-01-01'
         id:
           type: integer
           title: Id
           description: Unique identifier for the folder.
           example:
             - 123
+        hidden:
+          type: boolean
+          title: Hidden
+          description: When true, this folder is hidden from members who do not have explicit access.
+          example:
+            eq: value
         status:
           enum:
             - 1
@@ -307,44 +481,34 @@ components:
           description: The current status of the folder (e.g. active or archived).
           example:
             eq: active
-        position:
-          type: integer
-          title: Position
-          description: The display order position of this folder within its project.
+        organization:
+          title: Organization
+          description: The organization this folder belongs to.
           example:
             eq: value
-        name:
-          type: string
-          title: Name
-          description: The display name of the folder.
-          example:
-            eq: value
-        hidden:
-          type: boolean
-          title: Hidden
-          description: When true, this folder is hidden from members who do not have explicit access.
-          example:
-            eq: value
-        project_id:
-          type: integer
-          title: Project
-          description: The ID of the project this folder belongs to.
-          example:
-            - 123
         query:
           type: string
           title: Query
           description: A saved filter query string applied to this folder view.
           example:
             eq: value
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when the folder was archived, or null if active.
+        placement:
+          type: integer
+          title: Placement
+          description: Indicates the folder's placement context (e.g. project or global).
           example:
-            gt: '2026-01-01'
-      description: Folder (called Board internally) grouping task lists within a project. Supports name, position ordering, placement (top or bottom), archiving, and hidden visibility. Used to organize task lists into phases or sprints.
+            eq: value
+        project:
+          title: Project
+          description: The project this folder belongs to.
+          example:
+            eq: value
+        position:
+          type: integer
+          title: Position
+          description: The display order position of this folder within its project.
+          example:
+            eq: value
       example:
         id: '5522'
         type: boards
@@ -362,88 +526,32 @@ components:
           project:
             meta:
               included: false
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
-        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
               id: '42'
+        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -451,13 +559,68 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
+  requestBodies:
+    board:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating or updating a board.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object containing the board resource attributes and relationships.
+                properties:
+                  attributes:
+                    type: object
+                    description: Board attributes.
+                    properties:
+                      hidden:
+                        $ref: '#/components/schemas/resource_board/properties/hidden'
+                      project_id:
+                        $ref: '#/components/schemas/resource_board/properties/project_id'
+                      name:
+                        $ref: '#/components/schemas/resource_board/properties/name'
+                      position:
+                        $ref: '#/components/schemas/resource_board/properties/position'
+                    required:
+                      - name
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: boards
+                attributes:
+                  name: Kanban Board
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+      description: Request body for creating or updating a board (folder). Specify the project, name, position, placement (top or bottom), and optional archived status or hidden flag.
   parameters:
     header_organization:
       in: header
@@ -466,6 +629,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_board:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.board at the top of this file.
+      required: false
+      description: Filters
     sort_board:
       in: query
       name: sort
@@ -478,85 +650,3 @@ components:
       explode: false
       required: false
       description: Sort board
-    filter_board:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.board at the top of this file.
-      required: false
-      description: Filters
-  responses:
-    single_board:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_board/properties/name'
-                      hidden:
-                        $ref: '#/components/schemas/resource_board/properties/hidden'
-                      position:
-                        $ref: '#/components/schemas/resource_board/properties/position'
-                      placement:
-                        $ref: '#/components/schemas/resource_board/properties/placement'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_board/properties/archived_at'
-                  relationships:
-                    type: object
-                    properties:
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single board
-    collection_board:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_board/properties/name'
-                        hidden:
-                          $ref: '#/components/schemas/resource_board/properties/hidden'
-                        position:
-                          $ref: '#/components/schemas/resource_board/properties/position'
-                        placement:
-                          $ref: '#/components/schemas/resource_board/properties/placement'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_board/properties/archived_at'
-                    relationships:
-                      type: object
-                      properties:
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection board

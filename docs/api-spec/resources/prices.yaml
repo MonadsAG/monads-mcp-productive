@@ -5,36 +5,15 @@ info:
 description: Rate card line items with billing configuration. Each price belongs to a rate card and defines a service type, billing type (hourly, fixed, etc.), unit, rate, and optional tracking defaults. Supports discounts, markups, budget caps, and custom fields.
 x-filters:
   price:
-    service_type_id:
-      description: Filter by the associated service type.
+    time_tracking_enabled:
+      description: Filter to include only price entries where time tracking is enabled.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    custom_fields:
-      description: Filter by custom field values.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    booking_tracking_enabled:
-      description: Filter to include only price entries where booking tracking is enabled.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    unit_id:
-      description: Filter by unit ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    expense_tracking_enabled:
-      description: Filter to include only price entries where expense tracking is enabled.
+    company_id:
+      description: Filter by client company.
       operators:
         - contains
         - eq
@@ -54,28 +33,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    query:
+    booking_tracking_enabled:
+      description: Filter to include only price entries where booking tracking is enabled.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    company_id:
-      description: Filter by client company.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    rate_card_status:
-      description: Filter by the status of the associated rate card (active or archived).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    time_tracking_enabled:
-      description: Filter to include only price entries where time tracking is enabled.
+    service_type_id:
+      description: Filter by the associated service type.
       operators:
         - contains
         - eq
@@ -88,25 +54,65 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    custom_fields:
+      description: Filter by custom field values.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    unit_id:
+      description: Filter by unit ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    rate_card_status:
+      description: Filter by the status of the associated rate card (active or archived).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    expense_tracking_enabled:
+      description: Filter to include only price entries where expense tracking is enabled.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/prices:
     get:
       tags:
         - Prices
       summary: Get prices
+      operationId: prices-index
+      description: List all prices.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_price'
+        - $ref: '#/components/parameters/filter_price'
       responses:
         '200':
           $ref: '#/components/responses/collection_price'
-      parameters:
-        - $ref: '#/components/parameters/sort_price'
-        - $ref: '#/components/parameters/filter_price'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: prices-index
-      description: List all prices.
     post:
       tags:
         - Prices
       summary: Create a price
+      operationId: prices-create
+      description: Create a new price.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/price'
       responses:
         '201':
           $ref: '#/components/responses/single_price'
@@ -118,20 +124,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: prices-create
-      requestBody:
-        $ref: '#/components/requestBodies/price'
-      description: Create a new price.
   /api/v2/prices/{id}:
     get:
       tags:
         - Prices
       summary: Gets a price
-      responses:
-        '200':
-          $ref: '#/components/responses/single_price'
+      operationId: prices-show
+      description: Retrieve a single price by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -140,12 +139,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: prices-show
-      description: Retrieve a single price by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_price'
     patch:
       tags:
         - Prices
       summary: Update a price
+      operationId: prices-update
+      description: Update a price.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/price'
       responses:
         '200':
           $ref: '#/components/responses/single_price'
@@ -157,35 +169,23 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: prices-update
-      requestBody:
-        $ref: '#/components/requestBodies/price'
-      description: Update a price.
     delete:
       tags:
         - Prices
       summary: Deletes a price
-      responses:
-        '204':
-          description: No Content
+      operationId: prices-destroy
+      description: Delete a price by ID.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: prices-destroy
-      description: Delete a price by ID.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -245,85 +245,364 @@ components:
       explode: false
       required: false
       description: Sort price
-  requestBodies:
-    price:
+  responses:
+    single_price:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single price record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: object
+                description: The JSON:API data object for the returned price resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - name
-                      - company_id
-                      - unit_id
-                      - currency
-                      - rate_card_id
-                      - rate
+                    description: Price attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_price/properties/name'
-                      rate:
-                        $ref: '#/components/schemas/resource_price/properties/rate'
-                      markup:
-                        $ref: '#/components/schemas/resource_price/properties/markup'
-                      unit_id:
-                        $ref: '#/components/schemas/resource_price/properties/unit_id'
-                      currency:
-                        $ref: '#/components/schemas/resource_price/properties/currency'
-                      discount:
-                        $ref: '#/components/schemas/resource_price/properties/discount'
-                      quantity:
-                        $ref: '#/components/schemas/resource_price/properties/quantity'
-                      company_id:
-                        $ref: '#/components/schemas/resource_price/properties/company_id'
-                      rate_card_id:
-                        $ref: '#/components/schemas/resource_price/properties/rate_card_id'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_price/properties/custom_fields'
-                      editor_config:
-                        $ref: '#/components/schemas/resource_price/properties/editor_config'
-                      estimated_cost:
-                        $ref: '#/components/schemas/resource_price/properties/estimated_cost'
-                      billing_type_id:
-                        $ref: '#/components/schemas/resource_price/properties/billing_type_id'
-                      estimated_hours:
-                        $ref: '#/components/schemas/resource_price/properties/estimated_hours'
-                      service_type_id:
-                        $ref: '#/components/schemas/resource_price/properties/service_type_id'
                       budget_cap_enabled:
                         $ref: '#/components/schemas/resource_price/properties/budget_cap_enabled'
+                      billing_type_id:
+                        $ref: '#/components/schemas/resource_price/properties/billing_type_id'
+                      markup:
+                        $ref: '#/components/schemas/resource_price/properties/markup'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_price/properties/currency_default'
+                      currency:
+                        $ref: '#/components/schemas/resource_price/properties/currency'
+                      rate:
+                        $ref: '#/components/schemas/resource_price/properties/rate'
+                      unit_id:
+                        $ref: '#/components/schemas/resource_price/properties/unit_id'
+                      discount:
+                        $ref: '#/components/schemas/resource_price/properties/discount'
+                      estimated_cost:
+                        $ref: '#/components/schemas/resource_price/properties/estimated_cost'
+                      rate_normalized:
+                        $ref: '#/components/schemas/resource_price/properties/rate_normalized'
+                      estimated_cost_normalized:
+                        $ref: '#/components/schemas/resource_price/properties/estimated_cost_normalized'
+                      name:
+                        $ref: '#/components/schemas/resource_price/properties/name'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_price/properties/updated_at'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_price/properties/currency_normalized'
                       time_tracking_enabled:
                         $ref: '#/components/schemas/resource_price/properties/time_tracking_enabled'
-                      booking_tracking_enabled:
-                        $ref: '#/components/schemas/resource_price/properties/booking_tracking_enabled'
+                      rate_default:
+                        $ref: '#/components/schemas/resource_price/properties/rate_default'
+                      quantity:
+                        $ref: '#/components/schemas/resource_price/properties/quantity'
+                      estimated_cost_default:
+                        $ref: '#/components/schemas/resource_price/properties/estimated_cost_default'
                       expense_tracking_enabled:
                         $ref: '#/components/schemas/resource_price/properties/expense_tracking_enabled'
-      description: Request body for creating or updating a price (rate card line item). Specify the rate card, service type, billing type, unit, rate, quantity, and optional tracking defaults (time, bookings, expenses), discount, markup, and budget cap configuration.
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_price/properties/custom_fields'
+                      estimated_hours:
+                        $ref: '#/components/schemas/resource_price/properties/estimated_hours'
+                      editor_config:
+                        $ref: '#/components/schemas/resource_price/properties/editor_config'
+                      booking_tracking_enabled:
+                        $ref: '#/components/schemas/resource_price/properties/booking_tracking_enabled'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Price relationships.
+                    properties:
+                      company:
+                        $ref: '#/components/schemas/_single_relationship'
+                      updater:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_attachments:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      service_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      rate_card:
+                        $ref: '#/components/schemas/_single_relationship'
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '234'
+                type: prices
+                attributes:
+                  name: Senior Developer
+                  billing_type_id: 1
+                  unit_id: 1
+                  quantity: null
+                  description: Hourly rate for senior development work
+                  discount: null
+                  markup: null
+                  time_tracking_enabled: true
+                  booking_tracking_enabled: true
+                  expense_tracking_enabled: false
+                  budget_cap_enabled: false
+                  estimated_hours: 160
+                  custom_fields: null
+                  currency: USD
+                  rate: '150.00'
+                  estimated_cost: '24000.00'
+                  updated_at: '2026-01-15T10:00:00.000+00:00'
+                relationships:
+                  service_type:
+                    data:
+                      type: service_types
+                      id: '5'
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+                  rate_card:
+                    data:
+                      type: rate_cards
+                      id: '7'
+              included: []
+      description: Single price
+    collection_price:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of price records in JSON:API format.
+            properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A price resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Price relationships.
+                      properties:
+                        service_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_attachments:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        company:
+                          $ref: '#/components/schemas/_single_relationship'
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        rate_card:
+                          $ref: '#/components/schemas/_single_relationship'
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Price attributes.
+                      properties:
+                        estimated_cost_default:
+                          $ref: '#/components/schemas/resource_price/properties/estimated_cost_default'
+                        rate_normalized:
+                          $ref: '#/components/schemas/resource_price/properties/rate_normalized'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_price/properties/currency_default'
+                        name:
+                          $ref: '#/components/schemas/resource_price/properties/name'
+                        quantity:
+                          $ref: '#/components/schemas/resource_price/properties/quantity'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_price/properties/updated_at'
+                        billing_type_id:
+                          $ref: '#/components/schemas/resource_price/properties/billing_type_id'
+                        estimated_cost:
+                          $ref: '#/components/schemas/resource_price/properties/estimated_cost'
+                        booking_tracking_enabled:
+                          $ref: '#/components/schemas/resource_price/properties/booking_tracking_enabled'
+                        rate_default:
+                          $ref: '#/components/schemas/resource_price/properties/rate_default'
+                        unit_id:
+                          $ref: '#/components/schemas/resource_price/properties/unit_id'
+                        time_tracking_enabled:
+                          $ref: '#/components/schemas/resource_price/properties/time_tracking_enabled'
+                        estimated_hours:
+                          $ref: '#/components/schemas/resource_price/properties/estimated_hours'
+                        discount:
+                          $ref: '#/components/schemas/resource_price/properties/discount'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_price/properties/currency_normalized'
+                        custom_fields:
+                          $ref: '#/components/schemas/resource_price/properties/custom_fields'
+                        editor_config:
+                          $ref: '#/components/schemas/resource_price/properties/editor_config'
+                        estimated_cost_normalized:
+                          $ref: '#/components/schemas/resource_price/properties/estimated_cost_normalized'
+                        expense_tracking_enabled:
+                          $ref: '#/components/schemas/resource_price/properties/expense_tracking_enabled'
+                        rate:
+                          $ref: '#/components/schemas/resource_price/properties/rate'
+                        currency:
+                          $ref: '#/components/schemas/resource_price/properties/currency'
+                        markup:
+                          $ref: '#/components/schemas/resource_price/properties/markup'
+                        budget_cap_enabled:
+                          $ref: '#/components/schemas/resource_price/properties/budget_cap_enabled'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of price resource objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '234'
+                  type: prices
+                  attributes:
+                    name: Senior Developer
+                    billing_type_id: 1
+                    unit_id: 1
+                    description: Hourly rate for senior development work
+                    time_tracking_enabled: true
+                    booking_tracking_enabled: true
+                    estimated_hours: 160
+                    currency: USD
+                    rate: '150.00'
+                    estimated_cost: '24000.00'
+                    updated_at: '2026-01-15T10:00:00.000+00:00'
+                  relationships:
+                    service_type:
+                      data:
+                        type: service_types
+                        id: '5'
+                    rate_card:
+                      data:
+                        type: rate_cards
+                        id: '7'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection price
   schemas:
+    _collection_relationship:
+      anyOf:
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
     resource_price:
       type: object
       title: Price Resource
+      description: A rate card line item defining billing type, hourly/daily rate, tracking unit, and default settings for new services.
       properties:
-        estimated_cost_default:
-          title: Estimated Cost Default
-          description: The estimated cost converted to the organization's default currency, in whole currency units.
+        rate:
+          type: number
+          title: Rate
+          description: Billing rate in the rate card's currency.
           example:
             gt: 0
-        expense_tracking_enabled:
-          type: boolean
-          title: Expense Tracking Enabled
-          description: When true, expenses can be tracked against this price entry.
-          example:
-            eq: value
-        discount_amount:
-          type: number
-          title: Discount Amount
-          description: The money value of the discount in effect. On read, it is the user-set fixed amount in amount mode, otherwise the value computed from `discount` and the line total (quantity × rate) — check `discount_type` for which one you are looking at. On write, a positive value selects the fixed-amount discount (allowed only on fixed-price services, capped at the line total) and resets `discount` to 0, `0` or `null` clears it, and omitting the attribute leaves it untouched. A request with positive values in both `discount` and `discount_amount` is rejected with `discount_mode_ambiguous`. Requires the `service_discount_fixed_amount` release flag; without it, writes here are ignored.
         updated_at:
           type: string
           title: Updated At
@@ -331,27 +610,68 @@ components:
           description: Timestamp when this price entry was last updated.
           example:
             gt: '2026-01-01'
-        rate_card:
-          title: Rate Card
-          description: The rate card this price entry belongs to, if any.
+        currency_normalized:
+          title: Currency Normalized
+          description: Currency-normalized price for reporting purposes.
           example:
-            gt: 0
+            eq: value
+        quantity:
+          type: number
+          title: Quantity
+          description: The quantity of units for this price entry.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this price.
+          example:
+            - 123
+        custom_field_people:
+          title: Custom Field People
+          description: People referenced by custom field values on this price entry.
+          example:
+            eq: value
         discount_amount_default:
           title: Discount Amount Default
-        estimated_hours:
-          type: number
-          title: Estimated Hours
-          description: The estimated number of hours for this price entry.
-          example:
-            gt: 0
-        discount_amount_normalized:
-          title: Discount Amount Normalized
+        query:
+          type: string
+          title: Query
         editor_config:
           type: object
           title: Editor Config
           description: Configuration for the rich-text editor associated with this price entry.
           example:
             eq: value
+        service_type_id:
+          type: integer
+          title: Service Type
+          description: ID of the service type associated with this price entry.
+          example:
+            - 123
+        estimated_hours:
+          type: number
+          title: Estimated Hours
+          description: The estimated number of hours for this price entry.
+          example:
+            gt: 0
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: File attachments linked to custom fields on this price entry.
+          example:
+            gt: '2026-01-01'
+        company_id:
+          type: integer
+          title: Company
+          description: ID of the client company associated with this price entry.
+          example:
+            - 123
+        time_tracking_enabled:
+          type: boolean
+          title: Time Tracking Enabled
+          description: When true, time entries can be tracked against this price entry.
+          example:
+            gt: 0
         rate_card_status:
           enum:
             - 1
@@ -361,67 +681,36 @@ components:
           description: The status of the rate card associated with this price entry (active or archived).
           example:
             gt: 0
-        company_id:
-          type: integer
-          title: Company
-          description: ID of the client company associated with this price entry.
-          example:
-            - 123
-        quantity:
-          type: number
-          title: Quantity
-          description: The quantity of units for this price entry.
-          example:
-            eq: value
-        estimated_cost_normalized:
-          title: Estimated Cost Normalized
-          description: The estimated cost converted to the organization's normalized currency, in whole currency units.
-          example:
-            gt: 0
-        custom_field_people:
-          title: Custom Field People
-          description: People referenced by custom field values on this price entry.
-          example:
-            eq: value
+        discount_type:
+          enum:
+            - percentage
+            - amount
+          type: string
+          title: Discount Type
+          description: Read-only. Which discount is in effect — `amount` when `discount` is 0 and `discount_amount` is positive, `percentage` otherwise.
         markup:
           type: number
           title: Markup
           description: The markup percentage added on top of the cost for this price entry.
           example:
             eq: value
-        currency_normalized:
-          title: Currency Normalized
-          description: Currency-normalized price for reporting purposes.
-          example:
-            eq: value
-        time_tracking_enabled:
-          type: boolean
-          title: Time Tracking Enabled
-          description: When true, time entries can be tracked against this price entry.
-          example:
-            gt: 0
-        service_type_id:
-          type: integer
+        service_type:
           title: Service Type
-          description: ID of the service type associated with this price entry.
+          description: The service type associated with this price entry.
           example:
-            - 123
+            eq: active
         booking_tracking_enabled:
           type: boolean
           title: Booking Tracking Enabled
           description: When true, resource bookings can be tracked against this price entry.
           example:
             eq: value
-        rate_default:
-          title: Rate Default
-          description: Rate in the organization's default currency.
+        rate_card_id:
+          type: integer
+          title: Rate Card
+          description: ID of the rate card this price entry belongs to, if any.
           example:
-            gt: 0
-        service_type:
-          title: Service Type
-          description: The service type associated with this price entry.
-          example:
-            eq: active
+            - 123
         unit_id:
           enum:
             - 1
@@ -432,27 +721,25 @@ components:
           description: ID of the unit used for this price entry (e.g. hours, days).
           example:
             - 123
-        query:
-          type: string
-          title: Query
-        discount_type:
-          enum:
-            - percentage
-            - amount
-          type: string
-          title: Discount Type
-          description: Read-only. Which discount is in effect — `amount` when `discount` is 0 and `discount_amount` is positive, `percentage` otherwise.
-        rate:
+        discount_amount:
           type: number
-          title: Rate
-          description: Billing rate in the rate card's currency.
-          example:
-            gt: 0
-        company:
-          title: Company
-          description: The client company associated with this price entry.
+          title: Discount Amount
+          description: The money value of the discount in effect. On read, it is the user-set fixed amount in amount mode, otherwise the value computed from `discount` and the line total (quantity × rate) — check `discount_type` for which one you are looking at. On write, a positive value selects the fixed-amount discount (allowed only on fixed-price services, capped at the line total) and resets `discount` to 0, `0` or `null` clears it, and omitting the attribute leaves it untouched. A request with positive values in both `discount` and `discount_amount` is rejected with `discount_mode_ambiguous`. Requires the `service_discount_fixed_amount` release flag; without it, writes here are ignored.
+        organization:
+          title: Organization
+          description: The organization this price entry belongs to.
           example:
             eq: value
+        estimated_cost_normalized:
+          title: Estimated Cost Normalized
+          description: The estimated cost converted to the organization's normalized currency, in whole currency units.
+          example:
+            gt: 0
+        estimated_cost_default:
+          title: Estimated Cost Default
+          description: The estimated cost converted to the organization's default currency, in whole currency units.
+          example:
+            gt: 0
         billing_type_id:
           enum:
             - 1
@@ -464,71 +751,25 @@ components:
           description: 'Billing type for services using this price: hourly, daily, fixed-fee, etc.'
           example:
             - 123
+        updater:
+          title: Updater
+          description: The person who last updated this price entry.
+          example:
+            eq: value
+        rate_card:
+          title: Rate Card
+          description: The rate card this price entry belongs to, if any.
+          example:
+            gt: 0
         budget_cap_enabled:
           type: boolean
           title: Budget Cap Enabled
           description: When true, the price entry has a budget cap configured for spending limits.
           example:
             gt: 0
-        discount:
-          type: number
-          title: Discount
-          description: The discount percentage applied to the rate of this price entry.
-          example:
-            gt: 0
-        custom_fields:
-          type: object
-          title: Custom Fields
-          description: Custom field values for this price entry.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: Display name for this rate card line item (typically the service type name).
-          example:
-            eq: value
         currency_default:
           title: Currency Default
           description: Price in the organization's default currency.
-          example:
-            eq: value
-        custom_field_attachments:
-          title: Custom Field Attachments
-          description: File attachments linked to custom fields on this price entry.
-          example:
-            gt: '2026-01-01'
-        rate_card_id:
-          type: integer
-          title: Rate Card
-          description: ID of the rate card this price entry belongs to, if any.
-          example:
-            - 123
-        rate_normalized:
-          title: Rate Normalized
-          description: Rate normalized to a common currency for cross-company comparison.
-          example:
-            gt: 0
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this price.
-          example:
-            - 123
-        updater:
-          title: Updater
-          description: The person who last updated this price entry.
-          example:
-            eq: value
-        estimated_cost:
-          type: number
-          title: Estimated Cost
-          description: The estimated cost of this price entry in the entry's currency, in whole currency units.
-          example:
-            gt: 0
-        organization:
-          title: Organization
-          description: The organization this price entry belongs to.
           example:
             eq: value
         currency:
@@ -537,7 +778,53 @@ components:
           description: Currency code for this price (e.g. USD, EUR).
           example:
             eq: value
-      description: A rate card line item defining billing type, hourly/daily rate, tracking unit, and default settings for new services.
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: Custom field values for this price entry.
+          example:
+            eq: value
+        company:
+          title: Company
+          description: The client company associated with this price entry.
+          example:
+            eq: value
+        rate_normalized:
+          title: Rate Normalized
+          description: Rate normalized to a common currency for cross-company comparison.
+          example:
+            gt: 0
+        estimated_cost:
+          type: number
+          title: Estimated Cost
+          description: The estimated cost of this price entry in the entry's currency, in whole currency units.
+          example:
+            gt: 0
+        discount_amount_normalized:
+          title: Discount Amount Normalized
+        rate_default:
+          title: Rate Default
+          description: Rate in the organization's default currency.
+          example:
+            gt: 0
+        expense_tracking_enabled:
+          type: boolean
+          title: Expense Tracking Enabled
+          description: When true, expenses can be tracked against this price entry.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: Display name for this rate card line item (typically the service type name).
+          example:
+            eq: value
+        discount:
+          type: number
+          title: Discount
+          description: The discount percentage applied to the rate of this price entry.
+          example:
+            gt: 0
       example:
         id: '123'
         type: prices
@@ -550,19 +837,20 @@ components:
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         total_count:
           type: integer
           description: Total number of records matching the current query across all pages.
           example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
         organization_features:
           type: object
           description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
@@ -574,261 +862,101 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-  responses:
-    single_price:
+  requestBodies:
+    price:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a price.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the price resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Price attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_price/properties/name'
-                      rate:
-                        $ref: '#/components/schemas/resource_price/properties/rate'
-                      markup:
-                        $ref: '#/components/schemas/resource_price/properties/markup'
-                      unit_id:
-                        $ref: '#/components/schemas/resource_price/properties/unit_id'
+                      company_id:
+                        $ref: '#/components/schemas/resource_price/properties/company_id'
                       currency:
                         $ref: '#/components/schemas/resource_price/properties/currency'
-                      discount:
-                        $ref: '#/components/schemas/resource_price/properties/discount'
-                      quantity:
-                        $ref: '#/components/schemas/resource_price/properties/quantity'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_price/properties/updated_at'
-                      rate_default:
-                        $ref: '#/components/schemas/resource_price/properties/rate_default'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_price/properties/custom_fields'
-                      editor_config:
-                        $ref: '#/components/schemas/resource_price/properties/editor_config'
                       estimated_cost:
                         $ref: '#/components/schemas/resource_price/properties/estimated_cost'
-                      billing_type_id:
-                        $ref: '#/components/schemas/resource_price/properties/billing_type_id'
-                      estimated_hours:
-                        $ref: '#/components/schemas/resource_price/properties/estimated_hours'
-                      rate_normalized:
-                        $ref: '#/components/schemas/resource_price/properties/rate_normalized'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_price/properties/currency_default'
-                      budget_cap_enabled:
-                        $ref: '#/components/schemas/resource_price/properties/budget_cap_enabled'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_price/properties/currency_normalized'
+                      editor_config:
+                        $ref: '#/components/schemas/resource_price/properties/editor_config'
                       time_tracking_enabled:
                         $ref: '#/components/schemas/resource_price/properties/time_tracking_enabled'
-                      estimated_cost_default:
-                        $ref: '#/components/schemas/resource_price/properties/estimated_cost_default'
-                      booking_tracking_enabled:
-                        $ref: '#/components/schemas/resource_price/properties/booking_tracking_enabled'
+                      quantity:
+                        $ref: '#/components/schemas/resource_price/properties/quantity'
+                      discount:
+                        $ref: '#/components/schemas/resource_price/properties/discount'
+                      markup:
+                        $ref: '#/components/schemas/resource_price/properties/markup'
                       expense_tracking_enabled:
                         $ref: '#/components/schemas/resource_price/properties/expense_tracking_enabled'
-                      estimated_cost_normalized:
-                        $ref: '#/components/schemas/resource_price/properties/estimated_cost_normalized'
-                  relationships:
-                    type: object
-                    properties:
-                      company:
-                        $ref: '#/components/schemas/_single_relationship'
-                      updater:
-                        $ref: '#/components/schemas/_single_relationship'
-                      rate_card:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      service_type:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      custom_field_attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single price
-    collection_price:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      billing_type_id:
+                        $ref: '#/components/schemas/resource_price/properties/billing_type_id'
+                      booking_tracking_enabled:
+                        $ref: '#/components/schemas/resource_price/properties/booking_tracking_enabled'
+                      estimated_hours:
+                        $ref: '#/components/schemas/resource_price/properties/estimated_hours'
+                      budget_cap_enabled:
+                        $ref: '#/components/schemas/resource_price/properties/budget_cap_enabled'
+                      service_type_id:
+                        $ref: '#/components/schemas/resource_price/properties/service_type_id'
+                      unit_id:
+                        $ref: '#/components/schemas/resource_price/properties/unit_id'
+                      name:
+                        $ref: '#/components/schemas/resource_price/properties/name'
+                      rate_card_id:
+                        $ref: '#/components/schemas/resource_price/properties/rate_card_id'
+                      rate:
+                        $ref: '#/components/schemas/resource_price/properties/rate'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_price/properties/custom_fields'
+                    required:
+                      - name
+                      - company_id
+                      - unit_id
+                      - currency
+                      - rate_card_id
+                      - rate
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_price/properties/name'
-                        rate:
-                          $ref: '#/components/schemas/resource_price/properties/rate'
-                        markup:
-                          $ref: '#/components/schemas/resource_price/properties/markup'
-                        unit_id:
-                          $ref: '#/components/schemas/resource_price/properties/unit_id'
-                        currency:
-                          $ref: '#/components/schemas/resource_price/properties/currency'
-                        discount:
-                          $ref: '#/components/schemas/resource_price/properties/discount'
-                        quantity:
-                          $ref: '#/components/schemas/resource_price/properties/quantity'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_price/properties/updated_at'
-                        rate_default:
-                          $ref: '#/components/schemas/resource_price/properties/rate_default'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_price/properties/custom_fields'
-                        editor_config:
-                          $ref: '#/components/schemas/resource_price/properties/editor_config'
-                        estimated_cost:
-                          $ref: '#/components/schemas/resource_price/properties/estimated_cost'
-                        billing_type_id:
-                          $ref: '#/components/schemas/resource_price/properties/billing_type_id'
-                        estimated_hours:
-                          $ref: '#/components/schemas/resource_price/properties/estimated_hours'
-                        rate_normalized:
-                          $ref: '#/components/schemas/resource_price/properties/rate_normalized'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_price/properties/currency_default'
-                        budget_cap_enabled:
-                          $ref: '#/components/schemas/resource_price/properties/budget_cap_enabled'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_price/properties/currency_normalized'
-                        time_tracking_enabled:
-                          $ref: '#/components/schemas/resource_price/properties/time_tracking_enabled'
-                        estimated_cost_default:
-                          $ref: '#/components/schemas/resource_price/properties/estimated_cost_default'
-                        booking_tracking_enabled:
-                          $ref: '#/components/schemas/resource_price/properties/booking_tracking_enabled'
-                        expense_tracking_enabled:
-                          $ref: '#/components/schemas/resource_price/properties/expense_tracking_enabled'
-                        estimated_cost_normalized:
-                          $ref: '#/components/schemas/resource_price/properties/estimated_cost_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        company:
-                          $ref: '#/components/schemas/_single_relationship'
-                        updater:
-                          $ref: '#/components/schemas/_single_relationship'
-                        rate_card:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service_type:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection price
+                type: prices
+                attributes:
+                  name: Senior Developer
+                  rate: '150.00'
+                  currency: USD
+                  billing_type_id: 1
+                  estimated_hours: 160
+                relationships:
+                  service_type:
+                    data:
+                      type: service_types
+                      id: '5'
+                  rate_card:
+                    data:
+                      type: rate_cards
+                      id: '7'
+      description: Request body for creating or updating a price (rate card line item). Specify the rate card, service type, billing type, unit, rate, quantity, and optional tracking defaults (time, bookings, expenses), discount, markup, and budget cap configuration.

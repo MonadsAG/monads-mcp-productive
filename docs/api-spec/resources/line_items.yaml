@@ -43,15 +43,8 @@ description: |-
   In a new workflow (available for customers on our BETA program for now), you should send `tax_rate_id` instead, which points to a Tax rate object. So, in order to set VAT 15% to your line item, you would first need to have a tax rate object with those values and then send its ID to the desired line item.
 x-filters:
   line_item:
-    unit_id:
-      description: Filter by the billing unit (e.g. hour, day, piece).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    expense_id:
-      description: Filter by the associated expense.
+    updater_id:
+      description: Filter by the person who last updated the line item.
       operators:
         - contains
         - eq
@@ -64,6 +57,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    expense_id:
+      description: Filter by the associated expense.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     id:
       description: Filter by the line item's unique ID.
       operators:
@@ -71,8 +71,29 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    service_type_id:
+      description: Filter by the service type of the associated service.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     invoice_id:
       description: Filter by the associated invoice.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    company_id:
+      description: Filter by client company (via the associated invoice).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    tax_value:
+      description: Filter by tax rate percentage range.
       operators:
         - contains
         - eq
@@ -92,22 +113,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    tax_value:
-      description: Filter by tax rate percentage range.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    updater_id:
-      description: Filter by the person who last updated the line item.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    service_type_id:
-      description: Filter by the service type of the associated service.
+    unit_id:
+      description: Filter by the billing unit (e.g. hour, day, piece).
       operators:
         - contains
         - eq
@@ -120,50 +127,55 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    company_id:
-      description: Filter by client company (via the associated invoice).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
 paths:
   /api/v2/line_items:
     get:
       tags:
         - Line Items
       summary: Get line items
+      operationId: line_items-index
+      description: List line items.
+      parameters:
+        - $ref: '#/components/parameters/sort_line_item'
+        - $ref: '#/components/parameters/filter_line_item'
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/collection_line_item'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_line_item'
-        - $ref: '#/components/parameters/filter_line_item'
-      operationId: line_items-index
-      description: List line items.
   /api/v2/line_items/{id}:
     get:
       tags:
         - Line Items
       summary: Gets a line item
-      responses:
-        '200':
-          $ref: '#/components/responses/single_line_item'
+      operationId: line_items-show
+      description: Retrieve a single line item.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: line_items-show
-      description: Retrieve a single line item.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_line_item'
     patch:
       tags:
         - Line Items
       summary: Update a line item
+      operationId: line_items-update
+      description: Update a line item.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/line_item'
       responses:
         '200':
           $ref: '#/components/responses/single_line_item'
@@ -175,40 +187,35 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: line_items-update
-      requestBody:
-        $ref: '#/components/requestBodies/line_item'
-      description: Update a line item.
     delete:
       tags:
         - Line Items
       summary: Deletes a line item
-      responses:
-        '204':
-          description: No Content
+      operationId: line_items-destroy
+      description: Delete a line item.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: line_items-destroy
-      description: Delete a line item.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '204':
+          description: No Content
   /api/v2/line_items/generate:
     post:
       tags:
         - Line Items
       summary: Create line items
+      operationId: line_items-generate-generate
+      description: |
+        The `generate` method provides a way to automatically create line items for an invoice based on the provided invoicing method.
+
+        This [help article](https://help.productive.io/en/articles/4656350-understanding-invoicing-methods) explains the supported invoicing methods.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '200':
           $ref: '#/components/responses/single_line_item'
@@ -220,14 +227,595 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: line_items-generate-generate
-      description: |
-        The `generate` method provides a way to automatically create line items for an invoice based on the provided invoicing method.
-
-        This [help article](https://help.productive.io/en/articles/4656350-understanding-invoicing-methods) explains the supported invoicing methods.
 components:
+  responses:
+    single_line_item:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single line item record in JSON:API format.
+            properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: object
+                description: The line item resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Line item attributes.
+                    properties:
+                      unit_price:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_price'
+                      amount:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount'
+                      position:
+                        $ref: '#/components/schemas/resource_line_item/properties/position'
+                      unit_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_id'
+                      amount_with_tax_default:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_default'
+                      unit_price_default:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_price_default'
+                      amount_with_tax:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax'
+                      currency:
+                        $ref: '#/components/schemas/resource_line_item/properties/currency'
+                      amount_tax_default:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_tax_default'
+                      amount_tax_normalized:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_tax_normalized'
+                      amount_default:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_default'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_line_item/properties/currency_normalized'
+                      tax_name:
+                        $ref: '#/components/schemas/resource_line_item/properties/tax_name'
+                      discount:
+                        $ref: '#/components/schemas/resource_line_item/properties/discount'
+                      amount_with_tax_normalized:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_normalized'
+                      amount_tax:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_tax'
+                      unit_price_normalized:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_price_normalized'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_line_item/properties/currency_default'
+                      amount_normalized:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_normalized'
+                      tax_value:
+                        $ref: '#/components/schemas/resource_line_item/properties/tax_value'
+                      manual_entry:
+                        $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
+                      quantity:
+                        $ref: '#/components/schemas/resource_line_item/properties/quantity'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Line item relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      service:
+                        $ref: '#/components/schemas/_single_relationship'
+                      kpd_code:
+                        $ref: '#/components/schemas/_single_relationship'
+                      tax_rate:
+                        $ref: '#/components/schemas/_single_relationship'
+                      expense:
+                        $ref: '#/components/schemas/_single_relationship'
+                      invoice:
+                        $ref: '#/components/schemas/_single_relationship'
+                      service_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '890'
+                type: line_items
+                attributes:
+                  name: Frontend Development
+                  quantity: 10
+                  unit: hours
+                  unit_price: '150.00'
+                  total_price: '1500.00'
+                  currency: USD
+                  position: 1
+                  tax_rate: '0.1'
+                relationships:
+                  invoice:
+                    data:
+                      type: invoices
+                      id: '234'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+              included: []
+      description: Single line item
+    collection_line_item:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of line item records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A line item resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Line item attributes.
+                      properties:
+                        quantity:
+                          $ref: '#/components/schemas/resource_line_item/properties/quantity'
+                        tax_value:
+                          $ref: '#/components/schemas/resource_line_item/properties/tax_value'
+                        position:
+                          $ref: '#/components/schemas/resource_line_item/properties/position'
+                        unit_price_normalized:
+                          $ref: '#/components/schemas/resource_line_item/properties/unit_price_normalized'
+                        amount:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount'
+                        unit_id:
+                          $ref: '#/components/schemas/resource_line_item/properties/unit_id'
+                        currency:
+                          $ref: '#/components/schemas/resource_line_item/properties/currency'
+                        discount:
+                          $ref: '#/components/schemas/resource_line_item/properties/discount'
+                        tax_name:
+                          $ref: '#/components/schemas/resource_line_item/properties/tax_name'
+                        unit_price:
+                          $ref: '#/components/schemas/resource_line_item/properties/unit_price'
+                        amount_with_tax_normalized:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_normalized'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_line_item/properties/currency_default'
+                        amount_tax_default:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_tax_default'
+                        amount_default:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_default'
+                        amount_tax_normalized:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_tax_normalized'
+                        manual_entry:
+                          $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
+                        unit_price_default:
+                          $ref: '#/components/schemas/resource_line_item/properties/unit_price_default'
+                        amount_with_tax:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_line_item/properties/currency_normalized'
+                        amount_normalized:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_normalized'
+                        amount_tax:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_tax'
+                        amount_with_tax_default:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_default'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Line item relationships.
+                      properties:
+                        invoice:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        tax_rate:
+                          $ref: '#/components/schemas/_single_relationship'
+                        kpd_code:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        expense:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of line item resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '890'
+                  type: line_items
+                  attributes:
+                    name: Frontend Development
+                    quantity: 10
+                    unit: hours
+                    unit_price: '150.00'
+                    total_price: '1500.00'
+                    currency: USD
+                    position: 1
+                    tax_rate: '0.1'
+                  relationships:
+                    invoice:
+                      data:
+                        type: invoices
+                        id: '234'
+                    service:
+                      data:
+                        type: services
+                        id: '1856422'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection line item
+  schemas:
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
+    resource_line_item:
+      type: object
+      title: Line item Resource
+      description: An invoice line item with quantity, unit price, description, and tax. Line items can link to budget services or expenses for automatic billing.
+      properties:
+        amount_tax_default:
+          title: Amount Tax Default
+          description: The tax portion of this line item's amount converted to the organization's default currency.
+          example:
+            gt: 0
+        amount_with_tax:
+          title: Amount With Tax
+          description: The total line amount including tax in the invoice's currency.
+          example:
+            gt: 0
+        organization:
+          title: Organization
+          description: The organization this line item belongs to.
+          example:
+            eq: value
+        company_id:
+          type: integer
+          title: Company
+          description: ID of the company (client) on the invoice this line item belongs to.
+          example:
+            - 123
+        amount_normalized:
+          title: Amount Normalized
+          description: The total line amount converted to the invoice currency.
+          example:
+            gt: 0
+        updater_id:
+          type: integer
+          title: Updater
+          description: ID of the person who last updated this line item.
+          example:
+            - 123
+        amount_tax:
+          title: Amount Tax
+          description: The tax portion of this line item's amount in the invoice's currency.
+          example:
+            gt: 0
+        manual_entry:
+          type: boolean
+          title: Manual Entry
+        unit_price_default:
+          title: Unit Price Default
+          description: The price per unit converted to the organization's default currency.
+          example:
+            gt: 0
+        unit_price_normalized:
+          title: Unit Price Normalized
+          description: |+
+            The price per unit for this line item in the invoice's currency.
+
+          example:
+            gt: 0
+        unit_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Unit
+          description: ID of the unit of measure for this line item (e.g. hour, day, piece).
+          example:
+            - 123
+        kpd_code_id:
+          type: integer
+          title: Kpd Code
+          description: ID of the KPD classification code assigned to this line item (used only in Croatia).
+          example: '42'
+        currency:
+          title: Currency
+          description: The currency of this line item, inherited from the associated invoice.
+          example:
+            eq: value
+        quantity:
+          type: number
+          title: Quantity
+          description: The quantity of units for this line item; for percentage billing types, expressed as a percentage value.
+          example:
+            eq: value
+        amount:
+          title: Amount
+          description: The total line amount (unit price × quantity, minus discount) in the invoice's currency.
+          example:
+            gt: 0
+        amount_with_tax_default:
+          title: Amount With Tax Default
+          description: The amount with tax converted to the organization's default currency.
+          example:
+            gt: 0
+        position:
+          type: integer
+          title: Position
+          description: The display order of this line item within the invoice.
+          example:
+            eq: value
+        tax_rate_id:
+          type: integer
+          title: Tax Rate
+          description: ID of the tax rate applied to this line item, or null if tax is not applied.
+          example:
+            - 123
+        invoice_id:
+          type: integer
+          title: Invoice
+          description: ID of the invoice this line item belongs to.
+          example:
+            - 123
+        amount_default:
+          title: Amount Default
+          description: The total line amount converted to the organization's default currency.
+          example:
+            gt: 0
+        service_type:
+          title: Service Type
+          description: The service type categorizing this line item.
+          example:
+            eq: active
+        amount_with_tax_normalized:
+          title: Amount With Tax Normalized
+          description: The amount with tax converted to the invoice currency.
+          example:
+            gt: 0
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who created this line item.
+          example:
+            - 123
+        service:
+          title: Service
+          description: The budget service linked to this line item, if this line item was generated from a service.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The invoice's currency for this line item.
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency for this line item.
+          example:
+            eq: value
+        service_id:
+          type: integer
+          title: Service
+          description: ID of the budget service linked to this line item, or null if not service-based.
+          example:
+            - 123
+        tax_name:
+          type: string
+          title: Tax Name
+          description: The display name of the tax applied to this line item (e.g. VAT).
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier of this line item.
+          example:
+            - 123
+        discount:
+          type: number
+          title: Discount
+          description: The discount applied to this line item, expressed as a percentage (0–100).
+          example:
+            gt: 0
+        amount_tax_normalized:
+          title: Amount Tax Normalized
+          description: The tax portion of this line item's amount converted to the invoice currency.
+          example:
+            gt: 0
+        expense:
+          title: Expense
+          description: The project expense linked to this line item, if this line item was generated from an expense.
+          example:
+            eq: value
+        kpd_code:
+          title: Kpd Code
+          description: The KPD classification code assigned to this line item, used for e-invoicing compliance in Croatia.
+          example:
+            data:
+              type: kpd_codes
+              id: '42'
+        service_type_id:
+          type: integer
+          title: Service Type
+          description: ID of the service type categorizing this line item.
+          example:
+            - 123
+        unit_price:
+          type: integer
+          title: Unit Price
+          description: The price per unit for this line item in the invoice's currency.
+          example:
+            gt: 0
+        tax_value:
+          type: number
+          title: Tax Value
+          description: The computed tax amount for this line item (amount × tax_value).
+          example:
+            eq: value
+        tax_rate:
+          title: Tax Rate
+          description: The tax rate applied to this line item.
+          example:
+            gt: 0
+        invoice:
+          title: Invoice
+          description: The invoice this line item belongs to.
+          example:
+            eq: value
+        expense_id:
+          type: integer
+          title: Expense
+          description: ID of the project expense linked to this line item, or null if not expense-based.
+          example:
+            - 123
+      example:
+        id: '890'
+        type: line_items
+        attributes:
+          name: Frontend Development
+          quantity: 10
+          unit: hours
+          unit_price: '150.00'
+          total_price: '1500.00'
+          currency: USD
+          position: 1
+          tax_rate: '0.1'
+        relationships:
+          invoice:
+            data:
+              type: invoices
+              id: '234'
+          service:
+            data:
+              type: services
+              id: '1856422'
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
   parameters:
     header_organization:
       in: header
@@ -257,551 +845,72 @@ components:
       explode: false
       required: false
       description: Sort line item
-  responses:
-    single_line_item:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      amount:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount'
-                      unit_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_id'
-                      currency:
-                        $ref: '#/components/schemas/resource_line_item/properties/currency'
-                      discount:
-                        $ref: '#/components/schemas/resource_line_item/properties/discount'
-                      position:
-                        $ref: '#/components/schemas/resource_line_item/properties/position'
-                      quantity:
-                        $ref: '#/components/schemas/resource_line_item/properties/quantity'
-                      tax_name:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_name'
-                      tax_value:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_value'
-                      amount_tax:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_tax'
-                      unit_price:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_price'
-                      manual_entry:
-                        $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
-                      amount_default:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_default'
-                      amount_with_tax:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_line_item/properties/currency_default'
-                      amount_normalized:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_normalized'
-                      amount_tax_default:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_tax_default'
-                      unit_price_default:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_price_default'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_line_item/properties/currency_normalized'
-                      amount_tax_normalized:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_tax_normalized'
-                      unit_price_normalized:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_price_normalized'
-                      amount_with_tax_default:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_default'
-                      amount_with_tax_normalized:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_normalized'
-                  relationships:
-                    type: object
-                    properties:
-                      expense:
-                        $ref: '#/components/schemas/_single_relationship'
-                      invoice:
-                        $ref: '#/components/schemas/_single_relationship'
-                      service:
-                        $ref: '#/components/schemas/_single_relationship'
-                      kpd_code:
-                        $ref: '#/components/schemas/_single_relationship'
-                      tax_rate:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      service_type:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single line item
-    collection_line_item:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        amount:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount'
-                        unit_id:
-                          $ref: '#/components/schemas/resource_line_item/properties/unit_id'
-                        currency:
-                          $ref: '#/components/schemas/resource_line_item/properties/currency'
-                        discount:
-                          $ref: '#/components/schemas/resource_line_item/properties/discount'
-                        position:
-                          $ref: '#/components/schemas/resource_line_item/properties/position'
-                        quantity:
-                          $ref: '#/components/schemas/resource_line_item/properties/quantity'
-                        tax_name:
-                          $ref: '#/components/schemas/resource_line_item/properties/tax_name'
-                        tax_value:
-                          $ref: '#/components/schemas/resource_line_item/properties/tax_value'
-                        amount_tax:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_tax'
-                        unit_price:
-                          $ref: '#/components/schemas/resource_line_item/properties/unit_price'
-                        manual_entry:
-                          $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
-                        amount_default:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_default'
-                        amount_with_tax:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_line_item/properties/currency_default'
-                        amount_normalized:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_normalized'
-                        amount_tax_default:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_tax_default'
-                        unit_price_default:
-                          $ref: '#/components/schemas/resource_line_item/properties/unit_price_default'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_line_item/properties/currency_normalized'
-                        amount_tax_normalized:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_tax_normalized'
-                        unit_price_normalized:
-                          $ref: '#/components/schemas/resource_line_item/properties/unit_price_normalized'
-                        amount_with_tax_default:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_default'
-                        amount_with_tax_normalized:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        expense:
-                          $ref: '#/components/schemas/_single_relationship'
-                        invoice:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service:
-                          $ref: '#/components/schemas/_single_relationship'
-                        kpd_code:
-                          $ref: '#/components/schemas/_single_relationship'
-                        tax_rate:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service_type:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection line item
-  schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    resource_line_item:
-      type: object
-      title: Line item Resource
-      properties:
-        amount_default:
-          title: Amount Default
-          description: The total line amount converted to the organization's default currency.
-          example:
-            gt: 0
-        organization:
-          title: Organization
-          description: The organization this line item belongs to.
-          example:
-            eq: value
-        amount_normalized:
-          title: Amount Normalized
-          description: The total line amount converted to the invoice currency.
-          example:
-            gt: 0
-        updater_id:
-          type: integer
-          title: Updater
-          description: ID of the person who last updated this line item.
-          example:
-            - 123
-        service_id:
-          type: integer
-          title: Service
-          description: ID of the budget service linked to this line item, or null if not service-based.
-          example:
-            - 123
-        kpd_code:
-          title: Kpd Code
-          description: The KPD classification code assigned to this line item, used for e-invoicing compliance in Croatia.
-          example:
-            data:
-              type: kpd_codes
-              id: '42'
-        amount_with_tax:
-          title: Amount With Tax
-          description: The total line amount including tax in the invoice's currency.
-          example:
-            gt: 0
-        tax_rate_id:
-          type: integer
-          title: Tax Rate
-          description: ID of the tax rate applied to this line item, or null if tax is not applied.
-          example:
-            - 123
-        tax_name:
-          type: string
-          title: Tax Name
-          description: The display name of the tax applied to this line item (e.g. VAT).
-          example:
-            eq: value
-        quantity:
-          type: number
-          title: Quantity
-          description: The quantity of units for this line item; for percentage billing types, expressed as a percentage value.
-          example:
-            eq: value
-        service_type:
-          title: Service Type
-          description: The service type categorizing this line item.
-          example:
-            eq: active
-        unit_price:
-          type: integer
-          title: Unit Price
-          description: The price per unit for this line item in the invoice's currency.
-          example:
-            gt: 0
-        expense:
-          title: Expense
-          description: The project expense linked to this line item, if this line item was generated from an expense.
-          example:
-            eq: value
-        unit_price_normalized:
-          title: Unit Price Normalized
-          description: |+
-            The price per unit for this line item in the invoice's currency.
-
-          example:
-            gt: 0
-        amount_with_tax_normalized:
-          title: Amount With Tax Normalized
-          description: The amount with tax converted to the invoice currency.
-          example:
-            gt: 0
-        amount_tax_default:
-          title: Amount Tax Default
-          description: The tax portion of this line item's amount converted to the organization's default currency.
-          example:
-            gt: 0
-        expense_id:
-          type: integer
-          title: Expense
-          description: ID of the project expense linked to this line item, or null if not expense-based.
-          example:
-            - 123
-        unit_price_default:
-          title: Unit Price Default
-          description: The price per unit converted to the organization's default currency.
-          example:
-            gt: 0
-        tax_rate:
-          title: Tax Rate
-          description: The tax rate applied to this line item.
-          example:
-            gt: 0
-        amount:
-          title: Amount
-          description: The total line amount (unit price × quantity, minus discount) in the invoice's currency.
-          example:
-            gt: 0
-        currency_normalized:
-          title: Currency Normalized
-          description: The invoice's currency for this line item.
-          example:
-            eq: value
-        unit_id:
-          enum:
-            - 1
-            - 2
-            - 3
-          type: integer
-          title: Unit
-          description: ID of the unit of measure for this line item (e.g. hour, day, piece).
-          example:
-            - 123
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency for this line item.
-          example:
-            eq: value
-        kpd_code_id:
-          type: integer
-          title: Kpd Code
-          description: ID of the KPD classification code assigned to this line item (used only in Croatia).
-          example: '42'
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who created this line item.
-          example:
-            - 123
-        tax_value:
-          type: number
-          title: Tax Value
-          description: The computed tax amount for this line item (amount × tax_value).
-          example:
-            eq: value
-        service_type_id:
-          type: integer
-          title: Service Type
-          description: ID of the service type categorizing this line item.
-          example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier of this line item.
-          example:
-            - 123
-        currency:
-          title: Currency
-          description: The currency of this line item, inherited from the associated invoice.
-          example:
-            eq: value
-        amount_with_tax_default:
-          title: Amount With Tax Default
-          description: The amount with tax converted to the organization's default currency.
-          example:
-            gt: 0
-        service:
-          title: Service
-          description: The budget service linked to this line item, if this line item was generated from a service.
-          example:
-            eq: value
-        amount_tax:
-          title: Amount Tax
-          description: The tax portion of this line item's amount in the invoice's currency.
-          example:
-            gt: 0
-        amount_tax_normalized:
-          title: Amount Tax Normalized
-          description: The tax portion of this line item's amount converted to the invoice currency.
-          example:
-            gt: 0
-        discount:
-          type: number
-          title: Discount
-          description: The discount applied to this line item, expressed as a percentage (0–100).
-          example:
-            gt: 0
-        manual_entry:
-          type: boolean
-          title: Manual Entry
-        company_id:
-          type: integer
-          title: Company
-          description: ID of the company (client) on the invoice this line item belongs to.
-          example:
-            - 123
-        position:
-          type: integer
-          title: Position
-          description: The display order of this line item within the invoice.
-          example:
-            eq: value
-        invoice:
-          title: Invoice
-          description: The invoice this line item belongs to.
-          example:
-            eq: value
-        invoice_id:
-          type: integer
-          title: Invoice
-          description: ID of the invoice this line item belongs to.
-          example:
-            - 123
-      description: An invoice line item with quantity, unit price, description, and tax. Line items can link to budget services or expenses for automatic billing.
-      example:
-        id: '890'
-        type: line_items
-        attributes:
-          name: Frontend Development
-          quantity: 10
-          unit: hours
-          unit_price: '150.00'
-          total_price: '1500.00'
-          currency: USD
-          position: 1
-          tax_rate: '0.1'
-        relationships:
-          invoice:
-            data:
-              type: invoices
-              id: '234'
-          service:
-            data:
-              type: services
-              id: '1856422'
   requestBodies:
     line_item:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a line item.
             properties:
               data:
                 type: object
+                description: The line item resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Line item attributes.
+                    properties:
+                      tax_name:
+                        $ref: '#/components/schemas/resource_line_item/properties/tax_name'
+                      unit_price:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_price'
+                      tax_value:
+                        $ref: '#/components/schemas/resource_line_item/properties/tax_value'
+                      discount:
+                        $ref: '#/components/schemas/resource_line_item/properties/discount'
+                      tax_rate_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/tax_rate_id'
+                      service_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/service_id'
+                      manual_entry:
+                        $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
+                      position:
+                        $ref: '#/components/schemas/resource_line_item/properties/position'
+                      service_type_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/service_type_id'
+                      quantity:
+                        $ref: '#/components/schemas/resource_line_item/properties/quantity'
+                      expense_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/expense_id'
+                      kpd_code_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/kpd_code_id'
+                      unit_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_id'
+                      invoice_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/invoice_id'
                     required:
                       - invoice_id
                       - unit_price
                       - quantity
                       - tax_rate_id
-                    properties:
-                      unit_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_id'
-                      discount:
-                        $ref: '#/components/schemas/resource_line_item/properties/discount'
-                      position:
-                        $ref: '#/components/schemas/resource_line_item/properties/position'
-                      quantity:
-                        $ref: '#/components/schemas/resource_line_item/properties/quantity'
-                      tax_name:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_name'
-                      tax_value:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_value'
-                      expense_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/expense_id'
-                      invoice_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/invoice_id'
-                      service_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/service_id'
-                      unit_price:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_price'
-                      kpd_code_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/kpd_code_id'
-                      tax_rate_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_rate_id'
-                      manual_entry:
-                        $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
-                      service_type_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/service_type_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: line_items
+                attributes:
+                  name: Frontend Development
+                  quantity: 10
+                  unit: hours
+                  unit_price: '150.00'
+                  position: 1
+                  tax_rate: '0.1'
+                relationships:
+                  invoice:
+                    data:
+                      type: invoices
+                      id: '234'
       description: Request body for creating or updating an invoice line item.
