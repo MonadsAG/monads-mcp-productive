@@ -8,22 +8,15 @@ description: |-
   Configure and query revenue schedules — specifying what portion of a service's value is recognized in each period — for accurate financial reporting.
 x-filters:
   revenue_distribution:
-    id:
-      description: Filter by ID.
+    deal_id:
+      description: Filter by the associated deal.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    start_on:
-      description: Filter by the start date of the distribution period.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    end_on:
-      description: Filter by the end date of the distribution period.
+    amount:
+      description: Filter by the monetary amount of the revenue distribution.
       operators:
         - contains
         - eq
@@ -43,15 +36,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    deal_id:
-      description: Filter by the associated deal.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    amount:
-      description: Filter by the monetary amount of the revenue distribution.
+    end_on:
+      description: Filter by the end date of the distribution period.
       operators:
         - contains
         - eq
@@ -64,25 +50,43 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    start_on:
+      description: Filter by the start date of the distribution period.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/revenue_distributions:
     get:
       tags:
         - Revenue Distributions
       summary: Get revenue distributions
+      operationId: revenue_distributions-index
+      description: List all revenue distributions.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_revenue_distribution'
+        - $ref: '#/components/parameters/sort_revenue_distribution'
       responses:
         '200':
           $ref: '#/components/responses/collection_revenue_distribution'
-      parameters:
-        - $ref: '#/components/parameters/filter_revenue_distribution'
-        - $ref: '#/components/parameters/sort_revenue_distribution'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: revenue_distributions-index
-      description: List all revenue distributions.
     post:
       tags:
         - Revenue Distributions
       summary: Create a revenue distribution
+      operationId: revenue_distributions-create
+      description: Create a new revenue distribution.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
       responses:
         '201':
           $ref: '#/components/responses/single_revenue_distribution'
@@ -94,18 +98,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: revenue_distributions-create
-      description: Create a new revenue distribution.
   /api/v2/revenue_distributions/{id}:
     get:
       tags:
         - Revenue Distributions
       summary: Gets a revenue distribution
-      responses:
-        '200':
-          $ref: '#/components/responses/single_revenue_distribution'
+      operationId: revenue_distributions-show
+      description: Retrieve a single revenue distribution by ID.
       parameters:
         - in: path
           name: id
@@ -114,15 +113,15 @@ paths:
           required: true
           description: The ID of the revenue distribution to retrieve.
         - $ref: '#/components/parameters/header_organization'
-      operationId: revenue_distributions-show
-      description: Retrieve a single revenue distribution by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_revenue_distribution'
     patch:
       tags:
         - Revenue Distributions
       summary: Update a revenue distribution
-      responses:
-        '200':
-          $ref: '#/components/responses/single_revenue_distribution'
+      operationId: revenue_distributions-update
+      description: Update a revenue distribution.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -131,15 +130,15 @@ paths:
             type: string
           required: true
           description: The ID of the revenue distribution to update.
-      operationId: revenue_distributions-update
-      description: Update a revenue distribution.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_revenue_distribution'
     delete:
       tags:
         - Revenue Distributions
       summary: Deletes a revenue distribution
-      responses:
-        '204':
-          description: No Content
+      operationId: revenue_distributions-destroy
+      description: Delete a revenue distribution by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -148,8 +147,9 @@ paths:
             type: string
           required: true
           description: The ID of the revenue distribution to delete.
-      operationId: revenue_distributions-destroy
-      description: Delete a revenue distribution by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -203,106 +203,322 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single revenue_distribution record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned revenue_distribution resource.
                 properties:
-                  attributes:
-                    type: object
-                    properties:
-                      amount:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/amount'
-                      end_on:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/end_on'
-                      currency:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/currency'
-                      start_on:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/start_on'
-                      amount_default:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_default'
-                      amount_percent:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_percent'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/currency_default'
-                      amount_normalized:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_normalized'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_revenue_distribution/properties/currency_normalized'
                   relationships:
                     type: object
+                    description: Revenue distribution relationships.
                     properties:
                       deal:
                         $ref: '#/components/schemas/_single_relationship'
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+                    example:
+                      eq: value
+                  attributes:
+                    type: object
+                    description: Revenue distribution attributes.
+                    properties:
+                      start_on:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/start_on'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/currency_normalized'
+                      amount_percent:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_percent'
+                      currency:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/currency'
+                      amount_default:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_default'
+                      amount_normalized:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_normalized'
+                      amount:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/amount'
+                      end_on:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/end_on'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_revenue_distribution/properties/currency_default'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '345'
+                type: revenue_distributions
+                attributes:
+                  amount: '10000.00'
+                  recognized_at: '2026-03-31'
+                  project_id: 6899
+                  deal_id: 89
+                  currency: USD
+              included: []
       description: Single revenue distribution
     collection_revenue_distribution:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of revenue distribution records in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: array
                 items:
                   type: object
+                  description: A revenue distribution resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Revenue distribution attributes.
                       properties:
-                        amount:
-                          $ref: '#/components/schemas/resource_revenue_distribution/properties/amount'
-                        end_on:
-                          $ref: '#/components/schemas/resource_revenue_distribution/properties/end_on'
-                        currency:
-                          $ref: '#/components/schemas/resource_revenue_distribution/properties/currency'
-                        start_on:
-                          $ref: '#/components/schemas/resource_revenue_distribution/properties/start_on'
                         amount_default:
                           $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_default'
-                        amount_percent:
-                          $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_percent'
+                        start_on:
+                          $ref: '#/components/schemas/resource_revenue_distribution/properties/start_on'
+                        currency:
+                          $ref: '#/components/schemas/resource_revenue_distribution/properties/currency'
                         currency_default:
                           $ref: '#/components/schemas/resource_revenue_distribution/properties/currency_default'
+                        amount_percent:
+                          $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_percent'
+                        amount:
+                          $ref: '#/components/schemas/resource_revenue_distribution/properties/amount'
                         amount_normalized:
                           $ref: '#/components/schemas/resource_revenue_distribution/properties/amount_normalized'
+                        end_on:
+                          $ref: '#/components/schemas/resource_revenue_distribution/properties/end_on'
                         currency_normalized:
                           $ref: '#/components/schemas/resource_revenue_distribution/properties/currency_normalized'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Revenue distribution relationships.
                       properties:
                         deal:
                           $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of revenue distribution resource objects.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '345'
+                  type: revenue_distributions
+                  attributes:
+                    amount: '10000.00'
+                    recognized_at: '2026-03-31'
+                    project_id: 6899
+                    deal_id: 89
+                    currency: USD
+              included: []
               meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection revenue distribution
   schemas:
+    resource_revenue_distribution:
+      type: object
+      title: Revenue distribution Resource
+      description: A record defining how deal revenue is distributed across a specific date range.
+      properties:
+        created_at:
+          type: string
+          title: Created At
+          format: date
+          description: Timestamp when this revenue distribution was created.
+          example:
+            gt: '2026-01-01'
+        currency_normalized:
+          title: Currency Normalized
+          description: The currency code of the deal this revenue distribution belongs to.
+          example:
+            eq: value
+        currency:
+          title: Currency
+          description: The currency code of the deal this revenue distribution belongs to.
+          example:
+            eq: value
+        deal:
+          title: Deal
+          description: The deal this revenue distribution belongs to.
+          example:
+            eq: value
+        amount_percent:
+          type: number
+          title: Amount Percent
+          description: The percentage of the deal's total revenue allocated to this distribution period.
+          example:
+            gt: 0
+        amount_normalized:
+          title: Amount Normalized
+          description: The revenue amount for this distribution period in the deal's currency.
+          example:
+            gt: 0
+        amount:
+          title: Amount
+          description: The revenue amount for this distribution period in the deal's currency.
+          example:
+            gt: 0
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency code.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this revenue distribution.
+          example:
+            - 123
+        deal_id:
+          type: integer
+          title: Deal
+          description: ID of the deal this revenue distribution belongs to.
+          example:
+            - 123
+        organization:
+          title: Organization
+          description: The organization this revenue distribution belongs to.
+          example:
+            eq: value
+        amount_default:
+          title: Amount Default
+          description: The revenue amount for this distribution period in the organization's default currency.
+          example:
+            gt: 0
+        end_on:
+          type: string
+          title: End On
+          format: date
+          description: Date when this revenue distribution period ends.
+          example:
+            eq: value
+        creator_id:
+          type: integer
+          title: Creator
+          description: ID of the person who created this revenue distribution.
+          example:
+            - 123
+        start_on:
+          type: string
+          title: Start On
+          format: date
+          description: Date when this revenue distribution period starts.
+          example:
+            eq: value
+      example:
+        id: '123'
+        type: revenue_distributions
+        attributes:
+          amount: 10000
+          date: '2026-01-15'
+          project_id: 45
+        relationships: {}
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         total_count:
           type: integer
           description: Total number of records matching the current query across all pages.
           example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
         organization_features:
           type: object
           description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
@@ -314,170 +530,17 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    resource_revenue_distribution:
-      type: object
-      title: Revenue distribution Resource
-      properties:
-        deal_id:
-          type: integer
-          title: Deal
-          description: ID of the deal this revenue distribution belongs to.
-          example:
-            - 123
-        amount_normalized:
-          title: Amount Normalized
-          description: The revenue amount for this distribution period in the deal's currency.
-          example:
-            gt: 0
-        amount:
-          title: Amount
-          description: The revenue amount for this distribution period in the deal's currency.
-          example:
-            gt: 0
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this revenue distribution.
-          example:
-            - 123
-        start_on:
-          type: string
-          title: Start On
-          format: date
-          description: Date when this revenue distribution period starts.
-          example:
-            eq: value
-        end_on:
-          type: string
-          title: End On
-          format: date
-          description: Date when this revenue distribution period ends.
-          example:
-            eq: value
-        amount_default:
-          title: Amount Default
-          description: The revenue amount for this distribution period in the organization's default currency.
-          example:
-            gt: 0
-        created_at:
-          type: string
-          title: Created At
-          format: date
-          description: Timestamp when this revenue distribution was created.
-          example:
-            gt: '2026-01-01'
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency code.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this revenue distribution belongs to.
-          example:
-            eq: value
-        currency:
-          title: Currency
-          description: The currency code of the deal this revenue distribution belongs to.
-          example:
-            eq: value
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who created this revenue distribution.
-          example:
-            - 123
-        currency_normalized:
-          title: Currency Normalized
-          description: The currency code of the deal this revenue distribution belongs to.
-          example:
-            eq: value
-        amount_percent:
-          type: number
-          title: Amount Percent
-          description: The percentage of the deal's total revenue allocated to this distribution period.
-          example:
-            gt: 0
-        deal:
-          title: Deal
-          description: The deal this revenue distribution belongs to.
-          example:
-            eq: value
-      description: A record defining how deal revenue is distributed across a specific date range.
-      example:
-        id: '123'
-        type: revenue_distributions
-        attributes:
-          amount: 10000
-          date: '2026-01-15'
-          project_id: 45
-        relationships: {}

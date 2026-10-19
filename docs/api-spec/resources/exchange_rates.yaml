@@ -8,15 +8,15 @@ description: |-
   Query exchange rates to understand the conversions applied to financial data for a given date.
 x-filters:
   exchange_rate:
-    date:
-      description: Filter by exchange rate date.
+    out_of_date:
+      description: Filter to include only exchange rates that are out of date (i.e. not reflecting the latest rates).
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    out_of_date:
-      description: Filter to include only exchange rates that are out of date (i.e. not reflecting the latest rates).
+    date:
+      description: Filter by exchange rate date.
       operators:
         - contains
         - eq
@@ -28,52 +28,128 @@ paths:
       tags:
         - Exchange Rates
       summary: Get exchange rates
+      operationId: exchange_rates-index
+      description: List exchange rates.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_exchange_rate'
+        - $ref: '#/components/parameters/filter_exchange_rate'
       responses:
         '200':
           $ref: '#/components/responses/collection_exchange_rate'
-      parameters:
-        - $ref: '#/components/parameters/filter_exchange_rate'
-        - $ref: '#/components/parameters/sort_exchange_rate'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: exchange_rates-index
-      description: List exchange rates.
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    sort_exchange_rate:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - date
-            - -date
-          type: string
-        title: Sort exchange rate
-      explode: false
-      required: false
-      description: Sort exchange rate
-    filter_exchange_rate:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.exchange_rate at the top of this file.
-      required: false
-      description: Filters
+  responses:
+    collection_exchange_rate:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of exchange rate records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: An exchange rate resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Exchange rate attributes.
+                      properties:
+                        date:
+                          $ref: '#/components/schemas/resource_exchange_rate/properties/date'
+                        out_of_date:
+                          $ref: '#/components/schemas/resource_exchange_rate/properties/out_of_date'
+                        rates:
+                          $ref: '#/components/schemas/resource_exchange_rate/properties/rates'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      properties: {}
+                      description: Exchange rate relationships.
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of exchange rate resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '567'
+                  type: exchange_rates
+                  attributes:
+                    from_currency: EUR
+                    to_currency: USD
+                    rate: '1.0834'
+                    date: '2026-03-15'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection exchange rate
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_exchange_rate:
       type: object
       title: Exchange rate Resource
+      description: A set of currency exchange rates for a specific date, used to convert amounts between currencies.
       properties:
         date:
           type: string
@@ -94,7 +170,6 @@ components:
           description: An array of currency conversion rates, each with a base currency, target currency, and the corresponding rate value.
           example:
             gt: 0
-      description: A set of currency exchange rates for a specific date, used to convert amounts between currencies.
       example:
         id: '123'
         type: exchange_rates
@@ -104,75 +179,35 @@ components:
           rate: 1.08
           date: '2026-01-15'
         relationships: {}
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-  responses:
-    collection_exchange_rate:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        date:
-                          $ref: '#/components/schemas/resource_exchange_rate/properties/date'
-                        rates:
-                          $ref: '#/components/schemas/resource_exchange_rate/properties/rates'
-                        out_of_date:
-                          $ref: '#/components/schemas/resource_exchange_rate/properties/out_of_date'
-                    relationships:
-                      type: object
-                      properties: {}
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection exchange rate
+  parameters:
+    filter_exchange_rate:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.exchange_rate at the top of this file.
+      required: false
+      description: Filters
+    sort_exchange_rate:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - date
+            - -date
+          type: string
+        title: Sort exchange rate
+      explode: false
+      required: false
+      description: Sort exchange rate
+    header_organization:
+      in: header
+      name: X-Organization-Id
+      schema:
+        type: string
+      required: true
+      description: Organization ID

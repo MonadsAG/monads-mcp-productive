@@ -5,17 +5,18 @@ The API enforces two independent limits: how many requests you send, and how muc
 ## Request count
 
 - **Per API token** — 100 requests per 10 seconds
-- **Per organization** — 4,000 requests per 30 minutes
+- **Per organization** — 10,000 requests per hour
 - **`/reports` endpoints, per API token** — 10 requests per 30 seconds
 
 ## Server processing time
 
 Requests differ enormously in cost — a lookup finishes in milliseconds, a wide report keeps a server busy for seconds. Each request is timed and its duration is added to your organization's budget:
 
+- **Per minute** — 2 minutes of processing time, which you can only reach by running multiple requests in parallel
 - **Per hour** — 30 minutes of processing time
 - **Per day** — 6 hours of processing time
 
-Windows are fixed: the hourly budget resets at the top of each hour, the daily one at midnight UTC.
+Windows are fixed: the per-minute budget resets at the start of every minute, the hourly one at the top of each hour, the daily one at midnight UTC.
 
 ## When you hit a limit
 
@@ -33,13 +34,13 @@ Windows are fixed: the hourly budget resets at the top of each hour, the daily o
 }
 ```
 
-`limit` and `period` are in seconds for the processing time limit — above, 1,800 seconds of work within a 3,600 second window. For a request count limit they are in requests, and `title` is `Too many requests` instead.
+limit and period are in seconds for the processing time limit — above, 1,800 seconds of work within a 3,600 second window. For a request count limit they are in requests, and title is Too many requests instead.
 
-The `X-RateLimit-Reset` header tells you how many seconds remain until the window resets. Wait it out rather than retrying in a loop.
+The X-RateLimit-Reset header tells you how many seconds remain until the window resets. If more than one processing time budget is used up, the response reports the longest window, so waiting out X-RateLimit-Reset clears all of them. Wait it out rather than retrying in a loop.
 
-## What to watch out for
+What to watch out for
 
-- **Use [Webhooks](https://developer.productive.io/reference/resources/webhooks) instead of polling.** Re-reading resources on a schedule to detect changes is the most common way to burn through the processing time budget.
-- **Filter narrowly.** Unbounded date ranges on reports are by far the most expensive calls in the API.
-- **Only `include` what you use.** Every relationship adds work on the server.
-- **Cache reference data** such as services, workflow statuses, custom fields and people.
+- Use Webhooks instead of polling. Re-reading resources on a schedule to detect changes is the most common way to burn through the processing time budget.
+- Filter narrowly. Unbounded date ranges on reports are by far the most expensive calls in the API.
+- Only include what you use. Every relationship adds work on the server.
+- Cache reference data such as services, workflow statuses, custom fields and people.

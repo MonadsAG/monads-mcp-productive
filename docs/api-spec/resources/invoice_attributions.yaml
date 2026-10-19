@@ -37,15 +37,15 @@ description: |-
   - [Invoice](https://developer.productive.io/invoice_attributions.html#invoices)
 x-filters:
   invoice_attribution:
-    budget_id:
-      description: Filter by the associated budget or deal.
+    invoice_id:
+      description: Filter by the associated invoice.
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    invoice_id:
-      description: Filter by the associated invoice.
+    budget_id:
+      description: Filter by the associated budget or deal.
       operators:
         - contains
         - eq
@@ -57,19 +57,25 @@ paths:
       tags:
         - Invoice Attributions
       summary: Get invoice attributions
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_invoice_attribution'
+      operationId: invoice_attributions-index
+      description: List invoice attributions.
       parameters:
         - $ref: '#/components/parameters/sort_invoice_attribution'
         - $ref: '#/components/parameters/filter_invoice_attribution'
         - $ref: '#/components/parameters/header_organization'
-      operationId: invoice_attributions-index
-      description: List invoice attributions.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_invoice_attribution'
     post:
       tags:
         - Invoice Attributions
       summary: Create an invoice attribution
+      description: Create a new invoice attribution.
+      operationId: invoice_attributions-create
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/invoice_attribution'
       responses:
         '201':
           $ref: '#/components/responses/single_invoice_attribution'
@@ -81,34 +87,40 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      description: Create a new invoice attribution.
-      operationId: invoice_attributions-create
-      requestBody:
-        $ref: '#/components/requestBodies/invoice_attribution'
   /api/v2/invoice_attributions/{id}:
     get:
       tags:
         - Invoice Attributions
       summary: Gets an invoice attribution
-      responses:
-        '200':
-          $ref: '#/components/responses/single_invoice_attribution'
+      operationId: invoice_attributions-show
+      description: Retrieve a single invoice attribution.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: invoice_attributions-show
-      description: Retrieve a single invoice attribution.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_invoice_attribution'
     patch:
       tags:
         - Invoice Attributions
       summary: Update an invoice attribution
+      operationId: invoice_attributions-update
+      description: Update an invoice attribution.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/invoice_attribution'
       responses:
         '200':
           $ref: '#/components/responses/single_invoice_attribution'
@@ -120,25 +132,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: invoice_attributions-update
-      requestBody:
-        $ref: '#/components/requestBodies/invoice_attribution'
-      description: Update an invoice attribution.
     delete:
       tags:
         - Invoice Attributions
       summary: Deletes an invoice attribution
-      responses:
-        '204':
-          description: No Content
+      operationId: invoice_attributions-destroy
+      description: Delete an invoice attribution.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -147,8 +146,9 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: invoice_attributions-destroy
-      description: Delete an invoice attribution.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -179,82 +179,220 @@ components:
       explode: false
       required: false
       description: Sort invoice attribution
-  requestBodies:
-    invoice_attribution:
+  responses:
+    single_invoice_attribution:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single invoice attribution record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The invoice attribution resource object.
                 properties:
+                  relationships:
+                    type: object
+                    description: Invoice attribution relationships.
+                    properties:
+                      budget:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      invoice:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
-                    required:
-                      - invoice_id
-                      - budget_id
-                      - amount
+                    description: Invoice attribution attributes.
                     properties:
+                      currency_default:
+                        $ref: '#/components/schemas/resource_invoice_attribution/properties/currency_default'
                       amount:
                         $ref: '#/components/schemas/resource_invoice_attribution/properties/amount'
                       date_to:
                         $ref: '#/components/schemas/resource_invoice_attribution/properties/date_to'
-                      budget_id:
-                        $ref: '#/components/schemas/resource_invoice_attribution/properties/budget_id'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_invoice_attribution/properties/currency_normalized'
                       date_from:
                         $ref: '#/components/schemas/resource_invoice_attribution/properties/date_from'
-                      invoice_id:
-                        $ref: '#/components/schemas/resource_invoice_attribution/properties/invoice_id'
-        application/vnd.api+json; ext=bulk:
+                      amount_default:
+                        $ref: '#/components/schemas/resource_invoice_attribution/properties/amount_default'
+                      amount_normalized:
+                        $ref: '#/components/schemas/resource_invoice_attribution/properties/amount_normalized'
+                      currency:
+                        $ref: '#/components/schemas/resource_invoice_attribution/properties/currency'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '678'
+                type: invoice_attributions
+                attributes:
+                  amount: '500.00'
+                  currency: USD
+                  attributed_at: '2026-03-10T12:00:00.000+00:00'
+                relationships:
+                  invoice:
+                    data:
+                      type: invoices
+                      id: '234'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+              included: []
+      description: Single invoice attribution
+    collection_invoice_attribution:
+      content:
+        application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of invoice attribution records in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: array
                 items:
                   type: object
-                  required:
-                    - type
-                    - attributes
+                  description: An invoice attribution resource object.
                   properties:
-                    type:
-                      enum:
-                        - invoice_attributions
-                      type: string
                     attributes:
                       type: object
-                maxItems: 100
-                description: Array of invoice attribution resource objects, each with the same shape as the singular create payload (`application/vnd.api+json`).
-      description: Request body for creating or updating an invoice attribution.
+                      description: Invoice attribution attributes.
+                      properties:
+                        amount_normalized:
+                          $ref: '#/components/schemas/resource_invoice_attribution/properties/amount_normalized'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_invoice_attribution/properties/currency_default'
+                        currency:
+                          $ref: '#/components/schemas/resource_invoice_attribution/properties/currency'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_invoice_attribution/properties/currency_normalized'
+                        amount:
+                          $ref: '#/components/schemas/resource_invoice_attribution/properties/amount'
+                        amount_default:
+                          $ref: '#/components/schemas/resource_invoice_attribution/properties/amount_default'
+                        date_to:
+                          $ref: '#/components/schemas/resource_invoice_attribution/properties/date_to'
+                        date_from:
+                          $ref: '#/components/schemas/resource_invoice_attribution/properties/date_from'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Invoice attribution relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        invoice:
+                          $ref: '#/components/schemas/_single_relationship'
+                        budget:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of invoice attribution resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '678'
+                  type: invoice_attributions
+                  attributes:
+                    amount: '500.00'
+                    currency: USD
+                    attributed_at: '2026-03-10T12:00:00.000+00:00'
+                  relationships:
+                    invoice:
+                      data:
+                        type: invoices
+                        id: '234'
+                    service:
+                      data:
+                        type: services
+                        id: '1856422'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection invoice attribution
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_invoice_attribution:
       type: object
       title: Invoice attribution Resource
+      description: An invoice attribution links a portion of an invoice amount to a specific budget (deal), tracking which budget a part of the invoice covers and optionally the date range it applies to.
       properties:
-        budget_id:
-          type: integer
-          title: Budget
-          description: ID of the budget (deal) this invoice attribution is linked to.
-          example:
-            - 123
-        date_from:
-          type: string
-          title: Date From
-          format: date
-          description: Date from which the attributed period starts, or null if not specified.
-          example:
-            eq: value
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized (reporting) currency for this invoice attribution.
-          example:
-            eq: value
-        amount_default:
-          title: Amount Default
-          description: The attributed amount converted to the organization's default currency.
-          example:
-            gt: 0
         date_to:
           type: string
           title: Date To
@@ -267,15 +405,31 @@ components:
           description: The organization's default currency for this invoice attribution.
           example:
             eq: value
+        organization:
+          title: Organization
+          description: The organization this invoice attribution belongs to.
+          example:
+            eq: value
+        amount_normalized:
+          title: Amount Normalized
+          description: The attributed amount converted to the normalized (reporting) currency.
+          example:
+            gt: 0
         invoice_id:
           type: integer
           title: Invoice
           description: ID of the invoice this attribution belongs to.
           example:
             - 123
-        currency:
-          title: Currency
-          description: The currency of this invoice attribution, inherited from the associated invoice.
+        budget_id:
+          type: integer
+          title: Budget
+          description: ID of the budget (deal) this invoice attribution is linked to.
+          example:
+            - 123
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized (reporting) currency for this invoice attribution.
           example:
             eq: value
         budget:
@@ -283,20 +437,11 @@ components:
           description: The budget (deal) this invoice attribution is linked to.
           example:
             gt: 0
-        amount:
-          type: integer
-          title: Amount
-          description: The attributed amount in the invoice's currency.
-          example:
-            gt: 0
-        amount_normalized:
-          title: Amount Normalized
-          description: The attributed amount converted to the normalized (reporting) currency.
-          example:
-            gt: 0
-        organization:
-          title: Organization
-          description: The organization this invoice attribution belongs to.
+        date_from:
+          type: string
+          title: Date From
+          format: date
+          description: Date from which the attributed period starts, or null if not specified.
           example:
             eq: value
         invoice:
@@ -304,7 +449,22 @@ components:
           description: The invoice this attribution belongs to.
           example:
             eq: value
-      description: An invoice attribution links a portion of an invoice amount to a specific budget (deal), tracking which budget a part of the invoice covers and optionally the date range it applies to.
+        amount:
+          type: integer
+          title: Amount
+          description: The attributed amount in the invoice's currency.
+          example:
+            gt: 0
+        amount_default:
+          title: Amount Default
+          description: The attributed amount converted to the organization's default currency.
+          example:
+            gt: 0
+        currency:
+          title: Currency
+          description: The currency of this invoice attribution, inherited from the associated invoice.
+          example:
+            eq: value
       example:
         id: '678'
         type: invoice_attributions
@@ -321,88 +481,32 @@ components:
             data:
               type: services
               id: '1856422'
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
-        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
               id: '42'
+        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -410,60 +514,77 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
-  responses:
-    single_invoice_attribution:
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
+  requestBodies:
+    invoice_attribution:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for an invoice attribution.
             properties:
               data:
                 type: object
+                description: The invoice attribution resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Invoice attribution attributes.
                     properties:
+                      invoice_id:
+                        $ref: '#/components/schemas/resource_invoice_attribution/properties/invoice_id'
                       amount:
                         $ref: '#/components/schemas/resource_invoice_attribution/properties/amount'
-                      date_to:
-                        $ref: '#/components/schemas/resource_invoice_attribution/properties/date_to'
-                      currency:
-                        $ref: '#/components/schemas/resource_invoice_attribution/properties/currency'
                       date_from:
                         $ref: '#/components/schemas/resource_invoice_attribution/properties/date_from'
-                      amount_default:
-                        $ref: '#/components/schemas/resource_invoice_attribution/properties/amount_default'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_invoice_attribution/properties/currency_default'
-                      amount_normalized:
-                        $ref: '#/components/schemas/resource_invoice_attribution/properties/amount_normalized'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_invoice_attribution/properties/currency_normalized'
-                  relationships:
-                    type: object
-                    properties:
-                      budget:
-                        $ref: '#/components/schemas/_single_relationship'
-                      invoice:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single invoice attribution
-    collection_invoice_attribution:
-      content:
-        application/vnd.api+json:
+                      date_to:
+                        $ref: '#/components/schemas/resource_invoice_attribution/properties/date_to'
+                      budget_id:
+                        $ref: '#/components/schemas/resource_invoice_attribution/properties/budget_id'
+                    required:
+                      - invoice_id
+                      - budget_id
+                      - amount
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: invoice_attributions
+                attributes:
+                  amount: '500.00'
+                  currency: USD
+                relationships:
+                  invoice:
+                    data:
+                      type: invoices
+                      id: '234'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+        application/vnd.api+json; ext=bulk:
           schema:
             type: object
             properties:
@@ -472,37 +593,15 @@ components:
                 items:
                   type: object
                   properties:
+                    type:
+                      enum:
+                        - invoice_attributions
+                      type: string
                     attributes:
                       type: object
-                      properties:
-                        amount:
-                          $ref: '#/components/schemas/resource_invoice_attribution/properties/amount'
-                        date_to:
-                          $ref: '#/components/schemas/resource_invoice_attribution/properties/date_to'
-                        currency:
-                          $ref: '#/components/schemas/resource_invoice_attribution/properties/currency'
-                        date_from:
-                          $ref: '#/components/schemas/resource_invoice_attribution/properties/date_from'
-                        amount_default:
-                          $ref: '#/components/schemas/resource_invoice_attribution/properties/amount_default'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_invoice_attribution/properties/currency_default'
-                        amount_normalized:
-                          $ref: '#/components/schemas/resource_invoice_attribution/properties/amount_normalized'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_invoice_attribution/properties/currency_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        budget:
-                          $ref: '#/components/schemas/_single_relationship'
-                        invoice:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection invoice attribution
+                  required:
+                    - type
+                    - attributes
+                maxItems: 100
+                description: Array of invoice attribution resource objects, each with the same shape as the singular create payload (`application/vnd.api+json`).
+      description: Request body for creating or updating an invoice attribution.
