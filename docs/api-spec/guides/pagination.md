@@ -1,5 +1,6 @@
 <!-- Mirrored from https://developer.productive.io/guides/pagination -- regenerate with `npm run spec:guides` -->
 
+
 ## Cursor pagination [Preferred]
 
 Collection endpoints support cursor-based pagination through the `page[after]` parameter.
@@ -38,14 +39,20 @@ The `meta` section is smaller than with page-based pagination:
     <br/>
     `max_page_size` - 200
 
-Cursor pagination is available on most collection endpoints, but not on reports. In those cases the request returns an error rather than
-falling back to page-based pagination:
+Cursor pagination is available on most collection endpoints. On report endpoints it is
+supported only by the Financial Item report, and only for requests that meet the conditions
+documented in [Exporting the Financial Item report](guide:exporting-the-financial-item-report)
+
+Where cursor pagination is not available, the request returns an error rather than falling
+back to page-based pagination:
     <br/>
     `keyset_conflict` - `page[after]` sent together with `page[number]`
     <br/>
     `keyset_unsupported_sort` - the endpoint or the requested `sort` does not support cursor pagination
     <br/>
     `keyset_invalid_cursor` - the cursor is malformed, or was issued for a different endpoint
+
+The Financial Item report has four further codes of its own, listed in that guide.
 
 ## Page-based pagination
 

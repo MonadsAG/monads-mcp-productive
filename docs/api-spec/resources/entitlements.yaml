@@ -5,8 +5,22 @@ info:
 description: Time-off balances for a person. Tracks allocated, used, and pending (approved but not taken) days for a specific absence category (event) and period. Updated automatically as bookings and approvals are processed.
 x-filters:
   entitlement:
-    allocated:
-      description: Filter by the number of days allocated in the entitlement.
+    end_date:
+      description: Filter by entitlement end date range (`end_date`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    date:
+      description: Filter entitlements active on a specific date (where start_date <= date <= end_date).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    event_id:
+      description: Filter by the associated absence event type.
       operators:
         - contains
         - eq
@@ -14,6 +28,20 @@ x-filters:
         - not_eq
     person_id:
       description: Filter by the associated person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    allocated:
+      description: Filter by the number of days allocated in the entitlement.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    start_date:
+      description: Filter by entitlement start date range (`start_date`).
       operators:
         - contains
         - eq
@@ -33,53 +61,31 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    event_id:
-      description: Filter by the associated absence event type.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    start_date:
-      description: Filter by entitlement start date range (`start_date`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    date:
-      description: Filter entitlements active on a specific date (where start_date <= date <= end_date).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    end_date:
-      description: Filter by entitlement end date range (`end_date`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
 paths:
   /api/v2/entitlements:
     get:
       tags:
         - Entitlements
       summary: Get entitlements
+      operationId: entitlements-index
+      description: List entitlements.
+      parameters:
+        - $ref: '#/components/parameters/filter_entitlement'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/sort_entitlement'
       responses:
         '200':
           $ref: '#/components/responses/collection_entitlement'
-      parameters:
-        - $ref: '#/components/parameters/sort_entitlement'
-        - $ref: '#/components/parameters/filter_entitlement'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: entitlements-index
-      description: List entitlements.
     post:
       tags:
         - Entitlements
       summary: Creates an entitlement
+      operationId: entitlements-create
+      description: Create a new entitlement.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/entitlement'
       responses:
         '201':
           $ref: '#/components/responses/single_entitlement'
@@ -91,20 +97,13 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: entitlements-create
-      requestBody:
-        $ref: '#/components/requestBodies/entitlement'
-      description: Create a new entitlement.
   /api/v2/entitlements/{id}:
     get:
       tags:
         - Entitlements
       summary: Get an entitlement
-      responses:
-        '200':
-          $ref: '#/components/responses/single_entitlement'
+      operationId: entitlements-show
+      description: Retrieve a single entitlement.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -113,12 +112,25 @@ paths:
             type: string
           required: true
           description: ID
-      operationId: entitlements-show
-      description: Retrieve a single entitlement.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_entitlement'
     patch:
       tags:
         - Entitlements
       summary: Updates an entitlement
+      operationId: entitlements-update
+      description: Update an entitlement.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+      requestBody:
+        $ref: '#/components/requestBodies/entitlement'
       responses:
         '200':
           $ref: '#/components/responses/single_entitlement'
@@ -130,25 +142,12 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: entitlements-update
-      requestBody:
-        $ref: '#/components/requestBodies/entitlement'
-      description: Update an entitlement.
     delete:
       tags:
         - Entitlements
       summary: Deletes an entitlement
-      responses:
-        '204':
-          description: No Content
+      operationId: entitlements-destroy
+      description: Delete an entitlement.
       parameters:
         - in: path
           name: id
@@ -157,8 +156,9 @@ paths:
           required: true
           description: ID
         - $ref: '#/components/parameters/header_organization'
-      operationId: entitlements-destroy
-      description: Delete an entitlement.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -168,15 +168,6 @@ components:
         type: string
       required: true
       description: Organization ID
-    filter_entitlement:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.entitlement at the top of this file.
-      required: false
-      description: Filters
     sort_entitlement:
       in: query
       name: sort
@@ -198,50 +189,195 @@ components:
       explode: false
       required: false
       description: Sort entitlement
-  requestBodies:
-    entitlement:
+    filter_entitlement:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.entitlement at the top of this file.
+      required: false
+      description: Filters
+  responses:
+    single_entitlement:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single entitlement record in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned entitlement resource.
                 properties:
+                  relationships:
+                    type: object
+                    description: Entitlement relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      event:
+                        $ref: '#/components/schemas/_single_relationship'
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      approval_workflow:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
                   attributes:
                     type: object
+                    description: Entitlement attributes.
                     properties:
-                      note:
-                        $ref: '#/components/schemas/resource_entitlement/properties/note'
-                      end_date:
-                        $ref: '#/components/schemas/resource_entitlement/properties/end_date'
-                      event_id:
-                        $ref: '#/components/schemas/resource_entitlement/properties/event_id'
-                      allocated:
-                        $ref: '#/components/schemas/resource_entitlement/properties/allocated'
-                      person_id:
-                        $ref: '#/components/schemas/resource_entitlement/properties/person_id'
                       start_date:
                         $ref: '#/components/schemas/resource_entitlement/properties/start_date'
-      description: Request body for creating or updating an entitlement (time-off balance). Specify the person, event (absence category), date range, and allocated days. The used and pending amounts are system-managed based on booking activity.
+                      end_date:
+                        $ref: '#/components/schemas/resource_entitlement/properties/end_date'
+                      used:
+                        $ref: '#/components/schemas/resource_entitlement/properties/used'
+                      pending:
+                        $ref: '#/components/schemas/resource_entitlement/properties/pending'
+                      note:
+                        $ref: '#/components/schemas/resource_entitlement/properties/note'
+                      allocated:
+                        $ref: '#/components/schemas/resource_entitlement/properties/allocated'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '23'
+                type: entitlements
+                attributes:
+                  start_date: '2026-01-01'
+                  end_date: '2026-12-31'
+                  allocated: 1200
+                  used: 480
+                  pending: 960
+                  note: Annual vacation entitlement 2026
+                relationships:
+                  event:
+                    data:
+                      type: events
+                      id: '10'
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
+      description: Single entitlement
+    collection_entitlement:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of entitlement records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: An entitlement resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Entitlement relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        approval_workflow:
+                          $ref: '#/components/schemas/_single_relationship'
+                        event:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Entitlement attributes.
+                      properties:
+                        start_date:
+                          $ref: '#/components/schemas/resource_entitlement/properties/start_date'
+                        note:
+                          $ref: '#/components/schemas/resource_entitlement/properties/note'
+                        end_date:
+                          $ref: '#/components/schemas/resource_entitlement/properties/end_date'
+                        used:
+                          $ref: '#/components/schemas/resource_entitlement/properties/used'
+                        allocated:
+                          $ref: '#/components/schemas/resource_entitlement/properties/allocated'
+                        pending:
+                          $ref: '#/components/schemas/resource_entitlement/properties/pending'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of entitlement resource objects.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                - id: '23'
+                  type: entitlements
+                  attributes:
+                    start_date: '2026-01-01'
+                    end_date: '2026-12-31'
+                    allocated: 1200
+                    used: 480
+                    pending: 960
+                    note: Annual vacation entitlement 2026
+                  relationships:
+                    event:
+                      data:
+                        type: events
+                        id: '10'
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection entitlement
   schemas:
     resource_entitlement:
       type: object
       title: Entitlement Resource
+      description: A time-off entitlement for a person showing allocated, used, and pending hours for an absence category.
       properties:
-        person_id:
+        event_id:
           type: integer
-          title: Person
-          description: The ID of the person this entitlement applies to.
+          title: Event
+          description: The ID of the absence category (event) this entitlement covers.
           example:
             - 123
-        date:
-          type: string
-          title: Date
-          format: date
-          description: The reference date for this entitlement record (typically the start of the accrual period).
-          example:
-            gt: '2026-01-01'
         approval_workflow:
           title: Approval Workflow
           description: Whether an approval workflow is required for absence requests under this entitlement.
@@ -254,10 +390,39 @@ components:
           description: The date when this entitlement period starts.
           example:
             gt: '2026-01-01'
-        pending:
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this entitlement record.
+          example:
+            - 123
+        used:
           type: number
-          title: Pending
-          description: Hours pending approval — absence bookings submitted but not yet approved.
+          title: Used
+          description: Hours already used — approved absence bookings that have been taken within the entitlement period.
+          example:
+            eq: value
+        event:
+          title: Event
+          description: The absence category (event) this entitlement is for, such as vacation or sick leave.
+          example:
+            eq: value
+        date:
+          type: string
+          title: Date
+          format: date
+          description: The reference date for this entitlement record (typically the start of the accrual period).
+          example:
+            gt: '2026-01-01'
+        note:
+          type: string
+          title: Note
+          description: Optional note providing additional context for this entitlement allocation.
+          example:
+            eq: value
+        person:
+          title: Person
+          description: The person this entitlement applies to.
           example:
             eq: value
         allocated:
@@ -266,26 +431,9 @@ components:
           description: Total hours allocated to this person for the absence category in the entitlement period.
           example:
             eq: value
-        person:
-          title: Person
-          description: The person this entitlement applies to.
-          example:
-            eq: value
-        event:
-          title: Event
-          description: The absence category (event) this entitlement is for, such as vacation or sick leave.
-          example:
-            eq: value
-        event_id:
-          type: integer
-          title: Event
-          description: The ID of the absence category (event) this entitlement covers.
-          example:
-            - 123
-        used:
-          type: number
-          title: Used
-          description: Hours already used — approved absence bookings that have been taken within the entitlement period.
+        organization:
+          title: Organization
+          description: The organization this entitlement belongs to.
           example:
             eq: value
         end_date:
@@ -295,24 +443,18 @@ components:
           description: The date when this entitlement period ends. After this date, unused hours may expire.
           example:
             gt: '2026-01-01'
-        id:
+        person_id:
           type: integer
-          title: Id
-          description: The unique identifier of this entitlement record.
+          title: Person
+          description: The ID of the person this entitlement applies to.
           example:
             - 123
-        note:
-          type: string
-          title: Note
-          description: Optional note providing additional context for this entitlement allocation.
+        pending:
+          type: number
+          title: Pending
+          description: Hours pending approval — absence bookings submitted but not yet approved.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this entitlement belongs to.
-          example:
-            eq: value
-      description: A time-off entitlement for a person showing allocated, used, and pending hours for an absence category.
       example:
         id: '40728'
         type: entitlements
@@ -337,22 +479,77 @@ components:
           approval_workflow:
             meta:
               included: false
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
         total_count:
           type: integer
           description: Total number of records matching the current query across all pages.
           example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
         organization_features:
           type: object
           description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
@@ -364,157 +561,67 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
         max_page_size:
           type: integer
           description: Maximum number of records allowed per page for this endpoint.
           example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_entitlement:
+  requestBodies:
+    entitlement:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for an entitlement.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the entitlement resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Entitlement attributes.
                     properties:
-                      note:
-                        $ref: '#/components/schemas/resource_entitlement/properties/note'
-                      used:
-                        $ref: '#/components/schemas/resource_entitlement/properties/used'
-                      pending:
-                        $ref: '#/components/schemas/resource_entitlement/properties/pending'
                       end_date:
                         $ref: '#/components/schemas/resource_entitlement/properties/end_date'
+                      event_id:
+                        $ref: '#/components/schemas/resource_entitlement/properties/event_id'
                       allocated:
                         $ref: '#/components/schemas/resource_entitlement/properties/allocated'
                       start_date:
                         $ref: '#/components/schemas/resource_entitlement/properties/start_date'
-                  relationships:
-                    type: object
-                    properties:
-                      event:
-                        $ref: '#/components/schemas/_single_relationship'
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      approval_workflow:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single entitlement
-    collection_entitlement:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      note:
+                        $ref: '#/components/schemas/resource_entitlement/properties/note'
+                      person_id:
+                        $ref: '#/components/schemas/resource_entitlement/properties/person_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        note:
-                          $ref: '#/components/schemas/resource_entitlement/properties/note'
-                        used:
-                          $ref: '#/components/schemas/resource_entitlement/properties/used'
-                        pending:
-                          $ref: '#/components/schemas/resource_entitlement/properties/pending'
-                        end_date:
-                          $ref: '#/components/schemas/resource_entitlement/properties/end_date'
-                        allocated:
-                          $ref: '#/components/schemas/resource_entitlement/properties/allocated'
-                        start_date:
-                          $ref: '#/components/schemas/resource_entitlement/properties/start_date'
-                    relationships:
-                      type: object
-                      properties:
-                        event:
-                          $ref: '#/components/schemas/_single_relationship'
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        approval_workflow:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection entitlement
+                type: entitlements
+                attributes:
+                  start_date: '2026-01-01'
+                  end_date: '2026-12-31'
+                  allocated: 1200
+                  note: Annual vacation entitlement 2026
+                relationships:
+                  event:
+                    data:
+                      type: events
+                      id: '10'
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+      description: Request body for creating or updating an entitlement (time-off balance). Specify the person, event (absence category), date range, and allocated days. The used and pending amounts are system-managed based on booking activity.
