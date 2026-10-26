@@ -8,22 +8,15 @@ description: |-
   A deal or budget can have multiple sections, each containing one or more services.
 x-filters:
   section:
-    id:
-      description: Filter by ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    name:
-      description: Filter by section name (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     deal_id:
       description: Filter by the associated deal.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by ID.
       operators:
         - contains
         - eq
@@ -36,25 +29,38 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    name:
+      description: Filter by section name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/sections:
     get:
       tags:
         - Sections
       summary: Get sections
-      responses:
-        '200':
-          $ref: '#/components/responses/collection_section'
+      operationId: sections-index
+      description: List all sections.
       parameters:
         - $ref: '#/components/parameters/sort_section'
         - $ref: '#/components/parameters/header_organization'
         - $ref: '#/components/parameters/filter_section'
-      operationId: sections-index
-      description: List all sections.
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_section'
     post:
       tags:
         - Sections
       summary: Create a section
+      operationId: sections-create
+      description: Create a new section.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/section'
       responses:
         '201':
           $ref: '#/components/responses/single_section'
@@ -66,34 +72,40 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: sections-create
-      requestBody:
-        $ref: '#/components/requestBodies/section'
-      description: Create a new section.
   /api/v2/sections/{id}:
     get:
       tags:
         - Sections
       summary: Gets a section
-      responses:
-        '200':
-          $ref: '#/components/responses/single_section'
+      operationId: sections-show
+      description: Retrieve a single section by ID.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: sections-show
-      description: Retrieve a single section by ID.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_section'
     patch:
       tags:
         - Sections
       summary: Update a section
+      operationId: sections-update
+      description: Update a section.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/section'
       responses:
         '200':
           $ref: '#/components/responses/single_section'
@@ -105,35 +117,23 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-      operationId: sections-update
-      requestBody:
-        $ref: '#/components/requestBodies/section'
-      description: Update a section.
     delete:
       tags:
         - Sections
       summary: Deletes a section
-      responses:
-        '204':
-          description: No Content
+      operationId: sections-destroy
+      description: Delete a section by ID.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: sections-destroy
-      description: Delete a section by ID.
+        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -164,47 +164,257 @@ components:
       explode: false
       required: false
       description: Sort section
-  requestBodies:
-    section:
+  responses:
+    single_section:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single section record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned section resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - deal_id
+                    description: Section attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_section/properties/name'
-                      deal_id:
-                        $ref: '#/components/schemas/resource_section/properties/deal_id'
                       position:
                         $ref: '#/components/schemas/resource_section/properties/position'
+                      name:
+                        $ref: '#/components/schemas/resource_section/properties/name'
                       preferences:
                         $ref: '#/components/schemas/resource_section/properties/preferences'
                       editor_config:
                         $ref: '#/components/schemas/resource_section/properties/editor_config'
-      description: Request body for creating or updating a section.
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Section relationships.
+                    properties:
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '45'
+                type: sections
+                attributes:
+                  name: Design Phase
+                  position: 1
+                  preferences: {}
+                  editor_config: {}
+                relationships:
+                  deal:
+                    data:
+                      type: deals
+                      id: '89'
+              included: []
+      description: Single section
+    collection_section:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of section records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A section resource object.
+                  properties:
+                    relationships:
+                      type: object
+                      description: Section relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                    attributes:
+                      type: object
+                      description: Section attributes.
+                      properties:
+                        editor_config:
+                          $ref: '#/components/schemas/resource_section/properties/editor_config'
+                        position:
+                          $ref: '#/components/schemas/resource_section/properties/position'
+                        preferences:
+                          $ref: '#/components/schemas/resource_section/properties/preferences'
+                        name:
+                          $ref: '#/components/schemas/resource_section/properties/name'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of section resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '45'
+                  type: sections
+                  attributes:
+                    name: Design Phase
+                    position: 1
+                    preferences: {}
+                    editor_config: {}
+                  relationships:
+                    deal:
+                      data:
+                        type: deals
+                        id: '89'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection section
   schemas:
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
     resource_section:
       type: object
       title: Section Resource
+      description: Represents a named grouping of services within a deal or budget, used to organize line items into logical sections.
       properties:
-        preferences:
-          type: object
-          title: Preferences
-          description: User-specific display preferences for this section, stored as key-value settings.
+        deal_id:
+          type: integer
+          title: Deal
+          description: ID of the deal this section belongs to.
           example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The name of this section.
+            - 123
+        deal:
+          title: Deal
+          description: The deal this section belongs to.
           example:
             eq: value
         budget_id:
@@ -219,9 +429,13 @@ components:
           description: The unique identifier of this section.
           example:
             - 123
-        deal:
-          title: Deal
-          description: The deal this section belongs to.
+        description:
+          type: string
+          title: Description
+        position:
+          type: integer
+          title: Position
+          description: The sort position of this section within the deal.
           example:
             eq: value
         editor_config:
@@ -230,27 +444,23 @@ components:
           description: Rich text editor configuration and content for this section's description.
           example:
             eq: value
+        name:
+          type: string
+          title: Name
+          description: The name of this section.
+          example:
+            eq: value
+        preferences:
+          type: object
+          title: Preferences
+          description: User-specific display preferences for this section, stored as key-value settings.
+          example:
+            eq: value
         organization:
           title: Organization
           description: The organization this section belongs to.
           example:
             eq: value
-        deal_id:
-          type: integer
-          title: Deal
-          description: ID of the deal this section belongs to.
-          example:
-            - 123
-        position:
-          type: integer
-          title: Position
-          description: The sort position of this section within the deal.
-          example:
-            eq: value
-        description:
-          type: string
-          title: Description
-      description: Represents a named grouping of services within a deal or budget, used to organize line items into logical sections.
       example:
         id: '123'
         type: sections
@@ -258,168 +468,47 @@ components:
           name: Development
           position: 1
         relationships: {}
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_section:
+  requestBodies:
+    section:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a section.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the section resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
+                    description: Section attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_section/properties/name'
+                      editor_config:
+                        $ref: '#/components/schemas/resource_section/properties/editor_config'
+                      deal_id:
+                        $ref: '#/components/schemas/resource_section/properties/deal_id'
                       position:
                         $ref: '#/components/schemas/resource_section/properties/position'
                       preferences:
                         $ref: '#/components/schemas/resource_section/properties/preferences'
-                      editor_config:
-                        $ref: '#/components/schemas/resource_section/properties/editor_config'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single section
-    collection_section:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
+                      name:
+                        $ref: '#/components/schemas/resource_section/properties/name'
+                    required:
+                      - deal_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_section/properties/name'
-                        position:
-                          $ref: '#/components/schemas/resource_section/properties/position'
-                        preferences:
-                          $ref: '#/components/schemas/resource_section/properties/preferences'
-                        editor_config:
-                          $ref: '#/components/schemas/resource_section/properties/editor_config'
-                    relationships:
-                      type: object
-                      properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection section
+                type: sections
+                attributes:
+                  name: Design Phase
+                  position: 1
+                relationships:
+                  deal:
+                    data:
+                      type: deals
+                      id: '89'
+      description: Request body for creating or updating a section.

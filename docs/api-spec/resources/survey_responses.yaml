@@ -5,22 +5,8 @@ info:
 description: Submitted survey responses. Each response links to a survey and contains field values for each survey field. Responses can trigger automations on submission.
 x-filters:
   survey_response:
-    id:
-      description: Filter by ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     survey_id:
       description: Filter by the associated survey.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    creator_id:
-      description: Filter by the person who submitted the response.
       operators:
         - contains
         - eq
@@ -33,8 +19,22 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    id:
+      description: Filter by ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     custom_fields:
       description: Filter by custom field values.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filter by the person who submitted the response.
       operators:
         - contains
         - eq
@@ -46,36 +46,35 @@ paths:
       tags:
         - Survey Responses
       summary: Get survey responses
+      operationId: survey_responses-index
+      description: List all survey responses.
+      parameters:
+        - $ref: '#/components/parameters/sort_survey_response'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_survey_response'
       responses:
         '200':
           $ref: '#/components/responses/collection_survey_response'
-      parameters:
-        - $ref: '#/components/parameters/sort_survey_response'
-        - $ref: '#/components/parameters/filter_survey_response'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: survey_responses-index
-      description: List all survey responses.
     post:
       tags:
         - Survey Responses
       summary: Create a survey response
+      operationId: survey_responses-create
+      description: Create a new survey response.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/survey_response'
       responses:
         '201':
           $ref: '#/components/responses/single_survey_response'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: survey_responses-create
-      requestBody:
-        $ref: '#/components/requestBodies/survey_response'
-      description: Create a new survey response.
   /api/v2/survey_responses/{id}:
     get:
       tags:
         - Survey Responses
       summary: Gets a survey response
-      responses:
-        '200':
-          $ref: '#/components/responses/single_survey_response'
+      operationId: survey_responses-show
+      description: Retrieve a single survey response by ID.
       parameters:
         - in: path
           name: id
@@ -84,15 +83,15 @@ paths:
           required: true
           description: The ID of the survey response to retrieve.
         - $ref: '#/components/parameters/header_organization'
-      operationId: survey_responses-show
-      description: Retrieve a single survey response by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey_response'
     delete:
       tags:
         - Survey Responses
       summary: Deletes a survey response
-      responses:
-        '204':
-          description: No Content
+      operationId: survey_responses-destroy
+      description: Delete a survey response by ID.
       parameters:
         - $ref: '#/components/parameters/header_organization'
         - in: path
@@ -101,8 +100,9 @@ paths:
             type: string
           required: true
           description: The ID of the survey response to delete.
-      operationId: survey_responses-destroy
-      description: Delete a survey response by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -154,58 +154,107 @@ components:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single survey_response record in JSON:API format.
             properties:
+              meta:
+                $ref: '#/components/schemas/_meta'
               data:
                 type: object
+                description: The JSON:API data object for the returned survey_response resource.
                 properties:
-                  attributes:
-                    type: object
-                    properties:
-                      created_at:
-                        $ref: '#/components/schemas/resource_survey_response/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_survey_response/properties/updated_at'
-                      survey_fields:
-                        $ref: '#/components/schemas/resource_survey_response/properties/survey_fields'
                   relationships:
                     type: object
+                    description: Survey response relationships.
                     properties:
-                      survey:
-                        $ref: '#/components/schemas/_single_relationship'
                       creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      survey:
                         $ref: '#/components/schemas/_single_relationship'
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
                       custom_field_attachments:
                         $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                    example:
+                      eq: value
+                  attributes:
+                    type: object
+                    description: Survey response attributes.
+                    properties:
+                      created_at:
+                        $ref: '#/components/schemas/resource_survey_response/properties/created_at'
+                      survey_fields:
+                        $ref: '#/components/schemas/resource_survey_response/properties/survey_fields'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_survey_response/properties/updated_at'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+            example:
+              data:
+                id: '67'
+                type: survey_responses
+                attributes:
+                  submitted_at: '2026-03-15T10:00:00.000+00:00'
+                  answers:
+                    '45': 5
+                relationships:
+                  survey:
+                    data:
+                      type: surveys
+                      id: '7'
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+              included: []
       description: Single survey response
     collection_survey_response:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of survey response records in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: array
                 items:
                   type: object
+                  description: A survey response resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Survey response attributes.
                       properties:
-                        created_at:
-                          $ref: '#/components/schemas/resource_survey_response/properties/created_at'
                         updated_at:
                           $ref: '#/components/schemas/resource_survey_response/properties/updated_at'
                         survey_fields:
                           $ref: '#/components/schemas/resource_survey_response/properties/survey_fields'
+                        created_at:
+                          $ref: '#/components/schemas/resource_survey_response/properties/created_at'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Survey response relationships.
                       properties:
                         survey:
                           $ref: '#/components/schemas/_single_relationship'
@@ -215,151 +264,101 @@ components:
                           $ref: '#/components/schemas/_single_relationship'
                         custom_field_attachments:
                           $ref: '#/components/schemas/_collection_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of survey response resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                - id: '67'
+                  type: survey_responses
+                  attributes:
+                    submitted_at: '2026-03-15T10:00:00.000+00:00'
+                    answers:
+                      '45': 5
+                  relationships:
+                    survey:
+                      data:
+                        type: surveys
+                        id: '7'
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection survey response
   schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
     resource_survey_response:
       type: object
       title: Survey response Resource
+      description: Submitted form response for a survey. Contains field values keyed by survey_field_id. Triggers any automations configured on the parent survey.
       properties:
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this survey response.
+          example:
+            - 123
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this survey response was created.
+          example:
+            gt: '2026-01-01'
+        survey:
+          title: Survey
+          description: The survey this response was submitted for.
+          example:
+            eq: value
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this survey response was last updated.
+          example:
+            gt: '2026-01-01'
+        creator:
+          title: Creator
+          description: The person who submitted this survey response.
+          example:
+            eq: value
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: File attachments associated with custom field values in this response.
+          example:
+            gt: '2026-01-01'
         creator_id:
           type: integer
           title: Creator
           description: ID of the person who submitted this survey response.
           example:
             - 123
+        survey_id:
+          type: integer
+          title: Survey
+          description: ID of the survey this response was submitted for.
+          example:
+            - 123
+        survey_fields:
+          title: Survey Fields
+          description: The survey field responses included in this submission.
+          example:
+            eq: value
         organization:
           title: Organization
           description: The organization this survey response belongs to.
-          example:
-            eq: value
-        creator:
-          title: Creator
-          description: The person who submitted this survey response.
           example:
             eq: value
         custom_fields:
@@ -368,48 +367,6 @@ components:
           description: The custom field values submitted as part of this response.
           example:
             eq: value
-        survey_id:
-          type: integer
-          title: Survey
-          description: ID of the survey this response was submitted for.
-          example:
-            - 123
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp when this survey response was last updated.
-          example:
-            gt: '2026-01-01'
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this survey response was created.
-          example:
-            gt: '2026-01-01'
-        id:
-          type: integer
-          title: Id
-          description: The unique identifier of this survey response.
-          example:
-            - 123
-        survey:
-          title: Survey
-          description: The survey this response was submitted for.
-          example:
-            eq: value
-        custom_field_attachments:
-          title: Custom Field Attachments
-          description: File attachments associated with custom field values in this response.
-          example:
-            gt: '2026-01-01'
-        survey_fields:
-          title: Survey Fields
-          description: The survey field responses included in this submission.
-          example:
-            eq: value
-      description: Submitted form response for a survey. Contains field values keyed by survey_field_id. Triggers any automations configured on the parent survey.
       example:
         id: '123'
         type: survey_responses
@@ -421,23 +378,161 @@ components:
             data:
               type: surveys
               id: '7'
+    _collection_relationship:
+      anyOf:
+        - type: object
+          title: Collection data
+          description: Included variant — related resource identifiers are present in `data`.
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/_resource'
+              description: Array of resource identifier objects for the related resources.
+              example:
+                - type: tasks
+                  id: '42'
+          example:
+            data:
+              - type: tasks
+                id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          example:
+            included: false
+      example:
+        meta:
+          included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
+    _single_relationship:
+      anyOf:
+        - type: object
+          title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
+          properties:
+            data:
+              $ref: '#/components/schemas/_resource'
+          example:
+            data:
+              type: tasks
+              id: '42'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
   requestBodies:
     survey_response:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a survey response.
             properties:
               data:
                 type: object
+                description: The survey response resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Survey response attributes.
                     properties:
-                      survey_id:
-                        $ref: '#/components/schemas/resource_survey_response/properties/survey_id'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_survey_response/properties/custom_fields'
                       survey_fields:
                         $ref: '#/components/schemas/resource_survey_response/properties/survey_fields'
+                      custom_fields:
+                        $ref: '#/components/schemas/resource_survey_response/properties/custom_fields'
+                      survey_id:
+                        $ref: '#/components/schemas/resource_survey_response/properties/survey_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: survey_responses
+                attributes:
+                  answers:
+                    '45': 5
+                relationships:
+                  survey:
+                    data:
+                      type: surveys
+                      id: '7'
       description: Request body for submitting a survey response. Specify the parent survey and the field values as a hash keyed by survey_field_id.

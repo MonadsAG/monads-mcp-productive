@@ -8,8 +8,8 @@ description: |-
   The Webhook object enables real-time notifications for events occurring in Productive.
 x-filters:
   webhook:
-    event_id:
-      description: Filter by the subscribed event type (e.g. new task, updated invoice).
+    state_id:
+      description: Filter by webhook delivery state (working, issues, or waiting).
       operators:
         - contains
         - eq
@@ -22,8 +22,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    state_id:
-      description: Filter by webhook delivery state (working, issues, or waiting).
+    event_id:
+      description: Filter by the subscribed event type (e.g. new task, updated invoice).
       operators:
         - contains
         - eq
@@ -42,19 +42,25 @@ paths:
       tags:
         - Webhooks
       summary: Get webhooks
+      operationId: webhooks-index
+      description: List all webhooks.
+      parameters:
+        - $ref: '#/components/parameters/sort_webhook'
+        - $ref: '#/components/parameters/header_organization'
+        - $ref: '#/components/parameters/filter_webhook'
       responses:
         '200':
           $ref: '#/components/responses/collection_webhook'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_webhook'
-        - $ref: '#/components/parameters/sort_webhook'
-      operationId: webhooks-index
-      description: List all webhooks.
     post:
       tags:
         - Webhooks
       summary: Create a webhook
+      operationId: webhooks-create
+      description: Create a new webhook.
+      parameters:
+        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/webhook'
       responses:
         '201':
           $ref: '#/components/responses/single_webhook'
@@ -66,47 +72,41 @@ paths:
               schema:
                 type: string
           description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: webhooks-create
-      requestBody:
-        $ref: '#/components/requestBodies/webhook'
-      description: Create a new webhook.
   /api/v2/webhooks/{id}:
     get:
       tags:
         - Webhooks
       summary: Gets a webhook
-      responses:
-        '200':
-          $ref: '#/components/responses/single_webhook'
+      operationId: webhooks-show
+      description: Retrieve a single webhook by ID.
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: webhooks-show
-      description: Retrieve a single webhook by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_webhook'
     delete:
       tags:
         - Webhooks
       summary: Deletes a webhook
-      responses:
-        '204':
-          description: No Content
+      operationId: webhooks-destroy
+      description: Delete a webhook by ID.
       parameters:
+        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: webhooks-destroy
-      description: Delete a webhook by ID.
+      responses:
+        '204':
+          description: No Content
 components:
   parameters:
     header_organization:
@@ -116,6 +116,15 @@ components:
         type: string
       required: true
       description: Organization ID
+    filter_webhook:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.webhook at the top of this file.
+      required: false
+      description: Filters
     sort_webhook:
       in: query
       name: sort
@@ -128,191 +137,197 @@ components:
       explode: false
       required: false
       description: Sort webhook
-    filter_webhook:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.webhook at the top of this file.
-      required: false
-      description: Filters
   responses:
     single_webhook:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single webhook record in JSON:API format.
             properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_webhook/properties/name'
-                      test:
-                        $ref: '#/components/schemas/resource_webhook/properties/test'
-                      type_id:
-                        $ref: '#/components/schemas/resource_webhook/properties/type_id'
-                      event_id:
-                        $ref: '#/components/schemas/resource_webhook/properties/event_id'
-                      state_id:
-                        $ref: '#/components/schemas/resource_webhook/properties/state_id'
-                      target_url:
-                        $ref: '#/components/schemas/resource_webhook/properties/target_url'
-                      custom_headers:
-                        $ref: '#/components/schemas/resource_webhook/properties/custom_headers'
-                      deactivated_at:
-                        $ref: '#/components/schemas/resource_webhook/properties/deactivated_at'
-                      retry_attempts:
-                        $ref: '#/components/schemas/resource_webhook/properties/retry_attempts'
-                      signature_token:
-                        $ref: '#/components/schemas/resource_webhook/properties/signature_token'
-                  relationships:
-                    type: object
-                    properties:
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
               meta:
                 $ref: '#/components/schemas/_meta'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              data:
+                type: object
+                description: The JSON:API data object for the returned webhook resource.
+                properties:
+                  attributes:
+                    type: object
+                    description: Webhook attributes.
+                    properties:
+                      target_url:
+                        $ref: '#/components/schemas/resource_webhook/properties/target_url'
+                      name:
+                        $ref: '#/components/schemas/resource_webhook/properties/name'
+                      custom_headers:
+                        $ref: '#/components/schemas/resource_webhook/properties/custom_headers'
+                      signature_token:
+                        $ref: '#/components/schemas/resource_webhook/properties/signature_token'
+                      deactivated_at:
+                        $ref: '#/components/schemas/resource_webhook/properties/deactivated_at'
+                      test:
+                        $ref: '#/components/schemas/resource_webhook/properties/test'
+                      state_id:
+                        $ref: '#/components/schemas/resource_webhook/properties/state_id'
+                      retry_attempts:
+                        $ref: '#/components/schemas/resource_webhook/properties/retry_attempts'
+                      event_id:
+                        $ref: '#/components/schemas/resource_webhook/properties/event_id'
+                      type_id:
+                        $ref: '#/components/schemas/resource_webhook/properties/type_id'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Webhook relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                id: '12'
+                type: webhooks
+                attributes:
+                  url: https://hooks.example.com/productive
+                  events:
+                    - task.created
+                    - time_entry.created
+                    - invoice.paid
+                  active: true
+                  secret: null
+                  created_at: '2026-01-01T00:00:00.000+00:00'
+                relationships: {}
+              included: []
       description: Single webhook
     collection_webhook:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Paginated list of webhook records in JSON:API format.
             properties:
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
               data:
                 type: array
                 items:
                   type: object
+                  description: A webhook resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Webhook attributes.
                       properties:
-                        name:
-                          $ref: '#/components/schemas/resource_webhook/properties/name'
-                        test:
-                          $ref: '#/components/schemas/resource_webhook/properties/test'
-                        type_id:
-                          $ref: '#/components/schemas/resource_webhook/properties/type_id'
-                        event_id:
-                          $ref: '#/components/schemas/resource_webhook/properties/event_id'
                         state_id:
                           $ref: '#/components/schemas/resource_webhook/properties/state_id'
-                        target_url:
-                          $ref: '#/components/schemas/resource_webhook/properties/target_url'
+                        test:
+                          $ref: '#/components/schemas/resource_webhook/properties/test'
                         custom_headers:
                           $ref: '#/components/schemas/resource_webhook/properties/custom_headers'
-                        deactivated_at:
-                          $ref: '#/components/schemas/resource_webhook/properties/deactivated_at'
                         retry_attempts:
                           $ref: '#/components/schemas/resource_webhook/properties/retry_attempts'
                         signature_token:
                           $ref: '#/components/schemas/resource_webhook/properties/signature_token'
+                        deactivated_at:
+                          $ref: '#/components/schemas/resource_webhook/properties/deactivated_at'
+                        type_id:
+                          $ref: '#/components/schemas/resource_webhook/properties/type_id'
+                        event_id:
+                          $ref: '#/components/schemas/resource_webhook/properties/event_id'
+                        target_url:
+                          $ref: '#/components/schemas/resource_webhook/properties/target_url'
+                        name:
+                          $ref: '#/components/schemas/resource_webhook/properties/name'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Webhook relationships.
                       properties:
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of webhook resource objects.
+                example:
+                  eq: value
               meta:
                 $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
+            example:
+              data:
+                - id: '12'
+                  type: webhooks
+                  attributes:
+                    url: https://hooks.example.com/productive
+                    events:
+                      - task.created
+                      - time_entry.created
+                      - invoice.paid
+                    active: true
+                    secret: null
+                    created_at: '2026-01-01T00:00:00.000+00:00'
+                  relationships: {}
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection webhook
   schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
     _single_relationship:
       anyOf:
-        - $ref: '#/components/schemas/_not_included'
         - type: object
           title: Single data
+          description: Included variant — the related resource identifier is present in `data`.
           properties:
             data:
               $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
           example:
             data:
               type: tasks
               id: '42'
+        - $ref: '#/components/schemas/_not_included'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -320,39 +335,78 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
       example:
         meta:
           included: false
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+        id:
+          type: integer
+          description: The unique identifier of the resource.
+          example: 42
+      example:
+        type: tasks
+        id: '42'
     resource_webhook:
       type: object
       title: Webhook Resource
+      description: A webhook is an HTTP callback configured to fire when specific events occur in Productive, delivering real-time event notifications to an external target URL.
       properties:
-        deactivated_at:
+        name:
           type: string
-          title: Deactivated At
-          format: date-time
-          description: Timestamp when this webhook was deactivated, or null if still active.
-          example:
-            gt: '2026-01-01'
-        creator:
-          title: Creator
-          description: The person who created this webhook.
-          example:
-            eq: value
-        signature_token:
-          type: string
-          title: Signature Token
-          description: Secret token used to sign webhook payloads for verification by the recipient.
+          title: Name
+          description: The display name of this webhook.
           example:
             eq: value
         custom_headers:
           type: object
           title: Custom Headers
           description: Custom HTTP headers to include in each webhook delivery request.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this webhook belongs to.
+          example:
+            eq: value
+        state_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: State
+          description: 'The current delivery state of this webhook: 1=Working, 2=Issues, 3=Waiting.'
+          example:
+            - 123
+        type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Type
+          description: 'The integration type of this webhook: 1=Webhook, 2=Zapier.'
+          example:
+            - 123
+        retry_attempts:
+          type: integer
+          title: Retry Attempts
+          description: The number of retry attempts made after a failed delivery.
+          example:
+            gt: '2026-01-01'
+        signature_token:
+          type: string
+          title: Signature Token
+          description: Secret token used to sign webhook payloads for verification by the recipient.
           example:
             eq: value
         event_id:
@@ -397,47 +451,15 @@ components:
           description: The event type that triggers this webhook.
           example:
             - 123
-        type_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Type
-          description: 'The integration type of this webhook: 1=Webhook, 2=Zapier.'
-          example:
-            - 123
-        state_id:
-          enum:
-            - 1
-            - 2
-            - 3
-          type: integer
-          title: State
-          description: 'The current delivery state of this webhook: 1=Working, 2=Issues, 3=Waiting.'
-          example:
-            - 123
         id:
           type: integer
           title: Id
           description: The unique identifier of this webhook.
           example:
             - 123
-        retry_attempts:
-          type: integer
-          title: Retry Attempts
-          description: The number of retry attempts made after a failed delivery.
-          example:
-            gt: '2026-01-01'
-        target_url:
-          type: string
-          title: Target Url
-          description: The URL where webhook event payloads are delivered.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The display name of this webhook.
+        creator:
+          title: Creator
+          description: The person who created this webhook.
           example:
             eq: value
         test:
@@ -446,12 +468,19 @@ components:
           description: When true, this webhook is in test mode and will not fire on real events.
           example:
             eq: value
-        organization:
-          title: Organization
-          description: The organization this webhook belongs to.
+        target_url:
+          type: string
+          title: Target Url
+          description: The URL where webhook event payloads are delivered.
           example:
             eq: value
-      description: A webhook is an HTTP callback configured to fire when specific events occur in Productive, delivering real-time event notifications to an external target URL.
+        deactivated_at:
+          type: string
+          title: Deactivated At
+          format: date-time
+          description: Timestamp when this webhook was deactivated, or null if still active.
+          example:
+            gt: '2026-01-01'
       example:
         id: '12'
         type: webhooks
@@ -465,31 +494,89 @@ components:
           secret: null
           created_at: '2026-01-01T00:00:00.000+00:00'
         relationships: {}
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
   requestBodies:
     webhook:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body for creating or updating a webhook.
             properties:
               data:
                 type: object
+                description: The JSON:API data object containing the webhook resource attributes and relationships.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - event_id
-                      - type_id
-                      - target_url
+                    description: Webhook attributes.
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_webhook/properties/name'
+                      custom_headers:
+                        $ref: '#/components/schemas/resource_webhook/properties/custom_headers'
+                      target_url:
+                        $ref: '#/components/schemas/resource_webhook/properties/target_url'
                       type_id:
                         $ref: '#/components/schemas/resource_webhook/properties/type_id'
                       event_id:
                         $ref: '#/components/schemas/resource_webhook/properties/event_id'
-                      target_url:
-                        $ref: '#/components/schemas/resource_webhook/properties/target_url'
-                      custom_headers:
-                        $ref: '#/components/schemas/resource_webhook/properties/custom_headers'
+                      name:
+                        $ref: '#/components/schemas/resource_webhook/properties/name'
+                    required:
+                      - event_id
+                      - type_id
+                      - target_url
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: webhooks
+                attributes:
+                  url: https://hooks.example.com/productive
+                  events:
+                    - task.created
+                    - time_entry.created
+                  active: true
       description: Request body for creating or updating a webhook.
