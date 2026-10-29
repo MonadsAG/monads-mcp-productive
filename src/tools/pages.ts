@@ -401,7 +401,7 @@ export const createPageDefinition = {
       markdown: {
         type: 'string',
         description:
-          'Body content of the page as Markdown (optional). Headings, lists, tables, checklists, code blocks and links are supported.',
+          'Body content of the page as Markdown (optional). Headings, lists, tables, checklists, code blocks, links and images (![alt](url)) are supported.',
       },
       parent_page_id: {
         type: 'number',
@@ -443,7 +443,7 @@ export const updatePageDefinition = {
       markdown: {
         type: 'string',
         description:
-          'New body content as Markdown. Replaces the current body unless append is true. Omit to leave the body unchanged.',
+          'New body content as Markdown. Replaces the current body unless append is true. Omit to leave the body unchanged. Images are written as ![alt](url); a local image file has to be uploaded to the page first with the package command `productive-mcp upload-page-images --page <page_id> <file>...`, which prints the Markdown line for each image.',
       },
       append: {
         type: 'boolean',

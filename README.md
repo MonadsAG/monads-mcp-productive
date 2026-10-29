@@ -337,6 +337,21 @@ The server speaks MCP on stdout and logs to stderr only. Note that the unscoped
 `npm run build && npm run package:smoke` packs the package, serves it from a throwaway local
 registry and starts it with `npx` over stdio, the same way the hub does.
 
+### Images on doc pages
+
+The server cannot read files on your machine, wherever it runs, so local images go up through a
+command of the same package, run where the files are. It needs `PRODUCTIVE_API_TOKEN` and
+`PRODUCTIVE_ORG_ID` in the environment (or in a `.env` in the working directory):
+
+```bash
+npx -y @monadsag/productive-mcp@latest upload-page-images --page <page_id> one.png two.png
+```
+
+Each image becomes an attachment of the page, and the command prints one Markdown line per image,
+e.g. `![one](https://files.productive.io/...)`. Put the lines where the images belong in the
+page's Markdown and write it with `update_page`. It takes PNG, JPEG, GIF and WebP; Productive's
+help centre gives 4 MB per image in Docs.
+
 ## Development
 
 ```bash
