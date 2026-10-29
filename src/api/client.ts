@@ -41,6 +41,7 @@ import {
   ProductiveTodoUpdate,
   ProductivePageCreate,
   ProductivePageUpdate,
+  ProductiveAttachment,
   ProductiveTaskDependency,
   ProductiveTaskDependencyCreate,
   ProductiveError,
@@ -1781,6 +1782,56 @@ export class ProductiveAPIClient {
         data: { type: 'pages', attributes },
       }),
     });
+  }
+
+  // ---- Attachment methods ----
+
+  /**
+   * Step 1 of the upload in docs/api-spec/guides/working-with-attachments.md, linked to the
+   * page right away: `page_id` is an attribute of the documented create body, which replaces
+   * the guide's step 4 (rewriting the parent's attachment list). `attachable_type: 'page'`
+   * follows the lower-case `task`/`comment` values seen elsewhere; not verified live for pages.
+   * The response's `aws_policy` signs the upload of the bytes.
+   */
+  async createPageAttachment(
+    pageId: string,
+    file: { name: string; contentType: string; size: number },
+  ): Promise<ProductiveSingleResponse<ProductiveAttachment>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveAttachment>>('attachments', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: {
+          type: 'attachments',
+          attributes: {
+            name: file.name,
+            content_type: file.contentType,
+            size: file.size,
+            attachable_type: 'page',
+            page_id: Number(pageId),
+          },
+        },
+      }),
+    });
+  }
+
+  /** Step 3 of the upload: record where S3 stored the bytes (`temp_url` is write-side). */
+  async setAttachmentTempUrl(
+    attachmentId: string,
+    tempUrl: string,
+  ): Promise<ProductiveSingleResponse<ProductiveAttachment>> {
+    return this.makeRequest<ProductiveSingleResponse<ProductiveAttachment>>(
+      `attachments/${attachmentId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          data: { type: 'attachments', id: attachmentId, attributes: { temp_url: tempUrl } },
+        }),
+      },
+    );
+  }
+
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    return this.makeVoidRequest(`attachments/${attachmentId}`, { method: 'DELETE' });
   }
 
   // ---- Task Dependency methods ----
