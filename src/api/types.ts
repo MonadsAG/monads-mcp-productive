@@ -907,6 +907,25 @@ export interface ProductivePageUpdate {
   };
 }
 
+// ---- Attachment types ----
+
+/** Form fields Productive signs for a direct S3 upload; each goes back verbatim. */
+export type AttachmentUploadPolicy = Record<string, string>;
+
+export interface ProductiveAttachment {
+  id: string;
+  type: 'attachments';
+  attributes: {
+    name: string;
+    content_type?: string;
+    size?: number;
+    url?: string | null;
+    /** Only in the create response. */
+    aws_policy?: AttachmentUploadPolicy;
+    [key: string]: unknown;
+  };
+}
+
 // ---- Comment Update ----
 
 export interface ProductiveCommentUpdate {
