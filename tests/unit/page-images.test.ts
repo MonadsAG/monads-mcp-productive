@@ -115,7 +115,9 @@ describe('uploadPageImage', () => {
   it('deletes the attachment again when the create response carries no upload policy', async () => {
     const fetchMock = stubFetch({ create: json(attachment({}), 201) });
 
-    await expect(uploadPageImage(makeClient(), '1', png())).rejects.toThrow('no upload policy');
+    await expect(uploadPageImage(makeClient(), '1', png())).rejects.toThrow(
+      'no usable upload policy',
+    );
     expect(calls(fetchMock)).toEqual(['POST attachments', 'DELETE attachments/55']);
   });
 });
@@ -127,8 +129,17 @@ describe('pageImageMarkdown', () => {
     );
   });
 
-  it('escapes what would break the Markdown image syntax', () => {
+  it('escapes what would break the Markdown image syntax and keeps balanced parentheses', () => {
     const image = { id: '1', name: 'a [b].png', url: 'https://x.test/a (1).png' };
-    expect(pageImageMarkdown(image)).toBe('![a \\[b\\]](https://x.test/a%20%281%29.png)');
+    expect(pageImageMarkdown(image)).toBe('![a \\[b\\]](https://x.test/a%20(1).png)');
+  });
+
+  it('encodes unbalanced parentheses, which would end the link early', () => {
+    expect(pageImageMarkdown({ id: '1', name: 'a).png', url: 'https://x.test/a).png' })).toBe(
+      '![a)](https://x.test/a%29.png)',
+    );
+    expect(pageImageMarkdown({ id: '1', name: 'b.png', url: 'https://x.test/)b(.png' })).toBe(
+      '![b](https://x.test/%29b%28.png)',
+    );
   });
 });

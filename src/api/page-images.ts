@@ -1,5 +1,14 @@
+import { z } from 'zod';
 import type { ProductiveAPIClient } from './client.js';
 import type { AttachmentUploadPolicy } from './types.js';
+
+// Coerced: every policy field goes back verbatim as a form value, whatever type the API sends.
+const CreatedAttachmentSchema = z.object({
+  data: z.object({ attributes: z.object({ aws_policy: z.record(z.coerce.string()) }) }),
+});
+const UploadedAttachmentSchema = z.object({
+  data: z.object({ attributes: z.object({ url: z.string().url() }) }),
+});
 
 /**
  * Images on doc pages, in two halves: upload the bytes as an attachment of the page, then
@@ -41,13 +50,19 @@ export async function uploadPageImage(
   const id = created.data.id;
 
   try {
-    const policy = created.data.attributes.aws_policy;
-    if (!policy) throw new Error(`Productive returned no upload policy for ${file.name}`);
-    const location = await postToStorage(policy, file);
-    const updated = await client.setAttachmentTempUrl(id, location);
-    const url = updated.data.attributes.url;
-    if (!url) throw new Error(`Productive returned no URL for ${file.name} after the upload`);
-    return { id, name: file.name, url };
+    const policy = CreatedAttachmentSchema.safeParse(created);
+    if (!policy.success) {
+      const reason = policy.error.issues[0]?.message ?? 'unexpected shape';
+      throw new Error(`Productive returned no usable upload policy for ${file.name}: ${reason}`);
+    }
+    const location = await postToStorage(policy.data.data.attributes.aws_policy, file);
+    const updated = UploadedAttachmentSchema.safeParse(
+      await client.setAttachmentTempUrl(id, location),
+    );
+    if (!updated.success) {
+      throw new Error(`Productive returned no URL for ${file.name} after the upload`);
+    }
+    return { id, name: file.name, url: updated.data.data.attributes.url };
   } catch (error) {
     await client
       .deleteAttachment(id)
@@ -79,15 +94,31 @@ async function postToStorage(policy: AttachmentUploadPolicy, file: PageImageFile
 /**
  * The Markdown that puts an uploaded image into a page body.
  *
- * OPEN POINT, not verified live: that the image node's `src` should be the attachment's `url`.
- * Documented is only the syntax -- the Markdown proxy turns `![alt](url)` into an `image` node
- * (docs/api-spec/guides/document-format.md). Which URL an uploaded file needs there is not
- * documented; `url` is the only one the API returns for it. Change it here if the live check
- * shows the editor stores something else.
+ * OPEN POINT, not verified live for this upload path: that the image node's `src` should be the
+ * attachment's `url`. Documented is only the syntax -- the Markdown proxy turns `![alt](url)` into
+ * an `image` node (docs/api-spec/guides/document-format.md). Seen live (production org,
+ * 2026-10-29): images pasted into a page in the web editor are stored with
+ * `src: https://files.productive.io/attachments/files/<id>/original/<file>`, and writing that URL
+ * back as `![alt](...)` through the proxy gave an `image` node with the same `src`. That an
+ * attachment's `url` has this form is what tests/integration/page-images.integration.test.ts
+ * checks; change it here if that test fails.
  */
 export function pageImageMarkdown(image: UploadedPageImage): string {
   const alt = image.name.replace(/\.[^.]+$/, '').replace(/[[\]\\]/g, '\\$&');
-  // These three would end or break a Markdown link destination.
-  const url = image.url.replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29');
+  const spaced = image.url.replace(/ /g, '%20');
+  // Balanced parentheses pass the proxy unchanged (seen live: image(1).png), so src stays the
+  // attachment url; only unbalanced ones would end the link destination early.
+  const url = balancedParentheses(spaced)
+    ? spaced
+    : spaced.replace(/\(/g, '%28').replace(/\)/g, '%29');
   return `![${alt}](${url})`;
+}
+
+function balancedParentheses(text: string): boolean {
+  let depth = 0;
+  for (const char of text) {
+    if (char === '(') depth++;
+    else if (char === ')' && --depth < 0) return false;
+  }
+  return depth === 0;
 }
