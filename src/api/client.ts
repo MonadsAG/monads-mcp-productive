@@ -1834,6 +1834,15 @@ export class ProductiveAPIClient {
     return this.makeVoidRequest(`attachments/${attachmentId}`, { method: 'DELETE' });
   }
 
+  /** Attachments of one doc page; `filter[page_id]` is documented in resources/attachments.yaml. */
+  async listPageAttachments(pageId: string): Promise<ProductiveResponse<ProductiveAttachment>> {
+    const q = new URLSearchParams();
+    q.append('filter[page_id]', pageId);
+    return this.makeRequest<ProductiveResponse<ProductiveAttachment>>(
+      `attachments?${q.toString()}`,
+    );
+  }
+
   // ---- Task Dependency methods ----
 
   async listTaskDependencies(params?: {
