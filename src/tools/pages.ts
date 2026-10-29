@@ -443,7 +443,7 @@ export const updatePageDefinition = {
       markdown: {
         type: 'string',
         description:
-          'New body content as Markdown. Replaces the current body unless append is true. Omit to leave the body unchanged. Images are written as ![alt](url); a local image file has to be uploaded to the page first with the package command `productive-mcp upload-page-images --page <page_id> <file>...`, which prints the Markdown line for each image.',
+          'New body content as Markdown. Replaces the current body unless append is true. Omit to leave the body unchanged. Images are written as ![alt](url); a local image file has to be uploaded to the page first with `npx -y @monadsag/productive-mcp@latest upload-page-images --page <page_id> <file>...` (needs PRODUCTIVE_API_TOKEN and PRODUCTIVE_ORG_ID), which prints the Markdown line for each image.',
       },
       append: {
         type: 'boolean',

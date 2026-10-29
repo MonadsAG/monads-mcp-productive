@@ -15,7 +15,8 @@ import { pageImageMarkdown, uploadPageImage, type PageImageFile } from './api/pa
  * arguments. Same environment as the server: PRODUCTIVE_API_TOKEN and PRODUCTIVE_ORG_ID.
  */
 
-export const USAGE = 'Usage: productive-mcp upload-page-images --page <page_id> <image>...';
+export const USAGE =
+  'Usage: npx -y @monadsag/productive-mcp@latest upload-page-images --page <page_id> <image>...';
 
 const CONTENT_TYPES: Record<string, string> = {
   '.png': 'image/png',
@@ -43,6 +44,7 @@ export async function uploadPageImagesCommand(args: string[]): Promise<number> {
     const client = new ProductiveAPIClient(getConfig());
     for (const file of files) {
       const image = await uploadPageImage(client, page.data, file);
+      // The lines are the result, not a log, and no MCP server runs in this mode: stdout is free.
       process.stdout.write(`${pageImageMarkdown(image)}\n`);
     }
     return 0;
