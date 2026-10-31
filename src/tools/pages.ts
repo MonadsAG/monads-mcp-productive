@@ -443,7 +443,7 @@ export const updatePageDefinition = {
       markdown: {
         type: 'string',
         description:
-          'New body content as Markdown. Replaces the current body unless append is true. Omit to leave the body unchanged. Images are written as ![alt](url).',
+          'New body content as Markdown. Replaces the current body unless append is true. Omit to leave the body unchanged. Images are written as ![alt](url); images already on the page are lost on replace unless written back as ![alt](src) with the src of their image node from get_page.',
       },
       append: {
         type: 'boolean',
