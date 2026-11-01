@@ -43,6 +43,7 @@ src/
 │   ├── tasks.ts          # CRUD + assignment + details
 │   └── ...               # one file per tool group, plus shared helpers
 ├── prompts/
+│   ├── registry.ts       # Shared prompt registry (used by both entry points)
 │   └── timesheet.ts      # Guided timesheet workflow
 scripts/                  # spec sync + impact analysis (tsx, see API Spec)
 docs/api-spec/            # Official OpenAPI spec + per-resource split (see below)
