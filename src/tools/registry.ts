@@ -98,6 +98,8 @@ import { setTimeEntryApprovalTool, setTimeEntryApprovalDefinition } from './time
 import {
   getTimerTool,
   getTimerDefinition,
+  getRunningTimerTool,
+  getRunningTimerDefinition,
   startTimerTool,
   startTimerDefinition,
   stopTimerTool,
@@ -299,6 +301,7 @@ export function getToolDefinitions(enabledToolNames?: Set<string> | null) {
     deleteTimeEntryDefinition,
     setTimeEntryApprovalDefinition,
     getTimerDefinition,
+    getRunningTimerDefinition,
     startTimerDefinition,
     stopTimerDefinition,
     listCustomFieldsDefinition,
@@ -477,6 +480,8 @@ export async function handleToolCall(
       return await setTimeEntryApprovalTool(apiClient, args);
     case 'get_timer':
       return await getTimerTool(apiClient, args);
+    case 'get_running_timer':
+      return await getRunningTimerTool(apiClient, args, config);
     case 'start_timer':
       return await startTimerTool(apiClient, args);
     case 'stop_timer':

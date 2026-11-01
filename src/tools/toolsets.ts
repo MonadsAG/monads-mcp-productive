@@ -72,6 +72,7 @@ export const TOOLSETS: Record<string, string[]> = {
     'delete_time_entry',
     'set_time_entry_approval',
     'get_timer',
+    'get_running_timer',
     'start_timer',
     'stop_timer',
   ],
