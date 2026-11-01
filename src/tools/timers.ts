@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { ProductiveAPIClient } from '../api/client.js';
-import { ProductiveTimer, ProductiveTimerCreate, ProductiveTimeEntryUpdate } from '../api/types.js';
+import {
+  ProductiveIncludedResource,
+  ProductiveTimer,
+  ProductiveTimerCreate,
+  ProductiveTimeEntryUpdate,
+} from '../api/types.js';
 import { formatMinutesDisplay } from './time-entries.js';
+import { resolvePersonId } from './tool-helpers.js';
 import { toMcpError } from '../utils/errors.js';
 
 const getTimerSchema = z.object({
@@ -16,6 +22,10 @@ const startTimerSchema = z.object({
 
 const stopTimerSchema = z.object({
   timer_id: z.string().min(1, 'Timer ID is required'),
+});
+
+const getRunningTimerSchema = z.object({
+  person_id: z.string().min(1).default('me'),
 });
 
 function formatTimerResponse(
@@ -159,6 +169,99 @@ export async function stopTimerTool(
     throw toMcpError(error);
   }
 }
+
+/** Note, service, budget and time-entry lines of a running timer, read from `included`. */
+function describeTimerContext(
+  timer: ProductiveTimer,
+  included: ProductiveIncludedResource[],
+): string {
+  const find = (type: string, id?: string) =>
+    id ? included.find((r) => r.type === type && r.id === id) : undefined;
+  const timeEntryId = timer.relationships?.time_entry?.data?.id;
+  const entry = find('time_entries', timeEntryId);
+  const serviceId = entry?.relationships?.service?.data?.id;
+  const service = find('services', serviceId);
+  const dealId = service?.relationships?.deal?.data?.id;
+  const deal = find('deals', dealId);
+
+  let text = '';
+  if (entry?.attributes.note) {
+    text += `\nNote: ${entry.attributes.note}`;
+  }
+  if (service) {
+    text += `\nService: ${service.attributes.name} (ID: ${serviceId})`;
+  }
+  if (deal) {
+    text += `\nBudget: ${deal.attributes.name} (ID: ${dealId})`;
+  }
+  if (timeEntryId) {
+    text += `\nTime Entry ID: ${timeEntryId}`;
+  }
+  return text;
+}
+
+/**
+ * The running timer of a person, wherever it was started (web app, phone, start_timer).
+ * One request returns it with its time entry, service and budget (see listRunningTimers).
+ */
+export async function getRunningTimerTool(
+  client: ProductiveAPIClient,
+  args: unknown,
+  config?: { PRODUCTIVE_USER_ID?: string },
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  try {
+    const params = getRunningTimerSchema.parse(args ?? {});
+    const personId = resolvePersonId(params.person_id, config);
+    const who = `person ${personId}${params.person_id === 'me' ? ' (me)' : ''}`;
+
+    const response = await client.listRunningTimers(personId);
+    // The API filters both; checked again so that a filter that stops working never shows a
+    // stopped timer or another person's timer.
+    const own = response.data.filter((t) => String(t.attributes.person_id) === personId);
+    const timer = own.find((t) => t.attributes.stopped_at === null);
+    if (!timer) {
+      if (own.length < response.data.length) {
+        // Other people's timers came back: the person's timer may sit beyond this page.
+        throw new Error(
+          `Productive ignored the person filter, so whether ${who} has a running timer is unknown.`,
+        );
+      }
+      return { content: [{ type: 'text', text: `No running timer for ${who}.` }] };
+    }
+
+    const minutes = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(timer.attributes.started_at).getTime()) / 60000),
+    );
+    let text = `Running timer for ${who}\n`;
+    text += `ID: ${timer.id}\n`;
+    text += `Started at: ${timer.attributes.started_at}\n`;
+    text += `Running for: ${formatMinutesDisplay(minutes)}`;
+    text += describeTimerContext(timer, response.included ?? []);
+
+    return { content: [{ type: 'text', text }] };
+  } catch (error) {
+    throw toMcpError(error);
+  }
+}
+
+export const getRunningTimerDefinition = {
+  name: 'get_running_timer',
+  description:
+    'Find the timer that is running right now for a person, no matter where it was started (Productive web app, phone, or start_timer) -- unlike get_timer, which needs the timer ID. Returns the timer ID, start time, how long it has been running, the note, the service and budget, and the linked time-entry ID, or says that no timer is running. Read-only.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      person_id: {
+        type: 'string',
+        description:
+          'Person whose running timer to find. "me" uses PRODUCTIVE_USER_ID. Default "me".',
+        default: 'me',
+      },
+    },
+  },
+  annotations: { title: 'Get running timer', readOnlyHint: true, openWorldHint: true },
+};
 
 export const getTimerDefinition = {
   name: 'get_timer',

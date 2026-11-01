@@ -232,7 +232,7 @@ Productive's UI calls this resource a "folder"; the API models it as a "board" (
 | ---------------------------------------------------------------------------------------------------- | -------------------------------- |
 | `list_time_entries` / `create_time_entry` / `update_time_entry`                                      | Time entry CRUD                  |
 | `set_time_entry_approval`                                                                            | Approval workflow (action param) |
-| `start_timer` / `stop_timer` / `get_timer`                                                           | Real-time timers                 |
+| `start_timer` / `stop_timer` / `get_timer` / `get_running_timer`                                     | Real-time timers                 |
 | `list_services` / `get_project_services` / `list_project_deals` / `list_deal_services`               | Budget & service lookup          |
 | `create_budget_service` / `update_budget_service`                                                    | Budget service (line item) CRUD  |
 | `list_budget_sections` / `create_budget_section` / `update_budget_section` / `delete_budget_section` | Budget sections (service groups) |

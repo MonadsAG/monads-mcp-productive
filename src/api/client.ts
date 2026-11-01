@@ -911,6 +911,26 @@ export class ProductiveAPIClient {
   }
 
   /**
+   * A person's running timers with time entry, service and deal (budget) in one request.
+   *
+   * Live-verified (production org, 2026-11-01): an empty `filter[stopped_at]` returns only
+   * running timers -- 0 of a person's 20 stopped timers, and the one running timer of 24 in
+   * the org. `filter[stopped_at]=null` (also with `[eq]`) answers 400, "Expected a value of
+   * type 'Date'". The nested include carries the links, so the included time entry points to
+   * its service and the service to its deal.
+   */
+  async listRunningTimers(personId: string): Promise<ProductiveResponse<ProductiveTimer>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('filter[person_id]', personId);
+    queryParams.append('filter[stopped_at]', '');
+    queryParams.append('sort', '-started_at');
+    queryParams.append('include', 'time_entry,time_entry.service,time_entry.service.deal');
+    return this.makeRequest<ProductiveResponse<ProductiveTimer>>(
+      `timers?${queryParams.toString()}`,
+    );
+  }
+
+  /**
    * Create and start a new timer
    */
   async createTimer(

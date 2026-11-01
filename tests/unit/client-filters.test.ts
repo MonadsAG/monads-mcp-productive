@@ -240,4 +240,21 @@ describe('ProductiveAPIClient filter keys', () => {
     const url = fetchMock.mock.calls[0][0] as string;
     expect(url).toContain('filter%5Bnumber%5D=20260035');
   });
+
+  it('listRunningTimers asks for running timers of one person with time entry, service and deal', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [] }));
+    const client = makeClient(fetchMock);
+
+    await client.listRunningTimers('42');
+
+    const url = new URL(fetchMock.mock.calls[0][0] as string);
+    expect(url.pathname).toBe('/api/v2/timers');
+    expect(url.searchParams.get('filter[person_id]')).toBe('42');
+    // Empty, not "null": the API rejects null for this date filter (400, live).
+    expect(url.searchParams.get('filter[stopped_at]')).toBe('');
+    expect(url.searchParams.get('sort')).toBe('-started_at');
+    expect(url.searchParams.get('include')).toBe(
+      'time_entry,time_entry.service,time_entry.service.deal',
+    );
+  });
 });
