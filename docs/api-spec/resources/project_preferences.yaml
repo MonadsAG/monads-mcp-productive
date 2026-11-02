@@ -5,6 +5,13 @@ info:
 description: Project preferences link a person to a project and hold that person's personal settings for it — preferred task layout, whether they auto-watch new tasks, and free-form view preferences. There is at most one record per person per project.
 x-filters:
   project_preference:
+    id:
+      description: Filter by project preference ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     person_id:
       description: Filter by the person the preference belongs to.
       operators:
@@ -19,141 +26,142 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    id:
-      description: Filter by project preference ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
 paths:
   /api/v2/project_preferences:
     get:
       tags:
         - Project Preferences
       summary: Get project preferences
+      operationId: project_preferences-index
+      description: Returns a paginated list of project preferences, limited to projects the current user can see. Scope the list with `filter[project_id]` or `filter[person_id]`.
+      parameters:
+        - $ref: '#/components/parameters/filter_project_preference'
+        - $ref: '#/components/parameters/sort_project_preference'
       responses:
         '200':
           $ref: '#/components/responses/collection_project_preference'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
         '403':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Forbidden
-      parameters:
-        - $ref: '#/components/parameters/sort_project_preference'
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_project_preference'
-      operationId: project_preferences-index
-      description: Returns a paginated list of project preferences, limited to projects the current user can see. Scope the list with `filter[project_id]` or `filter[person_id]`.
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     post:
       tags:
         - Project Preferences
       summary: Create a project preference
+      operationId: project_preferences-create
+      description: Creates a project preference, assigning a person to a project. `project_id` and `person_id` are required and must be unique together.
+      requestBody:
+        $ref: '#/components/requestBodies/project_preference'
       responses:
         '201':
           $ref: '#/components/responses/single_project_preference'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
         '403':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Forbidden — the current user cannot assign the requested person, or cannot access the requested project.
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
         '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity — a preference already exists for this person and project, a required attribute is missing, or the person is a placeholder.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: project_preferences-create
-      requestBody:
-        $ref: '#/components/requestBodies/project_preference'
-      description: Creates a project preference, assigning a person to a project. `project_id` and `person_id` are required and must be unique together.
+          $ref: '#/components/responses/unprocessable_content_project_preference'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/project_preferences/{id}:
     get:
       tags:
         - Project Preferences
       summary: Get a project preference
-      responses:
-        '200':
-          $ref: '#/components/responses/single_project_preference'
-        '403':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Forbidden — the current user does not have access to the project this preference belongs to.
+      operationId: project_preferences-show
+      description: Returns a single project preference.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the project preference to fetch.
-      operationId: project_preferences-show
-      description: Returns a single project preference.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project_preference'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     patch:
       tags:
         - Project Preferences
       summary: Update a project preference
-      responses:
-        '200':
-          $ref: '#/components/responses/single_project_preference'
-        '403':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Forbidden — the current user does not have access to the project this preference belongs to.
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity — the requested person and project combination already exists, or the person is a placeholder.
+      operationId: project_preferences-update
+      description: Updates a project preference — task layout, watch state or stored view preferences. Pass `subscribe` or `unsubscribe` to also change the person's task subscriptions in the project.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the project preference to update.
-      operationId: project_preferences-update
       requestBody:
         $ref: '#/components/requestBodies/project_preference'
-      description: Updates a project preference — task layout, watch state or stored view preferences. Pass `subscribe` or `unsubscribe` to also change the person's task subscriptions in the project.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project_preference'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_project_preference'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     delete:
       tags:
         - Project Preferences
       summary: Delete a project preference
-      responses:
-        '204':
-          description: No Content
-        '403':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Forbidden — the current user does not have access to the project this preference belongs to.
+      operationId: project_preferences-destroy
+      description: Deletes a project preference, removing the person's assignment to the project.
       parameters:
         - in: path
           name: id
@@ -161,27 +169,1075 @@ paths:
             type: string
           required: true
           description: The ID of the project preference to delete.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: project_preferences-destroy
-      description: Deletes a project preference, removing the person's assignment to the project.
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
+  responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    unprocessable_content_project_preference:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_project_preference'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    single_project_preference:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Single project preference record in JSON:API format.
+            properties:
+              data:
+                type: object
+                description: The project preference resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Project preference attributes.
+                    properties:
+                      created_at:
+                        $ref: '#/components/schemas/resource_project_preference/properties/created_at'
+                      preferences:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_project_preference/properties/preferences'
+                          - type: 'null'
+                        description: Free-form personal view preferences for the project, as a JSON-encoded string.
+                      tasks_layout_id:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
+                          - type: 'null'
+                        description: ID of the task layout this person uses for the project's tasks.
+                      watched:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_project_preference/properties/watched'
+                          - type: 'null'
+                        description: Whether the person is automatically subscribed to new tasks created in the project.
+                    example:
+                      tasks_layout_id: 104
+                      created_at: '2026-01-20T10:00:00.000+00:00'
+                      preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                      watched: false
+                  relationships:
+                    type: object
+                    description: Project preference relationships.
+                    properties:
+                      person:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      person:
+                        data:
+                          type: people
+                          id: '12'
+                      project:
+                        data:
+                          type: projects
+                          id: '6899'
+                example:
+                  id: '32234'
+                  type: project_preferences
+                  attributes:
+                    tasks_layout_id: 104
+                    created_at: '2026-01-20T10:00:00.000+00:00'
+                    preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                    watched: false
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    id: '12'
+                    type: people
+                    attributes:
+                      first_name: Ana
+                      last_name: Horvat
+                      email: ana.horvat@example.com
+                description: Sideloaded related resources.
+                example:
+                  - id: '12'
+                    type: people
+                    attributes:
+                      first_name: Ana
+                      last_name: Horvat
+                      email: ana.horvat@example.com
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '32234'
+                type: project_preferences
+                attributes:
+                  tasks_layout_id: 104
+                  created_at: '2026-01-20T10:00:00.000+00:00'
+                  preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                  watched: false
+                relationships:
+                  person:
+                    data:
+                      type: people
+                      id: '12'
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+              included: []
+      description: A single project preference.
+    collection_project_preference:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of project preference records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A project preference resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Project preference attributes.
+                      properties:
+                        created_at:
+                          $ref: '#/components/schemas/resource_project_preference/properties/created_at'
+                        preferences:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_project_preference/properties/preferences'
+                            - type: 'null'
+                          description: Free-form personal view preferences for the project, as a JSON-encoded string.
+                        tasks_layout_id:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
+                            - type: 'null'
+                          description: ID of the task layout this person uses for the project's tasks.
+                        watched:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_project_preference/properties/watched'
+                            - type: 'null'
+                          description: Whether the person is automatically subscribed to new tasks created in the project.
+                      example:
+                        tasks_layout_id: 104
+                        created_at: '2026-01-20T10:00:00.000+00:00'
+                        preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                        watched: false
+                    relationships:
+                      type: object
+                      description: Project preference relationships.
+                      properties:
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        person:
+                          data:
+                            type: people
+                            id: '12'
+                        project:
+                          data:
+                            type: projects
+                            id: '6899'
+                  example:
+                    id: '32234'
+                    type: project_preferences
+                    attributes:
+                      tasks_layout_id: 104
+                      created_at: '2026-01-20T10:00:00.000+00:00'
+                      preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                      watched: false
+                    relationships:
+                      person:
+                        data:
+                          type: people
+                          id: '12'
+                      project:
+                        data:
+                          type: projects
+                          id: '6899'
+                description: Array of project preference resource objects.
+                example:
+                  - id: '32234'
+                    type: project_preferences
+                    attributes:
+                      tasks_layout_id: 104
+                      created_at: '2026-01-20T10:00:00.000+00:00'
+                      preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                      watched: false
+                    relationships:
+                      person:
+                        data:
+                          type: people
+                          id: '12'
+                      project:
+                        data:
+                          type: projects
+                          id: '6899'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    id: '12'
+                    type: people
+                    attributes:
+                      first_name: Ana
+                      last_name: Horvat
+                      email: ana.horvat@example.com
+                description: Sideloaded related resources.
+                example:
+                  - id: '12'
+                    type: people
+                    attributes:
+                      first_name: Ana
+                      last_name: Horvat
+                      email: ana.horvat@example.com
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '32234'
+                  type: project_preferences
+                  attributes:
+                    tasks_layout_id: 104
+                    created_at: '2026-01-20T10:00:00.000+00:00'
+                    preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+                    watched: false
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+                    project:
+                      data:
+                        type: projects
+                        id: '6899'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Paginated list of project preferences.
+  schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_project_preference:
+      enum:
+        - bad_decimal_format
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+        - project_preference_already_exists
+        - project_preference_placeholder_not_allowed
+      type: string
+      title: Error Code
+      description: Every error `code` the project preference endpoints can return.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          required:
+            - included
+          example:
+            included: false
+      required:
+        - meta
+      example:
+        meta:
+          included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    resource_project_preference:
+      type: object
+      title: Project preference Resource
+      description: A person's assignment to a project together with their personal preferences for it — task layout, watch state and free-form view settings.
+      properties:
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when the project preference was created.
+          example: '2026-01-20T10:00:00.000+00:00'
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier of the project preference.
+          example: 32234
+        person:
+          title: Person
+          description: The person this preference belongs to.
+          example:
+            data:
+              type: people
+              id: '12'
+        person_id:
+          type: integer
+          title: Person Id
+          description: ID of the person this preference belongs to.
+          example: 12
+        preferences:
+          type: string
+          title: Preferences
+          description: Free-form personal view preferences this person has stored for the project, as a JSON-encoded string.
+          example: '"{\"project_last_tab\":\"tasks\",\"default_tab_id\":\"1867-project-tasks\"}"'
+        project:
+          title: Project
+          description: The project this preference applies to.
+          example:
+            data:
+              type: projects
+              id: '6899'
+        project_id:
+          type: integer
+          title: Project Id
+          description: ID of the project this preference applies to.
+          example: 6899
+        subscribe:
+          type: boolean
+          title: Subscribe
+          description: Write-only trigger — when set, subscribes the person to all existing non-private tasks in the project.
+          example: true
+        tasks_layout_id:
+          type: integer
+          title: Tasks Layout Id
+          description: ID of the task layout this person uses when viewing the project's tasks.
+          example: 104
+        unsubscribe:
+          type: boolean
+          title: Unsubscribe
+          description: Write-only trigger — when set, removes the person's subscriptions to tasks in the project.
+          example: true
+        watched:
+          type: boolean
+          title: Watched
+          description: Whether the person is automatically subscribed to new tasks created in the project.
+          example: false
+      example:
+        id: 32234
+        tasks_layout_id: 104
+        created_at: '2026-01-20T10:00:00.000+00:00'
+        preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
+        watched: false
+        person_id: 12
+        project_id: 6899
+  requestBodies:
+    project_preference:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API document wrapping the project preference data.
+            properties:
+              data:
+                type: object
+                description: The project preference resource data object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Attributes of the project preference to create or update.
+                    properties:
+                      person_id:
+                        $ref: '#/components/schemas/resource_project_preference/properties/person_id'
+                      preferences:
+                        $ref: '#/components/schemas/resource_project_preference/properties/preferences'
+                      project_id:
+                        $ref: '#/components/schemas/resource_project_preference/properties/project_id'
+                      subscribe:
+                        $ref: '#/components/schemas/resource_project_preference/properties/subscribe'
+                      tasks_layout_id:
+                        $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
+                      unsubscribe:
+                        $ref: '#/components/schemas/resource_project_preference/properties/unsubscribe'
+                      watched:
+                        $ref: '#/components/schemas/resource_project_preference/properties/watched'
+                    example:
+                      person_id: 12
+                      project_id: 6899
+                      tasks_layout_id: 104
+                      watched: true
+                example:
+                  type: project_preferences
+                  attributes:
+                    person_id: 12
+                    project_id: 6899
+                    tasks_layout_id: 104
+                    watched: true
+            example:
+              data:
+                type: project_preferences
+                attributes:
+                  person_id: 12
+                  project_id: 6899
+                  tasks_layout_id: 104
+                  watched: true
+      description: Request body for creating or updating a project preference.
   parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_project_preference:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.project_preference at the top of this file.
-      required: false
-      description: Filter conditions for the project preference list. Supports filtering by `id`, `person_id` and `project_id`.
     sort_project_preference:
       in: query
       name: sort
@@ -194,270 +1250,12 @@ components:
       explode: false
       required: false
       description: Sort order for project preference list results. Accepts one or more field names, comma-separated; prefix with `-` for descending.
-  requestBodies:
-    project_preference:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      watched:
-                        $ref: '#/components/schemas/resource_project_preference/properties/watched'
-                      person_id:
-                        $ref: '#/components/schemas/resource_project_preference/properties/person_id'
-                      subscribe:
-                        $ref: '#/components/schemas/resource_project_preference/properties/subscribe'
-                      project_id:
-                        $ref: '#/components/schemas/resource_project_preference/properties/project_id'
-                      preferences:
-                        $ref: '#/components/schemas/resource_project_preference/properties/preferences'
-                      unsubscribe:
-                        $ref: '#/components/schemas/resource_project_preference/properties/unsubscribe'
-                      tasks_layout_id:
-                        $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
-      description: Request body for creating or updating a project preference.
-  schemas:
-    resource_project_preference:
-      type: object
-      title: Project preference Resource
-      properties:
-        project_id:
-          type: integer
-          title: Project Id
-          description: ID of the project this preference applies to.
-          example: 6899
-        tasks_layout_id:
-          type: integer
-          title: Tasks Layout Id
-          description: ID of the task layout this person uses when viewing the project's tasks.
-          example: 104
-        project:
-          title: Project
-          description: The project this preference applies to.
-          example:
-            data:
-              type: projects
-              id: '6899'
-        person_id:
-          type: integer
-          title: Person Id
-          description: ID of the person this preference belongs to.
-          example: 12
-        person:
-          title: Person
-          description: The person this preference belongs to.
-          example:
-            data:
-              type: people
-              id: '12'
-        watched:
-          type: boolean
-          title: Watched
-          description: Whether the person is automatically subscribed to new tasks created in the project.
-          example: false
-        preferences:
-          type: string
-          title: Preferences
-          description: Free-form personal view preferences this person has stored for the project, as a JSON-encoded string.
-          example: '"{\"project_last_tab\":\"tasks\",\"default_tab_id\":\"1867-project-tasks\"}"'
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when the project preference was created.
-          example: '2026-01-20T10:00:00.000+00:00'
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier of the project preference.
-          example: 32234
-        unsubscribe:
-          type: boolean
-          title: Unsubscribe
-          description: Write-only trigger — when set, removes the person's subscriptions to tasks in the project.
-          example: true
-        subscribe:
-          type: boolean
-          title: Subscribe
-          description: Write-only trigger — when set, subscribes the person to all existing non-private tasks in the project.
-          example: true
-      description: A person's assignment to a project together with their personal preferences for it — task layout, watch state and free-form view settings.
-      example:
-        id: 32234
-        tasks_layout_id: 104
-        created_at: '2026-01-20T10:00:00.000+00:00'
-        preferences: '{"project_last_tab":"tasks","default_tab_id":"1867-project-tasks"}'
-        watched: false
-        person_id: 12
-        project_id: 6899
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_project_preference:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      watched:
-                        $ref: '#/components/schemas/resource_project_preference/properties/watched'
-                      created_at:
-                        $ref: '#/components/schemas/resource_project_preference/properties/created_at'
-                      preferences:
-                        $ref: '#/components/schemas/resource_project_preference/properties/preferences'
-                      tasks_layout_id:
-                        $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
-                  relationships:
-                    type: object
-                    properties:
-                      person:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: A single project preference.
-    collection_project_preference:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        watched:
-                          $ref: '#/components/schemas/resource_project_preference/properties/watched'
-                        created_at:
-                          $ref: '#/components/schemas/resource_project_preference/properties/created_at'
-                        preferences:
-                          $ref: '#/components/schemas/resource_project_preference/properties/preferences'
-                        tasks_layout_id:
-                          $ref: '#/components/schemas/resource_project_preference/properties/tasks_layout_id'
-                    relationships:
-                      type: object
-                      properties:
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Paginated list of project preferences.
+    filter_project_preference:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.project_preference at the top of this file.
+      required: false
+      description: Filter conditions for the project preference list. Supports filtering by `id`, `person_id` and `project_id`.

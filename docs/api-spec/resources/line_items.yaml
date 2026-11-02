@@ -43,8 +43,22 @@ description: |-
   In a new workflow (available for customers on our BETA program for now), you should send `tax_rate_id` instead, which points to a Tax rate object. So, in order to set VAT 15% to your line item, you would first need to have a tax rate object with those values and then send its ID to the desired line item.
 x-filters:
   line_item:
-    unit_id:
-      description: Filter by the billing unit (e.g. hour, day, piece).
+    company_id:
+      description: Filter by client company (via the associated invoice).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filter by the person who created the line item.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    discount:
+      description: Filter by discount percentage range.
       operators:
         - contains
         - eq
@@ -52,13 +66,6 @@ x-filters:
         - not_eq
     expense_id:
       description: Filter by the associated expense.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    service_id:
-      description: Filter by the associated service.
       operators:
         - contains
         - eq
@@ -78,8 +85,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    discount:
-      description: Filter by discount percentage range.
+    service_id:
+      description: Filter by the associated service.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    service_type_id:
+      description: Filter by the service type of the associated service.
       operators:
         - contains
         - eq
@@ -99,29 +113,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    unit_id:
+      description: Filter by the billing unit (e.g. hour, day, piece).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     updater_id:
       description: Filter by the person who last updated the line item.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    service_type_id:
-      description: Filter by the service type of the associated service.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    creator_id:
-      description: Filter by the person who created the line item.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    company_id:
-      description: Filter by client company (via the associated invoice).
       operators:
         - contains
         - eq
@@ -133,312 +133,925 @@ paths:
       tags:
         - Line Items
       summary: Get line items
+      operationId: line_items-index
+      description: List line items.
+      parameters:
+        - $ref: '#/components/parameters/filter_line_item'
+        - $ref: '#/components/parameters/sort_line_item'
       responses:
         '200':
           $ref: '#/components/responses/collection_line_item'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_line_item'
-        - $ref: '#/components/parameters/filter_line_item'
-      operationId: line_items-index
-      description: List line items.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/line_items/{id}:
     get:
       tags:
         - Line Items
       summary: Gets a line item
-      responses:
-        '200':
-          $ref: '#/components/responses/single_line_item'
+      operationId: line_items-show
+      description: Retrieve a single line item.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: line_items-show
-      description: Retrieve a single line item.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_line_item'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     patch:
       tags:
         - Line Items
       summary: Update a line item
-      responses:
-        '200':
-          $ref: '#/components/responses/single_line_item'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
+      operationId: line_items-update
+      description: Update a line item.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: line_items-update
       requestBody:
         $ref: '#/components/requestBodies/line_item'
-      description: Update a line item.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_line_item'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     delete:
       tags:
         - Line Items
       summary: Deletes a line item
-      responses:
-        '204':
-          description: No Content
+      operationId: line_items-destroy
+      description: Delete a line item.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: line_items-destroy
-      description: Delete a line item.
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/line_items/generate:
     post:
       tags:
         - Line Items
       summary: Create line items
-      responses:
-        '200':
-          $ref: '#/components/responses/single_line_item'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
       operationId: line_items-generate-generate
       description: |
         The `generate` method provides a way to automatically create line items for an invoice based on the provided invoicing method.
 
         This [help article](https://help.productive.io/en/articles/4656350-understanding-invoicing-methods) explains the supported invoicing methods.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_line_item'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '422':
+          $ref: '#/components/responses/unprocessable_content'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_line_item:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.line_item at the top of this file.
-      required: false
-      description: Filters
-    sort_line_item:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          type: string
-        title: Sort line item
-      explode: false
-      required: false
-      description: Sort line item
   responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    unprocessable_content:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unprocessable_content'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
     single_line_item:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: A single line item record in JSON:API format.
             properties:
               data:
                 type: object
+                description: The line item resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Line item attributes.
                     properties:
                       amount:
                         $ref: '#/components/schemas/resource_line_item/properties/amount'
-                      unit_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_id'
-                      currency:
-                        $ref: '#/components/schemas/resource_line_item/properties/currency'
-                      discount:
-                        $ref: '#/components/schemas/resource_line_item/properties/discount'
-                      position:
-                        $ref: '#/components/schemas/resource_line_item/properties/position'
-                      quantity:
-                        $ref: '#/components/schemas/resource_line_item/properties/quantity'
-                      tax_name:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_name'
-                      tax_value:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_value'
-                      amount_tax:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_tax'
-                      unit_price:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_price'
-                      manual_entry:
-                        $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
                       amount_default:
                         $ref: '#/components/schemas/resource_line_item/properties/amount_default'
-                      amount_with_tax:
-                        $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_line_item/properties/currency_default'
                       amount_normalized:
                         $ref: '#/components/schemas/resource_line_item/properties/amount_normalized'
+                      amount_tax:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_tax'
                       amount_tax_default:
                         $ref: '#/components/schemas/resource_line_item/properties/amount_tax_default'
-                      unit_price_default:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_price_default'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_line_item/properties/currency_normalized'
                       amount_tax_normalized:
                         $ref: '#/components/schemas/resource_line_item/properties/amount_tax_normalized'
-                      unit_price_normalized:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_price_normalized'
+                      amount_with_tax:
+                        $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax'
                       amount_with_tax_default:
                         $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_default'
                       amount_with_tax_normalized:
                         $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_normalized'
+                      currency:
+                        $ref: '#/components/schemas/resource_line_item/properties/currency'
+                      currency_default:
+                        $ref: '#/components/schemas/resource_line_item/properties/currency_default'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_line_item/properties/currency_normalized'
+                      discount:
+                        anyOf:
+                          - type: string
+                          - type: 'null'
+                        description: The discount percentage applied to this line item.
+                      position:
+                        $ref: '#/components/schemas/resource_line_item/properties/position'
+                      quantity:
+                        type: string
+                        description: The quantity of units billed.
+                      tax_name:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_line_item/properties/tax_name'
+                          - type: 'null'
+                        description: The tax label displayed on the line item.
+                      tax_value:
+                        anyOf:
+                          - type: string
+                          - type: 'null'
+                        description: The tax rate percentage applied to this line item.
+                      unit_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_id'
+                      unit_price:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_price'
+                      unit_price_default:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_price_default'
+                      unit_price_normalized:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_price_normalized'
+                    example:
+                      eq: value
                   relationships:
                     type: object
+                    description: Line item relationships.
                     properties:
                       expense:
                         $ref: '#/components/schemas/_single_relationship'
                       invoice:
                         $ref: '#/components/schemas/_single_relationship'
-                      service:
-                        $ref: '#/components/schemas/_single_relationship'
                       kpd_code:
-                        $ref: '#/components/schemas/_single_relationship'
-                      tax_rate:
                         $ref: '#/components/schemas/_single_relationship'
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
+                      service:
+                        $ref: '#/components/schemas/_single_relationship'
                       service_type:
                         $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      tax_rate:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '890'
+                type: line_items
+                attributes:
+                  name: Frontend Development
+                  quantity: 10
+                  unit: hours
+                  unit_price: '150.00'
+                  total_price: '1500.00'
+                  currency: USD
+                  position: 1
+                  tax_rate: '0.1'
+                relationships:
+                  invoice:
+                    data:
+                      type: invoices
+                      id: '234'
+                  service:
+                    data:
+                      type: services
+                      id: '1856422'
+              included: []
       description: Single line item
-    collection_line_item:
+    not_found:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    collection_line_item:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of line item records in JSON:API format.
+            properties:
               data:
                 type: array
                 items:
                   type: object
+                  description: A line item resource object.
                   properties:
                     attributes:
                       type: object
+                      description: Line item attributes.
                       properties:
                         amount:
                           $ref: '#/components/schemas/resource_line_item/properties/amount'
-                        unit_id:
-                          $ref: '#/components/schemas/resource_line_item/properties/unit_id'
-                        currency:
-                          $ref: '#/components/schemas/resource_line_item/properties/currency'
-                        discount:
-                          $ref: '#/components/schemas/resource_line_item/properties/discount'
-                        position:
-                          $ref: '#/components/schemas/resource_line_item/properties/position'
-                        quantity:
-                          $ref: '#/components/schemas/resource_line_item/properties/quantity'
-                        tax_name:
-                          $ref: '#/components/schemas/resource_line_item/properties/tax_name'
-                        tax_value:
-                          $ref: '#/components/schemas/resource_line_item/properties/tax_value'
-                        amount_tax:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_tax'
-                        unit_price:
-                          $ref: '#/components/schemas/resource_line_item/properties/unit_price'
-                        manual_entry:
-                          $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
                         amount_default:
                           $ref: '#/components/schemas/resource_line_item/properties/amount_default'
-                        amount_with_tax:
-                          $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_line_item/properties/currency_default'
                         amount_normalized:
                           $ref: '#/components/schemas/resource_line_item/properties/amount_normalized'
+                        amount_tax:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_tax'
                         amount_tax_default:
                           $ref: '#/components/schemas/resource_line_item/properties/amount_tax_default'
-                        unit_price_default:
-                          $ref: '#/components/schemas/resource_line_item/properties/unit_price_default'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_line_item/properties/currency_normalized'
                         amount_tax_normalized:
                           $ref: '#/components/schemas/resource_line_item/properties/amount_tax_normalized'
-                        unit_price_normalized:
-                          $ref: '#/components/schemas/resource_line_item/properties/unit_price_normalized'
+                        amount_with_tax:
+                          $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax'
                         amount_with_tax_default:
                           $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_default'
                         amount_with_tax_normalized:
                           $ref: '#/components/schemas/resource_line_item/properties/amount_with_tax_normalized'
+                        currency:
+                          $ref: '#/components/schemas/resource_line_item/properties/currency'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_line_item/properties/currency_default'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_line_item/properties/currency_normalized'
+                        discount:
+                          anyOf:
+                            - type: string
+                            - type: 'null'
+                          description: Discount percentage applied to this line item.
+                        position:
+                          $ref: '#/components/schemas/resource_line_item/properties/position'
+                        quantity:
+                          type: string
+                          description: The quantity billed on this line item.
+                        tax_name:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_line_item/properties/tax_name'
+                            - type: 'null'
+                          description: The name of the tax applied to this line item.
+                        tax_value:
+                          anyOf:
+                            - type: string
+                            - type: 'null'
+                          description: The tax rate percentage applied to this line item.
+                        unit_id:
+                          $ref: '#/components/schemas/resource_line_item/properties/unit_id'
+                        unit_price:
+                          $ref: '#/components/schemas/resource_line_item/properties/unit_price'
+                        unit_price_default:
+                          $ref: '#/components/schemas/resource_line_item/properties/unit_price_default'
+                        unit_price_normalized:
+                          $ref: '#/components/schemas/resource_line_item/properties/unit_price_normalized'
+                      example:
+                        eq: value
                     relationships:
                       type: object
+                      description: Line item relationships.
                       properties:
                         expense:
                           $ref: '#/components/schemas/_single_relationship'
                         invoice:
                           $ref: '#/components/schemas/_single_relationship'
-                        service:
-                          $ref: '#/components/schemas/_single_relationship'
                         kpd_code:
-                          $ref: '#/components/schemas/_single_relationship'
-                        tax_rate:
                           $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
+                        service:
+                          $ref: '#/components/schemas/_single_relationship'
                         service_type:
                           $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                        tax_rate:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of line item resource objects.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '890'
+                  type: line_items
+                  attributes:
+                    name: Frontend Development
+                    quantity: 10
+                    unit: hours
+                    unit_price: '150.00'
+                    total_price: '1500.00'
+                    currency: USD
+                    position: 1
+                    tax_rate: '0.1'
+                  relationships:
+                    invoice:
+                      data:
+                        type: invoices
+                        id: '234'
+                    service:
+                      data:
+                        type: services
+                        id: '1856422'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection line item
   schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_unprocessable_content:
+      enum:
+        - bad_decimal_format
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint without its own resource codes can return with a 422.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
         current_page:
           type: integer
           description: The current page number in this paginated response (1-based).
           example: 1
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
         organization_features:
           type: object
           description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
           example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -446,15 +1059,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
+        total_count:
           type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
           type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
+          description: Total number of pages available for the current query and page size.
+          example: 5
       example:
         current_page: 1
         total_pages: 5
@@ -463,44 +1075,21 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
         - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -508,42 +1097,153 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
+          required:
+            - included
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
+      required:
+        - meta
       example:
         meta:
           included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
     resource_line_item:
       type: object
       title: Line item Resource
+      description: An invoice line item with quantity, unit price, description, and tax. Line items can link to budget services or expenses for automatic billing.
       properties:
+        amount:
+          title: Amount
+          description: The total line amount (unit price × quantity, minus discount) in the invoice's currency.
+          example:
+            gt: 0
         amount_default:
           title: Amount Default
           description: The total line amount converted to the organization's default currency.
           example:
             gt: 0
-        organization:
-          title: Organization
-          description: The organization this line item belongs to.
-          example:
-            eq: value
         amount_normalized:
           title: Amount Normalized
           description: The total line amount converted to the invoice currency.
           example:
             gt: 0
-        updater_id:
+        amount_tax:
+          title: Amount Tax
+          description: The tax portion of this line item's amount in the invoice's currency.
+          example:
+            gt: 0
+        amount_tax_default:
+          title: Amount Tax Default
+          description: The tax portion of this line item's amount converted to the organization's default currency.
+          example:
+            gt: 0
+        amount_tax_normalized:
+          title: Amount Tax Normalized
+          description: The tax portion of this line item's amount converted to the invoice currency.
+          example:
+            gt: 0
+        amount_with_tax:
+          title: Amount With Tax
+          description: The total line amount including tax in the invoice's currency.
+          example:
+            gt: 0
+        amount_with_tax_default:
+          title: Amount With Tax Default
+          description: The amount with tax converted to the organization's default currency.
+          example:
+            gt: 0
+        amount_with_tax_normalized:
+          title: Amount With Tax Normalized
+          description: The amount with tax converted to the invoice currency.
+          example:
+            gt: 0
+        company_id:
           type: integer
-          title: Updater
-          description: ID of the person who last updated this line item.
+          title: Company
+          description: ID of the company (client) on the invoice this line item belongs to.
           example:
             - 123
-        service_id:
+        creator_id:
           type: integer
-          title: Service
-          description: ID of the budget service linked to this line item, or null if not service-based.
+          title: Creator
+          description: ID of the person who created this line item.
+          example:
+            - 123
+        currency:
+          title: Currency
+          description: The currency of this line item, inherited from the associated invoice.
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency for this line item.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The invoice's currency for this line item.
+          example:
+            eq: value
+        discount:
+          type: number
+          title: Discount
+          description: The discount applied to this line item, expressed as a percentage (0–100).
+          example:
+            gt: 0
+        expense:
+          title: Expense
+          description: The project expense linked to this line item, if this line item was generated from an expense.
+          example:
+            eq: value
+        expense_id:
+          type: integer
+          title: Expense
+          description: ID of the project expense linked to this line item, or null if not expense-based.
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier of this line item.
+          example:
+            - 123
+        invoice:
+          title: Invoice
+          description: The invoice this line item belongs to.
+          example:
+            eq: value
+        invoice_id:
+          type: integer
+          title: Invoice
+          description: ID of the invoice this line item belongs to.
           example:
             - 123
         kpd_code:
@@ -553,21 +1253,20 @@ components:
             data:
               type: kpd_codes
               id: '42'
-        amount_with_tax:
-          title: Amount With Tax
-          description: The total line amount including tax in the invoice's currency.
-          example:
-            gt: 0
-        tax_rate_id:
+        kpd_code_id:
           type: integer
-          title: Tax Rate
-          description: ID of the tax rate applied to this line item, or null if tax is not applied.
+          title: Kpd Code
+          description: ID of the KPD classification code assigned to this line item (used only in Croatia).
+          example: '42'
+        organization:
+          title: Organization
+          description: The organization this line item belongs to.
           example:
-            - 123
-        tax_name:
-          type: string
-          title: Tax Name
-          description: The display name of the tax applied to this line item (e.g. VAT).
+            eq: value
+        position:
+          type: integer
+          title: Position
+          description: The display order of this line item within the invoice.
           example:
             eq: value
         quantity:
@@ -576,63 +1275,49 @@ components:
           description: The quantity of units for this line item; for percentage billing types, expressed as a percentage value.
           example:
             eq: value
+        service:
+          title: Service
+          description: The budget service linked to this line item, if this line item was generated from a service.
+          example:
+            eq: value
+        service_id:
+          type: integer
+          title: Service
+          description: ID of the budget service linked to this line item, or null if not service-based.
+          example:
+            - 123
         service_type:
           title: Service Type
           description: The service type categorizing this line item.
           example:
             eq: active
-        unit_price:
+        service_type_id:
           type: integer
-          title: Unit Price
-          description: The price per unit for this line item in the invoice's currency.
-          example:
-            gt: 0
-        expense:
-          title: Expense
-          description: The project expense linked to this line item, if this line item was generated from an expense.
-          example:
-            eq: value
-        unit_price_normalized:
-          title: Unit Price Normalized
-          description: |+
-            The price per unit for this line item in the invoice's currency.
-
-          example:
-            gt: 0
-        amount_with_tax_normalized:
-          title: Amount With Tax Normalized
-          description: The amount with tax converted to the invoice currency.
-          example:
-            gt: 0
-        amount_tax_default:
-          title: Amount Tax Default
-          description: The tax portion of this line item's amount converted to the organization's default currency.
-          example:
-            gt: 0
-        expense_id:
-          type: integer
-          title: Expense
-          description: ID of the project expense linked to this line item, or null if not expense-based.
+          title: Service Type
+          description: ID of the service type categorizing this line item.
           example:
             - 123
-        unit_price_default:
-          title: Unit Price Default
-          description: The price per unit converted to the organization's default currency.
+        tax_name:
+          type: string
+          title: Tax Name
+          description: The display name of the tax applied to this line item (e.g. VAT).
           example:
-            gt: 0
+            eq: value
         tax_rate:
           title: Tax Rate
           description: The tax rate applied to this line item.
           example:
             gt: 0
-        amount:
-          title: Amount
-          description: The total line amount (unit price × quantity, minus discount) in the invoice's currency.
+        tax_rate_id:
+          type: integer
+          title: Tax Rate
+          description: ID of the tax rate applied to this line item, or null if tax is not applied.
           example:
-            gt: 0
-        currency_normalized:
-          title: Currency Normalized
-          description: The invoice's currency for this line item.
+            - 123
+        tax_value:
+          type: number
+          title: Tax Value
+          description: The computed tax amount for this line item (amount × tax_value).
           example:
             eq: value
         unit_id:
@@ -645,98 +1330,30 @@ components:
           description: ID of the unit of measure for this line item (e.g. hour, day, piece).
           example:
             - 123
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency for this line item.
-          example:
-            eq: value
-        kpd_code_id:
+        unit_price:
           type: integer
-          title: Kpd Code
-          description: ID of the KPD classification code assigned to this line item (used only in Croatia).
-          example: '42'
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who created this line item.
-          example:
-            - 123
-        tax_value:
-          type: number
-          title: Tax Value
-          description: The computed tax amount for this line item (amount × tax_value).
-          example:
-            eq: value
-        service_type_id:
-          type: integer
-          title: Service Type
-          description: ID of the service type categorizing this line item.
-          example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier of this line item.
-          example:
-            - 123
-        currency:
-          title: Currency
-          description: The currency of this line item, inherited from the associated invoice.
-          example:
-            eq: value
-        amount_with_tax_default:
-          title: Amount With Tax Default
-          description: The amount with tax converted to the organization's default currency.
+          title: Unit Price
+          description: The price per unit for this line item in the invoice's currency.
           example:
             gt: 0
-        service:
-          title: Service
-          description: The budget service linked to this line item, if this line item was generated from a service.
-          example:
-            eq: value
-        amount_tax:
-          title: Amount Tax
-          description: The tax portion of this line item's amount in the invoice's currency.
+        unit_price_default:
+          title: Unit Price Default
+          description: The price per unit converted to the organization's default currency.
           example:
             gt: 0
-        amount_tax_normalized:
-          title: Amount Tax Normalized
-          description: The tax portion of this line item's amount converted to the invoice currency.
+        unit_price_normalized:
+          title: Unit Price Normalized
+          description: |+
+            The price per unit for this line item in the invoice's currency.
+
           example:
             gt: 0
-        discount:
-          type: number
-          title: Discount
-          description: The discount applied to this line item, expressed as a percentage (0–100).
-          example:
-            gt: 0
-        manual_entry:
-          type: boolean
-          title: Manual Entry
-        company_id:
+        updater_id:
           type: integer
-          title: Company
-          description: ID of the company (client) on the invoice this line item belongs to.
+          title: Updater
+          description: ID of the person who last updated this line item.
           example:
             - 123
-        position:
-          type: integer
-          title: Position
-          description: The display order of this line item within the invoice.
-          example:
-            eq: value
-        invoice:
-          title: Invoice
-          description: The invoice this line item belongs to.
-          example:
-            eq: value
-        invoice_id:
-          type: integer
-          title: Invoice
-          description: ID of the invoice this line item belongs to.
-          example:
-            - 123
-      description: An invoice line item with quantity, unit price, description, and tax. Line items can link to budget services or expenses for automatic billing.
       example:
         id: '890'
         type: line_items
@@ -758,50 +1375,182 @@ components:
             data:
               type: services
               id: '1856422'
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
   requestBodies:
     line_item:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Request body schema for a line item.
             properties:
               data:
                 type: object
+                description: The line item resource object.
                 properties:
                   attributes:
                     type: object
+                    description: Line item attributes.
+                    properties:
+                      discount:
+                        $ref: '#/components/schemas/resource_line_item/properties/discount'
+                      expense_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/expense_id'
+                      invoice_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/invoice_id'
+                      kpd_code_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/kpd_code_id'
+                      position:
+                        $ref: '#/components/schemas/resource_line_item/properties/position'
+                      quantity:
+                        $ref: '#/components/schemas/resource_line_item/properties/quantity'
+                      service_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/service_id'
+                      service_type_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/service_type_id'
+                      tax_name:
+                        $ref: '#/components/schemas/resource_line_item/properties/tax_name'
+                      tax_rate_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/tax_rate_id'
+                      tax_value:
+                        $ref: '#/components/schemas/resource_line_item/properties/tax_value'
+                      unit_id:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_id'
+                      unit_price:
+                        $ref: '#/components/schemas/resource_line_item/properties/unit_price'
                     required:
                       - invoice_id
                       - unit_price
                       - quantity
                       - tax_rate_id
-                    properties:
-                      unit_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_id'
-                      discount:
-                        $ref: '#/components/schemas/resource_line_item/properties/discount'
-                      position:
-                        $ref: '#/components/schemas/resource_line_item/properties/position'
-                      quantity:
-                        $ref: '#/components/schemas/resource_line_item/properties/quantity'
-                      tax_name:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_name'
-                      tax_value:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_value'
-                      expense_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/expense_id'
-                      invoice_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/invoice_id'
-                      service_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/service_id'
-                      unit_price:
-                        $ref: '#/components/schemas/resource_line_item/properties/unit_price'
-                      kpd_code_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/kpd_code_id'
-                      tax_rate_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/tax_rate_id'
-                      manual_entry:
-                        $ref: '#/components/schemas/resource_line_item/properties/manual_entry'
-                      service_type_id:
-                        $ref: '#/components/schemas/resource_line_item/properties/service_type_id'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: line_items
+                attributes:
+                  name: Frontend Development
+                  quantity: 10
+                  unit: hours
+                  unit_price: '150.00'
+                  position: 1
+                  tax_rate: '0.1'
+                relationships:
+                  invoice:
+                    data:
+                      type: invoices
+                      id: '234'
       description: Request body for creating or updating an invoice line item.
+  parameters:
+    sort_line_item:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort line item
+      explode: false
+      required: false
+      description: Sort line item
+    filter_line_item:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.line_item at the top of this file.
+      required: false
+      description: Filters

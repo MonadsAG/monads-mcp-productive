@@ -5,43 +5,8 @@ info:
 description: Pipeline stages defining deal outcomes. Each status belongs to a pipeline and has an outcome category (open, won, lost, or delivered). Statuses can enable time tracking, expense tracking, booking tracking, and probability estimation.
 x-filters:
   deal_status:
-    probability_enabled:
-      description: Filter to stages with probability tracking enabled or disabled.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    pipeline_type_id:
-      description: Filter by pipeline type (sales or production).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    status_id:
-      description: Filter by pipeline stage outcome (open, won, lost, delivered).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    query:
-      description: Filter by deal status name (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    lost_reason_enabled:
-      description: Filter to stages where lost reason entry is enabled or disabled.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    time_tracking_enabled:
-      description: Filter to stages with time tracking enabled or disabled.
+    booking_tracking_enabled:
+      description: Filter to stages with booking tracking enabled or disabled.
       operators:
         - contains
         - eq
@@ -61,8 +26,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    booking_tracking_enabled:
-      description: Filter to stages with booking tracking enabled or disabled.
+    lost_reason_enabled:
+      description: Filter to stages where lost reason entry is enabled or disabled.
       operators:
         - contains
         - eq
@@ -75,15 +40,49 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    pipeline_type_id:
+      description: Filter by pipeline type (sales or production).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    probability_enabled:
+      description: Filter to stages with probability tracking enabled or disabled.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Filter by deal status name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status_id:
+      description: Filter by pipeline stage outcome (open, won, lost, delivered).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    time_tracking_enabled:
+      description: Filter to stages with time tracking enabled or disabled.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/deal_statuses/{id}/archive:
     patch:
       tags:
         - Deal Statuses
       summary: Archives a deal status
-      responses:
-        '200':
-          $ref: '#/components/responses/single_deal_status'
+      operationId: deal_statuses-archive-archive
+      description: Archive a deal status.
       parameters:
         - in: path
           name: id
@@ -91,52 +90,90 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deal_statuses-archive-archive
-      description: Archive a deal status.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deal_status'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/deal_statuses:
     get:
       tags:
         - Deal Statuses
       summary: Get deal statuses
+      operationId: deal_statuses-index
+      description: List deal statuses with optional filters and pagination.
+      parameters:
+        - $ref: '#/components/parameters/filter_deal_status'
+        - $ref: '#/components/parameters/sort_deal_status'
       responses:
         '200':
           $ref: '#/components/responses/collection_deal_status'
-      parameters:
-        - $ref: '#/components/parameters/sort_deal_status'
-        - $ref: '#/components/parameters/filter_deal_status'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deal_statuses-index
-      description: List deal statuses with optional filters and pagination.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     post:
       tags:
         - Deal Statuses
       summary: Create a deal status
+      operationId: deal_statuses-create
+      description: Create a new deal status.
+      requestBody:
+        $ref: '#/components/requestBodies/deal_status'
       responses:
         '201':
           $ref: '#/components/responses/single_deal_status'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
         '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deal_statuses-create
-      requestBody:
-        $ref: '#/components/requestBodies/deal_status'
-      description: Create a new deal status.
+          $ref: '#/components/responses/unprocessable_content_deal_status'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/deal_statuses/{id}:
     get:
       tags:
         - Deal Statuses
       summary: Gets a deal status
-      responses:
-        '200':
-          $ref: '#/components/responses/single_deal_status'
+      operationId: deal_statuses-show
+      description: Retrieve a single deal status by ID.
       parameters:
         - in: path
           name: id
@@ -144,24 +181,29 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deal_statuses-show
-      description: Retrieve a single deal status by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deal_status'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     patch:
       tags:
         - Deal Statuses
       summary: Update a deal status
-      responses:
-        '200':
-          $ref: '#/components/responses/single_deal_status'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
+      operationId: deal_statuses-update
+      description: Update a deal status.
       parameters:
         - in: path
           name: id
@@ -169,34 +211,39 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deal_statuses-update
       requestBody:
         $ref: '#/components/requestBodies/deal_status'
-      description: Update a deal status.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_deal_status'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_deal_status'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     delete:
       tags:
         - Deal Statuses
       summary: Destroy a deal status
-      responses:
-        '204':
-          description: No Content
-        '409':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Conflict
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
+      operationId: deal_statuses-destroy
+      description: Delete a deal status.
       parameters:
         - in: path
           name: id
@@ -204,47 +251,1348 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deal_statuses-destroy
-      description: Delete a deal status.
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_deal_status'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/deal_statuses/merge:
     patch:
       tags:
         - Deal Statuses
       summary: Merges a deal status
+      operationId: deal_statuses-merge-merge
+      description: Merge deal statuses.
       responses:
         '200':
           $ref: '#/components/responses/single_deal_status'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
         '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: deal_statuses-merge-merge
-      description: Merge deal statuses.
+          $ref: '#/components/responses/unprocessable_content_deal_status'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
+  responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    unprocessable_content_deal_status:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_deal_status'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    single_deal_status:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single deal status record in JSON:API format.
+            properties:
+              data:
+                type: object
+                description: The deal status resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Deal status attributes.
+                    properties:
+                      archived_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_deal_status/properties/archived_at'
+                          - type: 'null'
+                        description: The date and time when the deal status was archived, or null if active.
+                      booking_tracking_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/booking_tracking_enabled'
+                      color_id:
+                        anyOf:
+                          - type: string
+                          - type: 'null'
+                        description: The color ID used to visually represent this status in the pipeline.
+                      expense_tracking_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/expense_tracking_enabled'
+                      lost_reason_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/lost_reason_enabled'
+                      name:
+                        $ref: '#/components/schemas/resource_deal_status/properties/name'
+                      position:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_deal_status/properties/position'
+                          - type: 'null'
+                        description: The display order position of this status in the pipeline.
+                      probability:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_deal_status/properties/probability'
+                          - type: 'null'
+                        description: The default win probability percentage for deals in this status.
+                      probability_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/probability_enabled'
+                      status_id:
+                        $ref: '#/components/schemas/resource_deal_status/properties/status_id'
+                      time_tracking_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/time_tracking_enabled'
+                      used:
+                        $ref: '#/components/schemas/resource_deal_status/properties/used'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Deal status relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      pipeline:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '5'
+                type: deal_statuses
+                attributes:
+                  name: Proposal Sent
+                  position: 3
+                  outcome: open
+                  color_id: '7'
+                relationships:
+                  pipeline:
+                    data:
+                      type: pipelines
+                      id: '1'
+              included: []
+      description: Single deal status
+    conflict:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_conflict'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Conflict
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    collection_deal_status:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of deal status records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A deal status resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Deal status attributes.
+                      properties:
+                        archived_at:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_deal_status/properties/archived_at'
+                            - type: 'null'
+                          description: Timestamp when this deal status was archived, or null if active.
+                        booking_tracking_enabled:
+                          $ref: '#/components/schemas/resource_deal_status/properties/booking_tracking_enabled'
+                        color_id:
+                          anyOf:
+                            - type: string
+                            - type: 'null'
+                          description: Color identifier for this status label in the pipeline board.
+                        expense_tracking_enabled:
+                          $ref: '#/components/schemas/resource_deal_status/properties/expense_tracking_enabled'
+                        lost_reason_enabled:
+                          $ref: '#/components/schemas/resource_deal_status/properties/lost_reason_enabled'
+                        name:
+                          $ref: '#/components/schemas/resource_deal_status/properties/name'
+                        position:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_deal_status/properties/position'
+                            - type: 'null'
+                          description: Sort order position of this status within the pipeline.
+                        probability:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_deal_status/properties/probability'
+                            - type: 'null'
+                          description: Win probability percentage for deals in this status (0-100).
+                        probability_enabled:
+                          $ref: '#/components/schemas/resource_deal_status/properties/probability_enabled'
+                        status_id:
+                          $ref: '#/components/schemas/resource_deal_status/properties/status_id'
+                        time_tracking_enabled:
+                          $ref: '#/components/schemas/resource_deal_status/properties/time_tracking_enabled'
+                        used:
+                          $ref: '#/components/schemas/resource_deal_status/properties/used'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Deal status relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        pipeline:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of deal status resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '5'
+                  type: deal_statuses
+                  attributes:
+                    name: Proposal Sent
+                    position: 3
+                    outcome: open
+                    color_id: '7'
+                  relationships:
+                    pipeline:
+                      data:
+                        type: pipelines
+                        id: '1'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection deal status
+  schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_deal_status:
+      enum:
+        - bad_decimal_format
+        - deal_status_last_stage_not_allowed
+        - deal_status_mismatch
+        - deal_status_status_change_not_allowed
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+        - probability_feature_unavailable
+      type: string
+      title: Error Code
+      description: Every error `code` the deal statuses endpoints can return.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          required:
+            - included
+          example:
+            included: false
+      required:
+        - meta
+      example:
+        meta:
+          included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    resource_deal_status:
+      type: object
+      title: Deal status Resource
+      description: Pipeline stage defining the outcome and tracking capabilities for deals in that stage. The status_id determines outcome category (open/won/lost/delivered). Optional flags enable time, expense, and booking tracking, probability estimation, and lost reason capture.
+      properties:
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when the pipeline stage was archived, or null if active.
+          example:
+            gt: '2026-01-01'
+        booking_tracking_enabled:
+          type: boolean
+          title: Booking Tracking Enabled
+          description: When true, bookings can be tracked for deals in this pipeline stage.
+          example:
+            eq: value
+        color_id:
+          type: integer
+          title: Color
+          description: The color ID used to visually distinguish this pipeline stage.
+          example:
+            - 123
+        created_at:
+          title: Created At
+          description: Timestamp when this pipeline stage was created.
+          example:
+            gt: '2026-01-01'
+        expense_tracking_enabled:
+          type: boolean
+          title: Expense Tracking Enabled
+          description: When true, expenses can be tracked for deals in this pipeline stage.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the pipeline stage.
+          example:
+            - 123
+        lost_reason_enabled:
+          type: boolean
+          title: Lost Reason Enabled
+          description: When true, a lost reason must be provided when a deal is moved to this stage.
+          example:
+            eq: value
+        name:
+          type: string
+          title: Name
+          description: The display name of the pipeline stage.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this pipeline stage belongs to.
+          example:
+            eq: value
+        pipeline:
+          title: Pipeline
+          description: The pipeline this stage belongs to.
+          example:
+            eq: value
+        pipeline_id:
+          type: integer
+          title: Pipeline
+          description: The ID of the pipeline this stage belongs to.
+          example:
+            - 123
+        pipeline_type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Pipeline Type
+          description: Numeric identifier for the pipeline type (1 = sales, 2 = production).
+          example:
+            - 123
+        position:
+          type: integer
+          title: Position
+          description: The display order position of this stage within the pipeline.
+          example:
+            eq: value
+        probability:
+          type: integer
+          title: Probability
+          description: The default win probability percentage for deals in this stage.
+          example:
+            eq: value
+        probability_enabled:
+          type: boolean
+          title: Probability Enabled
+          description: When true, win probability is tracked for deals in this pipeline stage.
+          example:
+            eq: value
+        query:
+          type: string
+          title: Query
+          description: A saved filter query string applied to this pipeline stage view.
+          example:
+            eq: value
+        status_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Status
+          description: Numeric identifier for the outcome status of this stage (e.g. open, won, lost, delivered).
+          example:
+            - 123
+        time_tracking_enabled:
+          type: boolean
+          title: Time Tracking Enabled
+          description: When true, time entries can be logged for deals in this pipeline stage.
+          example:
+            gt: 0
+        used:
+          type: boolean
+          title: Used
+          description: Indicates whether any deals are currently in this pipeline stage.
+          example:
+            eq: value
+      example:
+        id: '5'
+        type: deal_statuses
+        attributes:
+          name: Proposal Sent
+          position: 3
+          outcome: open
+          color_id: '7'
+        relationships:
+          pipeline:
+            data:
+              type: pipelines
+              id: '1'
+    error_code_conflict:
+      enum:
+        - absence_in_past
+        - agent_manager_membership_not_deletable
+        - agent_manager_membership_not_editable
+        - agent_not_found_for_role
+        - agent_role_can_not_be_deleted
+        - agent_role_can_not_transfer_people
+        - allow_absence_disabled
+        - already_activated
+        - already_active
+        - already_archived
+        - already_closed
+        - already_deactivated
+        - already_joined
+        - already_opened
+        - approval_addon_disabled
+        - approved_time_entry_not_editable
+        - automation_agent_deactivated
+        - autotracked_time_entry
+        - bank_account_already_archived
+        - bank_account_archived
+        - bank_account_not_archived
+        - bank_account_used_as_default
+        - budget_already_exported
+        - budget_closed
+        - budget_delivered
+        - budget_is_template
+        - budget_missing_project
+        - budget_not_client_budget
+        - budget_not_exported
+        - budget_project_archived
+        - can_not_approve_unsubmitted_record
+        - can_not_destroy_submitted_record
+        - can_not_start_timer_for_approved_record
+        - can_not_start_timer_on_submitted_record
+        - cancel_error
+        - cannot_apply_template_on_template_doc
+        - cannot_approve_draft_record
+        - cannot_archive_company
+        - cannot_export_company
+        - cannot_publish_doc_on_template
+        - cannot_reject_autotracked_record
+        - cannot_reject_draft_record
+        - cannot_restore_company
+        - cannot_unapprove_draft_record
+        - cannot_unpublish_doc_on_template
+        - cannot_unreject_draft_record
+        - closed_budget
+        - comment_already_pinned
+        - comment_not_pinnable
+        - comment_not_pinned
+        - company_already_exported
+        - company_export_unavailable
+        - company_not_exported
+        - contract_not_destroyable
+        - create_setup_intent_error
+        - custom_field_used_as_approver
+        - datev_csv_export_feature_unavailable
+        - deactivated
+        - deal_closed
+        - deal_cost_rate_not_editable
+        - deal_owner_not_deletable
+        - deal_status_amount_reached
+        - deal_status_in_use
+        - deal_status_last_stage_not_allowed
+        - deal_status_mapped_to_hubspot_integration
+        - declined
+        - deleted_item_already_restored
+        - engagements_on_holiday_calendar
+        - erase_blocked
+        - event_archived
+        - event_automation_cant_be_manually_run
+        - expense_not_exported
+        - expense_not_linked
+        - expense_sync_feature_unavailable
+        - expenses_not_approved
+        - export_not_pending
+        - export_status_check_cooldown
+        - financial_month_locked
+        - financial_month_locked_expense
+        - financial_month_locked_service
+        - financial_month_locked_time_entry
+        - folder_archived
+        - has_credit_note
+        - import_already_running
+        - insufficient_plan
+        - insufficient_seats
+        - invalid_action
+        - last_full_access_membership
+        - last_subsidiary
+        - move_to_person
+        - must_have_at_least_one_status_in_closed_category
+        - name_not_unique
+        - next_occurrence_on_blank
+        - no_time_approval_on_budget
+        - not_archived
+        - not_in_draft_status
+        - organization_not_verified
+        - organization_owner
+        - people_on_subsidiary
+        - person_erased
+        - person_has_offboarding_in_progress
+        - person_is_archived
+        - person_is_placeholder
+        - person_is_sample
+        - person_is_user
+        - person_not_joined
+        - person_not_user
+        - person_owner
+        - person_virtual
+        - pinned_comment_not_destroyable
+        - project_already_archived
+        - project_already_restored
+        - project_archived
+        - project_duplication_in_progress
+        - project_manager_membership_not_deletable
+        - project_manager_membership_not_editable
+        - project_not_client_project
+        - project_not_exported
+        - reactivate_error
+        - recap_not_available
+        - record_already_approved
+        - record_already_archived
+        - record_already_canceled
+        - record_already_dismissed
+        - record_already_doc
+        - record_already_open
+        - record_already_published
+        - record_already_read
+        - record_already_rejected
+        - record_already_resolved
+        - record_already_restored
+        - record_already_unapproved
+        - record_already_unrejected
+        - record_archived
+        - record_contains_custom_fields
+        - record_is_last_active_workflow
+        - record_is_last_pipeline
+        - record_must_be_submitted_to_be_rejected
+        - record_not_archived
+        - record_not_dismissed
+        - record_not_on_absence
+        - record_not_published
+        - record_not_read
+        - record_on_remote_work
+        - record_project_not_editable
+        - record_used_on_projects
+        - request_resolved
+        - responded
+        - retry_last_payment_error
+        - role_being_used
+        - role_not_editable_by_user
+        - role_not_for_agents
+        - seats_allocation_error
+        - self_deactivation
+        - service_type_already_archived
+        - service_type_archived
+        - service_type_not_archived
+        - signed
+        - slack_bot_integration_not_connected
+        - subsidiary_archived
+        - survey_field_option_already_archived
+        - survey_field_option_inaccessible
+        - system_segment_type
+        - task_is_template
+        - task_required_by_time_entries
+        - tax_rate_already_archived
+        - tax_rate_archived
+        - tax_rate_not_archived
+        - tax_rate_used_as_default
+        - template_budget_not_destroyable
+        - template_doc_not_destroyable
+        - template_doc_not_moveable
+        - template_project_not_destroyable
+        - time_entries_not_approved
+        - time_entry_invoiced
+        - timer_already_started
+        - timer_already_stopped
+        - timer_running
+        - timer_started_on_record
+        - too_many_creates_for_unverified_new_organization
+        - too_many_invites_for_unverified_new_organization
+        - two_factor_not_enabled
+        - update_error
+        - used_as_integration_default_workplace
+        - user_and_not_virtual
+        - webhook_already_activated
+        - webhook_already_deactivated
+        - webhook_is_not_activated
+      type: string
+      title: Error Code
+      description: Every error `code` the resource abilities and forms return with a 409.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+  requestBodies:
+    deal_status:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body schema for a pipeline stage.
+            properties:
+              data:
+                type: object
+                description: The pipeline stage resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Pipeline stage attributes.
+                    properties:
+                      booking_tracking_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/booking_tracking_enabled'
+                      color_id:
+                        $ref: '#/components/schemas/resource_deal_status/properties/color_id'
+                      expense_tracking_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/expense_tracking_enabled'
+                      lost_reason_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/lost_reason_enabled'
+                      name:
+                        $ref: '#/components/schemas/resource_deal_status/properties/name'
+                      pipeline_id:
+                        $ref: '#/components/schemas/resource_deal_status/properties/pipeline_id'
+                      position:
+                        $ref: '#/components/schemas/resource_deal_status/properties/position'
+                      probability:
+                        $ref: '#/components/schemas/resource_deal_status/properties/probability'
+                      probability_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/probability_enabled'
+                      status_id:
+                        $ref: '#/components/schemas/resource_deal_status/properties/status_id'
+                      time_tracking_enabled:
+                        $ref: '#/components/schemas/resource_deal_status/properties/time_tracking_enabled'
+                    required:
+                      - name
+                      - pipeline_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: deal_statuses
+                attributes:
+                  name: Proposal Sent
+                  position: 3
+                  outcome: open
+                  color_id: '7'
+                relationships:
+                  pipeline:
+                    data:
+                      type: pipelines
+                      id: '1'
+      description: Request body for creating or updating a deal status. Specify the pipeline, name, position, outcome category (status_id), color, and optional tracking flags for time, expenses, bookings, and probability.
   parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_deal_status:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.deal_status at the top of this file.
-      required: false
-      description: Filters
     sort_deal_status:
       in: query
       name: sort
@@ -270,378 +1618,12 @@ components:
       explode: false
       required: false
       description: Sort deal status
-  responses:
-    single_deal_status:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_deal_status/properties/name'
-                      used:
-                        $ref: '#/components/schemas/resource_deal_status/properties/used'
-                      color_id:
-                        $ref: '#/components/schemas/resource_deal_status/properties/color_id'
-                      position:
-                        $ref: '#/components/schemas/resource_deal_status/properties/position'
-                      status_id:
-                        $ref: '#/components/schemas/resource_deal_status/properties/status_id'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_deal_status/properties/archived_at'
-                      probability:
-                        $ref: '#/components/schemas/resource_deal_status/properties/probability'
-                      lost_reason_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/lost_reason_enabled'
-                      probability_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/probability_enabled'
-                      time_tracking_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/time_tracking_enabled'
-                      booking_tracking_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/booking_tracking_enabled'
-                      expense_tracking_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/expense_tracking_enabled'
-                  relationships:
-                    type: object
-                    properties:
-                      pipeline:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single deal status
-    collection_deal_status:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_deal_status/properties/name'
-                        used:
-                          $ref: '#/components/schemas/resource_deal_status/properties/used'
-                        color_id:
-                          $ref: '#/components/schemas/resource_deal_status/properties/color_id'
-                        position:
-                          $ref: '#/components/schemas/resource_deal_status/properties/position'
-                        status_id:
-                          $ref: '#/components/schemas/resource_deal_status/properties/status_id'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_deal_status/properties/archived_at'
-                        probability:
-                          $ref: '#/components/schemas/resource_deal_status/properties/probability'
-                        lost_reason_enabled:
-                          $ref: '#/components/schemas/resource_deal_status/properties/lost_reason_enabled'
-                        probability_enabled:
-                          $ref: '#/components/schemas/resource_deal_status/properties/probability_enabled'
-                        time_tracking_enabled:
-                          $ref: '#/components/schemas/resource_deal_status/properties/time_tracking_enabled'
-                        booking_tracking_enabled:
-                          $ref: '#/components/schemas/resource_deal_status/properties/booking_tracking_enabled'
-                        expense_tracking_enabled:
-                          $ref: '#/components/schemas/resource_deal_status/properties/expense_tracking_enabled'
-                    relationships:
-                      type: object
-                      properties:
-                        pipeline:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection deal status
-  schemas:
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    resource_deal_status:
-      type: object
-      title: Deal status Resource
-      properties:
-        time_tracking_enabled:
-          type: boolean
-          title: Time Tracking Enabled
-          description: When true, time entries can be logged for deals in this pipeline stage.
-          example:
-            gt: 0
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when the pipeline stage was archived, or null if active.
-          example:
-            gt: '2026-01-01'
-        status_id:
-          enum:
-            - 1
-            - 2
-            - 3
-            - 4
-          type: integer
-          title: Status
-          description: Numeric identifier for the outcome status of this stage (e.g. open, won, lost, delivered).
-          example:
-            - 123
-        booking_tracking_enabled:
-          type: boolean
-          title: Booking Tracking Enabled
-          description: When true, bookings can be tracked for deals in this pipeline stage.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this pipeline stage belongs to.
-          example:
-            eq: value
-        used:
-          type: boolean
-          title: Used
-          description: Indicates whether any deals are currently in this pipeline stage.
-          example:
-            eq: value
-        probability_enabled:
-          type: boolean
-          title: Probability Enabled
-          description: When true, win probability is tracked for deals in this pipeline stage.
-          example:
-            eq: value
-        lost_reason_enabled:
-          type: boolean
-          title: Lost Reason Enabled
-          description: When true, a lost reason must be provided when a deal is moved to this stage.
-          example:
-            eq: value
-        pipeline_id:
-          type: integer
-          title: Pipeline
-          description: The ID of the pipeline this stage belongs to.
-          example:
-            - 123
-        position:
-          type: integer
-          title: Position
-          description: The display order position of this stage within the pipeline.
-          example:
-            eq: value
-        expense_tracking_enabled:
-          type: boolean
-          title: Expense Tracking Enabled
-          description: When true, expenses can be tracked for deals in this pipeline stage.
-          example:
-            eq: value
-        color_id:
-          type: integer
-          title: Color
-          description: The color ID used to visually distinguish this pipeline stage.
-          example:
-            - 123
-        pipeline:
-          title: Pipeline
-          description: The pipeline this stage belongs to.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: A saved filter query string applied to this pipeline stage view.
-          example:
-            eq: value
-        probability:
-          type: integer
-          title: Probability
-          description: The default win probability percentage for deals in this stage.
-          example:
-            eq: value
-        name:
-          type: string
-          title: Name
-          description: The display name of the pipeline stage.
-          example:
-            eq: value
-        pipeline_type_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Pipeline Type
-          description: Numeric identifier for the pipeline type (1 = sales, 2 = production).
-          example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier for the pipeline stage.
-          example:
-            - 123
-        created_at:
-          title: Created At
-          description: Timestamp when this pipeline stage was created.
-          example:
-            gt: '2026-01-01'
-      description: Pipeline stage defining the outcome and tracking capabilities for deals in that stage. The status_id determines outcome category (open/won/lost/delivered). Optional flags enable time, expense, and booking tracking, probability estimation, and lost reason capture.
-      example:
-        id: '5'
-        type: deal_statuses
-        attributes:
-          name: Proposal Sent
-          position: 3
-          outcome: open
-          color_id: '7'
-        relationships:
-          pipeline:
-            data:
-              type: pipelines
-              id: '1'
-  requestBodies:
-    deal_status:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    required:
-                      - name
-                      - pipeline_id
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_deal_status/properties/name'
-                      color_id:
-                        $ref: '#/components/schemas/resource_deal_status/properties/color_id'
-                      position:
-                        $ref: '#/components/schemas/resource_deal_status/properties/position'
-                      status_id:
-                        $ref: '#/components/schemas/resource_deal_status/properties/status_id'
-                      pipeline_id:
-                        $ref: '#/components/schemas/resource_deal_status/properties/pipeline_id'
-                      probability:
-                        $ref: '#/components/schemas/resource_deal_status/properties/probability'
-                      lost_reason_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/lost_reason_enabled'
-                      probability_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/probability_enabled'
-                      time_tracking_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/time_tracking_enabled'
-                      booking_tracking_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/booking_tracking_enabled'
-                      expense_tracking_enabled:
-                        $ref: '#/components/schemas/resource_deal_status/properties/expense_tracking_enabled'
-      description: Request body for creating or updating a deal status. Specify the pipeline, name, position, outcome category (status_id), color, and optional tracking flags for time, expenses, bookings, and probability.
+    filter_deal_status:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.deal_status at the top of this file.
+      required: false
+      description: Filters

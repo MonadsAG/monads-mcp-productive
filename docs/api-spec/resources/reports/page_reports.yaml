@@ -4,6 +4,48 @@ info:
   version: 2.0.0
 x-filters:
   page_report:
+    status:
+      description: Filter page report results by status.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subscriber_id:
+      description: Filter page report results by subscriber id.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    template:
+      description: Filter page report results by template.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter page report results by created at.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filter page report results by creator id.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    custom_fields:
+      description: Filter page report results by custom fields.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     edited_at:
       description: Filter page report results by edited at.
       operators:
@@ -11,8 +53,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    person_type:
-      description: Filter page report results by person type.
+    full_query:
+      description: Filter page report results by full query.
       operators:
         - contains
         - eq
@@ -32,29 +74,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    template:
-      description: Filter page report results by template.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    subscriber_id:
-      description: Filter page report results by subscriber id.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    last_activity_at:
-      description: Filter by last activity date range.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    created_at:
-      description: Filter page report results by created at.
+    id:
+      description: Filter page report results by id.
       operators:
         - contains
         - eq
@@ -67,29 +88,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    status:
-      description: Filter page report results by status.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    project_id:
-      description: Filter page report results by project id.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Filter page report results by id.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    root_page_id:
-      description: Filter page report results by root page id.
+    last_activity_at:
+      description: Filter by last activity date range.
       operators:
         - contains
         - eq
@@ -102,8 +102,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    custom_fields:
-      description: Filter page report results by custom fields.
+    person_type:
+      description: Filter page report results by person type.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter page report results by project id.
       operators:
         - contains
         - eq
@@ -116,22 +123,15 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    full_query:
-      description: Filter page report results by full query.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    creator_id:
-      description: Filter page report results by creator id.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     query:
       description: Filter page report results by query.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    root_page_id:
+      description: Filter page report results by root page id.
       operators:
         - contains
         - eq
@@ -143,18 +143,887 @@ paths:
       tags:
         - Reports
       summary: Get page reports
+      operationId: reports-page_reports-index
+      description: Retrieve aggregated page report data grouped by configurable dimensions.
+      parameters:
+        - $ref: '#/components/parameters/filter_page_report'
+        - $ref: '#/components/parameters/sort_page_report'
+        - $ref: '#/components/parameters/group_page_report'
       responses:
         '200':
           $ref: '#/components/responses/collection_page_report'
-      parameters:
-        - $ref: '#/components/parameters/group_page_report'
-        - $ref: '#/components/parameters/filter_page_report'
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_page_report'
-      operationId: reports-page_reports-index
-      description: Retrieve aggregated page report data grouped by configurable dimensions.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
+  responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    collection_page_report:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of page report records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A page report row resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Page Report row attributes.
+                      properties:
+                        count:
+                          $ref: '#/components/schemas/resource_page_report/properties/count'
+                        created_at:
+                          $ref: '#/components/schemas/resource_page_report/properties/created_at'
+                        currency:
+                          $ref: '#/components/schemas/resource_page_report/properties/currency'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_page_report/properties/currency_default'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_page_report/properties/currency_normalized'
+                        custom_fields:
+                          type: object
+                          description: Custom fields for this page report group.
+                        edited_at:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_page_report/properties/edited_at'
+                            - type: 'null'
+                          description: Edited at for this page report group.
+                        formula_fields:
+                          $ref: '#/components/schemas/resource_page_report/properties/formula_fields'
+                        group:
+                          $ref: '#/components/schemas/resource_page_report/properties/group'
+                        last_activity_at:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_page_report/properties/last_activity_at'
+                            - type: 'null'
+                          description: Timestamp of the most recent activity on this page.
+                        title:
+                          $ref: '#/components/schemas/resource_page_report/properties/title'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Page Report row relationships.
+                      properties:
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        page:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        report:
+                          $ref: '#/components/schemas/_single_relationship'
+                        updater:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of page report row resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: An included related resource object.
+                  example:
+                    eq: value
+                description: Array of included related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: r-016
+                  type: page_reports
+                  attributes:
+                    page_id: 78
+                    project_id: 6899
+                    created_at: '2026-01-20T10:00:00.000+00:00'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection page report
+  schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          required:
+            - included
+          example:
+            included: false
+      required:
+        - meta
+      example:
+        meta:
+          included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    resource_page_report:
+      type: object
+      title: Page report Resource
+      description: An aggregated page report row grouping documentation pages by configurable dimensions with activity metrics.
+      properties:
+        count:
+          type: integer
+          title: Count
+          description: Number of pages in this report group.
+          example:
+            gt: 0
+        created_at:
+          type: string
+          title: Created At
+          format: date
+          description: Created at for this page report group.
+          example:
+            gt: '2026-01-01'
+        creator:
+          title: Creator
+          description: Creator for this page report group.
+          example:
+            eq: value
+        creator_id:
+          type: integer
+          title: Creator
+          description: Creator id for this page report group.
+          example:
+            - 123
+        currency:
+          title: Currency
+          description: Currency for this page report group.
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: Currency in the organization's default currency for this page report group.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: Currency in the normalized currency for this page report group.
+          example:
+            eq: value
+        custom_fields:
+          type: string
+          title: Custom Fields
+          description: Custom fields for this page report group.
+          example:
+            eq: value
+        edited_at:
+          type: string
+          title: Edited At
+          format: date
+          description: Edited at for this page report group.
+          example:
+            gt: '2026-01-01'
+        formula_fields:
+          title: Formula Fields
+          description: Formula fields for this page report group.
+          example:
+            eq: value
+        full_query:
+          type: string
+          title: Full Query
+          description: Full query for this page report group.
+          example:
+            eq: value
+        fuzzy_dates:
+          type: string
+          title: Fuzzy Dates
+          format: date
+          description: Fuzzy dates for this page report group.
+          example:
+            gt: '2026-01-01'
+        fuzzy_people:
+          type: integer
+          title: Fuzzy People
+          description: Fuzzy people for this page report group.
+          example:
+            eq: value
+        group:
+          type: string
+          title: Group
+          description: The grouping dimension for this page report row.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for this page report row.
+          example:
+            - 123
+        jump_query:
+          type: string
+          title: Jump Query
+          description: Jump query for this page report group.
+          example:
+            eq: value
+        last_activity_at:
+          type: string
+          title: Last Activity At
+          format: date
+          description: Timestamp of the most recent activity on this page.
+          example:
+            gt: '2026-01-01'
+        organization:
+          title: Organization
+          description: Organization for this page report group.
+          example:
+            eq: value
+        page:
+          title: Page
+          description: Page for this page report group.
+          example:
+            eq: value
+        page_id:
+          title: Page
+          description: Page id for this page report group.
+          example:
+            - 123
+        page_last_activity_at:
+          title: Page Last Activity At
+          description: Timestamp of the most recent activity on the page associated with this report row.
+          example:
+            gt: '2026-01-01'
+        parent_page_id:
+          type: integer
+          title: Parent Page
+          description: Parent page id for this page report group.
+          example:
+            - 123
+        person_type:
+          type: integer
+          title: Person Type
+          description: Person type for this page report group.
+          example:
+            eq: active
+        project:
+          title: Project
+          description: Project for this page report group.
+          example:
+            eq: value
+        project_id:
+          type: integer
+          title: Project
+          description: Project id for this page report group.
+          example:
+            - 123
+        project_status:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Project Status
+          description: Project status for this page report group.
+          example:
+            eq: active
+        query:
+          type: string
+          title: Query
+          description: Query for this page report group.
+          example:
+            eq: value
+        report:
+          title: Report
+          description: Report for this page report group.
+          example:
+            eq: value
+        root_page_id:
+          type: integer
+          title: Root Page
+          description: Root page id for this page report group.
+          example:
+            - 123
+        status:
+          type: integer
+          title: Status
+          description: Status for this page report group.
+          example:
+            eq: active
+        subscriber_id:
+          type: integer
+          title: Subscriber
+          description: Subscriber id for this page report group.
+          example:
+            - 123
+        template:
+          type: string
+          title: Template
+          description: Template for this page report group.
+          example:
+            eq: value
+        title:
+          type: string
+          title: Title
+          description: Title for this page report group.
+          example:
+            eq: value
+        updater:
+          title: Updater
+          description: Updater for this page report group.
+          example:
+            eq: value
+      example:
+        id: '123'
+        type: page_reports
+        attributes:
+          views: 150
+          page_id: 78
+          date: '2026-01-15'
+        relationships: {}
   parameters:
+    group_page_report:
+      in: query
+      name: group
+      style: form
+      schema:
+        enum:
+          - creator
+          - custom_fields
+          - organization
+          - page
+          - project
+          - updater
+        type: string
+        title: Group page report
+      explode: false
+      required: false
+      description: Group page report
     sort_page_report:
       in: query
       name: sort
@@ -190,13 +1059,6 @@ components:
       explode: false
       required: false
       description: Sort page report
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
     filter_page_report:
       in: query
       name: filter
@@ -206,387 +1068,3 @@ components:
         description: Filter keys and their operators are listed under x-filters.page_report at the top of this file.
       required: false
       description: Filters
-    group_page_report:
-      in: query
-      name: group
-      style: form
-      schema:
-        enum:
-          - creator
-          - custom_fields
-          - organization
-          - page
-          - project
-          - updater
-        type: string
-        title: Group page report
-      explode: false
-      required: false
-      description: Group page report
-  schemas:
-    resource_page_report:
-      type: object
-      title: Page report Resource
-      properties:
-        currency_normalized:
-          title: Currency Normalized
-          description: Currency in the normalized currency for this page report group.
-          example:
-            eq: value
-        project:
-          title: Project
-          description: Project for this page report group.
-          example:
-            eq: value
-        project_id:
-          type: integer
-          title: Project
-          description: Project id for this page report group.
-          example:
-            - 123
-        parent_page_id:
-          type: integer
-          title: Parent Page
-          description: Parent page id for this page report group.
-          example:
-            - 123
-        subscriber_id:
-          type: integer
-          title: Subscriber
-          description: Subscriber id for this page report group.
-          example:
-            - 123
-        project_status:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Project Status
-          description: Project status for this page report group.
-          example:
-            eq: active
-        title:
-          type: string
-          title: Title
-          description: Title for this page report group.
-          example:
-            eq: value
-        template:
-          type: string
-          title: Template
-          description: Template for this page report group.
-          example:
-            eq: value
-        status:
-          type: integer
-          title: Status
-          description: Status for this page report group.
-          example:
-            eq: active
-        jump_query:
-          type: string
-          title: Jump Query
-          description: Jump query for this page report group.
-          example:
-            eq: value
-        creator:
-          title: Creator
-          description: Creator for this page report group.
-          example:
-            eq: value
-        currency:
-          title: Currency
-          description: Currency for this page report group.
-          example:
-            eq: value
-        currency_default:
-          title: Currency Default
-          description: Currency in the organization's default currency for this page report group.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: Query for this page report group.
-          example:
-            eq: value
-        fuzzy_people:
-          type: integer
-          title: Fuzzy People
-          description: Fuzzy people for this page report group.
-          example:
-            eq: value
-        page_id:
-          title: Page
-          description: Page id for this page report group.
-          example:
-            - 123
-        count:
-          type: integer
-          title: Count
-          description: Number of pages in this report group.
-          example:
-            gt: 0
-        full_query:
-          type: string
-          title: Full Query
-          description: Full query for this page report group.
-          example:
-            eq: value
-        last_activity_at:
-          type: string
-          title: Last Activity At
-          format: date
-          description: Timestamp of the most recent activity on this page.
-          example:
-            gt: '2026-01-01'
-        updater:
-          title: Updater
-          description: Updater for this page report group.
-          example:
-            eq: value
-        page:
-          title: Page
-          description: Page for this page report group.
-          example:
-            eq: value
-        custom_fields:
-          type: string
-          title: Custom Fields
-          description: Custom fields for this page report group.
-          example:
-            eq: value
-        formula_fields:
-          title: Formula Fields
-          description: Formula fields for this page report group.
-          example:
-            eq: value
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier for this page report row.
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: Organization for this page report group.
-          example:
-            eq: value
-        creator_id:
-          type: integer
-          title: Creator
-          description: Creator id for this page report group.
-          example:
-            - 123
-        page_last_activity_at:
-          title: Page Last Activity At
-          description: Timestamp of the most recent activity on the page associated with this report row.
-          example:
-            gt: '2026-01-01'
-        report:
-          title: Report
-          description: Report for this page report group.
-          example:
-            eq: value
-        root_page_id:
-          type: integer
-          title: Root Page
-          description: Root page id for this page report group.
-          example:
-            - 123
-        person_type:
-          type: integer
-          title: Person Type
-          description: Person type for this page report group.
-          example:
-            eq: active
-        created_at:
-          type: string
-          title: Created At
-          format: date
-          description: Created at for this page report group.
-          example:
-            gt: '2026-01-01'
-        edited_at:
-          type: string
-          title: Edited At
-          format: date
-          description: Edited at for this page report group.
-          example:
-            gt: '2026-01-01'
-        group:
-          type: string
-          title: Group
-          description: The grouping dimension for this page report row.
-          example:
-            eq: value
-        fuzzy_dates:
-          type: string
-          title: Fuzzy Dates
-          format: date
-          description: Fuzzy dates for this page report group.
-          example:
-            gt: '2026-01-01'
-      description: An aggregated page report row grouping documentation pages by configurable dimensions with activity metrics.
-      example:
-        id: '123'
-        type: page_reports
-        attributes:
-          views: 150
-          page_id: 78
-          date: '2026-01-15'
-        relationships: {}
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    collection_page_report:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        count:
-                          $ref: '#/components/schemas/resource_page_report/properties/count'
-                        group:
-                          $ref: '#/components/schemas/resource_page_report/properties/group'
-                        title:
-                          $ref: '#/components/schemas/resource_page_report/properties/title'
-                        currency:
-                          $ref: '#/components/schemas/resource_page_report/properties/currency'
-                        edited_at:
-                          $ref: '#/components/schemas/resource_page_report/properties/edited_at'
-                        created_at:
-                          $ref: '#/components/schemas/resource_page_report/properties/created_at'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_page_report/properties/custom_fields'
-                        formula_fields:
-                          $ref: '#/components/schemas/resource_page_report/properties/formula_fields'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_page_report/properties/currency_default'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_page_report/properties/last_activity_at'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_page_report/properties/currency_normalized'
-                    relationships:
-                      type: object
-                      properties:
-                        page:
-                          $ref: '#/components/schemas/_single_relationship'
-                        report:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        updater:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection page report

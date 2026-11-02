@@ -8,22 +8,8 @@ description: |-
   Track proposal status, send for signing, and record approvals through these endpoints.
 x-filters:
   proposal:
-    status_changed_at:
-      description: Filters proposals by the date their status last changed.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    budget_total:
-      description: Filters proposals by their total budget amount.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    creator_id:
-      description: Filters proposals by the ID of the person who created them.
+    deal_id:
+      description: Filter by the associated deal.
       operators:
         - contains
         - eq
@@ -43,6 +29,41 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    budget_total:
+      description: Filters proposals by their total budget amount.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    company_id:
+      description: Filters proposals by the ID of their associated company (client).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filters proposals by their creation date.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    creator_id:
+      description: Filters proposals by the ID of the person who created them.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    link_status:
+      description: Filters proposals by their public link sharing status.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     responsible_id:
       description: Filters proposals by the ID of their responsible person.
       operators:
@@ -57,6 +78,13 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    status_changed_at:
+      description: Filters proposals by the date their status last changed.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     updated_at:
       description: Filters proposals by their last update date.
       operators:
@@ -64,29 +92,27 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    company_id:
-      description: Filters proposals by the ID of their associated company (client).
+  proposal_service:
+    id:
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    link_status:
-      description: Filters proposals by their public link sharing status.
+    proposal_id:
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    created_at:
-      description: Filters proposals by their creation date.
+  proposal_session:
+    id:
       operators:
         - contains
         - eq
         - not_contain
         - not_eq
-    deal_id:
-      description: Filter by the associated deal.
+    proposal_id:
       operators:
         - contains
         - eq
@@ -98,34 +124,60 @@ paths:
       tags:
         - Proposals
       summary: Get proposals
+      operationId: proposals-index
+      description: List all proposals.
+      parameters:
+        - $ref: '#/components/parameters/filter_proposal'
+        - $ref: '#/components/parameters/sort_proposal'
       responses:
         '200':
           $ref: '#/components/responses/collection_proposal'
-      parameters:
-        - $ref: '#/components/parameters/sort_proposal'
-        - $ref: '#/components/parameters/filter_proposal'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: proposals-index
-      description: List all proposals.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     post:
       tags:
         - Proposals
       summary: Create a proposal
+      operationId: proposals-create
+      description: Create a new proposal.
       responses:
         '201':
           $ref: '#/components/responses/single_proposal'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: proposals-create
-      description: Create a new proposal.
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/proposals/{id}:
     get:
       tags:
         - Proposals
       summary: Gets a proposal
-      responses:
-        '200':
-          $ref: '#/components/responses/single_proposal'
+      operationId: proposals-show
+      description: Retrieve a single proposal by ID.
       parameters:
         - in: path
           name: id
@@ -133,16 +185,29 @@ paths:
             type: string
           required: true
           description: The ID of the proposal to retrieve.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: proposals-show
-      description: Retrieve a single proposal by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_proposal'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     patch:
       tags:
         - Proposals
       summary: Update a proposal
-      responses:
-        '200':
-          $ref: '#/components/responses/single_proposal'
+      operationId: proposals-update
+      description: Update a proposal.
       parameters:
         - in: path
           name: id
@@ -150,50 +215,212 @@ paths:
             type: string
           required: true
           description: The ID of the proposal to update.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: proposals-update
-      description: Update a proposal.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_proposal'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     delete:
       tags:
         - Proposals
       summary: Deletes a proposal
-      responses:
-        '204':
-          description: No Content
+      operationId: proposals-destroy
+      description: Delete a proposal by ID.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the proposal to delete.
-      operationId: proposals-destroy
-      description: Delete a proposal by ID.
-  /api/v2/proposals/{id}/signed_pdf:
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/proposal_services:
     get:
       tags:
         - Proposals
-      summary: Get a download URL for the signed proposal PDF
+      summary: Get proposal services
+      operationId: proposal_services-index
+      parameters:
+        - $ref: '#/components/parameters/filter_proposal_service'
+        - $ref: '#/components/parameters/sort_proposal_service'
       responses:
         '200':
-          $ref: '#/components/responses/proposal_signed_pdf'
+          $ref: '#/components/responses/collection_proposal_service'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/proposal_sessions:
+    get:
+      tags:
+        - Proposals
+      summary: Get proposal sessions
+      operationId: proposal_sessions-index
+      parameters:
+        - $ref: '#/components/parameters/filter_proposal_session'
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_proposal_session'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/proposals/{id}/publish:
+    patch:
+      tags:
+        - Proposals
+      summary: Publish a proposal through its public link
+      operationId: proposals-publish-publish
       parameters:
         - in: path
           name: id
           schema:
             type: string
           required: true
-        - $ref: '#/components/parameters/header_organization'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_proposal'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/proposals/{id}/send:
+    patch:
+      tags:
+        - Proposals
+      summary: Send a proposal by email
+      operationId: proposals-send-send
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/single_proposal'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/proposals/{id}/signed_pdf:
+    get:
+      tags:
+        - Proposals
+      summary: Get a download URL for the signed proposal PDF
       operationId: proposals-signed_pdf-signed_pdf
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/proposal_signed_pdf'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/proposals/{id}/sync_status:
     get:
       tags:
         - Proposals
       summary: Get proposal's sync status
-      responses:
-        '200':
-          $ref: '#/components/responses/single_proposal'
+      operationId: proposals-sync_status-sync_status
+      description: Retrieve the sync status of a proposal.
       parameters:
         - in: path
           name: id
@@ -201,125 +428,1775 @@ paths:
             type: string
           required: true
           description: The ID of the proposal to check sync status for.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: proposals-sync_status-sync_status
-      description: Retrieve the sync status of a proposal.
+      responses:
+        '200':
+          $ref: '#/components/responses/proposal_sync_status'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/proposals/{id}/sync:
     patch:
       tags:
         - Proposals
       summary: Sync a proposal
-      responses:
-        '200':
-          $ref: '#/components/responses/single_proposal'
-        '409':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Conflict
+      operationId: proposals-sync-sync
+      description: Sync a proposal with the associated deal.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the proposal to sync.
-      operationId: proposals-sync-sync
-      description: Sync a proposal with the associated deal.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_proposal'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/public/proposals/{uuid}/accept:
     patch:
       tags:
         - Proposals
       summary: Accept a public proposal
-      responses:
-        '200':
-          $ref: '#/components/responses/single_public_proposal'
-        '404':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Not Found
-        '409':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Conflict
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-        '429':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Too Many Requests
+      security:
+        - header_token: []
+      operationId: public-proposals-accept
       parameters:
         - in: path
           name: uuid
           schema:
             type: string
           required: true
-      operationId: public-proposals-accept
       requestBody:
         $ref: '#/components/requestBodies/public_proposal_accept'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_public_proposal'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/public/proposals/{uuid}/confirm_identity:
+    patch:
+      tags:
+        - Proposals
+      summary: Confirm identity for a public proposal
+      security:
+        - header_token: []
+      operationId: public-proposals-confirm_identity
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: string
+          required: true
+      requestBody:
+        $ref: '#/components/requestBodies/proposal_identity_confirmation'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_public_proposal'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '410':
+          content:
+            application/vnd.api+json: {}
+          headers:
+            Content-Type:
+              schema:
+                type: string
+          description: Gone
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/public/proposals/{uuid}/decline:
+    patch:
+      tags:
+        - Proposals
+      summary: Decline a public proposal
+      security: []
+      operationId: public-proposals-decline
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: string
+          required: true
+        - in: header
+          name: X-Proposal-Token
+          schema:
+            type: string
+          required: false
+          description: Access token from unlock, required when the proposal link is password-protected
+      requestBody:
+        content:
+          application/vnd.api+json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        decline_reason:
+                          $ref: '#/components/schemas/resource_proposal/properties/decline_reason'
+                        responder_email:
+                          $ref: '#/components/schemas/resource_proposal/properties/responder_email'
+                        responder_name:
+                          $ref: '#/components/schemas/resource_proposal/properties/responder_name'
+                    type:
+                      enum:
+                        - proposals
+                      type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/single_public_proposal'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/public/proposals/{uuid}/file_authorize:
+    get:
+      tags:
+        - Proposals
+      summary: Authorize access to a public proposal file
+      security: []
+      operationId: public-proposals-file_authorize
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: The proposal's files may be read
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/public/proposals/{uuid}/file_presign:
+    post:
+      tags:
+        - Proposals
+      summary: Pre-sign a signature image upload for a public proposal
+      security: []
+      operationId: public-proposals-file_presign
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: string
+          required: true
+        - in: header
+          name: X-Proposal-Token
+          schema:
+            type: string
+          required: false
+          description: Access token from unlock, required when the proposal link is password-protected
+      requestBody:
+        content:
+          application/vnd.api+json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        file_name:
+                          type: string
+                          description: Signature image file name; .jpg, .jpeg or .png
+                    type:
+                      enum:
+                        - proposals
+                      type: string
+      responses:
+        '201':
+          $ref: '#/components/responses/public_proposal_file_presign'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_proposal'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/public/proposals/{uuid}:
+    get:
+      tags:
+        - Proposals
+      summary: Show a public proposal
+      security: []
+      operationId: public-proposals-show
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: string
+          required: true
+        - in: header
+          name: X-Proposal-Token
+          schema:
+            type: string
+          required: false
+          description: Access token from unlock, required when the proposal link is password-protected
+      responses:
+        '200':
+          $ref: '#/components/responses/single_public_proposal'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/public/proposals/{uuid}/unlock:
+    post:
+      tags:
+        - Proposals
+      summary: Unlock a password-protected public proposal
+      security: []
+      operationId: public-proposals-unlock
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/vnd.api+json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        password:
+                          type: string
+                    type:
+                      enum:
+                        - proposals
+                      type: string
+      responses:
+        '201':
+          $ref: '#/components/responses/public_proposal_unlock'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
-  requestBodies:
-    public_proposal_accept:
+  responses:
+    internal_server_error:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
             required:
-              - data
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    unprocessable_content:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unprocessable_content'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    public_proposal_unlock:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
             properties:
               data:
                 type: object
-                required:
-                  - type
-                  - attributes
                 properties:
-                  type:
-                    enum:
-                      - proposals
+                  token:
                     type: string
+                required:
+                  - token
+              links:
+                type: object
+              meta:
+                type: object
+      description: Short-lived access token for a password-protected proposal link
+    single_public_proposal:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
                   attributes:
                     type: object
-                    required:
-                      - responder_name
-                      - responder_email
                     properties:
-                      responder_name:
-                        $ref: '#/components/schemas/resource_proposal/properties/responder_name'
-                      signature_type:
-                        $ref: '#/components/schemas/resource_proposal/properties/signature_type'
+                      decline_reason:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/decline_reason'
+                          - type: 'null'
+                      disclaimer:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/disclaimer'
+                          - type: 'null'
+                      disclaimer_enabled:
+                        $ref: '#/components/schemas/resource_proposal/properties/disclaimer_enabled'
+                      identity_confirmation_enabled:
+                        $ref: '#/components/schemas/resource_proposal/properties/identity_confirmation_enabled'
+                      identity_confirmed_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/identity_confirmed_at'
+                          - type: 'null'
+                      name:
+                        $ref: '#/components/schemas/resource_proposal/properties/name'
+                      pdf_url:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/pdf_url'
+                          - type: 'null'
+                      proposal_pdf_preview_on_mobile:
+                        $ref: '#/components/schemas/resource_proposal/properties/proposal_pdf_preview_on_mobile'
+                      responded_via_public_link:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/responded_via_public_link'
+                          - type: 'null'
                       responder_email:
-                        $ref: '#/components/schemas/resource_proposal/properties/responder_email'
-                      disclaimer_accepted:
-                        $ref: '#/components/schemas/resource_proposal/properties/disclaimer_accepted'
-                      signature_image_url:
-                        $ref: '#/components/schemas/resource_proposal/properties/signature_image_url'
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/responder_email'
+                          - type: 'null'
+                      responder_name:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/responder_name'
+                          - type: 'null'
+                      signed:
+                        $ref: '#/components/schemas/resource_proposal/properties/signed'
+                      status:
+                        $ref: '#/components/schemas/resource_proposal/properties/status'
+                      status_changed_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/status_changed_at'
+                          - type: 'null'
+              included:
+                type: array
+                items: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+      description: Single public proposal
+    unprocessable_content_proposal:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_proposal'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    public_proposal_file_presign:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                description: Upload form fields (policy, signature, key, ...)
+                additionalProperties:
+                  type: string
+              links:
+                type: object
+              meta:
+                type: object
+                properties:
+                  page_size:
+                    type: integer
+      description: Pre-signed S3 upload form fields for the signature image
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    conflict:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_conflict'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Conflict
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    single_proposal:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single proposal record in JSON:API format.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object for the returned proposal resource.
+                properties:
+                  attributes:
+                    type: object
+                    description: Proposal attributes.
+                    properties:
+                      budget_total:
+                        $ref: '#/components/schemas/resource_proposal/properties/budget_total'
+                      budget_total_default:
+                        $ref: '#/components/schemas/resource_proposal/properties/budget_total_default'
+                      budget_total_normalized:
+                        $ref: '#/components/schemas/resource_proposal/properties/budget_total_normalized'
+                      created_at:
+                        $ref: '#/components/schemas/resource_proposal/properties/created_at'
+                      currency:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/currency'
+                          - type: 'null'
+                        description: The currency code of the proposal amounts.
+                      currency_default:
+                        $ref: '#/components/schemas/resource_proposal/properties/currency_default'
+                      currency_normalized:
+                        $ref: '#/components/schemas/resource_proposal/properties/currency_normalized'
+                      custom_fields:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/custom_fields'
+                          - type: 'null'
+                        description: Custom field values associated with this proposal.
+                      date:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/date'
+                          - type: 'null'
+                        description: The date the proposal was issued.
+                      disclaimer:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/disclaimer'
+                          - type: 'null'
+                        description: The legal disclaimer text shown on the proposal.
+                      disclaimer_enabled:
+                        $ref: '#/components/schemas/resource_proposal/properties/disclaimer_enabled'
+                      end_date:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/end_date'
+                          - type: 'null'
+                        description: The end date of the proposed engagement.
+                      exchange_date:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/exchange_date'
+                          - type: 'null'
+                        description: The date used for the currency exchange rate.
+                      exchange_rate:
+                        type: string
+                        description: The exchange rate applied to convert amounts to the default currency.
+                      footer:
+                        $ref: '#/components/schemas/resource_proposal/properties/footer'
+                      footer_interpolated:
+                        $ref: '#/components/schemas/resource_proposal/properties/footer_interpolated'
+                      link_status:
+                        $ref: '#/components/schemas/resource_proposal/properties/link_status'
+                      name:
+                        $ref: '#/components/schemas/resource_proposal/properties/name'
+                      note:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/note'
+                          - type: 'null'
+                        description: An internal note on the proposal.
+                      note_interpolated:
+                        $ref: '#/components/schemas/resource_proposal/properties/note_interpolated'
+                      public_uuid:
+                        $ref: '#/components/schemas/resource_proposal/properties/public_uuid'
+                      purchase_order_number:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/purchase_order_number'
+                          - type: 'null'
+                        description: The client's purchase order number associated with this proposal.
+                      responder_email:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/responder_email'
+                          - type: 'null'
+                        description: The email address of the person who responded to the proposal.
+                      responder_name:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/responder_name'
+                          - type: 'null'
+                        description: The name of the person who responded to the proposal.
+                      sent_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/sent_at'
+                          - type: 'null'
+                        description: The timestamp when the proposal was sent to the client.
+                      signed:
+                        $ref: '#/components/schemas/resource_proposal/properties/signed'
+                      status:
+                        $ref: '#/components/schemas/resource_proposal/properties/status'
+                      status_changed_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/status_changed_at'
+                          - type: 'null'
+                        description: The timestamp when the proposal status last changed.
+                      identity_confirmation_enabled:
+                        $ref: '#/components/schemas/resource_proposal/properties/identity_confirmation_enabled'
+                      identity_confirmed_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/identity_confirmed_at'
+                          - type: 'null'
+                      pdf_url:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/pdf_url'
+                          - type: 'null'
+                      signed_pdf_url:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/signed_pdf_url'
+                          - type: 'null'
+                      number:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_proposal/properties/number'
+                          - type: 'null'
+                      source:
+                        $ref: '#/components/schemas/resource_proposal/properties/source'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Proposal relationships.
+                    properties:
+                      client:
+                        $ref: '#/components/schemas/_single_relationship'
+                      contact:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal_creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      document_type:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      proposal_from:
+                        $ref: '#/components/schemas/_single_relationship'
+                      proposal_to:
+                        $ref: '#/components/schemas/_single_relationship'
+                      responsible:
+                        $ref: '#/components/schemas/_single_relationship'
+                      subsidiary:
+                        $ref: '#/components/schemas/_single_relationship'
+                      tax_rate:
+                        $ref: '#/components/schemas/_single_relationship'
+                      attachment:
+                        $ref: '#/components/schemas/_single_relationship'
+                      scenario:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '23'
+                type: proposals
+                attributes:
+                  name: Website Redesign Proposal
+                  status: sent
+                  created_at: '2026-02-15T10:00:00.000+00:00'
+                  sent_at: '2026-02-16T09:00:00.000+00:00'
+                  accepted_at: null
+                  declined_at: null
+                  currency: USD
+                  total: '45000.00'
+                relationships:
+                  deal:
+                    data:
+                      type: deals
+                      id: '89'
+              included: []
+      description: Single proposal
+    proposal_sync_status:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  in_sync:
+                    type: boolean
+      description: Whether the proposal is in sync with its source
+    proposal_signed_pdf:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  url:
+                    type: string
+                    format: uri
+      description: Proposal signed PDF download URL
+    collection_proposal_session:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        created_at:
+                          $ref: '#/components/schemas/resource_proposal_session/properties/created_at'
+                    id:
+                      type: string
+                    relationships:
+                      type: object
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        proposal:
+                          $ref: '#/components/schemas/_single_relationship'
+                    type:
+                      type: string
+              included:
+                type: array
+                items: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+      description: Collection proposal session
+    collection_proposal_service:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        billable_time:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/billable_time'
+                        billing_type_id:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/billing_type_id'
+                        budget_cap_enabled:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/budget_cap_enabled'
+                        budget_total:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/budget_total'
+                        budget_total_default:
+                          type: number
+                        budget_total_normalized:
+                          type: number
+                        budget_used:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/budget_used'
+                        budget_used_default:
+                          type: number
+                        budget_used_normalized:
+                          type: number
+                        created_at:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/created_at'
+                        currency:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/currency'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/currency_default'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/currency_normalized'
+                        description:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal_service/properties/description'
+                            - type: 'null'
+                        discount:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal_service/properties/discount'
+                            - type: 'null'
+                        discount_amount:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/discount_amount'
+                        discount_amount_default:
+                          type: number
+                        discount_amount_normalized:
+                          type: number
+                        discount_type:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/discount_type'
+                        initial_service_id:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/initial_service_id'
+                        markup:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal_service/properties/markup'
+                            - type: 'null'
+                        markup_amount:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/markup_amount'
+                        markup_amount_default:
+                          type: number
+                        markup_amount_normalized:
+                          type: number
+                        name:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/name'
+                        origin_service_id:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal_service/properties/origin_service_id'
+                            - type: 'null'
+                        position:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/position'
+                        price:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/price'
+                        price_default:
+                          type: number
+                        price_normalized:
+                          type: number
+                        quantity:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/quantity'
+                        revenue:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/revenue'
+                        revenue_default:
+                          type: number
+                        revenue_normalized:
+                          type: number
+                        unit_id:
+                          $ref: '#/components/schemas/resource_proposal_service/properties/unit_id'
+                    id:
+                      type: string
+                    relationships:
+                      type: object
+                      properties:
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        proposal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        proposal_section:
+                          $ref: '#/components/schemas/_single_relationship'
+                        service_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                    type:
+                      type: string
+              included:
+                type: array
+                items: {}
+              meta:
+                $ref: '#/components/schemas/_meta'
+      description: Collection proposal service
+    collection_proposal:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of proposal records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A proposal resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Proposal attributes.
+                      properties:
+                        budget_total:
+                          $ref: '#/components/schemas/resource_proposal/properties/budget_total'
+                        budget_total_default:
+                          $ref: '#/components/schemas/resource_proposal/properties/budget_total_default'
+                        budget_total_normalized:
+                          $ref: '#/components/schemas/resource_proposal/properties/budget_total_normalized'
+                        created_at:
+                          $ref: '#/components/schemas/resource_proposal/properties/created_at'
+                        currency:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/currency'
+                            - type: 'null'
+                          description: The currency code of this proposal.
+                        currency_default:
+                          $ref: '#/components/schemas/resource_proposal/properties/currency_default'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_proposal/properties/currency_normalized'
+                        custom_fields:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/custom_fields'
+                            - type: 'null'
+                          description: Custom field values for this proposal.
+                        date:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/date'
+                            - type: 'null'
+                          description: The date of the proposal.
+                        disclaimer:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/disclaimer'
+                            - type: 'null'
+                          description: Disclaimer text shown on the proposal.
+                        disclaimer_enabled:
+                          $ref: '#/components/schemas/resource_proposal/properties/disclaimer_enabled'
+                        end_date:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/end_date'
+                            - type: 'null'
+                          description: The proposal validity end date.
+                        exchange_date:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/exchange_date'
+                            - type: 'null'
+                          description: The date used for currency exchange rate calculations.
+                        exchange_rate:
+                          type: string
+                          description: The exchange rate applied for currency conversion.
+                        footer:
+                          $ref: '#/components/schemas/resource_proposal/properties/footer'
+                        footer_interpolated:
+                          $ref: '#/components/schemas/resource_proposal/properties/footer_interpolated'
+                        link_status:
+                          $ref: '#/components/schemas/resource_proposal/properties/link_status'
+                        name:
+                          $ref: '#/components/schemas/resource_proposal/properties/name'
+                        note:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/note'
+                            - type: 'null'
+                          description: Internal note about this proposal.
+                        note_interpolated:
+                          $ref: '#/components/schemas/resource_proposal/properties/note_interpolated'
+                        public_uuid:
+                          $ref: '#/components/schemas/resource_proposal/properties/public_uuid'
+                        purchase_order_number:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/purchase_order_number'
+                            - type: 'null'
+                          description: The purchase order number associated with this proposal.
+                        responder_email:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/responder_email'
+                            - type: 'null'
+                          description: Email address of the person who responded to the proposal.
+                        responder_name:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/responder_name'
+                            - type: 'null'
+                          description: Name of the person who responded to the proposal.
+                        sent_at:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/sent_at'
+                            - type: 'null'
+                          description: Timestamp when this proposal was sent to the client.
+                        signed:
+                          $ref: '#/components/schemas/resource_proposal/properties/signed'
+                        status:
+                          $ref: '#/components/schemas/resource_proposal/properties/status'
+                        status_changed_at:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/status_changed_at'
+                            - type: 'null'
+                          description: Timestamp when the proposal status last changed.
+                        identity_confirmation_enabled:
+                          $ref: '#/components/schemas/resource_proposal/properties/identity_confirmation_enabled'
+                        identity_confirmed_at:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/identity_confirmed_at'
+                            - type: 'null'
+                        pdf_url:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/pdf_url'
+                            - type: 'null'
+                        signed_pdf_url:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/signed_pdf_url'
+                            - type: 'null'
+                        number:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_proposal/properties/number'
+                            - type: 'null'
+                        source:
+                          $ref: '#/components/schemas/resource_proposal/properties/source'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Proposal relationships.
+                      properties:
+                        client:
+                          $ref: '#/components/schemas/_single_relationship'
+                        contact:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal_creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        document_type:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        proposal_from:
+                          $ref: '#/components/schemas/_single_relationship'
+                        proposal_to:
+                          $ref: '#/components/schemas/_single_relationship'
+                        responsible:
+                          $ref: '#/components/schemas/_single_relationship'
+                        subsidiary:
+                          $ref: '#/components/schemas/_single_relationship'
+                        tax_rate:
+                          $ref: '#/components/schemas/_single_relationship'
+                        attachment:
+                          $ref: '#/components/schemas/_single_relationship'
+                        scenario:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of proposal resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '23'
+                  type: proposals
+                  attributes:
+                    name: Website Redesign Proposal
+                    status: sent
+                    created_at: '2026-02-15T10:00:00.000+00:00'
+                    sent_at: '2026-02-16T09:00:00.000+00:00'
+                    accepted_at: null
+                    declined_at: null
+                    currency: USD
+                    total: '45000.00'
+                  relationships:
+                    deal:
+                      data:
+                        type: deals
+                        id: '89'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection proposal
   schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_unprocessable_content:
+      enum:
+        - bad_decimal_format
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint without its own resource codes can return with a 422.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
     resource_proposal:
       type: object
       title: Proposal Resource
+      description: A document sent to a client summarizing proposed work, budget, and terms for a deal.
       properties:
+        budget_total:
+          title: Budget Total
+          description: The total budget amount of this proposal in the proposal's currency.
+          example:
+            gt: 0
+        budget_total_default:
+          title: Budget Total Default
+          description: The total budget amount of this proposal in the organization's default currency.
+          example:
+            gt: 0
+        budget_total_normalized:
+          title: Budget Total Normalized
+          description: The total budget amount of this proposal in the normalized (reporting) currency.
+          example:
+            gt: 0
+        client:
+          title: Client
+          description: The client company this proposal is addressed to.
+          example:
+            eq: value
+        contact:
+          title: Contact
+          description: The contact person this proposal is addressed to.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this proposal was created.
+          example:
+            gt: '2026-01-01'
+        creator:
+          title: Creator
+          description: The person who created this proposal.
+          example:
+            eq: value
+        currency:
+          type: string
+          title: Currency
+          description: The currency code used for amounts in this proposal.
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: The organization's default currency code.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: The normalized (reporting) currency code used across the organization.
+          example:
+            eq: value
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: Custom field values for this proposal.
+          example:
+            eq: value
+        date:
+          type: string
+          title: Date
+          format: date
+          description: Date when this proposal was issued.
+          example:
+            gt: '2026-01-01'
+        deal:
+          title: Deal
+          description: The deal (sales opportunity) this proposal belongs to.
+          example:
+            eq: value
+        deal_creator:
+          title: Deal Creator
+          description: The person who created the deal associated with this proposal.
+          example:
+            eq: value
+        deal_id:
+          type: integer
+          title: Deal
+          description: The ID of the deal this proposal belongs to.
+          example:
+            - 123
+        disclaimer:
+          type: string
+          title: Disclaimer
+          description: The optional disclaimer text appended to the proposal.
+          example:
+            eq: value
+        disclaimer_enabled:
+          type: boolean
+          title: Disclaimer Enabled
+          description: When true, the disclaimer text is shown on the proposal.
+          example:
+            eq: value
+        document_type:
+          title: Document Type
+          description: The document type template applied to this proposal for PDF generation.
+          example:
+            eq: active
         end_date:
           type: string
           title: End Date
@@ -327,16 +2204,35 @@ components:
           description: The end date of the proposal's validity or service period.
           example:
             gt: '2026-01-01'
-        proposal_version_two:
-          type: boolean
-          title: Proposal Version Two
-        signature_type:
-          enum:
-            - typed
-            - drawn
-            - uploaded
+        exchange_date:
           type: string
-          title: Signature Type
+          title: Exchange Date
+          format: date
+          description: The date used to determine the exchange rate applied to this proposal.
+          example:
+            gt: '2026-01-01'
+        exchange_rate:
+          type: number
+          title: Exchange Rate
+          description: The exchange rate used to convert proposal amounts to the billing currency.
+          example:
+            gt: 0
+        footer:
+          title: Footer
+          description: The footer text template for the proposal, may contain interpolation variables.
+          example:
+            eq: value
+        footer_interpolated:
+          title: Footer Interpolated
+          description: The footer text with all interpolation variables resolved.
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: Unique identifier for the proposal.
+          example:
+            - 123
         link_status:
           enum:
             - active
@@ -346,33 +2242,54 @@ components:
           description: The public sharing link status of the proposal (e.g. active, disabled).
           example:
             eq: active
-        disclaimer_enabled:
-          type: boolean
-          title: Disclaimer Enabled
-          description: When true, the disclaimer text is shown on the proposal.
+        name:
+          type: string
+          title: Name
+          description: The display name of the proposal.
           example:
             eq: value
-        responsible:
-          title: Responsible
-          description: The project manager responsible for this proposal.
+        note:
+          type: string
+          title: Note
+          description: The body text of the proposal note, may contain interpolation variables.
           example:
             eq: value
-        deal_creator:
-          title: Deal Creator
-          description: The person who created the deal associated with this proposal.
+        note_interpolated:
+          title: Note Interpolated
+          description: The proposal note with all interpolation variables resolved.
           example:
             eq: value
-        budget_total:
-          title: Budget Total
-          description: The total budget amount of this proposal in the proposal's currency.
+        organization:
+          title: Organization
+          description: The organization this proposal belongs to.
           example:
-            gt: 0
-        responsible_id:
-          type: integer
-          title: Responsible
-          description: ID of the person responsible for this proposal.
+            eq: value
+        project:
+          title: Project
+          description: The project associated with this proposal.
           example:
-            - 123
+            eq: value
+        proposal_from:
+          title: Proposal From
+          description: The sender details (subsidiary contact) shown on the proposal.
+          example:
+            eq: value
+        proposal_to:
+          title: Proposal To
+          description: The recipient details (client contact) shown on the proposal.
+          example:
+            eq: value
+        public_uuid:
+          type: string
+          title: Public Uuid
+          description: The unique public UUID used to generate the proposal's public sharing link.
+          example:
+            eq: value
+        purchase_order_number:
+          type: string
+          title: Purchase Order Number
+          description: The client's purchase order number associated with this proposal.
+          example: PO-2024-017
         responder_email:
           type: string
           title: Responder Email
@@ -380,51 +2297,30 @@ components:
           description: The email address of the person who responded to (signed) the proposal.
           example:
             eq: value
-        company_id:
-          type: integer
-          title: Company
-          description: ID of the client company associated with this proposal.
-          example:
-            - 123
-        id:
-          type: integer
-          title: Id
-          description: Unique identifier for the proposal.
-          example:
-            - 123
-        disclaimer:
+        responder_name:
           type: string
-          title: Disclaimer
-          description: The optional disclaimer text appended to the proposal.
-          example:
-            eq: value
-        signature_image_url:
-          type: string
-          title: Signature Image Url
-        pdf_url:
-          type: string
-          title: Pdf Url
-          description: The URL of the generated PDF for this proposal.
-        name:
-          type: string
-          title: Name
-          description: The display name of the proposal.
-          example:
-            eq: value
-        responded_via_public_link:
-          type: boolean
-          title: Responded Via Public Link
+          title: Responder Name
           nullable: true
-        client:
-          title: Client
-          description: The client company this proposal is addressed to.
+          description: The name of the person who responded to (signed) the proposal.
           example:
             eq: value
-        tax_rate:
-          title: Tax Rate
-          description: The tax rate applied to proposal line items.
+        responsible:
+          title: Responsible
+          description: The project manager responsible for this proposal.
           example:
-            gt: 0
+            eq: value
+        sent_at:
+          type: string
+          title: Sent At
+          format: date-time
+          description: Timestamp when the proposal was sent to the client.
+          example:
+            gt: '2026-01-01'
+        signed:
+          title: Signed
+          description: When true, the proposal has been signed by the client.
+          example:
+            eq: value
         status:
           enum:
             - draft
@@ -436,17 +2332,6 @@ components:
           description: The current status of the proposal (e.g. draft, sent, approved, rejected).
           example:
             eq: active
-        organization:
-          title: Organization
-          description: The organization this proposal belongs to.
-          example:
-            eq: value
-        creator_id:
-          type: integer
-          title: Creator
-          description: ID of the person who created this proposal.
-          example:
-            - 123
         status_changed_at:
           type: string
           title: Status Changed At
@@ -454,83 +2339,42 @@ components:
           description: Timestamp when the proposal status last changed.
           example:
             gt: '2026-01-01'
-        number:
+        subsidiary:
+          title: Subsidiary
+          description: The subsidiary (legal entity) issuing this proposal.
+          example:
+            eq: value
+        tax_rate:
+          title: Tax Rate
+          description: The tax rate applied to proposal line items.
+          example:
+            gt: 0
+        decline_reason:
           type: string
-          title: Number
+          title: Decline Reason
           nullable: true
-        currency_normalized:
-          title: Currency Normalized
-          description: The normalized (reporting) currency code used across the organization.
-          example:
-            eq: value
-        responder_name:
-          type: string
-          title: Responder Name
-          nullable: true
-          description: The name of the person who responded to (signed) the proposal.
-          example:
-            eq: value
-        note:
-          type: string
-          title: Note
-          description: The body text of the proposal note, may contain interpolation variables.
-          example:
-            eq: value
-        contact:
-          title: Contact
-          description: The contact person this proposal is addressed to.
-          example:
-            eq: value
-        signed_pdf_url:
-          type: string
-          title: Signed Pdf Url
-          description: URL of the audit trail PDF for this proposal, capturing signature and viewing history.
-        disclaimer_accepted:
+        responded_via_public_link:
           type: boolean
-          title: Disclaimer Accepted
-        creator:
+          title: Responded Via Public Link
+          nullable: true
+        company_id:
+          type: integer
+          title: Company
+          description: ID of the client company associated with this proposal.
+          example:
+            - 123
+        creator_id:
+          type: integer
           title: Creator
-          description: The person who created this proposal.
+          description: ID of the person who created this proposal.
           example:
-            eq: value
-        proposal_pdf_preview_on_mobile:
-          type: boolean
-          title: Proposal Pdf Preview On Mobile
-        date:
-          type: string
-          title: Date
-          format: date
-          description: Date when this proposal was issued.
+            - 123
+        responsible_id:
+          type: integer
+          title: Responsible
+          description: ID of the person responsible for this proposal.
           example:
-            gt: '2026-01-01'
-        exchange_rate:
-          type: number
-          title: Exchange Rate
-          description: The exchange rate used to convert proposal amounts to the billing currency.
-          example:
-            gt: 0
-        budget_total_default:
-          title: Budget Total Default
-          description: The total budget amount of this proposal in the organization's default currency.
-          example:
-            gt: 0
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this proposal was created.
-          example:
-            gt: '2026-01-01'
-        footer:
-          title: Footer
-          description: The footer text template for the proposal, may contain interpolation variables.
-          example:
-            eq: value
-        deal:
-          title: Deal
-          description: The deal (sales opportunity) this proposal belongs to.
-          example:
-            eq: value
+            - 123
         updated_at:
           type: string
           title: Updated At
@@ -538,104 +2382,58 @@ components:
           description: Timestamp of the last update to this proposal.
           example:
             gt: '2026-01-01'
-        sent_at:
+        disclaimer_accepted:
+          type: boolean
+          title: Disclaimer Accepted
+        identity_confirmation_enabled:
+          type: boolean
+          title: Identity Confirmation Enabled
+        identity_confirmed_at:
           type: string
-          title: Sent At
+          title: Identity Confirmed At
           format: date-time
-          description: Timestamp when the proposal was sent to the client.
-          example:
-            gt: '2026-01-01'
-        currency_default:
-          title: Currency Default
-          description: The organization's default currency code.
-          example:
-            eq: value
-        public_uuid:
-          type: string
-          title: Public Uuid
-          description: The unique public UUID used to generate the proposal's public sharing link.
-          example:
-            eq: value
-        decline_reason:
-          type: string
-          title: Decline Reason
           nullable: true
-        footer_interpolated:
-          title: Footer Interpolated
-          description: The footer text with all interpolation variables resolved.
-          example:
-            eq: value
-        currency:
+        proposal_pdf_preview_on_mobile:
+          type: boolean
+          title: Proposal Pdf Preview On Mobile
+        signature_image_url:
           type: string
-          title: Currency
-          description: The currency code used for amounts in this proposal.
-          example:
-            eq: value
-        subsidiary:
-          title: Subsidiary
-          description: The subsidiary (legal entity) issuing this proposal.
-          example:
-            eq: value
-        exchange_date:
+          title: Signature Image Url
+        signature_type:
+          enum:
+            - typed
+            - drawn
+            - uploaded
           type: string
-          title: Exchange Date
-          format: date
-          description: The date used to determine the exchange rate applied to this proposal.
-          example:
-            gt: '2026-01-01'
-        custom_fields:
-          type: object
-          title: Custom Fields
-          description: Custom field values for this proposal.
-          example:
-            eq: value
-        budget_total_normalized:
-          title: Budget Total Normalized
-          description: The total budget amount of this proposal in the normalized (reporting) currency.
-          example:
-            gt: 0
-        deal_id:
-          type: integer
-          title: Deal
-          description: The ID of the deal this proposal belongs to.
-          example:
-            - 123
-        project:
-          title: Project
-          description: The project associated with this proposal.
-          example:
-            eq: value
-        note_interpolated:
-          title: Note Interpolated
-          description: The proposal note with all interpolation variables resolved.
-          example:
-            eq: value
-        document_type:
-          title: Document Type
-          description: The document type template applied to this proposal for PDF generation.
-          example:
-            eq: active
-        purchase_order_number:
+          title: Signature Type
+        pdf_url:
           type: string
-          title: Purchase Order Number
-          description: The client's purchase order number associated with this proposal.
-          example: PO-2024-017
-        signed:
-          title: Signed
-          description: When true, the proposal has been signed by the client.
+          title: Pdf Url
+          description: The URL of the generated PDF for this proposal.
+        signed_pdf_url:
+          type: string
+          title: Signed Pdf Url
+          description: URL of the audit trail PDF for this proposal, capturing signature and viewing history.
+        number:
+          type: string
+          title: Number
+          nullable: true
+        attachment:
+          title: Attachment
+        scenario:
+          title: Scenario
+          description: The scenario this proposal was created from; set when the proposal's `source` is a scenario.
           example:
-            eq: value
-        proposal_to:
-          title: Proposal To
-          description: The recipient details (client contact) shown on the proposal.
-          example:
-            eq: value
-        proposal_from:
-          title: Proposal From
-          description: The sender details (subsidiary contact) shown on the proposal.
-          example:
-            eq: value
-      description: A document sent to a client summarizing proposed work, budget, and terms for a deal.
+            data:
+              type: scenarios
+              id: '42'
+        source:
+          enum:
+            - deal
+            - scenario
+            - upload
+          type: string
+          title: Source
       example:
         id: '23'
         type: proposals
@@ -653,88 +2451,323 @@ components:
             data:
               type: deals
               id: '89'
-    _meta:
+    error_code_proposal:
+      enum:
+        - attachment_and_scenario_mutually_exclusive
+        - attachment_not_allowed_for_source
+        - bad_decimal_format
+        - from_email_unsupported
+        - invalid_attribute
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+        - outlook_send_scope_missing
+        - proposal_disclaimer_required
+        - proposal_not_in_draft_status
+        - proposal_sync_not_supported_for_source
+        - recipient_emails_not_array
+        - recipient_validation_failed
+        - scenario_deal_mismatch
+        - upload_sourced_requires_attachment
+      type: string
+      title: Error Code
+      description: Every error `code` the proposals endpoints can return.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_conflict:
+      enum:
+        - absence_in_past
+        - agent_manager_membership_not_deletable
+        - agent_manager_membership_not_editable
+        - agent_not_found_for_role
+        - agent_role_can_not_be_deleted
+        - agent_role_can_not_transfer_people
+        - allow_absence_disabled
+        - already_activated
+        - already_active
+        - already_archived
+        - already_closed
+        - already_deactivated
+        - already_joined
+        - already_opened
+        - approval_addon_disabled
+        - approved_time_entry_not_editable
+        - automation_agent_deactivated
+        - autotracked_time_entry
+        - bank_account_already_archived
+        - bank_account_archived
+        - bank_account_not_archived
+        - bank_account_used_as_default
+        - budget_already_exported
+        - budget_closed
+        - budget_delivered
+        - budget_is_template
+        - budget_missing_project
+        - budget_not_client_budget
+        - budget_not_exported
+        - budget_project_archived
+        - can_not_approve_unsubmitted_record
+        - can_not_destroy_submitted_record
+        - can_not_start_timer_for_approved_record
+        - can_not_start_timer_on_submitted_record
+        - cancel_error
+        - cannot_apply_template_on_template_doc
+        - cannot_approve_draft_record
+        - cannot_archive_company
+        - cannot_export_company
+        - cannot_publish_doc_on_template
+        - cannot_reject_autotracked_record
+        - cannot_reject_draft_record
+        - cannot_restore_company
+        - cannot_unapprove_draft_record
+        - cannot_unpublish_doc_on_template
+        - cannot_unreject_draft_record
+        - closed_budget
+        - comment_already_pinned
+        - comment_not_pinnable
+        - comment_not_pinned
+        - company_already_exported
+        - company_export_unavailable
+        - company_not_exported
+        - contract_not_destroyable
+        - create_setup_intent_error
+        - custom_field_used_as_approver
+        - datev_csv_export_feature_unavailable
+        - deactivated
+        - deal_closed
+        - deal_cost_rate_not_editable
+        - deal_owner_not_deletable
+        - deal_status_amount_reached
+        - deal_status_in_use
+        - deal_status_last_stage_not_allowed
+        - deal_status_mapped_to_hubspot_integration
+        - declined
+        - deleted_item_already_restored
+        - engagements_on_holiday_calendar
+        - erase_blocked
+        - event_archived
+        - event_automation_cant_be_manually_run
+        - expense_not_exported
+        - expense_not_linked
+        - expense_sync_feature_unavailable
+        - expenses_not_approved
+        - export_not_pending
+        - export_status_check_cooldown
+        - financial_month_locked
+        - financial_month_locked_expense
+        - financial_month_locked_service
+        - financial_month_locked_time_entry
+        - folder_archived
+        - has_credit_note
+        - import_already_running
+        - insufficient_plan
+        - insufficient_seats
+        - invalid_action
+        - last_full_access_membership
+        - last_subsidiary
+        - move_to_person
+        - must_have_at_least_one_status_in_closed_category
+        - name_not_unique
+        - next_occurrence_on_blank
+        - no_time_approval_on_budget
+        - not_archived
+        - not_in_draft_status
+        - organization_not_verified
+        - organization_owner
+        - people_on_subsidiary
+        - person_erased
+        - person_has_offboarding_in_progress
+        - person_is_archived
+        - person_is_placeholder
+        - person_is_sample
+        - person_is_user
+        - person_not_joined
+        - person_not_user
+        - person_owner
+        - person_virtual
+        - pinned_comment_not_destroyable
+        - project_already_archived
+        - project_already_restored
+        - project_archived
+        - project_duplication_in_progress
+        - project_manager_membership_not_deletable
+        - project_manager_membership_not_editable
+        - project_not_client_project
+        - project_not_exported
+        - reactivate_error
+        - recap_not_available
+        - record_already_approved
+        - record_already_archived
+        - record_already_canceled
+        - record_already_dismissed
+        - record_already_doc
+        - record_already_open
+        - record_already_published
+        - record_already_read
+        - record_already_rejected
+        - record_already_resolved
+        - record_already_restored
+        - record_already_unapproved
+        - record_already_unrejected
+        - record_archived
+        - record_contains_custom_fields
+        - record_is_last_active_workflow
+        - record_is_last_pipeline
+        - record_must_be_submitted_to_be_rejected
+        - record_not_archived
+        - record_not_dismissed
+        - record_not_on_absence
+        - record_not_published
+        - record_not_read
+        - record_on_remote_work
+        - record_project_not_editable
+        - record_used_on_projects
+        - request_resolved
+        - responded
+        - retry_last_payment_error
+        - role_being_used
+        - role_not_editable_by_user
+        - role_not_for_agents
+        - seats_allocation_error
+        - self_deactivation
+        - service_type_already_archived
+        - service_type_archived
+        - service_type_not_archived
+        - signed
+        - slack_bot_integration_not_connected
+        - subsidiary_archived
+        - survey_field_option_already_archived
+        - survey_field_option_inaccessible
+        - system_segment_type
+        - task_is_template
+        - task_required_by_time_entries
+        - tax_rate_already_archived
+        - tax_rate_archived
+        - tax_rate_not_archived
+        - tax_rate_used_as_default
+        - template_budget_not_destroyable
+        - template_doc_not_destroyable
+        - template_doc_not_moveable
+        - template_project_not_destroyable
+        - time_entries_not_approved
+        - time_entry_invoiced
+        - timer_already_started
+        - timer_already_stopped
+        - timer_running
+        - timer_started_on_record
+        - too_many_creates_for_unverified_new_organization
+        - too_many_invites_for_unverified_new_organization
+        - two_factor_not_enabled
+        - update_error
+        - used_as_integration_default_workplace
+        - user_and_not_virtual
+        - webhook_already_activated
+        - webhook_already_deactivated
+        - webhook_is_not_activated
+      type: string
+      title: Error Code
+      description: Every error `code` the resource abilities and forms return with a 409.
+    resource_proposal_identity_confirmation:
       type: object
-      title: Meta
+      title: Proposal Identity Confirmation Resource
       properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
+        token:
+          type: string
+          title: Token
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
         - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -742,15 +2775,153 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
+          required:
+            - included
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
+      required:
+        - meta
       example:
         meta:
           included: false
-  responses:
-    single_public_proposal:
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    resource_proposal_session:
+      type: object
+      title: Proposal Session Resource
+      properties:
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+        id:
+          type: integer
+          title: Id
+        proposal_id:
+          type: integer
+          title: Proposal
+    resource_proposal_service:
+      type: object
+      title: Proposal Service Resource
+      properties:
+        billable_time:
+          type: integer
+          title: Billable Time
+        billing_type_id:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Billing Type
+        budget_cap_enabled:
+          type: boolean
+          title: Budget Cap Enabled
+        budget_total:
+          type: number
+          title: Budget Total
+        budget_used:
+          type: number
+          title: Budget Used
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+        currency:
+          type: string
+          title: Currency
+        currency_default:
+          type: string
+          title: Currency Default
+        currency_normalized:
+          type: string
+          title: Currency Normalized
+        description:
+          type: string
+          title: Description
+        discount:
+          type: string
+          title: Discount
+        discount_amount:
+          type: number
+          title: Discount Amount
+        discount_type:
+          enum:
+            - percentage
+            - amount
+          type: string
+          title: Discount Type
+        id:
+          type: integer
+          title: Id
+        initial_service_id:
+          type: integer
+          title: Initial Service
+          description: The initial service of the deal service this one was copied from, or the proposal service's own id when it has none.
+        markup:
+          type: string
+          title: Markup
+        markup_amount:
+          type: number
+          title: Markup Amount
+        name:
+          type: string
+          title: Name
+        origin_service_id:
+          type: integer
+          title: Origin Service
+        position:
+          type: integer
+          title: Position
+        price:
+          type: number
+          title: Price
+        proposal_id:
+          type: integer
+          title: Proposal
+        quantity:
+          type: string
+          title: Quantity
+        revenue:
+          type: number
+          title: Revenue
+        unit_id:
+          enum:
+            - 1
+            - 2
+            - 3
+          type: integer
+          title: Unit
+  requestBodies:
+    proposal_identity_confirmation:
       content:
         application/vnd.api+json:
           schema:
@@ -762,302 +2933,81 @@ components:
                   attributes:
                     type: object
                     properties:
-                      name:
-                        $ref: '#/components/schemas/resource_proposal/properties/name'
-                      signed:
-                        $ref: '#/components/schemas/resource_proposal/properties/signed'
-                      status:
-                        $ref: '#/components/schemas/resource_proposal/properties/status'
-                      pdf_url:
-                        $ref: '#/components/schemas/resource_proposal/properties/pdf_url'
-                      disclaimer:
-                        $ref: '#/components/schemas/resource_proposal/properties/disclaimer'
-                      decline_reason:
-                        $ref: '#/components/schemas/resource_proposal/properties/decline_reason'
-                      responder_name:
-                        $ref: '#/components/schemas/resource_proposal/properties/responder_name'
-                      responder_email:
-                        $ref: '#/components/schemas/resource_proposal/properties/responder_email'
-                      status_changed_at:
-                        $ref: '#/components/schemas/resource_proposal/properties/status_changed_at'
-                      disclaimer_enabled:
-                        $ref: '#/components/schemas/resource_proposal/properties/disclaimer_enabled'
-                      proposal_version_two:
-                        $ref: '#/components/schemas/resource_proposal/properties/proposal_version_two'
-                      identity_confirmed_at:
-                        $ref: '#/components/schemas/resource_proposal/properties/identity_confirmed_at'
-                      responded_via_public_link:
-                        $ref: '#/components/schemas/resource_proposal/properties/responded_via_public_link'
-                      identity_confirmation_enabled:
-                        $ref: '#/components/schemas/resource_proposal/properties/identity_confirmation_enabled'
-                      proposal_pdf_preview_on_mobile:
-                        $ref: '#/components/schemas/resource_proposal/properties/proposal_pdf_preview_on_mobile'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single public proposal
-    single_proposal:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      date:
-                        $ref: '#/components/schemas/resource_proposal/properties/date'
-                      name:
-                        $ref: '#/components/schemas/resource_proposal/properties/name'
-                      note:
-                        $ref: '#/components/schemas/resource_proposal/properties/note'
-                      footer:
-                        $ref: '#/components/schemas/resource_proposal/properties/footer'
-                      number:
-                        $ref: '#/components/schemas/resource_proposal/properties/number'
-                      signed:
-                        $ref: '#/components/schemas/resource_proposal/properties/signed'
-                      status:
-                        $ref: '#/components/schemas/resource_proposal/properties/status'
-                      pdf_url:
-                        $ref: '#/components/schemas/resource_proposal/properties/pdf_url'
-                      sent_at:
-                        $ref: '#/components/schemas/resource_proposal/properties/sent_at'
-                      currency:
-                        $ref: '#/components/schemas/resource_proposal/properties/currency'
-                      end_date:
-                        $ref: '#/components/schemas/resource_proposal/properties/end_date'
-                      created_at:
-                        $ref: '#/components/schemas/resource_proposal/properties/created_at'
-                      disclaimer:
-                        $ref: '#/components/schemas/resource_proposal/properties/disclaimer'
-                      link_status:
-                        $ref: '#/components/schemas/resource_proposal/properties/link_status'
-                      public_uuid:
-                        $ref: '#/components/schemas/resource_proposal/properties/public_uuid'
-                      budget_total:
-                        $ref: '#/components/schemas/resource_proposal/properties/budget_total'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_proposal/properties/custom_fields'
-                      exchange_date:
-                        $ref: '#/components/schemas/resource_proposal/properties/exchange_date'
-                      exchange_rate:
-                        $ref: '#/components/schemas/resource_proposal/properties/exchange_rate'
-                      responder_name:
-                        $ref: '#/components/schemas/resource_proposal/properties/responder_name'
-                      signed_pdf_url:
-                        $ref: '#/components/schemas/resource_proposal/properties/signed_pdf_url'
-                      responder_email:
-                        $ref: '#/components/schemas/resource_proposal/properties/responder_email'
-                      currency_default:
-                        $ref: '#/components/schemas/resource_proposal/properties/currency_default'
-                      note_interpolated:
-                        $ref: '#/components/schemas/resource_proposal/properties/note_interpolated'
-                      status_changed_at:
-                        $ref: '#/components/schemas/resource_proposal/properties/status_changed_at'
-                      disclaimer_enabled:
-                        $ref: '#/components/schemas/resource_proposal/properties/disclaimer_enabled'
-                      currency_normalized:
-                        $ref: '#/components/schemas/resource_proposal/properties/currency_normalized'
-                      footer_interpolated:
-                        $ref: '#/components/schemas/resource_proposal/properties/footer_interpolated'
-                      budget_total_default:
-                        $ref: '#/components/schemas/resource_proposal/properties/budget_total_default'
-                      identity_confirmed_at:
-                        $ref: '#/components/schemas/resource_proposal/properties/identity_confirmed_at'
-                      purchase_order_number:
-                        $ref: '#/components/schemas/resource_proposal/properties/purchase_order_number'
-                      budget_total_normalized:
-                        $ref: '#/components/schemas/resource_proposal/properties/budget_total_normalized'
-                      identity_confirmation_enabled:
-                        $ref: '#/components/schemas/resource_proposal/properties/identity_confirmation_enabled'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      client:
-                        $ref: '#/components/schemas/_single_relationship'
-                      contact:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-                      tax_rate:
-                        $ref: '#/components/schemas/_single_relationship'
-                      subsidiary:
-                        $ref: '#/components/schemas/_single_relationship'
-                      proposal_to:
-                        $ref: '#/components/schemas/_single_relationship'
-                      responsible:
-                        $ref: '#/components/schemas/_single_relationship'
-                      deal_creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      document_type:
-                        $ref: '#/components/schemas/_single_relationship'
-                      proposal_from:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single proposal
-    proposal_signed_pdf:
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  url:
+                      token:
+                        $ref: '#/components/schemas/resource_proposal_identity_confirmation/properties/token'
+                    required:
+                      - token
+                  type:
+                    enum:
+                      - proposals
                     type: string
-                    format: uri
-      description: Proposal signed PDF download URL
-    collection_proposal:
+                required:
+                  - type
+                  - attributes
+            required:
+              - data
+    public_proposal_accept:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
               data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        date:
-                          $ref: '#/components/schemas/resource_proposal/properties/date'
-                        name:
-                          $ref: '#/components/schemas/resource_proposal/properties/name'
-                        note:
-                          $ref: '#/components/schemas/resource_proposal/properties/note'
-                        footer:
-                          $ref: '#/components/schemas/resource_proposal/properties/footer'
-                        number:
-                          $ref: '#/components/schemas/resource_proposal/properties/number'
-                        signed:
-                          $ref: '#/components/schemas/resource_proposal/properties/signed'
-                        status:
-                          $ref: '#/components/schemas/resource_proposal/properties/status'
-                        pdf_url:
-                          $ref: '#/components/schemas/resource_proposal/properties/pdf_url'
-                        sent_at:
-                          $ref: '#/components/schemas/resource_proposal/properties/sent_at'
-                        currency:
-                          $ref: '#/components/schemas/resource_proposal/properties/currency'
-                        end_date:
-                          $ref: '#/components/schemas/resource_proposal/properties/end_date'
-                        created_at:
-                          $ref: '#/components/schemas/resource_proposal/properties/created_at'
-                        disclaimer:
-                          $ref: '#/components/schemas/resource_proposal/properties/disclaimer'
-                        link_status:
-                          $ref: '#/components/schemas/resource_proposal/properties/link_status'
-                        public_uuid:
-                          $ref: '#/components/schemas/resource_proposal/properties/public_uuid'
-                        budget_total:
-                          $ref: '#/components/schemas/resource_proposal/properties/budget_total'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_proposal/properties/custom_fields'
-                        exchange_date:
-                          $ref: '#/components/schemas/resource_proposal/properties/exchange_date'
-                        exchange_rate:
-                          $ref: '#/components/schemas/resource_proposal/properties/exchange_rate'
-                        responder_name:
-                          $ref: '#/components/schemas/resource_proposal/properties/responder_name'
-                        signed_pdf_url:
-                          $ref: '#/components/schemas/resource_proposal/properties/signed_pdf_url'
-                        responder_email:
-                          $ref: '#/components/schemas/resource_proposal/properties/responder_email'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_proposal/properties/currency_default'
-                        note_interpolated:
-                          $ref: '#/components/schemas/resource_proposal/properties/note_interpolated'
-                        status_changed_at:
-                          $ref: '#/components/schemas/resource_proposal/properties/status_changed_at'
-                        disclaimer_enabled:
-                          $ref: '#/components/schemas/resource_proposal/properties/disclaimer_enabled'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_proposal/properties/currency_normalized'
-                        footer_interpolated:
-                          $ref: '#/components/schemas/resource_proposal/properties/footer_interpolated'
-                        budget_total_default:
-                          $ref: '#/components/schemas/resource_proposal/properties/budget_total_default'
-                        identity_confirmed_at:
-                          $ref: '#/components/schemas/resource_proposal/properties/identity_confirmed_at'
-                        purchase_order_number:
-                          $ref: '#/components/schemas/resource_proposal/properties/purchase_order_number'
-                        budget_total_normalized:
-                          $ref: '#/components/schemas/resource_proposal/properties/budget_total_normalized'
-                        identity_confirmation_enabled:
-                          $ref: '#/components/schemas/resource_proposal/properties/identity_confirmation_enabled'
-                    relationships:
-                      type: object
-                      properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        client:
-                          $ref: '#/components/schemas/_single_relationship'
-                        contact:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-                        tax_rate:
-                          $ref: '#/components/schemas/_single_relationship'
-                        subsidiary:
-                          $ref: '#/components/schemas/_single_relationship'
-                        proposal_to:
-                          $ref: '#/components/schemas/_single_relationship'
-                        responsible:
-                          $ref: '#/components/schemas/_single_relationship'
-                        deal_creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        document_type:
-                          $ref: '#/components/schemas/_single_relationship'
-                        proposal_from:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection proposal
+                type: object
+                properties:
+                  attributes:
+                    type: object
+                    properties:
+                      disclaimer_accepted:
+                        $ref: '#/components/schemas/resource_proposal/properties/disclaimer_accepted'
+                      responder_email:
+                        $ref: '#/components/schemas/resource_proposal/properties/responder_email'
+                      responder_name:
+                        $ref: '#/components/schemas/resource_proposal/properties/responder_name'
+                      signature_image_url:
+                        $ref: '#/components/schemas/resource_proposal/properties/signature_image_url'
+                      signature_type:
+                        $ref: '#/components/schemas/resource_proposal/properties/signature_type'
+                    required:
+                      - responder_name
+                      - responder_email
+                  type:
+                    enum:
+                      - proposals
+                    type: string
+                required:
+                  - type
+                  - attributes
+            required:
+              - data
   parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_proposal:
+    filter_proposal_session:
       in: query
       name: filter
       style: deepObject
       schema:
         type: object
-        description: Filter keys and their operators are listed under x-filters.proposal at the top of this file.
+        description: Filter keys and their operators are listed under x-filters.proposal_session at the top of this file.
       required: false
-      description: Filter parameter for querying proposals.
+    sort_proposal_service:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort proposal service
+      explode: false
+      required: false
+    filter_proposal_service:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.proposal_service at the top of this file.
+      required: false
     sort_proposal:
       in: query
       name: sort
@@ -1070,3 +3020,12 @@ components:
       explode: false
       required: false
       description: Sort order for proposal list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
+    filter_proposal:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.proposal at the top of this file.
+      required: false
+      description: Filter parameter for querying proposals.
