@@ -5,8 +5,8 @@ info:
 description: Form fields on a survey. Each field has a data type (text, number, date, dropdown, checkbox, file) and optional configuration. Dropdown and multi-select fields have selectable options managed via survey_field_options.
 x-filters:
   survey_field:
-    origin_field_id:
-      description: Filter by the original field this field was copied from.
+    archived:
+      description: Filter to include only archived (or non-archived) survey fields.
       operators:
         - contains
         - eq
@@ -14,6 +14,27 @@ x-filters:
         - not_eq
     global:
       description: Filter by whether the survey field applies globally across all projects.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    name:
+      description: Filter by field name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    origin_field_id:
+      description: Filter by the original field this field was copied from.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the associated project.
       operators:
         - contains
         - eq
@@ -33,114 +54,135 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    name:
-      description: Filter by field name (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    archived:
-      description: Filter to include only archived (or non-archived) survey fields.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    project_id:
-      description: Filter by the associated project.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
 paths:
   /api/v2/survey_fields/{id}/archive:
     patch:
       tags:
         - Survey Fields
       summary: Archives a survey field
-      responses:
-        '200':
-          $ref: '#/components/responses/single_survey_field'
+      operationId: survey_fields-archive-archive
+      description: Archive a survey field to deactivate it.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the survey field to archive.
-      operationId: survey_fields-archive-archive
-      description: Archive a survey field to deactivate it.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey_field'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/survey_fields:
     get:
       tags:
         - Survey Fields
       summary: Get survey fields
+      operationId: survey_fields-index
+      description: List all survey fields.
+      parameters:
+        - $ref: '#/components/parameters/filter_survey_field'
+        - $ref: '#/components/parameters/sort_survey_field'
       responses:
         '200':
           $ref: '#/components/responses/collection_survey_field'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/sort_survey_field'
-        - $ref: '#/components/parameters/filter_survey_field'
-      operationId: survey_fields-index
-      description: List all survey fields.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     post:
       tags:
         - Survey Fields
       summary: Creates a survey field
+      operationId: survey_fields-create
+      description: Create a new survey field.
+      requestBody:
+        $ref: '#/components/requestBodies/survey_field'
       responses:
         '201':
           $ref: '#/components/responses/single_survey_field'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
         '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: survey_fields-create
-      requestBody:
-        $ref: '#/components/requestBodies/survey_field'
-      description: Create a new survey field.
+          $ref: '#/components/responses/unprocessable_content_survey_field'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/survey_fields/{id}:
     get:
       tags:
         - Survey Fields
       summary: Gets a survey field
-      responses:
-        '200':
-          $ref: '#/components/responses/single_survey_field'
+      operationId: survey_fields-show
+      description: Retrieve a single survey field by ID.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: The ID of the survey field to retrieve.
-      operationId: survey_fields-show
-      description: Retrieve a single survey field by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey_field'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     patch:
       tags:
         - Survey Fields
       summary: Updates a survey field
-      responses:
-        '200':
-          $ref: '#/components/responses/single_survey_field'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
+      operationId: survey_fields-update
+      description: Update a survey field.
       parameters:
         - in: path
           name: id
@@ -148,66 +190,963 @@ paths:
             type: string
           required: true
           description: The ID of the survey field to update.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: survey_fields-update
       requestBody:
         $ref: '#/components/requestBodies/survey_field'
-      description: Update a survey field.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_survey_field'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_survey_field'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
-  requestBodies:
-    survey_field:
+  responses:
+    internal_server_error:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    unprocessable_content_survey_field:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_survey_field'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    single_survey_field:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single survey_field record in JSON:API format.
+            properties:
               data:
                 type: object
+                description: The JSON:API data object for the returned survey_field resource.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - data_type_id
-                      - name
-                      - survey_id
+                    description: Survey field attributes.
                     properties:
+                      aggregation_type_id:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_survey_field/properties/aggregation_type_id'
+                          - type: 'null'
+                        description: The aggregation type for responses (e.g. sum, average, count).
+                      archived_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_survey_field/properties/archived_at'
+                          - type: 'null'
+                        description: The timestamp when the survey field was archived, or null if active.
+                      created_at:
+                        $ref: '#/components/schemas/resource_survey_field/properties/created_at'
+                      customizable_type:
+                        $ref: '#/components/schemas/resource_survey_field/properties/customizable_type'
+                      data_type_id:
+                        $ref: '#/components/schemas/resource_survey_field/properties/data_type_id'
+                      formatting_type_id:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_survey_field/properties/formatting_type_id'
+                          - type: 'null'
+                        description: The formatting type identifier for this field (e.g. currency, percentage).
+                      global:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_survey_field/properties/global'
+                          - type: 'null'
+                        description: Whether this field is a global system field.
                       name:
                         $ref: '#/components/schemas/resource_survey_field/properties/name'
                       position:
                         $ref: '#/components/schemas/resource_survey_field/properties/position'
-                      required:
-                        $ref: '#/components/schemas/resource_survey_field/properties/required'
-                      survey_id:
-                        $ref: '#/components/schemas/resource_survey_field/properties/survey_id'
-                      data_type_id:
-                        $ref: '#/components/schemas/resource_survey_field/properties/data_type_id'
-                      origin_field_id:
-                        $ref: '#/components/schemas/resource_survey_field/properties/origin_field_id'
                       quick_add_enabled:
                         $ref: '#/components/schemas/resource_survey_field/properties/quick_add_enabled'
-                      formatting_type_id:
-                        $ref: '#/components/schemas/resource_survey_field/properties/formatting_type_id'
-                      aggregation_type_id:
-                        $ref: '#/components/schemas/resource_survey_field/properties/aggregation_type_id'
+                      required:
+                        $ref: '#/components/schemas/resource_survey_field/properties/required'
+                      sensitive:
+                        $ref: '#/components/schemas/resource_survey_field/properties/sensitive'
                       show_in_add_edit_views:
                         $ref: '#/components/schemas/resource_survey_field/properties/show_in_add_edit_views'
-      description: Request body for creating or updating a survey field. Specify the survey, field type (data_type_id), label, position, required flag, and optional description. For dropdown fields, add options via the survey_field_options endpoint.
+                      updated_at:
+                        $ref: '#/components/schemas/resource_survey_field/properties/updated_at'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Survey field relationships.
+                    properties:
+                      custom_field_people:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      options:
+                        $ref: '#/components/schemas/_collection_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      origin_field:
+                        $ref: '#/components/schemas/_single_relationship'
+                      survey:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '45'
+                type: survey_fields
+                attributes:
+                  label: How satisfied are you with the project outcome?
+                  field_type: rating
+                  required: true
+                  position: 1
+                relationships:
+                  survey:
+                    data:
+                      type: surveys
+                      id: '7'
+              included: []
+      description: Single survey field
+    collection_survey_field:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of survey field records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A survey field resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Survey field attributes.
+                      properties:
+                        aggregation_type_id:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_survey_field/properties/aggregation_type_id'
+                            - type: 'null'
+                          description: How responses to this field are aggregated in reports.
+                        archived_at:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_survey_field/properties/archived_at'
+                            - type: 'null'
+                          description: Timestamp when this survey field was archived.
+                        created_at:
+                          $ref: '#/components/schemas/resource_survey_field/properties/created_at'
+                        customizable_type:
+                          $ref: '#/components/schemas/resource_survey_field/properties/customizable_type'
+                        data_type_id:
+                          $ref: '#/components/schemas/resource_survey_field/properties/data_type_id'
+                        formatting_type_id:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_survey_field/properties/formatting_type_id'
+                            - type: 'null'
+                          description: The formatting type applied to values in this field.
+                        global:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_survey_field/properties/global'
+                            - type: 'null'
+                          description: Whether this field is available globally across all surveys.
+                        name:
+                          $ref: '#/components/schemas/resource_survey_field/properties/name'
+                        position:
+                          $ref: '#/components/schemas/resource_survey_field/properties/position'
+                        quick_add_enabled:
+                          $ref: '#/components/schemas/resource_survey_field/properties/quick_add_enabled'
+                        required:
+                          $ref: '#/components/schemas/resource_survey_field/properties/required'
+                        sensitive:
+                          $ref: '#/components/schemas/resource_survey_field/properties/sensitive'
+                        show_in_add_edit_views:
+                          $ref: '#/components/schemas/resource_survey_field/properties/show_in_add_edit_views'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_survey_field/properties/updated_at'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Survey field relationships.
+                      properties:
+                        custom_field_people:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        options:
+                          $ref: '#/components/schemas/_collection_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        origin_field:
+                          $ref: '#/components/schemas/_single_relationship'
+                        survey:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of survey field resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '45'
+                  type: survey_fields
+                  attributes:
+                    label: How satisfied are you with the project outcome?
+                    field_type: rating
+                    required: true
+                    position: 1
+                  relationships:
+                    survey:
+                      data:
+                        type: surveys
+                        id: '7'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection survey field
   schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_survey_field:
+      enum:
+        - bad_decimal_format
+        - data_type_not_compatible_with_origin_field
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+        - origin_field_not_in_project
+        - origin_field_used_in_other_survey_fields
+      type: string
+      title: Error Code
+      description: Every error `code` the survey fields endpoints can return.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          required:
+            - included
+          example:
+            included: false
+      required:
+        - meta
+      example:
+        meta:
+          included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    _collection_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_collection_linkage'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API collection relationship — links to zero or more related resources.
+      example:
+        data:
+          - type: tasks
+            id: '42'
+    _collection_linkage:
+      type: object
+      title: Collection linkage
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/_resource'
+      required:
+        - data
     resource_survey_field:
       type: object
       title: Survey field Resource
+      description: Form field on a survey with a data type (text, number, date, dropdown, checkbox, file), label, required flag, position, and optional description. Dropdown fields have selectable options via survey_field_options.
       properties:
-        survey_id:
+        aggregation_type_id:
           type: integer
-          title: Survey
-          description: ID of the survey this field belongs to.
+          title: Aggregation Type
+          description: ID of the aggregation type used when summarizing responses to this field.
           example:
             - 123
-        updated_at:
+        archived:
+          title: Archived
+          description: Whether this survey field has been archived.
+          example: true
+        archived_at:
           type: string
-          title: Updated At
+          title: Archived At
           format: date-time
-          description: Timestamp when this survey field was last updated.
+          description: Timestamp when this survey field was archived, or null if not archived.
           example:
             gt: '2026-01-01'
         created_at:
@@ -217,45 +1156,17 @@ components:
           description: Timestamp when this survey field was created.
           example:
             gt: '2026-01-01'
-        origin_field_id:
-          type: integer
-          title: Origin Field
-          description: ID of the original custom field this survey field was created from, if applicable.
-          example:
-            - 123
-        organization:
-          title: Organization
-          description: The organization this survey field belongs to.
+        custom_field_people:
+          title: Custom Field People
+          description: People associated with this survey field via custom field lookups.
           example:
             eq: value
-        global:
-          type: boolean
-          title: Global
-          description: When true, this field is shared across all projects in the organization.
+        customizable_type:
+          type: string
+          title: Customizable Type
+          description: The resource type this survey field can be attached to (e.g. tasks, deals, contacts).
           example:
-            eq: value
-        id:
-          title: Id
-          description: The unique identifier of this survey field.
-          example:
-            - 123
-        formatting_type_id:
-          type: integer
-          title: Formatting Type
-          description: ID of the formatting type that controls how this field's value is displayed.
-          example:
-            - 123
-        options:
-          title: Options
-          description: The answer options available for this survey field (for multiple-choice fields).
-          example:
-            eq: value
-        show_in_add_edit_views:
-          type: boolean
-          title: Show In Add Edit Views
-          description: The show in add edit views.
-          example:
-            eq: value
+            eq: active
         data_type_id:
           enum:
             - 1
@@ -270,9 +1181,54 @@ components:
           description: ID of the data type that determines what kind of value this field stores (text, number, date, etc.).
           example:
             - 123
+        formatting_type_id:
+          type: integer
+          title: Formatting Type
+          description: ID of the formatting type that controls how this field's value is displayed.
+          example:
+            - 123
+        global:
+          type: boolean
+          title: Global
+          description: When true, this field is shared across all projects in the organization.
+          example:
+            eq: value
+        id:
+          title: Id
+          description: The unique identifier of this survey field.
+          example:
+            - 123
+        name:
+          type: string
+          title: Name
+          description: The name (label) of this survey field.
+          example:
+            eq: value
+        options:
+          title: Options
+          description: The answer options available for this survey field (for multiple-choice fields).
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this survey field belongs to.
+          example:
+            eq: value
         origin_field:
           title: Origin Field
           description: The original custom field this survey field was created from, if applicable.
+          example:
+            eq: value
+        origin_field_id:
+          type: integer
+          title: Origin Field
+          description: ID of the original custom field this survey field was created from, if applicable.
+          example:
+            - 123
+        position:
+          type: integer
+          title: Position
+          description: The display order position of this field within the survey.
           example:
             eq: value
         project_id:
@@ -281,26 +1237,10 @@ components:
           description: ID of the project this survey field belongs to.
           example:
             - 123
-        sensitive:
+        quick_add_enabled:
           type: boolean
-          title: Sensitive
-          description: When true, the value of this field is treated as sensitive and hidden from unauthorized users.
-          example:
-            eq: value
-        position:
-          type: integer
-          title: Position
-          description: The display order position of this field within the survey.
-          example:
-            eq: value
-        custom_field_people:
-          title: Custom Field People
-          description: People associated with this survey field via custom field lookups.
-          example:
-            eq: value
-        survey:
-          title: Survey
-          description: The survey this field belongs to.
+          title: Quick Add Enabled
+          description: When true, this field can be quickly added to a resource without opening the full edit form.
           example:
             eq: value
         required:
@@ -309,42 +1249,36 @@ components:
           description: Whether a response to this field is required when submitting the survey.
           example:
             eq: value
-        customizable_type:
-          type: string
-          title: Customizable Type
-          description: The resource type this survey field can be attached to (e.g. tasks, deals, contacts).
-          example:
-            eq: active
-        quick_add_enabled:
+        sensitive:
           type: boolean
-          title: Quick Add Enabled
-          description: When true, this field can be quickly added to a resource without opening the full edit form.
+          title: Sensitive
+          description: When true, the value of this field is treated as sensitive and hidden from unauthorized users.
           example:
             eq: value
-        name:
-          type: string
-          title: Name
-          description: The name (label) of this survey field.
+        show_in_add_edit_views:
+          type: boolean
+          title: Show In Add Edit Views
+          description: The show in add edit views.
           example:
             eq: value
-        aggregation_type_id:
+        survey:
+          title: Survey
+          description: The survey this field belongs to.
+          example:
+            eq: value
+        survey_id:
           type: integer
-          title: Aggregation Type
-          description: ID of the aggregation type used when summarizing responses to this field.
+          title: Survey
+          description: ID of the survey this field belongs to.
           example:
             - 123
-        archived_at:
+        updated_at:
           type: string
-          title: Archived At
+          title: Updated At
           format: date-time
-          description: Timestamp when this survey field was archived, or null if not archived.
+          description: Timestamp when this survey field was last updated.
           example:
             gt: '2026-01-01'
-        archived:
-          title: Archived
-          description: Whether this survey field has been archived.
-          example: true
-      description: Form field on a survey with a data type (text, number, date, dropdown, checkbox, file), label, required flag, position, and optional description. Dropdown fields have selectable options via survey_field_options.
       example:
         id: '123'
         type: survey_fields
@@ -354,143 +1288,62 @@ components:
           required: true
           position: 1
         relationships: {}
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _collection_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
-      description: A JSON:API collection relationship — links to zero or more related resources.
-      example:
-        data:
-          - type: tasks
-            id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
+  requestBodies:
+    survey_field:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating or updating a survey field.
+            properties:
+              data:
+                type: object
+                description: The survey field resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Survey field attributes.
+                    properties:
+                      aggregation_type_id:
+                        $ref: '#/components/schemas/resource_survey_field/properties/aggregation_type_id'
+                      data_type_id:
+                        $ref: '#/components/schemas/resource_survey_field/properties/data_type_id'
+                      formatting_type_id:
+                        $ref: '#/components/schemas/resource_survey_field/properties/formatting_type_id'
+                      name:
+                        $ref: '#/components/schemas/resource_survey_field/properties/name'
+                      origin_field_id:
+                        $ref: '#/components/schemas/resource_survey_field/properties/origin_field_id'
+                      position:
+                        $ref: '#/components/schemas/resource_survey_field/properties/position'
+                      quick_add_enabled:
+                        $ref: '#/components/schemas/resource_survey_field/properties/quick_add_enabled'
+                      required:
+                        $ref: '#/components/schemas/resource_survey_field/properties/required'
+                      show_in_add_edit_views:
+                        $ref: '#/components/schemas/resource_survey_field/properties/show_in_add_edit_views'
+                      survey_id:
+                        $ref: '#/components/schemas/resource_survey_field/properties/survey_id'
+                    required:
+                      - data_type_id
+                      - name
+                      - survey_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: surveys
+                attributes:
+                  title: Client Satisfaction Q1 2026
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '6899'
+      description: Request body for creating or updating a survey field. Specify the survey, field type (data_type_id), label, position, required flag, and optional description. For dropdown fields, add options via the survey_field_options endpoint.
   parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_survey_field:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.survey_field at the top of this file.
-      required: false
-      description: Filter parameter for querying survey fields.
     sort_survey_field:
       in: query
       name: sort
@@ -516,124 +1369,12 @@ components:
       explode: false
       required: false
       description: Sort order for survey field list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
-  responses:
-    single_survey_field:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_survey_field/properties/name'
-                      global:
-                        $ref: '#/components/schemas/resource_survey_field/properties/global'
-                      position:
-                        $ref: '#/components/schemas/resource_survey_field/properties/position'
-                      required:
-                        $ref: '#/components/schemas/resource_survey_field/properties/required'
-                      sensitive:
-                        $ref: '#/components/schemas/resource_survey_field/properties/sensitive'
-                      created_at:
-                        $ref: '#/components/schemas/resource_survey_field/properties/created_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_survey_field/properties/updated_at'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_survey_field/properties/archived_at'
-                      data_type_id:
-                        $ref: '#/components/schemas/resource_survey_field/properties/data_type_id'
-                      customizable_type:
-                        $ref: '#/components/schemas/resource_survey_field/properties/customizable_type'
-                      quick_add_enabled:
-                        $ref: '#/components/schemas/resource_survey_field/properties/quick_add_enabled'
-                      formatting_type_id:
-                        $ref: '#/components/schemas/resource_survey_field/properties/formatting_type_id'
-                      aggregation_type_id:
-                        $ref: '#/components/schemas/resource_survey_field/properties/aggregation_type_id'
-                      show_in_add_edit_views:
-                        $ref: '#/components/schemas/resource_survey_field/properties/show_in_add_edit_views'
-                  relationships:
-                    type: object
-                    properties:
-                      survey:
-                        $ref: '#/components/schemas/_single_relationship'
-                      options:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      origin_field:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Single survey field
-    collection_survey_field:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_survey_field/properties/name'
-                        global:
-                          $ref: '#/components/schemas/resource_survey_field/properties/global'
-                        position:
-                          $ref: '#/components/schemas/resource_survey_field/properties/position'
-                        required:
-                          $ref: '#/components/schemas/resource_survey_field/properties/required'
-                        sensitive:
-                          $ref: '#/components/schemas/resource_survey_field/properties/sensitive'
-                        created_at:
-                          $ref: '#/components/schemas/resource_survey_field/properties/created_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_survey_field/properties/updated_at'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_survey_field/properties/archived_at'
-                        data_type_id:
-                          $ref: '#/components/schemas/resource_survey_field/properties/data_type_id'
-                        customizable_type:
-                          $ref: '#/components/schemas/resource_survey_field/properties/customizable_type'
-                        quick_add_enabled:
-                          $ref: '#/components/schemas/resource_survey_field/properties/quick_add_enabled'
-                        formatting_type_id:
-                          $ref: '#/components/schemas/resource_survey_field/properties/formatting_type_id'
-                        aggregation_type_id:
-                          $ref: '#/components/schemas/resource_survey_field/properties/aggregation_type_id'
-                        show_in_add_edit_views:
-                          $ref: '#/components/schemas/resource_survey_field/properties/show_in_add_edit_views'
-                    relationships:
-                      type: object
-                      properties:
-                        survey:
-                          $ref: '#/components/schemas/_single_relationship'
-                        options:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        origin_field:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection survey field
+    filter_survey_field:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.survey_field at the top of this file.
+      required: false
+      description: Filter parameter for querying survey fields.

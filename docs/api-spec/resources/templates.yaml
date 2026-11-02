@@ -5,6 +5,20 @@ info:
 description: Reusable starting points for projects, budgets, deals, and pages. Each template wraps a real entity (its `target`) created with template semantics; the `target_type` discriminator determines the per-target shape required when creating a new template.
 x-filters:
   template:
+    id:
+      description: Numeric identifier of the template.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Project identifier — filterable to scope templates to a specific project context.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
     query:
       description: Free-text query — matches against the wrapped target name.
       operators:
@@ -31,55 +45,64 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    project_id:
-      description: Project identifier — filterable to scope templates to a specific project context.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    id:
-      description: Numeric identifier of the template.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
 paths:
+  /api/v2/templates/copy:
+    post:
+      tags:
+        - Templates
+      summary: Copies a template into a new template target
+      operationId: templates-copy
+      responses:
+        '201':
+          $ref: '#/components/responses/single_template'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_template'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/templates:
     get:
       tags:
         - Templates
       summary: Get templates
+      operationId: templates-index
+      description: List templates the requester has access to. Supports filtering by id, project, target type (with `deal`/`budget` discriminated via the underlying quote), free-text query, and a task-template-only `task_project_id` filter.
+      parameters:
+        - $ref: '#/components/parameters/filter_template'
+        - $ref: '#/components/parameters/sort_template'
       responses:
         '200':
           $ref: '#/components/responses/collection_template'
-      parameters:
-        - $ref: '#/components/parameters/sort_template'
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_template'
-      operationId: templates-index
-      description: List templates the requester has access to. Supports filtering by id, project, target type (with `deal`/`budget` discriminated via the underlying quote), free-text query, and a task-template-only `task_project_id` filter.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     post:
       tags:
         - Templates
       summary: Create a template
-      responses:
-        '201':
-          $ref: '#/components/responses/single_template'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Validation error — for example, missing or invalid `target_type`, or a per-target permission failure.
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
       operationId: templates-create
-      requestBody:
-        $ref: '#/components/requestBodies/template'
       description: |-
         Create a new template. The `attributes.target_type` field is a discriminator that selects one of four creation paths, each with its own required `model_attributes` shape and permission check.
 
@@ -177,14 +200,38 @@ paths:
         ```
 
         **Save as Template** — to create a project template from an **existing** project (boards, tasks, settings copied), use [`POST /projects/copy`](#tag/Projects/operation/projects-copy) with `attributes.copy_as_template: true`. The `target_type=project` path on this endpoint only creates a **fresh, empty** template.
+      requestBody:
+        $ref: '#/components/requestBodies/template'
+      responses:
+        '201':
+          $ref: '#/components/responses/single_template'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_template'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/templates/{id}:
     get:
       tags:
         - Templates
       summary: Gets a template
-      responses:
-        '200':
-          $ref: '#/components/responses/single_template'
+      operationId: templates-show
+      description: Fetch a single template by id.
       parameters:
         - in: path
           name: id
@@ -192,35 +239,28 @@ paths:
             type: string
           required: true
           description: Numeric template id.
-        - $ref: '#/components/parameters/header_organization'
-      operationId: templates-show
-      description: Fetch a single template by id.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_template'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     patch:
       tags:
         - Templates
       summary: Update a template
-      responses:
-        '200':
-          $ref: '#/components/responses/single_template'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Validation error from the target-specific update form.
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: Numeric template id.
-        - $ref: '#/components/parameters/header_organization'
       operationId: templates-update
-      requestBody:
-        $ref: '#/components/requestBodies/template'
       description: |-
         Update a template's name, description, and target-specific fields inside `model_attributes`. The dispatcher routes to a target-aware form: `deal` updates retainer fields (when the retainer feature is enabled), `budget` updates color (propagated to the underlying budget). Renaming a template also renames the wrapped target.
 
@@ -253,13 +293,6 @@ paths:
           }
         }
         ```
-    delete:
-      tags:
-        - Templates
-      summary: Deletes a template
-      responses:
-        '204':
-          description: Template soft-deleted successfully.
       parameters:
         - in: path
           name: id
@@ -267,27 +300,1275 @@ paths:
             type: string
           required: true
           description: Numeric template id.
-        - $ref: '#/components/parameters/header_organization'
+      requestBody:
+        $ref: '#/components/requestBodies/template'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_template'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_template'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+    delete:
+      tags:
+        - Templates
+      summary: Deletes a template
       operationId: templates-destroy
       description: Soft-delete a template and its wrapped target. The deletion is recorded in `deleted_items` and is recoverable from Trash.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Numeric template id.
+      responses:
+        '204':
+          description: Template soft-deleted successfully.
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
+  responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    unprocessable_content_template:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_template'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    single_template:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Top-level JSON:API document for a single template.
+            properties:
+              data:
+                type: object
+                description: Primary JSON:API resource(s) returned.
+                properties:
+                  attributes:
+                    type: object
+                    description: Template's serialized attributes.
+                    properties:
+                      color_id:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_template/properties/color_id'
+                          - type: 'null'
+                        description: Color label assigned to the template.
+                      created_at:
+                        $ref: '#/components/schemas/resource_template/properties/created_at'
+                      deleted_at:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_template/properties/deleted_at'
+                          - type: 'null'
+                        description: Timestamp marking soft deletion. Non-null values mean the template is in Trash and recoverable via the `/deleted_items` endpoint.
+                      description:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_template/properties/description'
+                          - type: 'null'
+                        description: Free-text note attached to the template.
+                      name:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_template/properties/name'
+                          - type: 'null'
+                        description: Display name of the template. Required on create. Updates also rename the wrapped target.
+                      target_id:
+                        $ref: '#/components/schemas/resource_template/properties/target_id'
+                      target_type:
+                        $ref: '#/components/schemas/resource_template/properties/target_type'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_template/properties/updated_at'
+                    example:
+                      name: 'Offboarding: General'
+                      description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                      target_id: '258974'
+                      target_type: project
+                      color_id: null
+                      created_at: '2023-01-24T14:08:06.857+01:00'
+                      updated_at: '2026-04-29T12:27:06.627+02:00'
+                      deleted_at: null
+                  relationships:
+                    type: object
+                    description: Related resources, returned as JSON:API resource identifiers.
+                    properties:
+                      filter:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      deal:
+                        $ref: '#/components/schemas/_single_relationship'
+                      page:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      project:
+                        data:
+                          type: projects
+                          id: '258974'
+                      deal:
+                        data: null
+                      page:
+                        data: null
+                      task:
+                        data: null
+                      creator:
+                        data:
+                          type: people
+                          id: '13'
+                example:
+                  type: templates
+                  id: '18'
+                  attributes:
+                    name: 'Offboarding: General'
+                    description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                    target_id: '258974'
+                    target_type: project
+                    color_id: null
+                    created_at: '2023-01-24T14:08:06.857+01:00'
+                    updated_at: '2026-04-29T12:27:06.627+02:00'
+                    deleted_at: null
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '258974'
+                    deal:
+                      data: null
+                    page:
+                      data: null
+                    task:
+                      data: null
+                    creator:
+                      data:
+                        type: people
+                        id: '13'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource for a template.
+                description: Sideloaded related resources requested via `include`.
+                example: []
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                type: templates
+                id: '18'
+                attributes:
+                  name: 'Offboarding: General'
+                  description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                  target_id: '258974'
+                  target_type: project
+                  color_id: null
+                  created_at: '2023-01-24T14:08:06.857+01:00'
+                  updated_at: '2026-04-29T12:27:06.627+02:00'
+                  deleted_at: null
+                relationships:
+                  project:
+                    data:
+                      type: projects
+                      id: '258974'
+                  deal:
+                    data: null
+                  page:
+                    data: null
+                  task:
+                    data: null
+                  creator:
+                    data:
+                      type: people
+                      id: '13'
+              meta:
+                current_page: 1
+              included: []
+      description: Successful response containing the requested template.
+    collection_template:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Top-level JSON:API document for a paginated templates collection.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A single template in the collection.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Template's serialized attributes.
+                      properties:
+                        color_id:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_template/properties/color_id'
+                            - type: 'null'
+                          description: Color label assigned to the template.
+                        created_at:
+                          $ref: '#/components/schemas/resource_template/properties/created_at'
+                        deleted_at:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_template/properties/deleted_at'
+                            - type: 'null'
+                          description: Timestamp marking soft deletion. Non-null values mean the template is in Trash and recoverable via the `/deleted_items` endpoint.
+                        description:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_template/properties/description'
+                            - type: 'null'
+                          description: Free-text note attached to the template.
+                        name:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_template/properties/name'
+                            - type: 'null'
+                          description: Display name of the template. Required on create. Updates also rename the wrapped target.
+                        target_id:
+                          $ref: '#/components/schemas/resource_template/properties/target_id'
+                        target_type:
+                          $ref: '#/components/schemas/resource_template/properties/target_type'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_template/properties/updated_at'
+                      example:
+                        name: 'Offboarding: General'
+                        description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                        target_id: '258974'
+                        target_type: project
+                        color_id: null
+                        created_at: '2023-01-24T14:08:06.857+01:00'
+                        updated_at: '2026-04-29T12:27:06.627+02:00'
+                        deleted_at: null
+                    relationships:
+                      type: object
+                      description: Related resources, returned as JSON:API resource identifiers.
+                      properties:
+                        filter:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        deal:
+                          $ref: '#/components/schemas/_single_relationship'
+                        page:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                        task:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        project:
+                          data:
+                            type: projects
+                            id: '258974'
+                        deal:
+                          data: null
+                        page:
+                          data: null
+                        task:
+                          data: null
+                        creator:
+                          data:
+                            type: people
+                            id: '13'
+                  example:
+                    type: templates
+                    id: '18'
+                    attributes:
+                      name: 'Offboarding: General'
+                      description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                      target_id: '258974'
+                      target_type: project
+                      color_id: null
+                      created_at: '2023-01-24T14:08:06.857+01:00'
+                      updated_at: '2026-04-29T12:27:06.627+02:00'
+                      deleted_at: null
+                    relationships:
+                      project:
+                        data:
+                          type: projects
+                          id: '258974'
+                      deal:
+                        data: null
+                      page:
+                        data: null
+                      task:
+                        data: null
+                      creator:
+                        data:
+                          type: people
+                          id: '13'
+                description: Primary JSON:API resource(s) returned.
+                example:
+                  - type: templates
+                    id: '18'
+                    attributes:
+                      name: 'Offboarding: General'
+                      description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                      target_id: '258974'
+                      target_type: project
+                      color_id: null
+                      created_at: '2023-01-24T14:08:06.857+01:00'
+                      updated_at: '2026-04-29T12:27:06.627+02:00'
+                      deleted_at: null
+                    relationships:
+                      project:
+                        data:
+                          type: projects
+                          id: '258974'
+                      deal:
+                        data: null
+                      page:
+                        data: null
+                      task:
+                        data: null
+                      creator:
+                        data:
+                          type: people
+                          id: '13'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource for a template.
+                description: Sideloaded related resources requested via `include`.
+                example: []
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - type: templates
+                  id: '18'
+                  attributes:
+                    name: 'Offboarding: General'
+                    description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+                    target_id: '258974'
+                    target_type: project
+                    color_id: null
+                    created_at: '2023-01-24T14:08:06.857+01:00'
+                    updated_at: '2026-04-29T12:27:06.627+02:00'
+                    deleted_at: null
+                  relationships:
+                    project:
+                      data:
+                        type: projects
+                        id: '258974'
+                    deal:
+                      data: null
+                    page:
+                      data: null
+                    task:
+                      data: null
+                    creator:
+                      data:
+                        type: people
+                        id: '13'
+              meta:
+                total_count: 25
+                current_page: 1
+                total_pages: 13
+              included: []
+      description: Successful response containing a paginated list of templates.
+  schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_template:
+      enum:
+        - bad_decimal_format
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+      type: string
+      title: Error Code
+      description: Every error `code` the templates endpoints can return in a 422 response.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          required:
+            - included
+          example:
+            included: false
+      required:
+        - meta
+      example:
+        meta:
+          included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    resource_template:
+      type: object
+      title: Template Resource
+      description: Reusable starting point for a project, budget, deal, or page. Each template wraps a real entity (its `target`) created with template semantics; `target_type` discriminates the polymorphic create payload.
+      properties:
+        filter:
+          title: Filter
+        color_id:
+          type: integer
+          title: Color
+          nullable: true
+          description: Color label assigned to the template.
+          example: null
+        copy_attributes:
+          type: object
+          title: Copy Attributes
+          additionalProperties: true
+          description: Form-only copy-behavior flags applied when `target_id` is supplied. See the create endpoint for per-target options.
+          example:
+            copy_memberships: true
+            copy_subpages: true
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp of when the template was created.
+          example: '2023-01-24T14:08:06.857+01:00'
+        creator:
+          title: Creator
+          description: Person who created the template.
+          example:
+            data:
+              type: people
+              id: '13'
+        deal:
+          title: Deal
+          description: Deal target when `target_type` is `deal`.
+          example:
+            data: null
+        deleted_at:
+          type: string
+          title: Deleted At
+          format: date-time
+          nullable: true
+          description: Timestamp marking soft deletion. Non-null values mean the template is in Trash and recoverable via the `/deleted_items` endpoint.
+          example: null
+        description:
+          type: string
+          title: Description
+          nullable: true
+          description: Free-text note attached to the template.
+          example: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+        id:
+          type: integer
+          title: Id
+          description: Numeric identifier of the template.
+          example: '18'
+        model_attributes:
+          type: object
+          title: Model Attributes
+          additionalProperties: true
+          description: Form-only polymorphic input bag. Required keys depend on `target_type` — see the create endpoint description for the per-target schema.
+          example:
+            client_id: 412
+            project_manager_id: 13
+            project_type_id: 2
+            workflow_id: 1
+            project_color_id: 5
+        name:
+          type: string
+          title: Name
+          nullable: true
+          maxLength: 255
+          description: Display name of the template. Required on create. Updates also rename the wrapped target.
+          example: 'Offboarding: General'
+        page:
+          title: Page
+          description: Page target when `target_type` is `page`.
+          example:
+            data: null
+        project:
+          title: Project
+          description: Project this template was scoped under (denormalized via the wrapped target).
+          example:
+            data:
+              type: projects
+              id: '258974'
+        project_id:
+          type: integer
+          title: Project
+          description: Project identifier — filterable to scope templates to a specific project context.
+          example: 271026
+        query:
+          type: string
+          title: Query
+          description: Free-text query — matches against the wrapped target name.
+          example: offboarding
+        target_id:
+          type: integer
+          title: Target
+          description: Id of the wrapped target.
+          example: '258974'
+        target_type:
+          enum:
+            - budget
+            - deal
+            - project
+            - page
+            - task
+            - report
+          type: string
+          title: Target Type
+          description: Identifies which entity type the template wraps. On create, selects the per-target `model_attributes` shape. `task` is read-only.
+          example: project
+        task:
+          title: Task
+          description: Task target when `target_type` is `task`.
+          example:
+            data: null
+        task_project_id:
+          type: integer
+          title: Task Project
+          description: Filter-only field — limits task templates (`target_type=task`) to those whose underlying task belongs to the given project.
+          example: 271026
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp of the most recent change to the template.
+          example: '2026-04-29T12:27:06.627+02:00'
+      example:
+        type: templates
+        id: '18'
+        attributes:
+          name: 'Offboarding: General'
+          description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
+          target_id: '258974'
+          target_type: project
+          color_id: null
+          created_at: '2023-01-24T14:08:06.857+01:00'
+          updated_at: '2026-04-29T12:27:06.627+02:00'
+          deleted_at: null
+  requestBodies:
+    template:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: JSON:API payload schema for creating or updating a template. `attributes.target_type` discriminates the required `model_attributes` shape.
+            properties:
+              data:
+                type: object
+                description: JSON:API primary resource wrapper for the template create/update payload.
+                properties:
+                  attributes:
+                    type: object
+                    description: Writable template attributes — shape depends on `target_type`.
+                    properties:
+                      copy_attributes:
+                        $ref: '#/components/schemas/resource_template/properties/copy_attributes'
+                      description:
+                        $ref: '#/components/schemas/resource_template/properties/description'
+                      model_attributes:
+                        $ref: '#/components/schemas/resource_template/properties/model_attributes'
+                      name:
+                        $ref: '#/components/schemas/resource_template/properties/name'
+                      target_id:
+                        $ref: '#/components/schemas/resource_template/properties/target_id'
+                      target_type:
+                        $ref: '#/components/schemas/resource_template/properties/target_type'
+                    example:
+                      name: New project template
+                      description: Used for kicking off enterprise migration projects.
+                      target_type: project
+                      model_attributes:
+                        client_id: 412
+                        project_manager_id: 13
+                        project_type_id: 2
+                        workflow_id: 1
+                example:
+                  type: templates
+                  attributes:
+                    name: New project template
+                    description: Used for kicking off enterprise migration projects.
+                    target_type: project
+                    model_attributes:
+                      client_id: 412
+                      project_manager_id: 13
+                      project_type_id: 2
+                      workflow_id: 1
+                      project_color_id: 5
+            example:
+              data:
+                type: templates
+                attributes:
+                  name: New project template
+                  description: Used for kicking off enterprise migration projects.
+                  target_type: project
+                  model_attributes:
+                    client_id: 412
+                    project_manager_id: 13
+                    project_type_id: 2
+                    workflow_id: 1
+      description: JSON:API payload for creating or updating a template. `attributes.target_type` discriminates which `model_attributes` keys are required.
   parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_template:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.template at the top of this file.
-      required: false
-      description: Filter the templates collection. Accepts a deepObject of operator-keyed fields (see `_filter_root_template`).
     sort_template:
       in: query
       name: sort
@@ -313,367 +1594,12 @@ components:
       explode: false
       required: false
       description: Sort the templates collection by one or more fields. Prefix a field with `-` for descending order.
-  requestBodies:
-    template:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_template/properties/name'
-                      target_id:
-                        $ref: '#/components/schemas/resource_template/properties/target_id'
-                      description:
-                        $ref: '#/components/schemas/resource_template/properties/description'
-                      target_type:
-                        $ref: '#/components/schemas/resource_template/properties/target_type'
-                      copy_attributes:
-                        $ref: '#/components/schemas/resource_template/properties/copy_attributes'
-                      model_attributes:
-                        $ref: '#/components/schemas/resource_template/properties/model_attributes'
-      description: JSON:API payload for creating or updating a template. `attributes.target_type` discriminates which `model_attributes` keys are required.
-  schemas:
-    resource_template:
-      type: object
-      title: Template Resource
-      properties:
-        name:
-          type: string
-          title: Name
-          nullable: true
-          maxLength: 255
-          description: Display name of the template. Required on create. Updates also rename the wrapped target.
-          example: 'Offboarding: General'
-        page:
-          title: Page
-          description: Page target when `target_type` is `page`.
-          example:
-            data: null
-        creator:
-          title: Creator
-          description: Person who created the template.
-          example:
-            data:
-              type: people
-              id: '13'
-        copy_attributes:
-          type: object
-          title: Copy Attributes
-          additionalProperties: true
-          description: Form-only copy-behavior flags applied when `target_id` is supplied. See the create endpoint for per-target options.
-          example:
-            copy_memberships: true
-            copy_subpages: true
-        deal:
-          title: Deal
-          description: Deal target when `target_type` is `deal`.
-          example:
-            data: null
-        task:
-          title: Task
-          description: Task target when `target_type` is `task`.
-          example:
-            data: null
-        updated_at:
-          type: string
-          title: Updated At
-          format: date-time
-          description: Timestamp of the most recent change to the template.
-          example: '2026-04-29T12:27:06.627+02:00'
-        project_id:
-          type: integer
-          title: Project
-          description: Project identifier — filterable to scope templates to a specific project context.
-          example: 271026
-        task_project_id:
-          type: integer
-          title: Task Project
-          description: Filter-only field — limits task templates (`target_type=task`) to those whose underlying task belongs to the given project.
-          example: 271026
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp of when the template was created.
-          example: '2023-01-24T14:08:06.857+01:00'
-        target_id:
-          type: integer
-          title: Target
-          description: Id of the wrapped target.
-          example: '258974'
-        target_type:
-          enum:
-            - budget
-            - deal
-            - project
-            - page
-            - task
-            - report
-          type: string
-          title: Target Type
-          description: Identifies which entity type the template wraps. On create, selects the per-target `model_attributes` shape. `task` is read-only.
-          example: project
-        deleted_at:
-          type: string
-          title: Deleted At
-          format: date-time
-          nullable: true
-          description: Timestamp marking soft deletion. Non-null values mean the template is in Trash and recoverable via the `/deleted_items` endpoint.
-          example: null
-        description:
-          type: string
-          title: Description
-          nullable: true
-          description: Free-text note attached to the template.
-          example: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
-        project:
-          title: Project
-          description: Project this template was scoped under (denormalized via the wrapped target).
-          example:
-            data:
-              type: projects
-              id: '258974'
-        model_attributes:
-          type: object
-          title: Model Attributes
-          additionalProperties: true
-          description: Form-only polymorphic input bag. Required keys depend on `target_type` — see the create endpoint description for the per-target schema.
-          example:
-            client_id: 412
-            project_manager_id: 13
-            project_type_id: 2
-            workflow_id: 1
-            project_color_id: 5
-        color_id:
-          type: integer
-          title: Color
-          nullable: true
-          description: Color label assigned to the template.
-          example: null
-        id:
-          type: integer
-          title: Id
-          description: Numeric identifier of the template.
-          example: '18'
-        query:
-          type: string
-          title: Query
-          description: Free-text query — matches against the wrapped target name.
-          example: offboarding
-      description: Reusable starting point for a project, budget, deal, or page. Each template wraps a real entity (its `target`) created with template semantics; `target_type` discriminates the polymorphic create payload.
-      example:
-        type: templates
-        id: '18'
-        attributes:
-          name: 'Offboarding: General'
-          description: Popis stvari koje trebamo obaviti kada osoba odlazi iz firme
-          target_id: '258974'
-          target_type: project
-          color_id: null
-          created_at: '2023-01-24T14:08:06.857+01:00'
-          updated_at: '2026-04-29T12:27:06.627+02:00'
-          deleted_at: null
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    single_template:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      name:
-                        $ref: '#/components/schemas/resource_template/properties/name'
-                      color_id:
-                        $ref: '#/components/schemas/resource_template/properties/color_id'
-                      target_id:
-                        $ref: '#/components/schemas/resource_template/properties/target_id'
-                      created_at:
-                        $ref: '#/components/schemas/resource_template/properties/created_at'
-                      deleted_at:
-                        $ref: '#/components/schemas/resource_template/properties/deleted_at'
-                      updated_at:
-                        $ref: '#/components/schemas/resource_template/properties/updated_at'
-                      description:
-                        $ref: '#/components/schemas/resource_template/properties/description'
-                      target_type:
-                        $ref: '#/components/schemas/resource_template/properties/target_type'
-                  relationships:
-                    type: object
-                    properties:
-                      deal:
-                        $ref: '#/components/schemas/_single_relationship'
-                      page:
-                        $ref: '#/components/schemas/_single_relationship'
-                      task:
-                        $ref: '#/components/schemas/_single_relationship'
-                      filter:
-                        $ref: '#/components/schemas/_single_relationship'
-                      creator:
-                        $ref: '#/components/schemas/_single_relationship'
-                      project:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Successful response containing the requested template.
-    collection_template:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        name:
-                          $ref: '#/components/schemas/resource_template/properties/name'
-                        color_id:
-                          $ref: '#/components/schemas/resource_template/properties/color_id'
-                        target_id:
-                          $ref: '#/components/schemas/resource_template/properties/target_id'
-                        created_at:
-                          $ref: '#/components/schemas/resource_template/properties/created_at'
-                        deleted_at:
-                          $ref: '#/components/schemas/resource_template/properties/deleted_at'
-                        updated_at:
-                          $ref: '#/components/schemas/resource_template/properties/updated_at'
-                        description:
-                          $ref: '#/components/schemas/resource_template/properties/description'
-                        target_type:
-                          $ref: '#/components/schemas/resource_template/properties/target_type'
-                    relationships:
-                      type: object
-                      properties:
-                        deal:
-                          $ref: '#/components/schemas/_single_relationship'
-                        page:
-                          $ref: '#/components/schemas/_single_relationship'
-                        task:
-                          $ref: '#/components/schemas/_single_relationship'
-                        filter:
-                          $ref: '#/components/schemas/_single_relationship'
-                        creator:
-                          $ref: '#/components/schemas/_single_relationship'
-                        project:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Successful response containing a paginated list of templates.
+    filter_template:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.template at the top of this file.
+      required: false
+      description: Filter the templates collection. Accepts a deepObject of operator-keyed fields (see `_filter_root_template`).

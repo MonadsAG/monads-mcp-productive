@@ -2,306 +2,32 @@ openapi: 3.1.0
 info:
   title: Productive.io API – People
   version: 2.0.0
-description: For more details on how to work with custom fields please refer to [Working with custom fields](https://developer.productive.io/working_with_custom_fields.html#working_with_custom_fields) guide.
+description: |-
+  Every person in an organization is a `people` record. The `person_type` filter distinguishes four kinds:
+
+  - **User**: has a Productive login and can sign in. Employees, contractors and client users are all users.
+  - **Contact**: a person record without a login, typically someone at a client company kept for CRM and communication. Cannot sign in or track time.
+  - **Placeholder**: a named slot used in resource planning to book time before a real person is hired or assigned. Has no login.
+  - **Agent**: an AI agent acting inside the organization on behalf of its manager.
+
+  For more details on how to work with custom fields please refer to [Working with custom fields](https://developer.productive.io/working_with_custom_fields.html#working_with_custom_fields) guide.
+
+  ### Creating and inviting a person
+
+  Adding a person takes two requests.
+
+  1. **`POST /api/v2/people`** creates the person record. It has no login yet and appears as a **Contact** in the `person_type` filter. `company_id` and `role_id` are required, and the person needs an `email` before it can be invited.
+  2. **`PATCH /api/v2/people/{id}/invite`** turns the record into a **User**. It creates or links the user account for the email, applies `company_id`, `custom_role_id` and, for time tracker roles, `subsidiary_id`, and sends the invitation email.
+
+  #### `skip_invite`
+
+  Add `?skip_invite=true` to the invite request to create and link the user account without sending the email. The person is marked `virtual: true` and `invited_at` stays empty.
+
+  Use it when you are importing people who should exist in planning, reports and time tracking but should not get access yet, or ever. Do not use it for people who need to sign in, since no email is sent and `PATCH /api/v2/people/{id}/resend` does nothing for virtual people.
 x-filters:
   person:
-    approval_policy_id:
-      description: Filter by the person's assigned approval policy.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    jump_query:
-      description: Quick jump search filter — matches against name for navigation shortcuts.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    email:
-      description: Filter by email address (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    status:
-      description: 'Filter by person status: 1 (active) or 2 (deactivated).'
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    permissions:
-      description: Filter by permission set — returns people with the specified permission slugs.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    full_query:
-      description: Full text search filter — matches against name and other indexed fields.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    last_name:
-      description: Filter by last name (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    bookings_after:
-      description: Filter by bookings_after date — returns people with bookings ending on or after this date.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    service_id:
-      description: Filter by service ID — returns people who can track time on the specified service.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    virtual:
-      description: Filter by virtual status — whether this is a virtual person record.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    custom_fields:
-      description: Filter by custom field values.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    subscribable_type:
-      description: Filter by subscribable type — the resource type to match subscribers against.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    accessible_project_id:
-      description: Filter by accessible project ID — returns people who have access to the specified project.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    team:
-      description: Filter by team ID — returns people who belong to the specified team(s).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    bookings_before:
-      description: Filter by bookings_before date — returns people with bookings starting on or before this date.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    deactivated_at:
-      description: Filter by deactivation date range (deactivated_at).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    fuzzy_dates:
-      description: Fuzzy date filter for approximate date matching.
-      operators:
-        - eq
-        - not_eq
-    id:
-      description: Filter by person ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    person_type:
-      description: 'Filter by person type: user (can log in), contact (external), placeholder (resource planning).'
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    joined_at:
-      description: Filter by the date the person joined the organization (joined_at).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    shared_seat:
-      operators:
-        - eq
-        - not_eq
-    job_role_id:
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    holiday_calendar_id:
-      description: Filter by the person's assigned holiday calendar.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    last_seen_at:
-      description: Filter by the date the person was last seen (last_seen_at).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    first_name:
-      description: Filter by first name (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    offboarding_status:
-      description: Filter by offboarding status (e.g. active, in-progress).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    manager_id:
-      description: Filter by the person's manager.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    project_id:
-      description: Filter by project ID — returns people who are members of the specified project.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    hrm_type_id:
-      description: 'Filter by HRM type: 1 for employee (time tracker), 2 for contact.'
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    eligible_replacement_managers:
-      description: Filter for eligible replacement managers — returns people who could replace the specified person as a manager.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    custom_role_id:
-      description: Filter by custom role (permission set) ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    autotracking:
-      description: Filter by autotracking (automatic time tracking) status.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    role_id:
-      description: Filter by built-in role type ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    query:
-      description: Text search filter — matches by full name (exact) or contains partial name.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    last_activity_at:
-      description: Filter by the date of the person's last activity (last_activity_at).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    timesheet_submission_disabled:
-      description: Filter by whether timesheet submission is disabled for the person.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    time_tracking_policy_id:
-      description: Filter by the person's assigned time tracking policy.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    subscribable_id:
-      description: Filter by subscribable ID — used with subscribable_type to return subscribers of a resource.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    approval_workflow_id:
-      description: Filter by approval workflow ID — returns people who have approvals in the specified workflow.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    schedulable:
-      description: Filter for schedulable people — returns employees, contractors, and placeholders who can be booked.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    agent:
-      description: Filter by whether the person is an AI agent.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    accessible_doc_id:
-      description: Filter by accessible doc ID — returns people who have access to the specified document.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    fuzzy_people:
-      description: Fuzzy people filter for approximate person name matching.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    project_watching:
-      description: Filter by project_watching — returns people who are auto-subscribed to the specified project.
+    tags:
+      description: Filter by tag.
       operators:
         - contains
         - eq
@@ -314,50 +40,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    created_at:
-      description: Filter by creation date range (created_at).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    service_type_id:
-      description: Filter by service type ID — returns people assigned to the specified service types.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    tags:
-      description: Filter by tag.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    archived_at:
-      description: Filter by archival date range (archived_at).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    company_id:
-      description: Filter by company (client) ID.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    title:
-      description: Filter by job title (text search).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    subsidiary_id:
-      description: Filter by the person's subsidiary.
+    accessible_doc_id:
+      description: Filter by accessible doc ID — returns people who have access to the specified document.
       operators:
         - contains
         - eq
@@ -370,33 +54,379 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    accessible_project_id:
+      description: Filter by accessible project ID — returns people who have access to the specified project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    approval_policy_id:
+      description: Filter by the person's assigned approval policy.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    approval_workflow_id:
+      description: Filter by approval workflow ID — returns people who have approvals in the specified workflow.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    archived_at:
+      description: Filter by archival date range (archived_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    autotracking:
+      description: Filter by autotracking (automatic time tracking) status.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    bookings_after:
+      description: Filter by bookings_after date — returns people with bookings ending on or after this date.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    bookings_before:
+      description: Filter by bookings_before date — returns people with bookings starting on or before this date.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    company_id:
+      description: Filter by company (client) ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    created_at:
+      description: Filter by creation date range (created_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    custom_fields:
+      description: Filter by custom field values.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    custom_role_id:
+      description: Filter by custom role (permission set) ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    deactivated_at:
+      description: Filter by deactivation date range (deactivated_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    eligible_replacement_managers:
+      description: Filter for eligible replacement managers — returns people who could replace the specified person as a manager.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    email:
+      description: Filter by email address (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    first_name:
+      description: Filter by first name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    full_query:
+      description: Full text search filter — matches against name and other indexed fields.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    fuzzy_dates:
+      description: Fuzzy date filter for approximate date matching.
+      operators:
+        - eq
+        - not_eq
+    fuzzy_people:
+      description: Fuzzy people filter for approximate person name matching.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    holiday_calendar_id:
+      description: Filter by the person's assigned holiday calendar.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    hrm_type_id:
+      description: 'Filter by HRM type: 1 for employee (time tracker), 2 for contact.'
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by person ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    joined_at:
+      description: Filter by the date the person joined the organization (joined_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    jump_query:
+      description: Quick jump search filter — matches against name for navigation shortcuts.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    last_activity_at:
+      description: Filter by the date of the person's last activity (last_activity_at).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    last_name:
+      description: Filter by last name (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    manager_id:
+      description: Filter by the person's manager.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    offboarding_status:
+      description: Filter by offboarding status (e.g. active, in-progress).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    permissions:
+      description: Filter by permission set — returns people with the specified permission slugs.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    person_type:
+      description: 'Filter by person type: user (can log in), contact (external), placeholder (resource planning).'
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by project ID — returns people who are members of the specified project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_watching:
+      description: Filter by project_watching — returns people who are auto-subscribed to the specified project.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Text search filter — matches by full name (exact) or contains partial name.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    role_id:
+      description: Filter by built-in role type ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    schedulable:
+      description: Filter for schedulable people — returns employees, contractors, and placeholders who can be booked.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    service_id:
+      description: Filter by service ID — returns people who can track time on the specified service.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    service_type_id:
+      description: Filter by service type ID — returns people assigned to the specified service types.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    status:
+      description: 'Filter by person status: 1 (active) or 2 (deactivated).'
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subscribable_id:
+      description: Filter by subscribable ID — used with subscribable_type to return subscribers of a resource.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subscribable_type:
+      description: Filter by subscribable type — the resource type to match subscribers against.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    subsidiary_id:
+      description: Filter by the person's subsidiary.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    team:
+      description: Filter by team ID — returns people who belong to the specified team(s).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    time_tracking_policy_id:
+      description: Filter by the person's assigned time tracking policy.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    timesheet_submission_disabled:
+      description: Filter by whether timesheet submission is disabled for the person.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    title:
+      description: Filter by job title (text search).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    virtual:
+      description: Filter by virtual status — whether this is a virtual person record.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    agent:
+      description: Filter by whether the person is an AI agent.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    shared_seat:
+      description: Filter by whether the person holds a shared seat in the billing group.
+      operators:
+        - eq
+        - not_eq
+    job_role_id:
+      description: Filter by job role ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
   /api/v2/people/{id}/activate:
     patch:
       tags:
         - People
       summary: Activate a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
+      operationId: people-activate-activate
+      description: Reactivate a previously deactivated person, restoring their access to the organization.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: people-activate-activate
-      description: Reactivate a previously deactivated person, restoring their access to the organization.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/{id}/archive:
     patch:
       tags:
         - People
       summary: Archive a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
+      operationId: people-archive-archive
+      description: Archive a person record. Archived people are hidden from most views and cannot log in.
       parameters:
         - in: path
           name: id
@@ -404,78 +434,124 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: people-archive-archive
-      description: Archive a person record. Archived people are hidden from most views and cannot log in.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people:
     get:
       tags:
         - People
       summary: Get people
+      operationId: people-index
+      description: List people in the organization. Supports filtering by name, email, type, status, team, company, manager, tags, and custom fields.
+      parameters:
+        - $ref: '#/components/parameters/filter_person'
+        - $ref: '#/components/parameters/sort_person'
       responses:
         '200':
           $ref: '#/components/responses/collection_person'
-      parameters:
-        - $ref: '#/components/parameters/sort_person'
-        - $ref: '#/components/parameters/header_organization'
-        - $ref: '#/components/parameters/filter_person'
-      operationId: people-index
-      description: List people in the organization. Supports filtering by name, email, type, status, team, company, manager, tags, and custom fields.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     post:
       tags:
         - People
       summary: Create a person
+      operationId: people-create
+      description: Create a new person. Depending on the role and company assignment, the person will be classified as an employee, contractor, client contact, or placeholder.
+      requestBody:
+        $ref: '#/components/requestBodies/person'
       responses:
         '201':
           $ref: '#/components/responses/single_person'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
         '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: people-create
-      requestBody:
-        $ref: '#/components/requestBodies/person'
-      description: Create a new person. Depending on the role and company assignment, the person will be classified as an employee, contractor, client contact, or placeholder.
+          $ref: '#/components/responses/unprocessable_content_person'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/{id}/deactivate:
     patch:
       tags:
         - People
       summary: Deactivate a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
+      operationId: people-deactivate-deactivate
+      description: Deactivate a person, removing their platform access. Their data is retained.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: people-deactivate-deactivate
-      description: Deactivate a person, removing their platform access. Their data is retained.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/{id}/invite:
     patch:
       tags:
         - People
       summary: Invite a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
+      operationId: people-invite-invite
+      description: |
+        Action used to invite contacts into your Productive organization. By doing so, the contact can accept that invitation and then become a user.
       parameters:
         - in: path
           name: id
@@ -483,27 +559,65 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: people-invite-invite
-      description: |
-        Action used to invite contacts into your Productive organization. By doing so, the contact can accept that invitation and then become a user.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '422':
+          $ref: '#/components/responses/unprocessable_content'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/merge:
     patch:
       tags:
         - People
       summary: Merge a person
+      operationId: people-merge-merge
+      description: Merge two person records into one, transferring all associated data to the target person.
       responses:
         '200':
           $ref: '#/components/responses/single_person'
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: people-merge-merge
-      description: Merge two person records into one, transferring all associated data to the target person.
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/{id}/regenerate_recovery_codes:
     patch:
       tags:
         - People
       summary: Regenerate 2FA recovery codes
+      operationId: people-regenerate_recovery_codes-regenerate_recovery_codes
+      description: Regenerate two-factor authentication recovery codes for the person.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: ID
       responses:
         '200':
           $ref: '#/components/responses/single_person'
@@ -512,24 +626,29 @@ paths:
             any: {}
           headers: {}
           description: No Content
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-          required: true
-          description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: people-regenerate_recovery_codes-regenerate_recovery_codes
-      description: Regenerate two-factor authentication recovery codes for the person.
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/{id}/resend:
     patch:
       tags:
         - People
       summary: Resend email to a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
+      operationId: people-resend-resend
+      description: Resend the invitation email to a person who has not yet accepted their invite.
       parameters:
         - in: path
           name: id
@@ -537,51 +656,69 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: people-resend-resend
-      description: Resend the invitation email to a person who has not yet accepted their invite.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/{id}/restore:
     patch:
       tags:
         - People
       summary: Restore a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
-        '409':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Conflict
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: The person could not be restored due to validation errors.
+      operationId: people-restore-restore
+      description: Restore an archived person, making them active again.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: people-restore-restore
-      description: Restore an archived person, making them active again.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '422':
+          $ref: '#/components/responses/unprocessable_content'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/{id}:
     get:
       tags:
         - People
       summary: Get a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
+      operationId: people-show
+      description: Retrieve a single person by ID.
       parameters:
         - in: path
           name: id
@@ -589,419 +726,827 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: people-show
-      description: Retrieve a single person by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     patch:
       tags:
         - People
       summary: Update a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
+      operationId: people-update
+      description: Update an existing person's attributes, relationships, or settings.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: people-update
       requestBody:
         $ref: '#/components/requestBodies/person'
-      description: Update an existing person's attributes, relationships, or settings.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_person'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/people/{id}/virtualize:
     patch:
       tags:
         - People
       summary: Virtualize a person
-      responses:
-        '200':
-          $ref: '#/components/responses/single_person'
+      operationId: people-virtualize-virtualize
+      description: Convert a person to a virtual (non-seat) record, used for system or integration purposes.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: people-virtualize-virtualize
-      description: Convert a person to a virtual (non-seat) record, used for system or integration purposes.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_person'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_person:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.person at the top of this file.
-      required: false
-      description: Filters
-    sort_person:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          enum:
-            - autotracking
-            - -autotracking
-            - company_name
-            - -company_name
-            - custom_fields
-            - -custom_fields
-            - custom_role
-            - -custom_role
-            - email
-            - -email
-            - job_role
-            - -job_role
-            - joined_at
-            - -joined_at
-            - last_seen_at
-            - -last_seen_at
-            - manager
-            - -manager
-            - name
-            - -name
-            - resource_request_match
-            - -resource_request_match
-            - role_id
-            - -role_id
-            - schedulable
-            - -schedulable
-            - subsidiary
-            - -subsidiary
-            - title
-            - -title
-            - two_factor_auth
-            - -two_factor_auth
-          type: string
-        title: Sort person
-      explode: false
-      required: false
-      description: Sort person
   responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
     single_person:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: Single person response.
             properties:
               data:
-                type: object
-                properties:
-                  attributes:
-                    type: object
-                    properties:
-                      agent:
-                        $ref: '#/components/schemas/resource_person/properties/agent'
-                      email:
-                        $ref: '#/components/schemas/resource_person/properties/email'
-                      title:
-                        $ref: '#/components/schemas/resource_person/properties/title'
-                      contact:
-                        $ref: '#/components/schemas/resource_person/properties/contact'
-                      is_user:
-                        $ref: '#/components/schemas/resource_person/properties/is_user'
-                      role_id:
-                        $ref: '#/components/schemas/resource_person/properties/role_id'
-                      user_id:
-                        $ref: '#/components/schemas/resource_person/properties/user_id'
-                      virtual:
-                        $ref: '#/components/schemas/resource_person/properties/virtual'
-                      champion:
-                        $ref: '#/components/schemas/resource_person/properties/champion'
-                      color_id:
-                        $ref: '#/components/schemas/resource_person/properties/color_id'
-                      nickname:
-                        $ref: '#/components/schemas/resource_person/properties/nickname'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_person/properties/tag_list'
-                      joined_at:
-                        $ref: '#/components/schemas/resource_person/properties/joined_at'
-                      last_name:
-                        $ref: '#/components/schemas/resource_person/properties/last_name'
-                      avatar_url:
-                        $ref: '#/components/schemas/resource_person/properties/avatar_url'
-                      created_at:
-                        $ref: '#/components/schemas/resource_person/properties/created_at'
-                      first_name:
-                        $ref: '#/components/schemas/resource_person/properties/first_name'
-                      invited_at:
-                        $ref: '#/components/schemas/resource_person/properties/invited_at'
-                      archived_at:
-                        $ref: '#/components/schemas/resource_person/properties/archived_at'
-                      external_id:
-                        $ref: '#/components/schemas/resource_person/properties/external_id'
-                      hrm_type_id:
-                        $ref: '#/components/schemas/resource_person/properties/hrm_type_id'
-                      placeholder:
-                        $ref: '#/components/schemas/resource_person/properties/placeholder'
-                      sample_data:
-                        $ref: '#/components/schemas/resource_person/properties/sample_data'
-                      status_text:
-                        $ref: '#/components/schemas/resource_person/properties/status_text'
-                      autotracking:
-                        $ref: '#/components/schemas/resource_person/properties/autotracking'
-                      last_seen_at:
-                        $ref: '#/components/schemas/resource_person/properties/last_seen_at'
-                      status_emoji:
-                        $ref: '#/components/schemas/resource_person/properties/status_emoji'
-                      custom_fields:
-                        $ref: '#/components/schemas/resource_person/properties/custom_fields'
-                      external_sync:
-                        $ref: '#/components/schemas/resource_person/properties/external_sync'
-                      time_unlocked:
-                        $ref: '#/components/schemas/resource_person/properties/time_unlocked'
-                      availabilities:
-                        $ref: '#/components/schemas/resource_person/properties/availabilities'
-                      deactivated_at:
-                        $ref: '#/components/schemas/resource_person/properties/deactivated_at'
-                      offboarding_id:
-                        $ref: '#/components/schemas/resource_person/properties/offboarding_id'
-                      two_factor_auth:
-                        $ref: '#/components/schemas/resource_person/properties/two_factor_auth'
-                      last_activity_at:
-                        $ref: '#/components/schemas/resource_person/properties/last_activity_at'
-                      time_unlocked_on:
-                        $ref: '#/components/schemas/resource_person/properties/time_unlocked_on'
-                      status_expires_at:
-                        $ref: '#/components/schemas/resource_person/properties/status_expires_at'
-                      offboarding_status:
-                        $ref: '#/components/schemas/resource_person/properties/offboarding_status'
-                      original_avatar_url:
-                        $ref: '#/components/schemas/resource_person/properties/original_avatar_url'
-                      time_off_status_sync:
-                        $ref: '#/components/schemas/resource_person/properties/time_off_status_sync'
-                      time_unlocked_end_date:
-                        $ref: '#/components/schemas/resource_person/properties/time_unlocked_end_date'
-                      time_unlocked_interval:
-                        $ref: '#/components/schemas/resource_person/properties/time_unlocked_interval'
-                      time_tracking_policy_id:
-                        $ref: '#/components/schemas/resource_person/properties/time_tracking_policy_id'
-                      time_unlocked_period_id:
-                        $ref: '#/components/schemas/resource_person/properties/time_unlocked_period_id'
-                      time_unlocked_start_date:
-                        $ref: '#/components/schemas/resource_person/properties/time_unlocked_start_date'
-                      timesheet_submission_disabled:
-                        $ref: '#/components/schemas/resource_person/properties/timesheet_submission_disabled'
-                  relationships:
-                    type: object
-                    properties:
-                      teams:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      import:
-                        $ref: '#/components/schemas/_single_relationship'
-                      company:
-                        $ref: '#/components/schemas/_single_relationship'
-                      manager:
-                        $ref: '#/components/schemas/_single_relationship'
-                      job_role:
-                        $ref: '#/components/schemas/_single_relationship'
-                      subsidiary:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_role:
-                        $ref: '#/components/schemas/_single_relationship'
-                      organization:
-                        $ref: '#/components/schemas/_single_relationship'
-                      service_types:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      custom_field_people:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      time_tracking_policy:
-                        $ref: '#/components/schemas/_single_relationship'
-                      custom_field_attachments:
-                        $ref: '#/components/schemas/_collection_relationship'
-                      approval_policy_assignment:
-                        $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                $ref: '#/components/schemas/_response_object_person'
               included:
                 type: array
-                items: {}
+                items:
+                  description: A related resource included in the response.
+                  example:
+                    eq: value
+                description: Related resources included in the response (sideloaded data).
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            required:
+              - data
+            example:
+              data:
+                id: '12'
+                type: people
+                attributes:
+                  agent: false
+                  avatar_url: null
+                  contact: {}
+                  deactivated_at: null
+                  email: alex.smith@example.com
+                  first_name: Alex
+                  last_name: Smith
+                  nickname: alex
+                  title: Senior Developer
+                  role_id: 1
+                  status_emoji: null
+                  status_text: null
+                  status_expires_at: null
+                  time_off_status_sync: false
+                  archived_at: null
+                  autotracking: false
+                  joined_at: '2026-01-01T00:00:00.000+00:00'
+                  last_seen_at: '2026-03-15T10:00:00.000+00:00'
+                  invited_at: null
+                  is_user: true
+                  user_id: 456
+                  tag_list: []
+                  virtual: false
+                  custom_fields: null
+                  created_at: '2026-01-01T00:00:00.000+00:00'
+                  placeholder: false
+                  color_id: '5'
+                  two_factor_auth: false
+                  availabilities:
+                    - - 8
+                      - 0
+                      - 0
+                      - 0
+                      - 0
+                  hrm_type_id: 1
+                  champion: false
+                  offboarding_status: null
+                  offboarding_id: null
+                  time_tracking_policy_id: null
+                relationships:
+                  company:
+                    data: null
+                  manager:
+                    data:
+                      type: people
+                      id: '8'
+                  teams:
+                    data:
+                      - type: teams
+                        id: '3'
+              included: []
       description: Single person
-    collection_person:
+    unprocessable_content_person:
       content:
         application/vnd.api+json:
           schema:
             type: object
             properties:
-              data:
+              errors:
                 type: array
                 items:
                   type: object
+                  title: Error
                   properties:
-                    attributes:
+                    code:
+                      $ref: '#/components/schemas/error_code_person'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    unprocessable_content:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unprocessable_content'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    conflict:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_conflict'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
                       type: object
-                      properties:
-                        agent:
-                          $ref: '#/components/schemas/resource_person/properties/agent'
-                        email:
-                          $ref: '#/components/schemas/resource_person/properties/email'
-                        title:
-                          $ref: '#/components/schemas/resource_person/properties/title'
-                        contact:
-                          $ref: '#/components/schemas/resource_person/properties/contact'
-                        is_user:
-                          $ref: '#/components/schemas/resource_person/properties/is_user'
-                        role_id:
-                          $ref: '#/components/schemas/resource_person/properties/role_id'
-                        user_id:
-                          $ref: '#/components/schemas/resource_person/properties/user_id'
-                        virtual:
-                          $ref: '#/components/schemas/resource_person/properties/virtual'
-                        champion:
-                          $ref: '#/components/schemas/resource_person/properties/champion'
-                        color_id:
-                          $ref: '#/components/schemas/resource_person/properties/color_id'
-                        nickname:
-                          $ref: '#/components/schemas/resource_person/properties/nickname'
-                        tag_list:
-                          $ref: '#/components/schemas/resource_person/properties/tag_list'
-                        joined_at:
-                          $ref: '#/components/schemas/resource_person/properties/joined_at'
-                        last_name:
-                          $ref: '#/components/schemas/resource_person/properties/last_name'
-                        avatar_url:
-                          $ref: '#/components/schemas/resource_person/properties/avatar_url'
-                        created_at:
-                          $ref: '#/components/schemas/resource_person/properties/created_at'
-                        first_name:
-                          $ref: '#/components/schemas/resource_person/properties/first_name'
-                        invited_at:
-                          $ref: '#/components/schemas/resource_person/properties/invited_at'
-                        archived_at:
-                          $ref: '#/components/schemas/resource_person/properties/archived_at'
-                        external_id:
-                          $ref: '#/components/schemas/resource_person/properties/external_id'
-                        hrm_type_id:
-                          $ref: '#/components/schemas/resource_person/properties/hrm_type_id'
-                        placeholder:
-                          $ref: '#/components/schemas/resource_person/properties/placeholder'
-                        sample_data:
-                          $ref: '#/components/schemas/resource_person/properties/sample_data'
-                        status_text:
-                          $ref: '#/components/schemas/resource_person/properties/status_text'
-                        autotracking:
-                          $ref: '#/components/schemas/resource_person/properties/autotracking'
-                        last_seen_at:
-                          $ref: '#/components/schemas/resource_person/properties/last_seen_at'
-                        status_emoji:
-                          $ref: '#/components/schemas/resource_person/properties/status_emoji'
-                        custom_fields:
-                          $ref: '#/components/schemas/resource_person/properties/custom_fields'
-                        external_sync:
-                          $ref: '#/components/schemas/resource_person/properties/external_sync'
-                        time_unlocked:
-                          $ref: '#/components/schemas/resource_person/properties/time_unlocked'
-                        availabilities:
-                          $ref: '#/components/schemas/resource_person/properties/availabilities'
-                        deactivated_at:
-                          $ref: '#/components/schemas/resource_person/properties/deactivated_at'
-                        offboarding_id:
-                          $ref: '#/components/schemas/resource_person/properties/offboarding_id'
-                        two_factor_auth:
-                          $ref: '#/components/schemas/resource_person/properties/two_factor_auth'
-                        last_activity_at:
-                          $ref: '#/components/schemas/resource_person/properties/last_activity_at'
-                        time_unlocked_on:
-                          $ref: '#/components/schemas/resource_person/properties/time_unlocked_on'
-                        status_expires_at:
-                          $ref: '#/components/schemas/resource_person/properties/status_expires_at'
-                        offboarding_status:
-                          $ref: '#/components/schemas/resource_person/properties/offboarding_status'
-                        original_avatar_url:
-                          $ref: '#/components/schemas/resource_person/properties/original_avatar_url'
-                        time_off_status_sync:
-                          $ref: '#/components/schemas/resource_person/properties/time_off_status_sync'
-                        time_unlocked_end_date:
-                          $ref: '#/components/schemas/resource_person/properties/time_unlocked_end_date'
-                        time_unlocked_interval:
-                          $ref: '#/components/schemas/resource_person/properties/time_unlocked_interval'
-                        time_tracking_policy_id:
-                          $ref: '#/components/schemas/resource_person/properties/time_tracking_policy_id'
-                        time_unlocked_period_id:
-                          $ref: '#/components/schemas/resource_person/properties/time_unlocked_period_id'
-                        time_unlocked_start_date:
-                          $ref: '#/components/schemas/resource_person/properties/time_unlocked_start_date'
-                        timesheet_submission_disabled:
-                          $ref: '#/components/schemas/resource_person/properties/timesheet_submission_disabled'
-                    relationships:
-                      type: object
-                      properties:
-                        teams:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        import:
-                          $ref: '#/components/schemas/_single_relationship'
-                        company:
-                          $ref: '#/components/schemas/_single_relationship'
-                        manager:
-                          $ref: '#/components/schemas/_single_relationship'
-                        job_role:
-                          $ref: '#/components/schemas/_single_relationship'
-                        subsidiary:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_role:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-                        service_types:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        custom_field_people:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        time_tracking_policy:
-                          $ref: '#/components/schemas/_single_relationship'
-                        custom_field_attachments:
-                          $ref: '#/components/schemas/_collection_relationship'
-                        approval_policy_assignment:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Conflict
+    collection_person:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated collection response containing person resources.
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/_response_object_person'
+                description: Array of person resource objects in the collection.
+                example:
+                  eq: value
               included:
                 type: array
-                items: {}
+                items:
+                  description: A related resource included in the response.
+                  example:
+                    eq: value
+                description: Related resources included in the response (sideloaded data).
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+              links:
+                $ref: '#/components/schemas/_links'
+            required:
+              - data
+            example:
+              data:
+                - id: '12'
+                  type: people
+                  attributes:
+                    agent: false
+                    avatar_url: null
+                    contact: {}
+                    deactivated_at: null
+                    email: alex.smith@example.com
+                    first_name: Alex
+                    last_name: Smith
+                    nickname: alex
+                    title: Senior Developer
+                    role_id: 1
+                    status_emoji: null
+                    status_text: null
+                    status_expires_at: null
+                    time_off_status_sync: false
+                    archived_at: null
+                    autotracking: false
+                    joined_at: '2026-01-01T00:00:00.000+00:00'
+                    last_seen_at: '2026-03-15T10:00:00.000+00:00'
+                    invited_at: null
+                    is_user: true
+                    user_id: 456
+                    tag_list: []
+                    virtual: false
+                    custom_fields: null
+                    created_at: '2026-01-01T00:00:00.000+00:00'
+                    placeholder: false
+                    color_id: '5'
+                    two_factor_auth: false
+                    availabilities:
+                      - - 8
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                    hrm_type_id: 1
+                    champion: false
+                    offboarding_status: null
+                    offboarding_id: null
+                    time_tracking_policy_id: null
+                  relationships:
+                    company:
+                      data: null
+                    manager:
+                      data:
+                        type: people
+                        id: '8'
+                    teams:
+                      data:
+                        - type: teams
+                          id: '3'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
       description: Collection person
   schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
         current_page:
           type: integer
           description: The current page number in this paginated response (1-based).
           example: 1
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
         organization_features:
           type: object
           description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
           example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -1009,61 +1554,248 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
+        total_count:
           type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
           type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
+          description: Total number of pages available for the current query and page size.
+          example: 5
       example:
         current_page: 1
         total_pages: 5
         total_count: 42
         page_size: 30
         max_page_size: 200
+    _response_object_person:
+      type: object
+      title: Person
+      properties:
+        attributes:
+          type: object
+          properties:
+            agent:
+              $ref: '#/components/schemas/resource_person/properties/agent'
+            ai_assistant_instructions:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/ai_assistant_instructions'
+                - type: 'null'
+            archived_at:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/archived_at'
+                - type: 'null'
+            autotracking:
+              $ref: '#/components/schemas/resource_person/properties/autotracking'
+            availabilities:
+              $ref: '#/components/schemas/resource_person/properties/availabilities'
+            avatar_url:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/avatar_url'
+                - type: 'null'
+            champion:
+              $ref: '#/components/schemas/resource_person/properties/champion'
+            color_id:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/color_id'
+                - type: 'null'
+            contact:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/contact'
+                - type: 'null'
+            created_at:
+              $ref: '#/components/schemas/resource_person/properties/created_at'
+            custom_fields:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/custom_fields'
+                - type: 'null'
+            deactivated_at:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/deactivated_at'
+                - type: 'null'
+            email:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/email'
+                - type: 'null'
+            external_id:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/external_id'
+                - type: 'null'
+            external_sync:
+              $ref: '#/components/schemas/resource_person/properties/external_sync'
+            first_name:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/first_name'
+                - type: 'null'
+            hrm_type_id:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/hrm_type_id'
+                - type: 'null'
+            invited_at:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/invited_at'
+                - type: 'null'
+            is_subordinate_to_current_person:
+              $ref: '#/components/schemas/resource_person/properties/is_subordinate_to_current_person'
+            is_user:
+              $ref: '#/components/schemas/resource_person/properties/is_user'
+            joined_at:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/joined_at'
+                - type: 'null'
+            last_activity_at:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/last_activity_at'
+                - type: 'null'
+            last_name:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/last_name'
+                - type: 'null'
+            last_seen_at:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/last_seen_at'
+                - type: 'null'
+            nickname:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/nickname'
+                - type: 'null'
+            offboarding_id:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/offboarding_id'
+                - type: 'null'
+            offboarding_status:
+              $ref: '#/components/schemas/resource_person/properties/offboarding_status'
+            original_avatar_url:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/original_avatar_url'
+                - type: 'null'
+            placeholder:
+              $ref: '#/components/schemas/resource_person/properties/placeholder'
+            role_id:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/role_id'
+                - type: 'null'
+            sample_data:
+              $ref: '#/components/schemas/resource_person/properties/sample_data'
+            shared_seat:
+              $ref: '#/components/schemas/resource_person/properties/shared_seat'
+            status_emoji:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/status_emoji'
+                - type: 'null'
+            status_expires_at:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/status_expires_at'
+                - type: 'null'
+            status_text:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/status_text'
+                - type: 'null'
+            tag_list:
+              $ref: '#/components/schemas/resource_person/properties/tag_list'
+            time_off_status_sync:
+              $ref: '#/components/schemas/resource_person/properties/time_off_status_sync'
+            time_tracking_policy_id:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/time_tracking_policy_id'
+                - type: 'null'
+            time_unlocked:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/time_unlocked'
+                - type: 'null'
+            time_unlocked_end_date:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/time_unlocked_end_date'
+                - type: 'null'
+            time_unlocked_interval:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/time_unlocked_interval'
+                - type: 'null'
+            time_unlocked_on:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/time_unlocked_on'
+                - type: 'null'
+            time_unlocked_period_id:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/time_unlocked_period_id'
+                - type: 'null'
+            time_unlocked_start_date:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/time_unlocked_start_date'
+                - type: 'null'
+            timesheet_submission_disabled:
+              $ref: '#/components/schemas/resource_person/properties/timesheet_submission_disabled'
+            title:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/title'
+                - type: 'null'
+            two_factor_auth:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/two_factor_auth'
+                - type: 'null'
+            user_id:
+              anyOf:
+                - $ref: '#/components/schemas/resource_person/properties/user_id'
+                - type: 'null'
+            virtual:
+              $ref: '#/components/schemas/resource_person/properties/virtual'
+        id:
+          type: string
+        relationships:
+          type: object
+          properties:
+            approval_policy_assignment:
+              $ref: '#/components/schemas/_single_relationship'
+            company:
+              $ref: '#/components/schemas/_single_relationship'
+            custom_field_attachments:
+              $ref: '#/components/schemas/_collection_relationship'
+            custom_field_people:
+              $ref: '#/components/schemas/_collection_relationship'
+            custom_role:
+              $ref: '#/components/schemas/_single_relationship'
+            import:
+              $ref: '#/components/schemas/_single_relationship'
+            job_role:
+              $ref: '#/components/schemas/_single_relationship'
+            manager:
+              $ref: '#/components/schemas/_single_relationship'
+            organization:
+              $ref: '#/components/schemas/_single_relationship'
+            person_session:
+              $ref: '#/components/schemas/_single_relationship'
+            service_types:
+              $ref: '#/components/schemas/_collection_relationship'
+            subsidiary:
+              $ref: '#/components/schemas/_single_relationship'
+            teams:
+              $ref: '#/components/schemas/_collection_relationship'
+            time_tracking_policy:
+              $ref: '#/components/schemas/_single_relationship'
+        type:
+          enum:
+            - people
+          type: string
+      required:
+        - id
+        - type
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
         - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -1071,167 +1803,150 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
+          required:
+            - included
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
+      required:
+        - meta
       example:
         meta:
           included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
     _collection_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_collection_linkage'
         - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Collection data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/_resource'
-              description: Array of resource identifier objects for the related resources.
-              example:
-                - type: tasks
-                  id: '42'
-          description: Included variant — related resource identifiers are present in `data`.
-          example:
-            data:
-              - type: tasks
-                id: '42'
       description: A JSON:API collection relationship — links to zero or more related resources.
       example:
         data:
           - type: tasks
             id: '42'
+    _collection_linkage:
+      type: object
+      title: Collection linkage
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/_resource'
+      required:
+        - data
     resource_person:
       type: object
       title: Person Resource
+      description: A person represents an employee, contractor, contact, or placeholder within the organization.
       properties:
-        account_id:
-          title: Account
-          description: The organization (account) ID.
+        import:
+          title: Import
+          description: The data import that created this person, if they were added through an import rather than manually.
           example:
-            - 123
-        team:
-          type: integer
-          title: Team
-          description: Filter by team ID — returns people who belong to the specified team(s).
-          example:
-            eq: value
-        shared_seat:
-          type: boolean
-          title: Shared Seat
-          description: Whether the person holds a shared seat in the billing group.
-        placeholder:
-          type: boolean
-          title: Placeholder
-          description: Whether this person is a placeholder used for resource planning, without a real user account.
-          example:
-            eq: value
-        hrm_type_id:
-          enum:
-            - 1
-            - 2
-          type: integer
-          title: Hrm Type
-          description: 'HRM type ID: 1 for employee, 2 for contact. Null for placeholders.'
-          example:
-            - 123
-        role_id:
-          type: integer
-          title: Role
-          description: Filter by built-in role type ID.
-          example:
-            - 123
-        fuzzy_people:
+            data:
+              type: imports
+              id: '1842'
+        tags:
           type: string
-          title: Fuzzy People
-          description: Fuzzy people filter for approximate person name matching.
+          title: Tags
+          description: Tags applied to this person.
           example:
             eq: value
-        time_unlocked_start_date:
-          type: string
-          title: Time Unlocked Start Date
-          format: date
-          description: Start date of the time unlock window.
-          example:
-            gt: '2026-01-01'
         accessible_deal_id:
           type: integer
           title: Accessible Deal
           description: Filter by accessible deal ID — returns people who have access to the specified deal.
           example:
             - 123
-        is_subordinate_to_current_person:
-          type: boolean
-          title: Is Subordinate To Current Person
-        organization:
-          title: Organization
-          description: The organization this person belongs to.
-          example:
-            eq: value
-        time_unlocked:
-          type: boolean
-          title: Time Unlocked
-          description: Whether the person's time entries are unlocked for editing outside the normal window.
-          example:
-            gt: 0
-        contact:
-          type: object
-          title: Contact
-          description: Additional contact data for the person, such as phone numbers and addresses.
-          example:
-            eq: value
-        last_name:
-          type: string
-          title: Last Name
-          description: The person's last name.
-          example:
-            eq: value
-        fuzzy_dates:
-          type: string
-          title: Fuzzy Dates
-          description: Fuzzy date filter for approximate date matching.
-          example:
-            gt: '2026-01-01'
-        project_watching:
+        accessible_doc_id:
           type: integer
-          title: Project Watching
-          description: Filter by project_watching — returns people who are auto-subscribed to the specified project.
-          example:
-            eq: value
-        tag_list:
-          type: string
-          title: Tag List
-          description: Comma-separated list of tags applied to this person.
-          example:
-            eq: value
-        title:
-          type: string
-          title: Title
-          description: The person's job title (e.g. CEO, Manager, Developer).
-          example:
-            eq: value
-        champion:
-          title: Champion
-          description: Whether this person is a champion contact.
-          example:
-            eq: value
-        jump_query:
-          type: string
-          title: Jump Query
-          description: Quick jump search filter — matches against name for navigation shortcuts.
-          example:
-            eq: value
-        external_id:
-          type: string
-          title: External
-          description: External identifier for syncing this person with an external system.
+          title: Accessible Doc
+          description: Filter by accessible doc ID — returns people who have access to the specified document.
           example:
             - 123
-        sample_data:
+        accessible_filter_id:
+          type: string
+          title: Accessible Filter
+          description: Filter by accessible filter ID — returns people who are members of the specified saved view or filter.
+          example:
+            - 123
+        accessible_project_id:
+          type: integer
+          title: Accessible Project
+          description: Filter by accessible project ID — returns people who have access to the specified project.
+          example:
+            - 123
+        account_id:
+          title: Account
+          description: The organization (account) ID.
+          example:
+            - 123
+        approval_policy_assignment:
+          title: Approval Policy Assignment
+          description: The approval policy assignment for this person.
+          example:
+            eq: value
+        approval_policy_id:
+          type: integer
+          title: Approval Policy
+          description: ID of the approval policy assigned to this person for time-off and booking approvals.
+          example:
+            - 123
+        approval_workflow_id:
+          type: integer
+          title: Approval Workflow
+          description: Filter by approval workflow ID — returns people who have approvals in the specified workflow.
+          example:
+            - 123
+        archived_at:
+          type: string
+          title: Archived At
+          format: date-time
+          description: Timestamp when this person was archived, or null if not archived.
+          example:
+            gt: '2026-01-01'
+        autotracking:
           type: boolean
-          title: Sample Data
-          description: Whether this person was created as part of sample/demo data.
+          title: Autotracking
+          description: Whether automatic time tracking is enabled for this person.
+          example:
+            eq: value
+        availabilities:
+          type: string
+          title: Availabilities
+          description: The person's work availability windows.
+          example:
+            eq: value
+        avatar_url:
+          type: string
+          title: Avatar Url
+          description: URL of the person's avatar thumbnail.
           example:
             eq: value
         bookings_after:
@@ -1241,16 +1956,200 @@ components:
           description: Filter by bookings_after date — used with resourcing filters to find people with bookings ending on or after this date.
           example:
             eq: value
-        schedulable:
-          type: boolean
-          title: Schedulable
-          description: Filter for schedulable people — returns employees, contractors, and placeholders who can be booked.
+        bookings_before:
+          type: string
+          title: Bookings Before
+          format: date
+          description: Filter by bookings_before date — used with resourcing filters to find people with bookings starting on or before this date.
           example:
             eq: value
-        nickname:
+        champion:
+          type: boolean
+          title: Champion
+          description: Whether this person is a champion contact.
+          example:
+            eq: value
+        color_id:
           type: string
-          title: Nickname
-          description: The person's nickname or preferred display name.
+          title: Color
+          description: Color identifier used to visually distinguish this person in the UI.
+          example:
+            - 123
+        company:
+          title: Company
+          description: The company (client) this person belongs to.
+          example:
+            eq: value
+        company_id:
+          type: integer
+          title: Company
+          description: Filter by company (client) ID.
+          example:
+            - 123
+        company_name:
+          title: Company Name
+          description: The name of the company this person belongs to.
+          example:
+            eq: value
+        contact:
+          type: object
+          title: Contact
+          description: Additional contact data for the person, such as phone numbers and addresses.
+          example:
+            eq: value
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this person was created.
+          example:
+            gt: '2026-01-01'
+        custom_field_attachments:
+          title: Custom Field Attachments
+          description: File attachments associated with this person via custom fields.
+          example:
+            gt: '2026-01-01'
+        custom_field_people:
+          title: Custom Field People
+          description: People referenced in custom field values for this person.
+          example:
+            eq: value
+        custom_fields:
+          type: object
+          title: Custom Fields
+          description: Custom field values for this person.
+          example:
+            eq: value
+        custom_role:
+          title: Custom Role
+          description: The custom role (permission set) assigned to this person.
+          example:
+            eq: value
+        custom_role_id:
+          type: integer
+          title: Custom Role
+          description: ID of the custom role assigned to this person, if any.
+          example:
+            - 123
+        deactivated_at:
+          type: string
+          title: Deactivated At
+          format: date-time
+          description: Timestamp when this person was deactivated, or null if currently active.
+          example:
+            gt: '2026-01-01'
+        eligible_replacement_managers:
+          type: integer
+          title: Eligible Replacement Managers
+          description: Filter for people eligible to be replacement managers for the specified person ID.
+          example:
+            eq: value
+        email:
+          type: string
+          title: Email
+          description: The person's email address.
+          example:
+            eq: value
+        external_id:
+          type: string
+          title: External
+          description: External identifier for syncing this person with an external system.
+          example:
+            - 123
+        external_sync:
+          type: boolean
+          title: External Sync
+          description: Whether this person is managed by an external sync integration.
+          example:
+            eq: value
+        first_name:
+          type: string
+          title: First Name
+          description: The person's first name.
+          example:
+            eq: value
+        full_query:
+          type: string
+          title: Full Query
+          description: Full text search filter — matches against name and other indexed fields.
+          example:
+            eq: value
+        fuzzy_dates:
+          type: string
+          title: Fuzzy Dates
+          description: Fuzzy date filter for approximate date matching.
+          example:
+            gt: '2026-01-01'
+        fuzzy_people:
+          type: string
+          title: Fuzzy People
+          description: Fuzzy people filter for approximate person name matching.
+          example:
+            eq: value
+        granular_notification_preferences:
+          type: object
+          title: Granular Notification Preferences
+          description: Granular notification preferences for this person.
+          example:
+            eq: value
+        holiday_calendar_id:
+          type: integer
+          title: Holiday Calendar
+          description: ID of the holiday calendar assigned to this person for scheduling and time-off calculations.
+          example:
+            - 123
+        hrm_type_id:
+          enum:
+            - 1
+            - 2
+          type: integer
+          title: Hrm Type
+          description: 'HRM type ID: 1 for employee, 2 for contact. Null for placeholders.'
+          example:
+            - 123
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of the person.
+          example:
+            - 123
+        invited_at:
+          type: string
+          title: Invited At
+          format: date-time
+          description: Timestamp when the invitation email was sent to this person.
+          example:
+            gt: '2026-01-01'
+        is_user:
+          type: boolean
+          title: Is User
+          description: Whether this person has an associated user account and can log in.
+          example:
+            eq: value
+        joined_at:
+          type: string
+          title: Joined At
+          format: date-time
+          description: Date when this person joined the organization.
+          example:
+            gt: '2026-01-01'
+        jump_query:
+          type: string
+          title: Jump Query
+          description: Quick jump search filter — matches against name for navigation shortcuts.
+          example:
+            eq: value
+        last_activity_at:
+          type: string
+          title: Last Activity At
+          format: date-time
+          description: Timestamp of the last recorded activity for this person across the platform.
+          example:
+            gt: '2026-01-01'
+        last_name:
+          type: string
+          title: Last Name
+          description: The person's last name.
           example:
             eq: value
         last_seen_at:
@@ -1260,321 +2159,34 @@ components:
           description: Timestamp when this person was last seen active in the application.
           example:
             gt: '2026-01-01'
-        query:
-          type: string
-          title: Query
-          description: Text search filter — matches by full name (exact) or contains partial name.
+        manager:
+          title: Manager
+          description: The person's manager.
           example:
             eq: value
-        color_id:
-          type: integer
-          title: Color
-          description: Color identifier used to visually distinguish this person in the UI.
-          example:
-            - 123
-        bookings_before:
-          type: string
-          title: Bookings Before
-          format: date
-          description: Filter by bookings_before date — used with resourcing filters to find people with bookings starting on or before this date.
-          example:
-            eq: value
-        subscribable_id:
-          type: integer
-          title: Subscribable
-          description: Filter by subscribable ID — returns subscribers of the specified resource.
-          example:
-            - 123
-        status_expires_at:
-          type: string
-          title: Status Expires At
-          format: date-time
-          description: Timestamp when the current status emoji and text expire.
-          example:
-            gt: '2026-01-01'
-        approval_policy_id:
-          type: integer
-          title: Approval Policy
-          description: ID of the approval policy assigned to this person for time-off and booking approvals.
-          example:
-            - 123
-        job_role_id:
-          type: integer
-          title: Job Role
-        timesheet_submission_disabled:
-          type: boolean
-          title: Timesheet Submission Disabled
-          description: Whether timesheet submission is disabled for this person.
-          example:
-            gt: 0
-        status_text:
-          type: string
-          title: Status Text
-          description: Short text message shown as the person's current status.
-          example:
-            eq: active
-        tags:
-          type: string
-          title: Tags
-          description: Tags applied to this person.
-          example:
-            eq: value
-        time_off_status_sync:
-          type: boolean
-          title: Time Off Status Sync
-          description: Whether this person's time-off status is synced from an external calendar.
-          example:
-            gt: 0
-        two_factor_auth:
-          type: boolean
-          title: Two Factor Auth
-          description: Whether two-factor authentication is enabled for this person's user account.
-          example:
-            eq: value
-        approval_workflow_id:
-          type: integer
-          title: Approval Workflow
-          description: Filter by approval workflow ID — returns people who have approvals in the specified workflow.
-          example:
-            - 123
-        subsidiary:
-          title: Subsidiary
-          description: The subsidiary (workplace) this person is associated with.
-          example:
-            eq: value
-        service_type_id:
-          type: integer
-          title: Service Type
-          description: Filter by service type ID — returns people assigned to the specified service types.
-          example:
-            - 123
-        original_avatar_url:
-          type: string
-          title: Original Avatar Url
-          description: URL of the person's original full-size avatar image.
-          example:
-            eq: value
-        user_id:
-          type: integer
-          title: User
-          description: The ID of the user account linked to this person, if any.
-          example:
-            - 123
-        full_query:
-          type: string
-          title: Full Query
-          description: Full text search filter — matches against name and other indexed fields.
-          example:
-            eq: value
-        time_unlocked_interval:
-          type: integer
-          title: Time Unlocked Interval
-          description: Number of days in the time unlock interval.
-          example:
-            gt: 0
-        created_at:
-          type: string
-          title: Created At
-          format: date-time
-          description: Timestamp when this person was created.
-          example:
-            gt: '2026-01-01'
-        accessible_doc_id:
-          type: integer
-          title: Accessible Doc
-          description: Filter by accessible doc ID — returns people who have access to the specified document.
-          example:
-            - 123
-        time_unlocked_period_id:
-          type: integer
-          title: Time Unlocked Period
-          description: Period identifier for the time unlock.
-          example:
-            - 123
         manager_id:
           type: integer
           title: Manager
           description: ID of the person who is this person's direct manager.
           example:
             - 123
-        custom_field_attachments:
-          title: Custom Field Attachments
-          description: File attachments associated with this person via custom fields.
-          example:
-            gt: '2026-01-01'
-        subscriber_ids:
-          title: Subscriber Ids
-          description: IDs of people subscribed to follow this person.
-          example:
-            - 123
-            - 456
-        time_tracking_policy:
-          title: Time Tracking Policy
-          description: The time tracking policy assigned to this person.
-          example:
-            gt: 0
-        last_activity_at:
-          type: string
-          title: Last Activity At
-          format: date-time
-          description: Timestamp of the last recorded activity for this person across the platform.
-          example:
-            gt: '2026-01-01'
-        archived_at:
-          type: string
-          title: Archived At
-          format: date-time
-          description: Timestamp when this person was archived, or null if not archived.
-          example:
-            gt: '2026-01-01'
-        virtual:
-          type: boolean
-          title: Virtual
-          description: Whether this is a virtual person record.
-          example:
-            eq: value
-        invited_at:
-          type: string
-          title: Invited At
-          format: date-time
-          description: Timestamp when the invitation email was sent to this person.
-          example:
-            gt: '2026-01-01'
-        permissions:
-          type: string
-          title: Permissions
-          description: Filter by permission set — returns people with the specified permission slugs.
-          example:
-            eq: value
-        manager:
-          title: Manager
-          description: The person's manager.
-          example:
-            eq: value
-        custom_field_people:
-          title: Custom Field People
-          description: People referenced in custom field values for this person.
-          example:
-            eq: value
-        time_tracking_policy_id:
-          type: integer
-          title: Time Tracking Policy
-          description: ID of the time tracking policy applied to this person.
-          example:
-            - 123
-        is_user:
-          title: Is User
-          description: Whether this person has an associated user account and can log in.
-          example:
-            eq: value
-        company_id:
-          type: integer
-          title: Company
-          description: Filter by company (client) ID.
-          example:
-            - 123
-        email:
-          type: string
-          title: Email
-          description: The person's email address.
-          example:
-            eq: value
         name:
           title: Name
           description: The person's full name (first and last combined).
           example:
             eq: value
-        status_emoji:
+        nickname:
           type: string
-          title: Status Emoji
-          description: Emoji shown as the person's current status indicator.
-          example:
-            eq: active
-        deactivated_at:
-          type: string
-          title: Deactivated At
-          format: date-time
-          description: Timestamp when this person was deactivated, or null if currently active.
-          example:
-            gt: '2026-01-01'
-        external_sync:
-          type: boolean
-          title: External Sync
-          description: Whether this person is managed by an external sync integration.
+          title: Nickname
+          description: The person's nickname or preferred display name.
           example:
             eq: value
-        holiday_calendar_id:
-          type: integer
-          title: Holiday Calendar
-          description: ID of the holiday calendar assigned to this person for scheduling and time-off calculations.
-          example:
-            - 123
         offboarding_id:
           type: integer
           title: Offboarding
           description: ID of the offboarding process associated with this person's deactivation.
           example:
             - 123
-        service_id:
-          type: integer
-          title: Service
-          description: Filter by service ID — returns people who can track time on the specified service.
-          example:
-            - 123
-        first_name:
-          type: string
-          title: First Name
-          description: The person's first name.
-          example:
-            eq: value
-        accessible_project_id:
-          type: integer
-          title: Accessible Project
-          description: Filter by accessible project ID — returns people who have access to the specified project.
-          example:
-            - 123
-        eligible_replacement_managers:
-          type: integer
-          title: Eligible Replacement Managers
-          description: Filter for people eligible to be replacement managers for the specified person ID.
-          example:
-            eq: value
-        teams:
-          title: Teams
-          description: The teams this person belongs to.
-          example:
-            eq: value
-        granular_notification_preferences:
-          type: object
-          title: Granular Notification Preferences
-          description: Granular notification preferences for this person.
-          example:
-            eq: value
-        person_type:
-          type: string
-          title: Person Type
-          description: 'Filter by person type — values: user (can log in), contact (external), placeholder (resource planning), agent.'
-          example:
-            eq: active
-        accessible_filter_id:
-          type: string
-          title: Accessible Filter
-          description: Filter by accessible filter ID — returns people who are members of the specified saved view or filter.
-          example:
-            - 123
-        subscribable_type:
-          type: string
-          title: Subscribable Type
-          description: Filter by subscribable type — the resource type to match subscribers against.
-          example:
-            eq: active
-        service_types:
-          title: Service Types
-          description: The service types this person delivers.
-          example:
-            eq: active
-        import:
-          title: Import
         offboarding_status:
           enum:
             - not_initiated
@@ -1586,31 +2198,93 @@ components:
           description: 'Current offboarding status: not_initiated, in_progress, or completed.'
           example:
             eq: active
-        custom_role_id:
-          type: integer
-          title: Custom Role
-          description: ID of the custom role assigned to this person, if any.
+        organization:
+          title: Organization
+          description: The organization this person belongs to.
           example:
-            - 123
+            eq: value
+        original_avatar_url:
+          type: string
+          title: Original Avatar Url
+          description: URL of the person's original full-size avatar image.
+          example:
+            eq: value
+        permissions:
+          type: string
+          title: Permissions
+          description: Filter by permission set — returns people with the specified permission slugs.
+          example:
+            eq: value
+        person_type:
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          type: integer
+          title: Person Type
+          description: 'Filter by person type — values: user (can log in), contact (external), placeholder (resource planning), agent.'
+          example:
+            eq: active
+        placeholder:
+          type: boolean
+          title: Placeholder
+          description: Whether this person is a placeholder used for resource planning, without a real user account.
+          example:
+            eq: value
         project_id:
           type: integer
           title: Project
           description: Filter by project ID — returns people who are members of the specified project.
           example:
             - 123
-        joined_at:
-          type: string
-          title: Joined At
-          format: date-time
-          description: Date when this person joined the organization.
-          example:
-            gt: '2026-01-01'
-        avatar_url:
-          type: string
-          title: Avatar Url
-          description: URL of the person's avatar thumbnail.
+        project_watching:
+          type: integer
+          title: Project Watching
+          description: Filter by project_watching — returns people who are auto-subscribed to the specified project.
           example:
             eq: value
+        query:
+          type: string
+          title: Query
+          description: Text search filter — matches by full name (exact) or contains partial name.
+          example:
+            eq: value
+        role_id:
+          type: integer
+          title: Role
+          description: Filter by built-in role type ID.
+          example:
+            - 123
+        sample_data:
+          type: boolean
+          title: Sample Data
+          description: Whether this person was created as part of sample/demo data.
+          example:
+            eq: value
+        schedulable:
+          type: boolean
+          title: Schedulable
+          description: Filter for schedulable people — returns employees, contractors, and placeholders who can be booked.
+          example:
+            eq: value
+        service_id:
+          type: integer
+          title: Service
+          description: Filter by service ID — returns people who can track time on the specified service.
+          example:
+            - 123
+        service_type_id:
+          type: integer
+          title: Service Type
+          description: Filter by service type ID — returns people assigned to the specified service types.
+          example:
+            - 123
+        service_types:
+          title: Service Types
+          description: The service types this person delivers.
+          example:
+            eq: active
         status:
           enum:
             - 1
@@ -1620,25 +2294,46 @@ components:
           description: 'Filter by person status: 1 (active) or 2 (deactivated).'
           example:
             eq: active
-        custom_role:
-          title: Custom Role
-          description: The custom role (permission set) assigned to this person.
+        status_emoji:
+          type: string
+          title: Status Emoji
+          description: Emoji shown as the person's current status indicator.
           example:
-            eq: value
-        id:
+            eq: active
+        status_expires_at:
+          type: string
+          title: Status Expires At
+          format: date-time
+          description: Timestamp when the current status emoji and text expire.
+          example:
+            gt: '2026-01-01'
+        status_text:
+          type: string
+          title: Status Text
+          description: Short text message shown as the person's current status.
+          example:
+            eq: active
+        subscribable_id:
           type: integer
-          title: Id
-          description: The unique identifier of the person.
+          title: Subscribable
+          description: Filter by subscribable ID — returns subscribers of the specified resource.
           example:
             - 123
-        company:
-          title: Company
-          description: The company (client) this person belongs to.
+        subscribable_type:
+          type: string
+          title: Subscribable Type
+          description: Filter by subscribable type — the resource type to match subscribers against.
           example:
-            eq: value
-        company_name:
-          title: Company Name
-          description: The name of the company this person belongs to.
+            eq: active
+        subscriber_ids:
+          title: Subscriber Ids
+          description: IDs of people subscribed to follow this person.
+          example:
+            - 123
+            - 456
+        subsidiary:
+          title: Subsidiary
+          description: The subsidiary (workplace) this person is associated with.
           example:
             eq: value
         subsidiary_id:
@@ -1647,6 +2342,48 @@ components:
           description: ID of the subsidiary company this person belongs to, if any.
           example:
             - 123
+        tag_list:
+          type: array
+          items:
+            type: string
+          title: Tag List
+          description: Comma-separated list of tags applied to this person.
+          example:
+            eq: value
+        team:
+          type: integer
+          title: Team
+          description: Filter by team ID — returns people who belong to the specified team(s).
+          example:
+            eq: value
+        teams:
+          title: Teams
+          description: The teams this person belongs to.
+          example:
+            eq: value
+        time_off_status_sync:
+          type: boolean
+          title: Time Off Status Sync
+          description: Whether this person's time-off status is synced from an external calendar.
+          example:
+            gt: 0
+        time_tracking_policy:
+          title: Time Tracking Policy
+          description: The time tracking policy assigned to this person.
+          example:
+            gt: 0
+        time_tracking_policy_id:
+          type: integer
+          title: Time Tracking Policy
+          description: ID of the time tracking policy applied to this person.
+          example:
+            - 123
+        time_unlocked:
+          type: boolean
+          title: Time Unlocked
+          description: Whether the person's time entries are unlocked for editing outside the normal window.
+          example:
+            gt: 0
         time_unlocked_end_date:
           type: string
           title: Time Unlocked End Date
@@ -1654,30 +2391,12 @@ components:
           description: End date of the time unlock window.
           example:
             gt: '2026-01-01'
-        autotracking:
-          type: boolean
-          title: Autotracking
-          description: Whether automatic time tracking is enabled for this person.
+        time_unlocked_interval:
+          type: integer
+          title: Time Unlocked Interval
+          description: Number of days in the time unlock interval.
           example:
-            eq: value
-        custom_fields:
-          type: object
-          title: Custom Fields
-          description: Custom field values for this person.
-          example:
-            eq: value
-        job_role:
-          title: Job Role
-        approval_policy_assignment:
-          title: Approval Policy Assignment
-          description: The approval policy assignment for this person.
-          example:
-            eq: value
-        availabilities:
-          title: Availabilities
-          description: The person's work availability windows.
-          example:
-            eq: value
+            gt: 0
         time_unlocked_on:
           type: string
           title: Time Unlocked On
@@ -1685,13 +2404,85 @@ components:
           description: The specific date on which the time unlock was applied.
           example:
             gt: 0
+        time_unlocked_period_id:
+          type: integer
+          title: Time Unlocked Period
+          description: Period identifier for the time unlock.
+          example:
+            - 123
+        time_unlocked_start_date:
+          type: string
+          title: Time Unlocked Start Date
+          format: date
+          description: Start date of the time unlock window.
+          example:
+            gt: '2026-01-01'
+        timesheet_submission_disabled:
+          type: boolean
+          title: Timesheet Submission Disabled
+          description: Whether timesheet submission is disabled for this person.
+          example:
+            gt: 0
+        title:
+          type: string
+          title: Title
+          description: The person's job title (e.g. CEO, Manager, Developer).
+          example:
+            eq: value
+        two_factor_auth:
+          type: boolean
+          title: Two Factor Auth
+          description: Whether two-factor authentication is enabled for this person's user account.
+          example:
+            eq: value
+        user_id:
+          type: integer
+          title: User
+          description: The ID of the user account linked to this person, if any.
+          example:
+            - 123
+        virtual:
+          type: boolean
+          title: Virtual
+          description: Whether this is a virtual person record.
+          example:
+            eq: value
+        is_subordinate_to_current_person:
+          type: boolean
+          title: Is Subordinate To Current Person
+          description: Whether this person reports, directly or indirectly, to the person making the request. Only included when the request sends the `X-Subordinate-Info` header and the requester's permissions are limited to their subordinates rather than to everyone.
+          example: true
         agent:
           type: boolean
           title: Agent
           description: The AI agent account linked to this person, if this person represents an AI agent.
           example:
             eq: value
-      description: A person represents an employee, contractor, contact, or placeholder within the organization.
+        person_session:
+          title: Person Session
+        shared_seat:
+          type: boolean
+          title: Shared Seat
+          description: Whether the person holds a shared seat in the billing group.
+          example: true
+        job_role:
+          title: Job Role
+          description: The job role assigned to this person. Job roles describe what a person does, for example a designer or a project manager, and are managed separately from permission roles.
+          example:
+            data:
+              type: job_roles
+              id: '10'
+        job_role_id:
+          type: integer
+          title: Job Role
+          description: ID of the job role assigned to this person, or `null` if none is set.
+          example: 10
+        ai_assistant_instructions:
+          type: string
+          title: Ai Assistant Instructions
+          maxLength: 10000
+          description: Custom instructions the person's AI assistant follows when acting on their behalf. Only returned to the person themselves.
+          example: Keep answers short and refer to budgets by their internal codes.
       example:
         id: '12'
         type: people
@@ -1746,86 +2537,508 @@ components:
             data:
               - type: teams
                 id: '3'
+    error_code_person:
+      enum:
+        - bad_decimal_format
+        - client_company_not_org
+        - client_role_outside_own_subsidiary
+        - contact_field_unknown
+        - contact_list_not_array
+        - contact_list_not_hash
+        - contact_type_unknown
+        - contractor_company_not_org
+        - custom_field_invalid_option
+        - custom_field_invalid_person
+        - custom_field_not_found
+        - custom_field_value_not_date
+        - custom_field_value_not_number
+        - custom_field_value_not_string
+        - custom_field_value_out_of_range
+        - custom_field_value_too_long
+        - email_already_exists
+        - email_change_not_allowed
+        - employee_company_must_be_org
+        - invalid_attribute_value
+        - invalid_role_for_organization_owner
+        - inviter_subsidiary_missing
+        - manager_approver_on_absence
+        - manager_not_allowed_for_role
+        - manager_reporting_loop
+        - multiple_billing_addresses
+        - non_finite_number
+        - null_bytes_in_params
+        - person_job_role_invalid
+        - person_time_tracking_policy_invalid
+        - required_custom_field
+        - restricted_user_roles_feature_unavailable
+        - subsidiary_not_accessible
+        - subsidiary_not_allowed_for_role
+        - tags_not_allowed_for_placeholder
+        - virtual_owner_not_allowed
+        - virtual_self_not_allowed
+      type: string
+      title: Error Code
+      description: Every error `code` the people endpoints can return.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    error_code_unprocessable_content:
+      enum:
+        - bad_decimal_format
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint without its own resource codes can return with a 422.
+    error_code_conflict:
+      enum:
+        - absence_in_past
+        - agent_manager_membership_not_deletable
+        - agent_manager_membership_not_editable
+        - agent_not_found_for_role
+        - agent_role_can_not_be_deleted
+        - agent_role_can_not_transfer_people
+        - allow_absence_disabled
+        - already_activated
+        - already_active
+        - already_archived
+        - already_closed
+        - already_deactivated
+        - already_joined
+        - already_opened
+        - approval_addon_disabled
+        - approved_time_entry_not_editable
+        - automation_agent_deactivated
+        - autotracked_time_entry
+        - bank_account_already_archived
+        - bank_account_archived
+        - bank_account_not_archived
+        - bank_account_used_as_default
+        - budget_already_exported
+        - budget_closed
+        - budget_delivered
+        - budget_is_template
+        - budget_missing_project
+        - budget_not_client_budget
+        - budget_not_exported
+        - budget_project_archived
+        - can_not_approve_unsubmitted_record
+        - can_not_destroy_submitted_record
+        - can_not_start_timer_for_approved_record
+        - can_not_start_timer_on_submitted_record
+        - cancel_error
+        - cannot_apply_template_on_template_doc
+        - cannot_approve_draft_record
+        - cannot_archive_company
+        - cannot_export_company
+        - cannot_publish_doc_on_template
+        - cannot_reject_autotracked_record
+        - cannot_reject_draft_record
+        - cannot_restore_company
+        - cannot_unapprove_draft_record
+        - cannot_unpublish_doc_on_template
+        - cannot_unreject_draft_record
+        - closed_budget
+        - comment_already_pinned
+        - comment_not_pinnable
+        - comment_not_pinned
+        - company_already_exported
+        - company_export_unavailable
+        - company_not_exported
+        - contract_not_destroyable
+        - create_setup_intent_error
+        - custom_field_used_as_approver
+        - datev_csv_export_feature_unavailable
+        - deactivated
+        - deal_closed
+        - deal_cost_rate_not_editable
+        - deal_owner_not_deletable
+        - deal_status_amount_reached
+        - deal_status_in_use
+        - deal_status_last_stage_not_allowed
+        - deal_status_mapped_to_hubspot_integration
+        - declined
+        - deleted_item_already_restored
+        - engagements_on_holiday_calendar
+        - erase_blocked
+        - event_archived
+        - event_automation_cant_be_manually_run
+        - expense_not_exported
+        - expense_not_linked
+        - expense_sync_feature_unavailable
+        - expenses_not_approved
+        - export_not_pending
+        - export_status_check_cooldown
+        - financial_month_locked
+        - financial_month_locked_expense
+        - financial_month_locked_service
+        - financial_month_locked_time_entry
+        - folder_archived
+        - has_credit_note
+        - import_already_running
+        - insufficient_plan
+        - insufficient_seats
+        - invalid_action
+        - last_full_access_membership
+        - last_subsidiary
+        - move_to_person
+        - must_have_at_least_one_status_in_closed_category
+        - name_not_unique
+        - next_occurrence_on_blank
+        - no_time_approval_on_budget
+        - not_archived
+        - not_in_draft_status
+        - organization_not_verified
+        - organization_owner
+        - people_on_subsidiary
+        - person_erased
+        - person_has_offboarding_in_progress
+        - person_is_archived
+        - person_is_placeholder
+        - person_is_sample
+        - person_is_user
+        - person_not_joined
+        - person_not_user
+        - person_owner
+        - person_virtual
+        - pinned_comment_not_destroyable
+        - project_already_archived
+        - project_already_restored
+        - project_archived
+        - project_duplication_in_progress
+        - project_manager_membership_not_deletable
+        - project_manager_membership_not_editable
+        - project_not_client_project
+        - project_not_exported
+        - reactivate_error
+        - recap_not_available
+        - record_already_approved
+        - record_already_archived
+        - record_already_canceled
+        - record_already_dismissed
+        - record_already_doc
+        - record_already_open
+        - record_already_published
+        - record_already_read
+        - record_already_rejected
+        - record_already_resolved
+        - record_already_restored
+        - record_already_unapproved
+        - record_already_unrejected
+        - record_archived
+        - record_contains_custom_fields
+        - record_is_last_active_workflow
+        - record_is_last_pipeline
+        - record_must_be_submitted_to_be_rejected
+        - record_not_archived
+        - record_not_dismissed
+        - record_not_on_absence
+        - record_not_published
+        - record_not_read
+        - record_on_remote_work
+        - record_project_not_editable
+        - record_used_on_projects
+        - request_resolved
+        - responded
+        - retry_last_payment_error
+        - role_being_used
+        - role_not_editable_by_user
+        - role_not_for_agents
+        - seats_allocation_error
+        - self_deactivation
+        - service_type_already_archived
+        - service_type_archived
+        - service_type_not_archived
+        - signed
+        - slack_bot_integration_not_connected
+        - subsidiary_archived
+        - survey_field_option_already_archived
+        - survey_field_option_inaccessible
+        - system_segment_type
+        - task_is_template
+        - task_required_by_time_entries
+        - tax_rate_already_archived
+        - tax_rate_archived
+        - tax_rate_not_archived
+        - tax_rate_used_as_default
+        - template_budget_not_destroyable
+        - template_doc_not_destroyable
+        - template_doc_not_moveable
+        - template_project_not_destroyable
+        - time_entries_not_approved
+        - time_entry_invoiced
+        - timer_already_started
+        - timer_already_stopped
+        - timer_running
+        - timer_started_on_record
+        - too_many_creates_for_unverified_new_organization
+        - too_many_invites_for_unverified_new_organization
+        - two_factor_not_enabled
+        - update_error
+        - used_as_integration_default_workplace
+        - user_and_not_virtual
+        - webhook_already_activated
+        - webhook_already_deactivated
+        - webhook_is_not_activated
+      type: string
+      title: Error Code
+      description: Every error `code` the resource abilities and forms return with a 409.
+    _links:
+      type: object
+      title: Links
+      properties:
+        first:
+          type: string
+          format: uri
+        last:
+          type: string
+          format: uri
+        next:
+          type: string
+          format: uri
+        prev:
+          type: string
+          format: uri
+      required:
+        - first
   requestBodies:
     person:
       content:
         application/vnd.api+json:
           schema:
             type: object
+            description: JSON:API request envelope for a person.
             properties:
               data:
                 type: object
+                description: The person data object for the request.
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - company_id
-                      - role_id
+                    description: Writable attributes for a person.
                     properties:
-                      email:
-                        $ref: '#/components/schemas/resource_person/properties/email'
-                      title:
-                        $ref: '#/components/schemas/resource_person/properties/title'
-                      contact:
-                        $ref: '#/components/schemas/resource_person/properties/contact'
-                      role_id:
-                        $ref: '#/components/schemas/resource_person/properties/role_id'
-                      virtual:
-                        $ref: '#/components/schemas/resource_person/properties/virtual'
-                      nickname:
-                        $ref: '#/components/schemas/resource_person/properties/nickname'
-                      tag_list:
-                        $ref: '#/components/schemas/resource_person/properties/tag_list'
-                      last_name:
-                        $ref: '#/components/schemas/resource_person/properties/last_name'
                       account_id:
                         $ref: '#/components/schemas/resource_person/properties/account_id'
+                      autotracking:
+                        $ref: '#/components/schemas/resource_person/properties/autotracking'
                       avatar_url:
                         $ref: '#/components/schemas/resource_person/properties/avatar_url'
                       company_id:
                         $ref: '#/components/schemas/resource_person/properties/company_id'
-                      first_name:
-                        $ref: '#/components/schemas/resource_person/properties/first_name'
-                      manager_id:
-                        $ref: '#/components/schemas/resource_person/properties/manager_id'
-                      job_role_id:
-                        $ref: '#/components/schemas/resource_person/properties/job_role_id'
-                      status_text:
-                        $ref: '#/components/schemas/resource_person/properties/status_text'
-                      autotracking:
-                        $ref: '#/components/schemas/resource_person/properties/autotracking'
-                      status_emoji:
-                        $ref: '#/components/schemas/resource_person/properties/status_emoji'
+                      contact:
+                        $ref: '#/components/schemas/resource_person/properties/contact'
                       custom_fields:
                         $ref: '#/components/schemas/resource_person/properties/custom_fields'
-                      subsidiary_id:
-                        $ref: '#/components/schemas/resource_person/properties/subsidiary_id'
-                      time_unlocked:
-                        $ref: '#/components/schemas/resource_person/properties/time_unlocked'
                       custom_role_id:
                         $ref: '#/components/schemas/resource_person/properties/custom_role_id'
-                      subscriber_ids:
-                        $ref: '#/components/schemas/resource_person/properties/subscriber_ids'
-                      time_unlocked_on:
-                        $ref: '#/components/schemas/resource_person/properties/time_unlocked_on'
+                      email:
+                        $ref: '#/components/schemas/resource_person/properties/email'
+                      first_name:
+                        $ref: '#/components/schemas/resource_person/properties/first_name'
+                      granular_notification_preferences:
+                        $ref: '#/components/schemas/resource_person/properties/granular_notification_preferences'
+                      last_name:
+                        $ref: '#/components/schemas/resource_person/properties/last_name'
+                      manager_id:
+                        $ref: '#/components/schemas/resource_person/properties/manager_id'
+                      nickname:
+                        $ref: '#/components/schemas/resource_person/properties/nickname'
+                      role_id:
+                        $ref: '#/components/schemas/resource_person/properties/role_id'
+                      status_emoji:
+                        $ref: '#/components/schemas/resource_person/properties/status_emoji'
                       status_expires_at:
                         $ref: '#/components/schemas/resource_person/properties/status_expires_at'
+                      status_text:
+                        $ref: '#/components/schemas/resource_person/properties/status_text'
+                      subscriber_ids:
+                        $ref: '#/components/schemas/resource_person/properties/subscriber_ids'
+                      subsidiary_id:
+                        $ref: '#/components/schemas/resource_person/properties/subsidiary_id'
+                      tag_list:
+                        $ref: '#/components/schemas/resource_person/properties/tag_list'
                       time_off_status_sync:
                         $ref: '#/components/schemas/resource_person/properties/time_off_status_sync'
+                      time_tracking_policy_id:
+                        $ref: '#/components/schemas/resource_person/properties/time_tracking_policy_id'
+                      time_unlocked:
+                        $ref: '#/components/schemas/resource_person/properties/time_unlocked'
                       time_unlocked_end_date:
                         $ref: '#/components/schemas/resource_person/properties/time_unlocked_end_date'
                       time_unlocked_interval:
                         $ref: '#/components/schemas/resource_person/properties/time_unlocked_interval'
-                      time_tracking_policy_id:
-                        $ref: '#/components/schemas/resource_person/properties/time_tracking_policy_id'
+                      time_unlocked_on:
+                        $ref: '#/components/schemas/resource_person/properties/time_unlocked_on'
                       time_unlocked_period_id:
                         $ref: '#/components/schemas/resource_person/properties/time_unlocked_period_id'
                       time_unlocked_start_date:
                         $ref: '#/components/schemas/resource_person/properties/time_unlocked_start_date'
-                      ai_assistant_instructions:
-                        $ref: '#/components/schemas/resource_person/properties/ai_assistant_instructions'
                       timesheet_submission_disabled:
                         $ref: '#/components/schemas/resource_person/properties/timesheet_submission_disabled'
-                      granular_notification_preferences:
-                        $ref: '#/components/schemas/resource_person/properties/granular_notification_preferences'
+                      title:
+                        $ref: '#/components/schemas/resource_person/properties/title'
+                      virtual:
+                        $ref: '#/components/schemas/resource_person/properties/virtual'
+                      job_role_id:
+                        $ref: '#/components/schemas/resource_person/properties/job_role_id'
+                      ai_assistant_instructions:
+                        $ref: '#/components/schemas/resource_person/properties/ai_assistant_instructions'
+                    required:
+                      - company_id
+                      - role_id
+                    example:
+                      first_name: Alex
+                      last_name: Smith
+                      email: alex.smith@example.com
+                      title: Senior Developer
+                example:
+                  type: people
+                  attributes:
+                    first_name: Alex
+                    last_name: Smith
+                    email: alex.smith@example.com
+                    title: Senior Developer
+            example:
+              data:
+                type: people
+                attributes:
+                  first_name: Alex
+                  last_name: Smith
+                  email: alex.smith@example.com
+                  title: Senior Developer
       description: Request body for creating or updating a person.
+  parameters:
+    sort_person:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - autotracking
+            - -autotracking
+            - company_name
+            - -company_name
+            - custom_fields
+            - -custom_fields
+            - custom_role
+            - -custom_role
+            - email
+            - -email
+            - job_role
+            - -job_role
+            - joined_at
+            - -joined_at
+            - last_seen_at
+            - -last_seen_at
+            - manager
+            - -manager
+            - name
+            - -name
+            - resource_request_match
+            - -resource_request_match
+            - role_id
+            - -role_id
+            - schedulable
+            - -schedulable
+            - subsidiary
+            - -subsidiary
+            - title
+            - -title
+            - two_factor_auth
+            - -two_factor_auth
+          type: string
+        title: Sort person
+      explode: false
+      required: false
+      description: Sort person
+    filter_person:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.person at the top of this file.
+      required: false
+      description: Filters

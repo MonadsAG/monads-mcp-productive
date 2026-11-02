@@ -4,8 +4,29 @@ info:
   version: 2.0.0
 x-filters:
   timesheet_report:
-    query:
-      description: Filter timesheet report results by query.
+    tags:
+      description: Filter timesheet report results by tags.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    after:
+      description: Filter timesheet report results by after.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    before:
+      description: Filter timesheet report results by before.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    people_custom_fields:
+      description: Filter timesheet report results by people custom fields.
       operators:
         - contains
         - eq
@@ -25,8 +46,8 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    before:
-      description: Filter timesheet report results by before.
+    query:
+      description: Filter timesheet report results by query.
       operators:
         - contains
         - eq
@@ -39,61 +60,1019 @@ x-filters:
         - eq
         - not_contain
         - not_eq
-    people_custom_fields:
-      description: Filter timesheet report results by people custom fields.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    after:
-      description: Filter timesheet report results by after.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
-    tags:
-      description: Filter timesheet report results by tags.
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
 paths:
   /api/v2/reports/timesheet_reports:
     get:
       tags:
         - Reports
       summary: Get timesheet reports
+      operationId: reports-timesheet_reports-index
+      description: Retrieve aggregated timesheet report data grouped by configurable dimensions.
+      parameters:
+        - $ref: '#/components/parameters/filter_timesheet_report'
+        - $ref: '#/components/parameters/sort_timesheet_report'
+        - $ref: '#/components/parameters/group_timesheet_report'
       responses:
         '200':
           $ref: '#/components/responses/collection_timesheet_report'
-      parameters:
-        - $ref: '#/components/parameters/group_timesheet_report'
-        - $ref: '#/components/parameters/sort_timesheet_report'
-        - $ref: '#/components/parameters/filter_timesheet_report'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: reports-timesheet_reports-index
-      description: Retrieve aggregated timesheet report data grouped by configurable dimensions.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
+  responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    collection_timesheet_report:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of timesheet report records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A timesheet report row resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Timesheet Report row attributes.
+                      properties:
+                        count:
+                          $ref: '#/components/schemas/resource_timesheet_report/properties/count'
+                        currency:
+                          $ref: '#/components/schemas/resource_timesheet_report/properties/currency'
+                        currency_default:
+                          $ref: '#/components/schemas/resource_timesheet_report/properties/currency_default'
+                        currency_normalized:
+                          $ref: '#/components/schemas/resource_timesheet_report/properties/currency_normalized'
+                        formula_fields:
+                          $ref: '#/components/schemas/resource_timesheet_report/properties/formula_fields'
+                        friday_available:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/friday_available'
+                            - type: 'null'
+                          description: Friday available for this timesheet report group.
+                        friday_capacity:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/friday_capacity'
+                            - type: 'null'
+                          description: Friday capacity for this timesheet report group.
+                        friday_time:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/friday_time'
+                            - type: 'null'
+                          description: Friday time for this timesheet report group.
+                        group:
+                          $ref: '#/components/schemas/resource_timesheet_report/properties/group'
+                        monday_available:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/monday_available'
+                            - type: 'null'
+                          description: Monday available for this timesheet report group.
+                        monday_capacity:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/monday_capacity'
+                            - type: 'null'
+                          description: Monday capacity for this timesheet report group.
+                        monday_time:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/monday_time'
+                            - type: 'null'
+                          description: Monday time for this timesheet report group.
+                        saturday_available:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/saturday_available'
+                            - type: 'null'
+                          description: Saturday available for this timesheet report group.
+                        saturday_capacity:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/saturday_capacity'
+                            - type: 'null'
+                          description: Saturday capacity for this timesheet report group.
+                        saturday_time:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/saturday_time'
+                            - type: 'null'
+                          description: Saturday time for this timesheet report group.
+                        sunday_available:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/sunday_available'
+                            - type: 'null'
+                          description: Sunday available for this timesheet report group.
+                        sunday_capacity:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/sunday_capacity'
+                            - type: 'null'
+                          description: Sunday capacity for this timesheet report group.
+                        sunday_time:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/sunday_time'
+                            - type: 'null'
+                          description: Sunday time for this timesheet report group.
+                        thursday_available:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/thursday_available'
+                            - type: 'null'
+                          description: Thursday available for this timesheet report group.
+                        thursday_capacity:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/thursday_capacity'
+                            - type: 'null'
+                          description: Thursday capacity for this timesheet report group.
+                        thursday_time:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/thursday_time'
+                            - type: 'null'
+                          description: Thursday time for this timesheet report group.
+                        tuesday_available:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/tuesday_available'
+                            - type: 'null'
+                          description: Tuesday available for this timesheet report group.
+                        tuesday_capacity:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/tuesday_capacity'
+                            - type: 'null'
+                          description: Tuesday capacity for this timesheet report group.
+                        tuesday_time:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/tuesday_time'
+                            - type: 'null'
+                          description: Tuesday time for this timesheet report group.
+                        wednesday_available:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/wednesday_available'
+                            - type: 'null'
+                          description: Wednesday available for this timesheet report group.
+                        wednesday_capacity:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/wednesday_capacity'
+                            - type: 'null'
+                          description: Wednesday capacity for this timesheet report group.
+                        wednesday_time:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_timesheet_report/properties/wednesday_time'
+                            - type: 'null'
+                          description: Wednesday time for this timesheet report group.
+                        week:
+                          $ref: '#/components/schemas/resource_timesheet_report/properties/week'
+                        week_submission_status:
+                          $ref: '#/components/schemas/resource_timesheet_report/properties/week_submission_status'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Timesheet Report row relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        person:
+                          $ref: '#/components/schemas/_single_relationship'
+                        report:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of timesheet report row resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: An included related resource object.
+                  example:
+                    eq: value
+                description: Array of included related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '567'
+                  type: timesheets
+                  attributes:
+                    status: submitted
+                    week_starting: '2026-03-10'
+                    total_time: 2400
+                    submitted_at: '2026-03-17T09:00:00.000+00:00'
+                    approved_at: null
+                  relationships:
+                    person:
+                      data:
+                        type: people
+                        id: '12'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection timesheet report
+  schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          required:
+            - included
+          example:
+            included: false
+      required:
+        - meta
+      example:
+        meta:
+          included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    resource_timesheet_report:
+      type: object
+      title: Timesheet report Resource
+      description: An aggregated timesheet report row grouping timesheet records by configurable dimensions with time metrics.
+      properties:
+        tags:
+          type: string
+          title: Tags
+          description: Tags for this timesheet report group.
+          example:
+            eq: value
+        after:
+          type: string
+          title: After
+          format: date
+          description: After for this timesheet report group.
+          example:
+            eq: value
+        before:
+          type: string
+          title: Before
+          format: date
+          description: Before for this timesheet report group.
+          example:
+            eq: value
+        count:
+          type: integer
+          title: Count
+          description: Number of timesheets in this report group.
+          example:
+            gt: 0
+        currency:
+          title: Currency
+          description: Currency for this timesheet report group.
+          example:
+            eq: value
+        currency_default:
+          title: Currency Default
+          description: Currency in the organization's default currency for this timesheet report group.
+          example:
+            eq: value
+        currency_normalized:
+          title: Currency Normalized
+          description: Currency in the normalized currency for this timesheet report group.
+          example:
+            eq: value
+        formula_fields:
+          title: Formula Fields
+          description: Formula fields for this timesheet report group.
+          example:
+            eq: value
+        friday_available:
+          type: integer
+          title: Friday Available
+          description: Friday available for this timesheet report group.
+          example:
+            eq: value
+        friday_capacity:
+          type: integer
+          title: Friday Capacity
+          description: Friday capacity for this timesheet report group.
+          example:
+            eq: value
+        friday_time:
+          type: integer
+          title: Friday Time
+          description: Friday time for this timesheet report group.
+          example:
+            gt: 0
+        group:
+          type: string
+          title: Group
+          description: The grouping dimension for this timesheet report row.
+          example:
+            eq: value
+        monday_available:
+          type: integer
+          title: Monday Available
+          description: Monday available for this timesheet report group.
+          example:
+            eq: value
+        monday_capacity:
+          type: integer
+          title: Monday Capacity
+          description: Monday capacity for this timesheet report group.
+          example:
+            eq: value
+        monday_time:
+          type: integer
+          title: Monday Time
+          description: Monday time for this timesheet report group.
+          example:
+            gt: 0
+        organization:
+          title: Organization
+          description: Organization for this timesheet report group.
+          example:
+            eq: value
+        people_custom_fields:
+          type: string
+          title: People Custom Fields
+          description: People custom fields for this timesheet report group.
+          example:
+            eq: value
+        person:
+          title: Person
+          description: Person for this timesheet report group.
+          example:
+            eq: value
+        person_id:
+          type: integer
+          title: Person
+          description: Person id for this timesheet report group.
+          example:
+            - 123
+        person_status:
+          type: integer
+          title: Person Status
+          description: Person status for this timesheet report group.
+          example:
+            eq: active
+        query:
+          type: string
+          title: Query
+          description: Query for this timesheet report group.
+          example:
+            eq: value
+        report:
+          title: Report
+          description: Report for this timesheet report group.
+          example:
+            eq: value
+        saturday_available:
+          type: integer
+          title: Saturday Available
+          description: Saturday available for this timesheet report group.
+          example:
+            eq: value
+        saturday_capacity:
+          type: integer
+          title: Saturday Capacity
+          description: Saturday capacity for this timesheet report group.
+          example:
+            eq: value
+        saturday_time:
+          type: integer
+          title: Saturday Time
+          description: Saturday time for this timesheet report group.
+          example:
+            gt: 0
+        sunday_available:
+          type: integer
+          title: Sunday Available
+          description: Sunday available for this timesheet report group.
+          example:
+            eq: value
+        sunday_capacity:
+          type: integer
+          title: Sunday Capacity
+          description: Sunday capacity for this timesheet report group.
+          example:
+            eq: value
+        sunday_time:
+          type: integer
+          title: Sunday Time
+          description: Sunday time for this timesheet report group.
+          example:
+            gt: 0
+        thursday_available:
+          type: integer
+          title: Thursday Available
+          description: Thursday available for this timesheet report group.
+          example:
+            eq: value
+        thursday_capacity:
+          type: integer
+          title: Thursday Capacity
+          description: Thursday capacity for this timesheet report group.
+          example:
+            eq: value
+        thursday_time:
+          type: integer
+          title: Thursday Time
+          description: Thursday time for this timesheet report group.
+          example:
+            gt: 0
+        tuesday_available:
+          type: integer
+          title: Tuesday Available
+          description: Tuesday available for this timesheet report group.
+          example:
+            eq: value
+        tuesday_capacity:
+          type: integer
+          title: Tuesday Capacity
+          description: Tuesday capacity for this timesheet report group.
+          example:
+            eq: value
+        tuesday_time:
+          type: integer
+          title: Tuesday Time
+          description: Tuesday time for this timesheet report group.
+          example:
+            gt: 0
+        wednesday_available:
+          type: integer
+          title: Wednesday Available
+          description: Wednesday available for this timesheet report group.
+          example:
+            eq: value
+        wednesday_capacity:
+          type: integer
+          title: Wednesday Capacity
+          description: Wednesday capacity for this timesheet report group.
+          example:
+            eq: value
+        wednesday_time:
+          type: integer
+          title: Wednesday Time
+          description: Wednesday time for this timesheet report group.
+          example:
+            gt: 0
+        week:
+          type: string
+          title: Week
+          description: Week grouping for this timesheet report row.
+          example:
+            eq: value
+        week_submission_status:
+          enum:
+            - submitted
+            - partially_submitted
+            - not_submitted
+          type: string
+          title: Week Submission Status
+          description: Week submission status for this timesheet report group.
+          example:
+            eq: active
+      example:
+        id: '123'
+        type: timesheet_reports
+        attributes:
+          total_hours: 40
+          approved_hours: 38
+          pending_hours: 2
+          week_starting: '2026-01-13'
+          person_id: 12
+        relationships: {}
   parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_timesheet_report:
+    group_timesheet_report:
       in: query
-      name: filter
-      style: deepObject
+      name: group
+      style: form
       schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.timesheet_report at the top of this file.
+        enum:
+          - organization
+          - person
+          - week
+        type: string
+        title: Group timesheet report
+      explode: false
       required: false
-      description: Filters
+      description: Group timesheet report
     sort_timesheet_report:
       in: query
       name: sort
@@ -143,450 +1122,12 @@ components:
       explode: false
       required: false
       description: Sort timesheet report
-    group_timesheet_report:
+    filter_timesheet_report:
       in: query
-      name: group
-      style: form
+      name: filter
+      style: deepObject
       schema:
-        enum:
-          - organization
-          - person
-          - week
-        type: string
-        title: Group timesheet report
-      explode: false
+        type: object
+        description: Filter keys and their operators are listed under x-filters.timesheet_report at the top of this file.
       required: false
-      description: Group timesheet report
-  schemas:
-    resource_timesheet_report:
-      type: object
-      title: Timesheet report Resource
-      properties:
-        monday_time:
-          type: integer
-          title: Monday Time
-          description: Monday time for this timesheet report group.
-          example:
-            gt: 0
-        monday_available:
-          type: integer
-          title: Monday Available
-          description: Monday available for this timesheet report group.
-          example:
-            eq: value
-        tuesday_time:
-          type: integer
-          title: Tuesday Time
-          description: Tuesday time for this timesheet report group.
-          example:
-            gt: 0
-        sunday_capacity:
-          type: integer
-          title: Sunday Capacity
-          description: Sunday capacity for this timesheet report group.
-          example:
-            eq: value
-        person:
-          title: Person
-          description: Person for this timesheet report group.
-          example:
-            eq: value
-        before:
-          type: string
-          title: Before
-          format: date
-          description: Before for this timesheet report group.
-          example:
-            eq: value
-        saturday_available:
-          type: integer
-          title: Saturday Available
-          description: Saturday available for this timesheet report group.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: Organization for this timesheet report group.
-          example:
-            eq: value
-        wednesday_capacity:
-          type: integer
-          title: Wednesday Capacity
-          description: Wednesday capacity for this timesheet report group.
-          example:
-            eq: value
-        thursday_capacity:
-          type: integer
-          title: Thursday Capacity
-          description: Thursday capacity for this timesheet report group.
-          example:
-            eq: value
-        tags:
-          type: string
-          title: Tags
-          description: Tags for this timesheet report group.
-          example:
-            eq: value
-        tuesday_capacity:
-          type: integer
-          title: Tuesday Capacity
-          description: Tuesday capacity for this timesheet report group.
-          example:
-            eq: value
-        formula_fields:
-          title: Formula Fields
-          description: Formula fields for this timesheet report group.
-          example:
-            eq: value
-        people_custom_fields:
-          type: string
-          title: People Custom Fields
-          description: People custom fields for this timesheet report group.
-          example:
-            eq: value
-        thursday_available:
-          type: integer
-          title: Thursday Available
-          description: Thursday available for this timesheet report group.
-          example:
-            eq: value
-        currency_normalized:
-          title: Currency Normalized
-          description: Currency in the normalized currency for this timesheet report group.
-          example:
-            eq: value
-        currency_default:
-          title: Currency Default
-          description: Currency in the organization's default currency for this timesheet report group.
-          example:
-            eq: value
-        person_status:
-          type: integer
-          title: Person Status
-          description: Person status for this timesheet report group.
-          example:
-            eq: active
-        group:
-          type: string
-          title: Group
-          description: The grouping dimension for this timesheet report row.
-          example:
-            eq: value
-        currency:
-          title: Currency
-          description: Currency for this timesheet report group.
-          example:
-            eq: value
-        friday_available:
-          type: integer
-          title: Friday Available
-          description: Friday available for this timesheet report group.
-          example:
-            eq: value
-        saturday_capacity:
-          type: integer
-          title: Saturday Capacity
-          description: Saturday capacity for this timesheet report group.
-          example:
-            eq: value
-        wednesday_time:
-          type: integer
-          title: Wednesday Time
-          description: Wednesday time for this timesheet report group.
-          example:
-            gt: 0
-        thursday_time:
-          type: integer
-          title: Thursday Time
-          description: Thursday time for this timesheet report group.
-          example:
-            gt: 0
-        saturday_time:
-          type: integer
-          title: Saturday Time
-          description: Saturday time for this timesheet report group.
-          example:
-            gt: 0
-        sunday_time:
-          type: integer
-          title: Sunday Time
-          description: Sunday time for this timesheet report group.
-          example:
-            gt: 0
-        tuesday_available:
-          type: integer
-          title: Tuesday Available
-          description: Tuesday available for this timesheet report group.
-          example:
-            eq: value
-        query:
-          type: string
-          title: Query
-          description: Query for this timesheet report group.
-          example:
-            eq: value
-        person_id:
-          type: integer
-          title: Person
-          description: Person id for this timesheet report group.
-          example:
-            - 123
-        week_submission_status:
-          enum:
-            - submitted
-            - partially_submitted
-            - not_submitted
-          type: string
-          title: Week Submission Status
-          description: Week submission status for this timesheet report group.
-          example:
-            eq: active
-        count:
-          type: integer
-          title: Count
-          description: Number of timesheets in this report group.
-          example:
-            gt: 0
-        friday_time:
-          type: integer
-          title: Friday Time
-          description: Friday time for this timesheet report group.
-          example:
-            gt: 0
-        wednesday_available:
-          type: integer
-          title: Wednesday Available
-          description: Wednesday available for this timesheet report group.
-          example:
-            eq: value
-        monday_capacity:
-          type: integer
-          title: Monday Capacity
-          description: Monday capacity for this timesheet report group.
-          example:
-            eq: value
-        report:
-          title: Report
-          description: Report for this timesheet report group.
-          example:
-            eq: value
-        friday_capacity:
-          type: integer
-          title: Friday Capacity
-          description: Friday capacity for this timesheet report group.
-          example:
-            eq: value
-        sunday_available:
-          type: integer
-          title: Sunday Available
-          description: Sunday available for this timesheet report group.
-          example:
-            eq: value
-        after:
-          type: string
-          title: After
-          format: date
-          description: After for this timesheet report group.
-          example:
-            eq: value
-        week:
-          type: string
-          title: Week
-          description: Week grouping for this timesheet report row.
-          example:
-            eq: value
-      description: An aggregated timesheet report row grouping timesheet records by configurable dimensions with time metrics.
-      example:
-        id: '123'
-        type: timesheet_reports
-        attributes:
-          total_hours: 40
-          approved_hours: 38
-          pending_hours: 2
-          week_starting: '2026-01-13'
-          person_id: 12
-        relationships: {}
-    _meta:
-      type: object
-      title: Meta
-      properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
-        current_page:
-          type: integer
-          description: The current page number in this paginated response (1-based).
-          example: 1
-        total_count:
-          type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
-        organization_features:
-          type: object
-          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
-          example: []
-        settings:
-          type: object
-          description: Organization or user settings relevant to this resource's display.
-          example:
-            feature_x: true
-            notifications:
-              email: true
-        page_size:
-          type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
-          type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
-      example:
-        current_page: 1
-        total_pages: 5
-        total_count: 42
-        page_size: 30
-        max_page_size: 200
-    _single_relationship:
-      anyOf:
-        - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
-      description: A JSON:API single relationship — links to one related resource or `null`.
-      example:
-        data:
-          type: tasks
-          id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
-    _not_included:
-      type: object
-      title: Not included
-      properties:
-        meta:
-          type: object
-          properties:
-            included:
-              enum:
-                - false
-              type: boolean
-              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
-              example: false
-          description: Metadata indicating the sideload status of this relationship.
-          example:
-            included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
-      example:
-        meta:
-          included: false
-  responses:
-    collection_timesheet_report:
-      content:
-        application/vnd.api+json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    attributes:
-                      type: object
-                      properties:
-                        week:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/week'
-                        count:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/count'
-                        group:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/group'
-                        currency:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/currency'
-                        friday_time:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/friday_time'
-                        monday_time:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/monday_time'
-                        sunday_time:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/sunday_time'
-                        tuesday_time:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/tuesday_time'
-                        saturday_time:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/saturday_time'
-                        thursday_time:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/thursday_time'
-                        formula_fields:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/formula_fields'
-                        wednesday_time:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/wednesday_time'
-                        friday_capacity:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/friday_capacity'
-                        monday_capacity:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/monday_capacity'
-                        sunday_capacity:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/sunday_capacity'
-                        currency_default:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/currency_default'
-                        friday_available:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/friday_available'
-                        monday_available:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/monday_available'
-                        sunday_available:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/sunday_available'
-                        tuesday_capacity:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/tuesday_capacity'
-                        saturday_capacity:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/saturday_capacity'
-                        thursday_capacity:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/thursday_capacity'
-                        tuesday_available:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/tuesday_available'
-                        saturday_available:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/saturday_available'
-                        thursday_available:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/thursday_available'
-                        wednesday_capacity:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/wednesday_capacity'
-                        currency_normalized:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/currency_normalized'
-                        wednesday_available:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/wednesday_available'
-                        week_submission_status:
-                          $ref: '#/components/schemas/resource_timesheet_report/properties/week_submission_status'
-                    relationships:
-                      type: object
-                      properties:
-                        person:
-                          $ref: '#/components/schemas/_single_relationship'
-                        report:
-                          $ref: '#/components/schemas/_single_relationship'
-                        organization:
-                          $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
-              included:
-                type: array
-                items: {}
-      description: Collection timesheet report
+      description: Filters

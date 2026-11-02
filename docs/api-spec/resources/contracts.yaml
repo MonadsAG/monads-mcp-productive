@@ -10,13 +10,6 @@ description: |-
   Please note that we rate limit POST requests for generating recurring budgets to 50 requests per minute.
 x-filters:
   contract:
-    starts_on:
-      description: Filter by contract start date range (`starts_on`).
-      operators:
-        - contains
-        - eq
-        - not_contain
-        - not_eq
     contract_interval_id:
       description: Filter by the associated contract interval.
       operators:
@@ -45,75 +38,153 @@ x-filters:
         - eq
         - not_contain
         - not_eq
+    starts_on:
+      description: Filter by contract start date range (`starts_on`).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
 paths:
+  /api/v2/contracts/generate:
+    post:
+      tags:
+        - Contracts
+      summary: Generates new budgets for several contracts
+      description: |
+        Generates budgets for several contracts in one request. Requires the JSON:API bulk extension
+        header (`Content-Type: application/vnd.api+json; ext=bulk`); the single-contract endpoint lives
+        at `/api/v2/contracts/{id}/generate`. Each item may carry its own `generate_until`, and the
+        request generates at most 36 budgets in total, so it holds at most 36 contracts. Validation is
+        all or nothing — when any contract is rejected, none of them generate. The generated budget
+        IDs are returned under `meta.generated_budget_ids`, keyed by contract ID. When generation stops
+        on a conflict partway through, the contracts before it stay generated and the 409 lists the
+        budgets generated so far under the same keyed `meta.generated_budget_ids`.
+      operationId: contracts-bulk-generate
+      requestBody:
+        $ref: '#/components/requestBodies/contract_bulk_generate'
+      responses:
+        '200':
+          $ref: '#/components/responses/contract_bulk_generate'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_contract'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/contracts:
     get:
       tags:
         - Contracts
       summary: Get contracts
+      operationId: contracts-index
+      description: List contracts with optional filters and pagination.
+      parameters:
+        - $ref: '#/components/parameters/filter_contract'
+        - $ref: '#/components/parameters/sort_contract'
       responses:
         '200':
           $ref: '#/components/responses/collection_contract'
-      parameters:
-        - $ref: '#/components/parameters/sort_contract'
-        - $ref: '#/components/parameters/filter_contract'
-        - $ref: '#/components/parameters/header_organization'
-      operationId: contracts-index
-      description: List contracts with optional filters and pagination.
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     post:
       tags:
         - Contracts
       summary: Create a contract
+      operationId: contracts-create
+      description: Create a new contract.
+      requestBody:
+        $ref: '#/components/requestBodies/contract'
       responses:
         '201':
           $ref: '#/components/responses/single_contract'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
         '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
-      parameters:
-        - $ref: '#/components/parameters/header_organization'
-      operationId: contracts-create
-      requestBody:
-        $ref: '#/components/requestBodies/contract'
-      description: Create a new contract.
+          $ref: '#/components/responses/unprocessable_content_contract'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/contracts/{id}:
     get:
       tags:
         - Contracts
       summary: Gets a contract
-      responses:
-        '200':
-          $ref: '#/components/responses/single_contract'
+      operationId: contracts-show
+      description: Retrieve a single contract by ID.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: contracts-show
-      description: Retrieve a single contract by ID.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_contract'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     patch:
       tags:
         - Contracts
       summary: Update a contract
-      responses:
-        '200':
-          $ref: '#/components/responses/single_contract'
-        '422':
-          content:
-            application/vnd.api+json: {}
-          headers:
-            Content-Type:
-              schema:
-                type: string
-          description: Unprocessable Entity
+      operationId: contracts-update
+      description: Update a contract.
       parameters:
         - in: path
           name: id
@@ -121,78 +192,634 @@ paths:
             type: string
           required: true
           description: ID
-        - $ref: '#/components/parameters/header_organization'
-      operationId: contracts-update
       requestBody:
         $ref: '#/components/requestBodies/contract'
-      description: Update a contract.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_contract'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_contract'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
     delete:
       tags:
         - Contracts
       summary: Deletes a contract
-      responses:
-        '204':
-          description: No Content
+      operationId: contracts-destroy
+      description: Delete a contract.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: contracts-destroy
-      description: Delete a contract.
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
   /api/v2/contracts/{id}/generate:
     post:
       tags:
         - Contracts
       summary: Generates new budget
-      responses:
-        '200':
-          $ref: '#/components/responses/single_contract'
+      operationId: contracts-generate-generate
+      description: Generate a contract.
       parameters:
-        - $ref: '#/components/parameters/header_organization'
         - in: path
           name: id
           schema:
             type: string
           required: true
           description: ID
-      operationId: contracts-generate-generate
-      description: Generate a contract.
+      requestBody:
+        $ref: '#/components/requestBodies/contract_generate'
+      responses:
+        '200':
+          $ref: '#/components/responses/contract_generate'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '409':
+          $ref: '#/components/responses/conflict'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_contract'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/contracts/{id}/recalculate_rolled_over_time:
+    patch:
+      tags:
+        - Contracts
+      summary: Recalculate rolled over time
+      description: |
+        Schedules the recalculation of rolled over time for the contract's budgets when the contract uses
+        rollover hours. An optional `deal_id` limits it to one budget of the contract.
+      operationId: contracts-recalculate-rolled-over-time
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/vnd.api+json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        deal_id:
+                          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/single_contract'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
 components:
-  parameters:
-    header_organization:
-      in: header
-      name: X-Organization-Id
-      schema:
-        type: string
-      required: true
-      description: Organization ID
-    filter_contract:
-      in: query
-      name: filter
-      style: deepObject
-      schema:
-        type: object
-        description: Filter keys and their operators are listed under x-filters.contract at the top of this file.
-      required: false
-      description: Filters
-    sort_contract:
-      in: query
-      name: sort
-      style: form
-      schema:
-        type: array
-        items:
-          type: string
-        title: Sort contract
-      explode: false
-      required: false
-      description: Sort contract
   responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    unprocessable_content:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unprocessable_content'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
     single_contract:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single contract record in JSON:API format.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object for the returned contract resource.
+                properties:
+                  attributes:
+                    type: object
+                    description: Contract attributes.
+                    properties:
+                      copy_expenses:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
+                      copy_purchase_order_number:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                      ends_on:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_contract/properties/ends_on'
+                          - type: 'null'
+                        description: The date when the contract ends, or null if ongoing.
+                      interval_id:
+                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                      next_occurrence_on:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                          - type: 'null'
+                        description: The date when the next budget period will be generated.
+                      starts_on:
+                        $ref: '#/components/schemas/resource_contract/properties/starts_on'
+                      use_rollover_hours:
+                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Contract relationships.
+                    properties:
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      template:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '11'
+                type: contracts
+                attributes:
+                  name: Master Services Agreement
+                  status: active
+                  start_date: '2026-01-01'
+                  end_date: '2026-12-31'
+                  created_at: '2026-01-01T00:00:00.000+00:00'
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
+              included: []
+      description: Single contract
+    unprocessable_content_contract:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_contract'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      properties:
+                        bulk_index:
+                          type: integer
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    conflict:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_conflict'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Conflict
+    contract_generate:
       content:
         application/vnd.api+json:
           schema:
@@ -204,34 +831,131 @@ components:
                   attributes:
                     type: object
                     properties:
-                      ends_on:
-                        $ref: '#/components/schemas/resource_contract/properties/ends_on'
-                      starts_on:
-                        $ref: '#/components/schemas/resource_contract/properties/starts_on'
-                      interval_id:
-                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
                       copy_expenses:
                         $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
-                      next_occurrence_on:
-                        $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
-                      use_rollover_hours:
-                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
                       copy_purchase_order_number:
                         $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                      ends_on:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_contract/properties/ends_on'
+                          - type: 'null'
+                      interval_id:
+                        $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                      next_occurrence_on:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                          - type: 'null'
+                      starts_on:
+                        $ref: '#/components/schemas/resource_contract/properties/starts_on'
+                      use_rollover_hours:
+                        $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
                   relationships:
                     type: object
                     properties:
-                      template:
-                        $ref: '#/components/schemas/_single_relationship'
                       organization:
                         $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                      template:
+                        $ref: '#/components/schemas/_single_relationship'
               included:
                 type: array
                 items: {}
-      description: Single contract
+              meta:
+                type: object
+                properties:
+                  generated_budget_ids:
+                    type: array
+                    items:
+                      type: string
+      description: Contract with the budgets the request generated
     collection_contract:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of contract records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A contract resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Contract attributes.
+                      properties:
+                        copy_expenses:
+                          $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
+                        copy_purchase_order_number:
+                          $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                        ends_on:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_contract/properties/ends_on'
+                            - type: 'null'
+                          description: Date when this contract ends.
+                        interval_id:
+                          $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                        next_occurrence_on:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                            - type: 'null'
+                          description: Date when the next rollover budget will be created.
+                        starts_on:
+                          $ref: '#/components/schemas/resource_contract/properties/starts_on'
+                        use_rollover_hours:
+                          $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Contract relationships.
+                      properties:
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        template:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of contract resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '11'
+                  type: contracts
+                  attributes:
+                    name: Master Services Agreement
+                    status: active
+                    start_date: '2026-01-01'
+                    end_date: '2026-12-31'
+                    created_at: '2026-01-01T00:00:00.000+00:00'
+                  relationships:
+                    company:
+                      data:
+                        type: companies
+                        id: '65111'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 5
+                total_count: 42
+                page_size: 30
+                max_page_size: 200
+      description: Collection contract
+    contract_bulk_generate:
       content:
         application/vnd.api+json:
           schema:
@@ -245,54 +969,304 @@ components:
                     attributes:
                       type: object
                       properties:
-                        ends_on:
-                          $ref: '#/components/schemas/resource_contract/properties/ends_on'
-                        starts_on:
-                          $ref: '#/components/schemas/resource_contract/properties/starts_on'
-                        interval_id:
-                          $ref: '#/components/schemas/resource_contract/properties/interval_id'
                         copy_expenses:
                           $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
-                        next_occurrence_on:
-                          $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
-                        use_rollover_hours:
-                          $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
                         copy_purchase_order_number:
                           $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                        ends_on:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_contract/properties/ends_on'
+                            - type: 'null'
+                        interval_id:
+                          $ref: '#/components/schemas/resource_contract/properties/interval_id'
+                        next_occurrence_on:
+                          $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                        starts_on:
+                          $ref: '#/components/schemas/resource_contract/properties/starts_on'
+                        use_rollover_hours:
+                          $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
                     relationships:
                       type: object
                       properties:
-                        template:
-                          $ref: '#/components/schemas/_single_relationship'
                         organization:
                           $ref: '#/components/schemas/_single_relationship'
-              meta:
-                $ref: '#/components/schemas/_meta'
+                        template:
+                          $ref: '#/components/schemas/_single_relationship'
               included:
                 type: array
                 items: {}
-      description: Collection contract
+              meta:
+                type: object
+                properties:
+                  generated_budget_ids:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+      description: Contracts with the budgets the request generated, keyed by contract ID
   schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_unprocessable_content:
+      enum:
+        - bad_decimal_format
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint without its own resource codes can return with a 422.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
     _meta:
       type: object
       title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
       properties:
-        total_pages:
-          type: integer
-          description: Total number of pages available for the current query and page size.
-          example: 5
         current_page:
           type: integer
           description: The current page number in this paginated response (1-based).
           example: 1
-        total_count:
+        max_page_size:
           type: integer
-          description: Total number of records matching the current query across all pages.
-          example: 42
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
         organization_features:
           type: object
           description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
           example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
         settings:
           type: object
           description: Organization or user settings relevant to this resource's display.
@@ -300,15 +1274,14 @@ components:
             feature_x: true
             notifications:
               email: true
-        page_size:
+        total_count:
           type: integer
-          description: Number of records returned per page in this response.
-          example: 30
-        max_page_size:
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
           type: integer
-          description: Maximum number of records allowed per page for this endpoint.
-          example: 200
-      description: Pagination and response metadata returned with every collection endpoint.
+          description: Total number of pages available for the current query and page size.
+          example: 5
       example:
         current_page: 1
         total_pages: 5
@@ -317,44 +1290,21 @@ components:
         max_page_size: 200
     _single_relationship:
       anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
         - $ref: '#/components/schemas/_not_included'
-        - type: object
-          title: Single data
-          properties:
-            data:
-              $ref: '#/components/schemas/_resource'
-          description: Included variant — the related resource identifier is present in `data`.
-          example:
-            data:
-              type: tasks
-              id: '42'
       description: A JSON:API single relationship — links to one related resource or `null`.
       example:
         data:
           type: tasks
           id: '42'
-    _resource:
-      type: object
-      title: Resource Identifier
-      properties:
-        id:
-          type: integer
-          description: The unique identifier of the resource.
-          example: 42
-        type:
-          type: string
-          description: The resource type name (e.g. `tasks`, `people`, `deals`).
-          example: tasks
-      description: A JSON:API resource identifier object containing the resource type and ID.
-      example:
-        type: tasks
-        id: '42'
     _not_included:
       type: object
       title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
       properties:
         meta:
           type: object
+          description: Metadata indicating the sideload status of this relationship.
           properties:
             included:
               enum:
@@ -362,16 +1312,48 @@ components:
               type: boolean
               description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
               example: false
-          description: Metadata indicating the sideload status of this relationship.
+          required:
+            - included
           example:
             included: false
-      description: Placeholder for a relationship that was not sideloaded in this response.
+      required:
+        - meta
       example:
         meta:
           included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
     resource_contract:
       type: object
       title: Contract Resource
+      description: A recurring retainer contract that auto-generates budgets at set intervals with optional rollover of unused amounts.
       properties:
         contract_interval_id:
           type: integer
@@ -379,21 +1361,22 @@ components:
           description: ID of the recurrence interval (e.g. monthly, quarterly, annually) for this contract.
           example:
             - 123
+        copy_expenses:
+          type: boolean
+          title: Copy Expenses
+          description: Whether to copy expenses from the template.
+          example:
+            eq: value
+        copy_purchase_order_number:
+          type: boolean
+          title: Copy Purchase Order Number
+          description: Whether to copy the purchase order number.
+          example: PO-2024-017
         ends_on:
           type: string
           title: Ends On
           format: date
           description: Date when this contract ends, or null if it has no end date.
-          example:
-            eq: value
-        template:
-          title: Template
-          description: The budget used as the template for generating new budgets from this contract.
-          example:
-            eq: value
-        organization:
-          title: Organization
-          description: The organization this contract belongs to.
           example:
             eq: value
         id:
@@ -402,6 +1385,36 @@ components:
           description: The unique identifier of this contract.
           example:
             - 123
+        interval_id:
+          type: integer
+          title: Interval
+          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
+          example:
+            - 123
+        next_occurrence_on:
+          type: string
+          title: Next Occurrence On
+          format: date
+          description: The date of the next occurrence.
+          example:
+            eq: value
+        organization:
+          title: Organization
+          description: The organization this contract belongs to.
+          example:
+            eq: value
+        starts_on:
+          type: string
+          title: Starts On
+          format: date
+          description: Date when this contract starts.
+          example:
+            eq: value
+        template:
+          title: Template
+          description: The budget used as the template for generating new budgets from this contract.
+          example:
+            eq: value
         template_id:
           title: Template
           description: ID of the budget used as the template for generating new budgets from this contract.
@@ -413,38 +1426,11 @@ components:
           description: Whether to roll over unused hours.
           example:
             eq: value
-        starts_on:
+        generate_until:
           type: string
-          title: Starts On
+          title: Generate Until
           format: date
-          description: Date when this contract starts.
-          example:
-            eq: value
-        next_occurrence_on:
-          type: string
-          title: Next Occurrence On
-          format: date
-          description: The date of the next occurrence.
-          example:
-            eq: value
-        copy_expenses:
-          type: boolean
-          title: Copy Expenses
-          description: Whether to copy expenses from the template.
-          example:
-            eq: value
-        interval_id:
-          type: integer
-          title: Interval
-          description: ID of the recurrence interval of this contract (alias for contract_interval_id).
-          example:
-            - 123
-        copy_purchase_order_number:
-          type: boolean
-          title: Copy Purchase Order Number
-          description: Whether to copy the purchase order number.
-          example: PO-2024-017
-      description: A recurring retainer contract that auto-generates budgets at set intervals with optional rollover of unused amounts.
+          description: Optional. Generates every budget starting on or before this date (max 12) instead of just the next one.
       example:
         id: '11'
         type: contracts
@@ -459,8 +1445,215 @@ components:
             data:
               type: companies
               id: '65111'
+    error_code_contract:
+      enum:
+        - bad_decimal_format
+        - contract_deal_invalid
+        - generate_until_after_contract_end
+        - generate_until_before_next_occurrence
+        - generate_until_limit_exceeded
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+        - recurring_budgets_feature_unavailable
+      type: string
+      title: Error Code
+      description: Every error `code` the contracts endpoints can return.
+    error_code_conflict:
+      enum:
+        - absence_in_past
+        - agent_manager_membership_not_deletable
+        - agent_manager_membership_not_editable
+        - agent_not_found_for_role
+        - agent_role_can_not_be_deleted
+        - agent_role_can_not_transfer_people
+        - allow_absence_disabled
+        - already_activated
+        - already_active
+        - already_archived
+        - already_closed
+        - already_deactivated
+        - already_joined
+        - already_opened
+        - approval_addon_disabled
+        - approved_time_entry_not_editable
+        - automation_agent_deactivated
+        - autotracked_time_entry
+        - bank_account_already_archived
+        - bank_account_archived
+        - bank_account_not_archived
+        - bank_account_used_as_default
+        - budget_already_exported
+        - budget_closed
+        - budget_delivered
+        - budget_is_template
+        - budget_missing_project
+        - budget_not_client_budget
+        - budget_not_exported
+        - budget_project_archived
+        - can_not_approve_unsubmitted_record
+        - can_not_destroy_submitted_record
+        - can_not_start_timer_for_approved_record
+        - can_not_start_timer_on_submitted_record
+        - cancel_error
+        - cannot_apply_template_on_template_doc
+        - cannot_approve_draft_record
+        - cannot_archive_company
+        - cannot_export_company
+        - cannot_publish_doc_on_template
+        - cannot_reject_autotracked_record
+        - cannot_reject_draft_record
+        - cannot_restore_company
+        - cannot_unapprove_draft_record
+        - cannot_unpublish_doc_on_template
+        - cannot_unreject_draft_record
+        - closed_budget
+        - comment_already_pinned
+        - comment_not_pinnable
+        - comment_not_pinned
+        - company_already_exported
+        - company_export_unavailable
+        - company_not_exported
+        - contract_not_destroyable
+        - create_setup_intent_error
+        - custom_field_used_as_approver
+        - datev_csv_export_feature_unavailable
+        - deactivated
+        - deal_closed
+        - deal_cost_rate_not_editable
+        - deal_owner_not_deletable
+        - deal_status_amount_reached
+        - deal_status_in_use
+        - deal_status_last_stage_not_allowed
+        - deal_status_mapped_to_hubspot_integration
+        - declined
+        - deleted_item_already_restored
+        - engagements_on_holiday_calendar
+        - erase_blocked
+        - event_archived
+        - event_automation_cant_be_manually_run
+        - expense_not_exported
+        - expense_not_linked
+        - expense_sync_feature_unavailable
+        - expenses_not_approved
+        - export_not_pending
+        - export_status_check_cooldown
+        - financial_month_locked
+        - financial_month_locked_expense
+        - financial_month_locked_service
+        - financial_month_locked_time_entry
+        - folder_archived
+        - has_credit_note
+        - import_already_running
+        - insufficient_plan
+        - insufficient_seats
+        - invalid_action
+        - last_full_access_membership
+        - last_subsidiary
+        - move_to_person
+        - must_have_at_least_one_status_in_closed_category
+        - name_not_unique
+        - next_occurrence_on_blank
+        - no_time_approval_on_budget
+        - not_archived
+        - not_in_draft_status
+        - organization_not_verified
+        - organization_owner
+        - people_on_subsidiary
+        - person_erased
+        - person_has_offboarding_in_progress
+        - person_is_archived
+        - person_is_placeholder
+        - person_is_sample
+        - person_is_user
+        - person_not_joined
+        - person_not_user
+        - person_owner
+        - person_virtual
+        - pinned_comment_not_destroyable
+        - project_already_archived
+        - project_already_restored
+        - project_archived
+        - project_duplication_in_progress
+        - project_manager_membership_not_deletable
+        - project_manager_membership_not_editable
+        - project_not_client_project
+        - project_not_exported
+        - reactivate_error
+        - recap_not_available
+        - record_already_approved
+        - record_already_archived
+        - record_already_canceled
+        - record_already_dismissed
+        - record_already_doc
+        - record_already_open
+        - record_already_published
+        - record_already_read
+        - record_already_rejected
+        - record_already_resolved
+        - record_already_restored
+        - record_already_unapproved
+        - record_already_unrejected
+        - record_archived
+        - record_contains_custom_fields
+        - record_is_last_active_workflow
+        - record_is_last_pipeline
+        - record_must_be_submitted_to_be_rejected
+        - record_not_archived
+        - record_not_dismissed
+        - record_not_on_absence
+        - record_not_published
+        - record_not_read
+        - record_on_remote_work
+        - record_project_not_editable
+        - record_used_on_projects
+        - request_resolved
+        - responded
+        - retry_last_payment_error
+        - role_being_used
+        - role_not_editable_by_user
+        - role_not_for_agents
+        - seats_allocation_error
+        - self_deactivation
+        - service_type_already_archived
+        - service_type_archived
+        - service_type_not_archived
+        - signed
+        - slack_bot_integration_not_connected
+        - subsidiary_archived
+        - survey_field_option_already_archived
+        - survey_field_option_inaccessible
+        - system_segment_type
+        - task_is_template
+        - task_required_by_time_entries
+        - tax_rate_already_archived
+        - tax_rate_archived
+        - tax_rate_not_archived
+        - tax_rate_used_as_default
+        - template_budget_not_destroyable
+        - template_doc_not_destroyable
+        - template_doc_not_moveable
+        - template_project_not_destroyable
+        - time_entries_not_approved
+        - time_entry_invoiced
+        - timer_already_started
+        - timer_already_stopped
+        - timer_running
+        - timer_started_on_record
+        - too_many_creates_for_unverified_new_organization
+        - too_many_invites_for_unverified_new_organization
+        - two_factor_not_enabled
+        - update_error
+        - used_as_integration_default_workplace
+        - user_and_not_virtual
+        - webhook_already_activated
+        - webhook_already_deactivated
+        - webhook_is_not_activated
+      type: string
+      title: Error Code
+      description: Every error `code` the resource abilities and forms return with a 409.
   requestBodies:
-    contract:
+    contract_generate:
       content:
         application/vnd.api+json:
           schema:
@@ -471,22 +1664,104 @@ components:
                 properties:
                   attributes:
                     type: object
-                    required:
-                      - interval_id
-                      - template_id
                     properties:
+                      generate_until:
+                        $ref: '#/components/schemas/resource_contract/properties/generate_until'
+    contract:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating or updating a contract.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object containing the contract resource attributes and relationships.
+                properties:
+                  attributes:
+                    type: object
+                    description: Contract attributes.
+                    properties:
+                      copy_expenses:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
+                      copy_purchase_order_number:
+                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
                       ends_on:
                         $ref: '#/components/schemas/resource_contract/properties/ends_on'
                       interval_id:
                         $ref: '#/components/schemas/resource_contract/properties/interval_id'
-                      template_id:
-                        $ref: '#/components/schemas/resource_contract/properties/template_id'
-                      copy_expenses:
-                        $ref: '#/components/schemas/resource_contract/properties/copy_expenses'
                       next_occurrence_on:
                         $ref: '#/components/schemas/resource_contract/properties/next_occurrence_on'
+                      template_id:
+                        $ref: '#/components/schemas/resource_contract/properties/template_id'
                       use_rollover_hours:
                         $ref: '#/components/schemas/resource_contract/properties/use_rollover_hours'
-                      copy_purchase_order_number:
-                        $ref: '#/components/schemas/resource_contract/properties/copy_purchase_order_number'
+                    required:
+                      - interval_id
+                      - template_id
+                    example:
+                      eq: value
+                example:
+                  eq: value
+            example:
+              data:
+                type: contracts
+                attributes:
+                  name: Master Services Agreement
+                  start_date: '2026-01-01'
+                  end_date: '2026-12-31'
+                relationships:
+                  company:
+                    data:
+                      type: companies
+                      id: '65111'
       description: Request body for creating or updating a contract (recurring retainer). Specify the template deal, interval (monthly, quarterly, etc.), start and end dates, and options for rolling over hours and copying purchase order numbers and expenses.
+    contract_bulk_generate:
+      content:
+        application/vnd.api+json; ext=bulk:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    attributes:
+                      type: object
+                      properties:
+                        generate_until:
+                          $ref: '#/components/schemas/resource_contract/properties/generate_until'
+                    id:
+                      type: string
+                      description: ID of the contract to generate budgets for. A contract may appear only once per request.
+                    type:
+                      enum:
+                        - contracts
+                      type: string
+                  required:
+                    - type
+                    - id
+                maxItems: 36
+  parameters:
+    sort_contract:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+        title: Sort contract
+      explode: false
+      required: false
+      description: Sort contract
+    filter_contract:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.contract at the top of this file.
+      required: false
+      description: Filters

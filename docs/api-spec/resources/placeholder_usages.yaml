@@ -1,0 +1,1448 @@
+openapi: 3.1.0
+info:
+  title: Productive.io API – Placeholder Usages
+  version: 2.0.0
+description: |-
+  **Placeholder usages** bind a placeholder to a specific field (assignee, subscriber, start date, or due date) on a template task or todo. When the template is instantiated, the resolved placeholder value is written to that field.
+
+  Date fields can additionally apply a relative interval offset from the resolved date.
+x-filters:
+  placeholder_usage:
+    field:
+      description: Filter by the target field the placeholder is bound to.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    placeholder_id:
+      description: Filter by the associated placeholder.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the associated project (matches usages on tasks or todos within that project).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    skip_weekends:
+      description: Filter to include only usages where weekends are skipped in interval calculations.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    target_id:
+      description: Filter by the target resource ID (the task or todo the placeholder is applied to).
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    target_type:
+      description: Filter by the target record type — `Ticket` or `Todo`.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    task_id:
+      description: Filter by the associated task.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    todo_id:
+      description: Filter by the associated todo.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+paths:
+  /api/v2/placeholder_usages:
+    get:
+      tags:
+        - Placeholder Usages
+      summary: Get placeholder usages
+      operationId: placeholder_usages-index
+      description: Returns a paginated list of placeholder usages — bindings of placeholders to fields on template tasks and todos.
+      parameters:
+        - $ref: '#/components/parameters/filter_placeholder_usage'
+        - $ref: '#/components/parameters/sort_placeholder_usage'
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_placeholder_usage'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+    post:
+      tags:
+        - Placeholder Usages
+      summary: Create a placeholder usage
+      operationId: placeholder_usages-create
+      description: |-
+        Creates a placeholder usage — binds a placeholder to a field on a template task or todo. Requires `field`, `placeholder_id`, and exactly one of `task_id` or `todo_id`. The placeholder's type must match the field: `start_date` and `due_date` take a date placeholder, `assignee` and `subscriber` take a person placeholder. Todos support only `assignee`.
+
+        For `assignee`, `start_date`, and `due_date` only one usage can exist per target — creating one also clears the value currently set on that field, so the placeholder takes over. `subscriber` usages can be added multiple times.
+
+        ### Bind a person placeholder to a task's assignee
+
+        ```json
+        {
+          "data": {
+            "type": "placeholder_usages",
+            "attributes": {
+              "field": "assignee",
+              "placeholder_id": 88,
+              "task_id": 7388879
+            }
+          }
+        }
+        ```
+
+        ### Bind a date placeholder to a due date, offset by one week
+
+        When the template is instantiated, the resolved date is offset by the interval — here one week after, skipping weekends.
+
+        ```json
+        {
+          "data": {
+            "type": "placeholder_usages",
+            "attributes": {
+              "field": "due_date",
+              "placeholder_id": 92,
+              "task_id": 7388879,
+              "interval_value": 1,
+              "interval_unit": "week",
+              "interval_direction": "after",
+              "skip_weekends": true
+            }
+          }
+        }
+        ```
+      requestBody:
+        $ref: '#/components/requestBodies/placeholder_usage'
+      responses:
+        '201':
+          $ref: '#/components/responses/single_placeholder_usage'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_placeholder_usage'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/placeholder_usages/{id}:
+    get:
+      tags:
+        - Placeholder Usages
+      summary: Gets a placeholder usage
+      operationId: placeholder_usages-show
+      description: Returns a single placeholder usage by ID.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder usage to retrieve.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_placeholder_usage'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+    patch:
+      tags:
+        - Placeholder Usages
+      summary: Update a placeholder usage
+      operationId: placeholder_usages-update
+      description: Updates a placeholder usage. Only the provided attributes are modified — the target and `field` are set on create and cannot be changed. A different `placeholder_id` must still match the usage's field type.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder usage to update.
+      requestBody:
+        $ref: '#/components/requestBodies/placeholder_usage_update'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_placeholder_usage'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_placeholder_usage'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+    delete:
+      tags:
+        - Placeholder Usages
+      summary: Deletes a placeholder usage
+      operationId: placeholder_usages-destroy
+      description: Deletes a placeholder usage.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the placeholder usage to delete.
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+components:
+  responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    unprocessable_content_placeholder_usage:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_placeholder_usage'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    single_placeholder_usage:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single placeholder_usage record in JSON:API format.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object for the returned placeholder_usage resource.
+                properties:
+                  attributes:
+                    type: object
+                    description: Placeholder usage attributes.
+                    properties:
+                      created_at:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/created_at'
+                      field:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/field'
+                      id:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/id'
+                      interval_direction:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_direction'
+                          - type: 'null'
+                        description: The direction of the interval (before or after the target date).
+                      interval_unit:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_unit'
+                          - type: 'null'
+                        description: The unit of the interval offset.
+                      interval_value:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_value'
+                          - type: 'null'
+                        description: The number of interval units offset from the resolved date.
+                      placeholder_id:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/placeholder_id'
+                      skip_weekends:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/skip_weekends'
+                      target_id:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/target_id'
+                      target_type:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/target_type'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/updated_at'
+                    example:
+                      eq: value
+                  relationships:
+                    type: object
+                    description: Placeholder usage relationships.
+                    properties:
+                      placeholder:
+                        $ref: '#/components/schemas/_single_relationship'
+                      task:
+                        $ref: '#/components/schemas/_single_relationship'
+                      todo:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      eq: value
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '199'
+                type: placeholder_usages
+                attributes:
+                  id: 199
+                  target_id: 7388879
+                  target_type: Ticket
+                  field: assignee
+                  placeholder_id: 88
+                  interval_value: null
+                  interval_unit: null
+                  interval_direction: null
+                  skip_weekends: false
+                  interval_enabled: false
+                  created_at: '2026-09-02T11:48:44.135+02:00'
+                  updated_at: '2026-09-02T11:48:44.135+02:00'
+                relationships:
+                  placeholder:
+                    data:
+                      type: placeholders
+                      id: '88'
+                  task:
+                    data:
+                      type: tasks
+                      id: '7388879'
+              included: []
+      description: Single placeholder usage
+    collection_placeholder_usage:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of placeholder usage records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A placeholder usage resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Placeholder usage attributes.
+                      properties:
+                        created_at:
+                          $ref: '#/components/schemas/resource_placeholder_usage/properties/created_at'
+                        field:
+                          $ref: '#/components/schemas/resource_placeholder_usage/properties/field'
+                        id:
+                          $ref: '#/components/schemas/resource_placeholder_usage/properties/id'
+                        interval_direction:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_direction'
+                            - type: 'null'
+                          description: The direction of the date interval offset (before or after).
+                        interval_unit:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_unit'
+                            - type: 'null'
+                          description: The unit of the interval offset.
+                        interval_value:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_value'
+                            - type: 'null'
+                          description: The magnitude of the interval offset value.
+                        placeholder_id:
+                          $ref: '#/components/schemas/resource_placeholder_usage/properties/placeholder_id'
+                        skip_weekends:
+                          $ref: '#/components/schemas/resource_placeholder_usage/properties/skip_weekends'
+                        target_id:
+                          $ref: '#/components/schemas/resource_placeholder_usage/properties/target_id'
+                        target_type:
+                          $ref: '#/components/schemas/resource_placeholder_usage/properties/target_type'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_placeholder_usage/properties/updated_at'
+                      example:
+                        eq: value
+                    relationships:
+                      type: object
+                      description: Placeholder usage relationships.
+                      properties:
+                        placeholder:
+                          $ref: '#/components/schemas/_single_relationship'
+                        task:
+                          $ref: '#/components/schemas/_single_relationship'
+                        todo:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        eq: value
+                  example:
+                    eq: value
+                description: Array of placeholder usage resource objects.
+                example:
+                  eq: value
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    eq: value
+                description: Sideloaded related resources.
+                example:
+                  eq: value
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '199'
+                  type: placeholder_usages
+                  attributes:
+                    id: 199
+                    target_id: 7388879
+                    target_type: Ticket
+                    field: assignee
+                    placeholder_id: 88
+                    interval_value: null
+                    interval_unit: null
+                    interval_direction: null
+                    skip_weekends: false
+                    interval_enabled: false
+                    created_at: '2026-09-02T11:48:44.135+02:00'
+                    updated_at: '2026-09-02T11:48:44.135+02:00'
+                  relationships:
+                    placeholder:
+                      data:
+                        type: placeholders
+                        id: '88'
+                    task:
+                      data:
+                        type: tasks
+                        id: '7388879'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 1
+                total_count: 2
+                page_size: 30
+                max_page_size: 200
+      description: Collection placeholder usage
+  schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_placeholder_usage:
+      enum:
+        - bad_decimal_format
+        - invalid_attribute
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+        - placeholder_usage_already_exists
+      type: string
+      title: Error Code
+      description: Every error `code` the placeholder usages endpoints can return.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          required:
+            - included
+          example:
+            included: false
+      required:
+        - meta
+      example:
+        meta:
+          included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    resource_placeholder_usage:
+      type: object
+      title: Placeholder usage Resource
+      description: A record linking a placeholder to a specific task or todo field, optionally with a date offset interval.
+      properties:
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this placeholder usage was created.
+          example:
+            gt: '2026-01-01'
+        field:
+          enum:
+            - assignee
+            - subscriber
+            - due_date
+            - start_date
+          type: string
+          title: Field
+          description: The task or todo field this placeholder is mapped to (e.g. assignee, due_date, start_date).
+          example:
+            eq: value
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this placeholder usage.
+          example:
+            - 123
+        interval_direction:
+          enum:
+            - before
+            - after
+          type: string
+          title: Interval Direction
+          description: The direction of the date offset relative to the reference date, either before or after.
+          example:
+            eq: value
+        interval_unit:
+          enum:
+            - day
+            - week
+            - month
+            - year
+          type: string
+          title: Interval Unit
+          description: The unit of the date offset interval (day, week, month, or year).
+          example:
+            eq: value
+        interval_value:
+          type: integer
+          title: Interval Value
+          description: The numeric value of the date offset applied to the target field.
+          example:
+            eq: value
+        placeholder:
+          title: Placeholder
+          description: The placeholder associated with this usage.
+          example:
+            eq: value
+        placeholder_id:
+          type: integer
+          title: Placeholder
+          description: ID of the placeholder associated with this usage.
+          example:
+            - 123
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this placeholder usage is associated with.
+          example:
+            - 123
+        skip_weekends:
+          type: boolean
+          title: Skip Weekends
+          description: When true, weekends are excluded when calculating date offsets for this placeholder.
+          example:
+            eq: value
+        target_id:
+          type: integer
+          title: Target
+          description: The ID of the target record (task or todo) this placeholder usage applies to.
+          example:
+            - 123
+        target_type:
+          enum:
+            - Ticket
+            - Todo
+          type: string
+          title: Target Type
+          description: The type of the target record — `Ticket` for tasks, `Todo` for todos.
+          example:
+            eq: active
+        task:
+          title: Task
+          description: The task this placeholder usage is linked to, if the target is a task.
+          example:
+            eq: value
+        task_id:
+          type: integer
+          title: Task
+          description: ID of the task this placeholder usage is linked to, if the target is a task.
+          example:
+            - 123
+        todo:
+          title: Todo
+          description: The todo this placeholder usage is linked to, if the target is a todo.
+          example:
+            eq: value
+        todo_id:
+          type: integer
+          title: Todo
+          description: ID of the todo this placeholder usage is linked to, if the target is a todo.
+          example:
+            - 123
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this placeholder usage was last updated.
+          example:
+            gt: '2026-01-01'
+      example:
+        id: '199'
+        type: placeholder_usages
+        attributes:
+          id: 199
+          target_id: 7388879
+          target_type: Ticket
+          field: assignee
+          placeholder_id: 88
+          interval_value: null
+          interval_unit: null
+          interval_direction: null
+          skip_weekends: false
+          created_at: '2026-09-02T11:48:44.135+02:00'
+          updated_at: '2026-09-02T11:48:44.135+02:00'
+        relationships:
+          placeholder:
+            data:
+              type: placeholders
+              id: '88'
+          task:
+            data:
+              type: tasks
+              id: '7388879'
+  requestBodies:
+    placeholder_usage_update:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for updating a placeholder usage.
+            properties:
+              data:
+                type: object
+                description: The placeholder usage resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Placeholder usage attributes.
+                    properties:
+                      interval_direction:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_direction'
+                      interval_unit:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_unit'
+                      interval_value:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_value'
+                      placeholder_id:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/placeholder_id'
+                      skip_weekends:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/skip_weekends'
+                    example:
+                      interval_enabled: true
+                      interval_value: 3
+                      interval_unit: day
+                      interval_direction: after
+                      skip_weekends: true
+                example:
+                  type: placeholder_usages
+                  attributes:
+                    interval_enabled: true
+                    interval_value: 3
+                    interval_unit: day
+                    interval_direction: after
+                    skip_weekends: true
+            example:
+              data:
+                type: placeholder_usages
+                attributes:
+                  interval_enabled: true
+                  interval_value: 3
+                  interval_unit: day
+                  interval_direction: after
+                  skip_weekends: true
+      description: Request body for updating a placeholder usage. The target and field are set on create and cannot be changed.
+    placeholder_usage:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating a placeholder usage.
+            properties:
+              data:
+                type: object
+                description: The placeholder usage resource object.
+                properties:
+                  attributes:
+                    type: object
+                    description: Placeholder usage attributes.
+                    properties:
+                      field:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/field'
+                      interval_direction:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_direction'
+                      interval_unit:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_unit'
+                      interval_value:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/interval_value'
+                      placeholder_id:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/placeholder_id'
+                      skip_weekends:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/skip_weekends'
+                      task_id:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/task_id'
+                      todo_id:
+                        $ref: '#/components/schemas/resource_placeholder_usage/properties/todo_id'
+                    required:
+                      - field
+                      - placeholder_id
+                    example:
+                      field: assignee
+                      placeholder_id: 88
+                      task_id: 7388879
+                example:
+                  type: placeholder_usages
+                  attributes:
+                    field: assignee
+                    placeholder_id: 88
+                    task_id: 7388879
+            example:
+              data:
+                type: placeholder_usages
+                attributes:
+                  field: assignee
+                  placeholder_id: 88
+                  task_id: 7388879
+      description: Request body for creating a placeholder usage. Binds a placeholder to a field on a template task or todo — provide exactly one of `task_id` or `todo_id`.
+  parameters:
+    sort_placeholder_usage:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+            - field
+            - -field
+            - id
+            - -id
+            - interval_direction
+            - -interval_direction
+            - interval_unit
+            - -interval_unit
+            - interval_value
+            - -interval_value
+            - placeholder_id
+            - -placeholder_id
+            - skip_weekends
+            - -skip_weekends
+            - target_id
+            - -target_id
+            - target_type
+            - -target_type
+            - updated_at
+            - -updated_at
+          type: string
+        title: Sort placeholder usage
+      explode: false
+      required: false
+      description: Sort order for placeholder usage list results. Accepts one or more field names, comma-separated; prefix with `-` for descending. --branch descriptions
+    filter_placeholder_usage:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.placeholder_usage at the top of this file.
+      required: false
+      description: Filter parameter for querying placeholder usages.

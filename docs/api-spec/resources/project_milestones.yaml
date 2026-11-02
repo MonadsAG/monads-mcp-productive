@@ -1,0 +1,1565 @@
+openapi: 3.1.0
+info:
+  title: Productive.io API – Project Milestones
+  version: 2.0.0
+description: |-
+  **Project milestones** are dated markers on a project — a launch, a review, a deadline — with a title, icon, color, an optional note and an optional assignee. They are shown on the project and on resource planning timelines.
+
+  Milestones are available only when the project milestones feature is enabled for the organization; otherwise the list is empty and other requests are rejected. Client users never see milestones.
+x-filters:
+  project_milestone:
+    after:
+      description: Return milestones on or after this date. The operator is ignored — the value is always an inclusive lower bound.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    assignee_id:
+      description: Filter by the person assigned to the milestone.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    before:
+      description: Return milestones on or before this date. The operator is ignored — the value is always an inclusive upper bound.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    date:
+      description: Filter by milestone date. Besides the listed operators, `gt`, `gt_eq`, `lt` and `lt_eq` are supported.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    id:
+      description: Filter by project milestone ID.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    project_id:
+      description: Filter by the project the milestone belongs to. Supports `eq` and `not_eq`; other operators have no effect.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+    query:
+      description: Search milestones by title. `contains` matches titles containing all search terms (`not_contain` the opposite); `eq`/`not_eq` compare the exact title.
+      operators:
+        - contains
+        - eq
+        - not_contain
+        - not_eq
+paths:
+  /api/v2/project_milestones:
+    get:
+      tags:
+        - Project Milestones
+      summary: Get project milestones
+      operationId: project_milestones-index
+      description: Returns a paginated list of project milestones on projects you can view. Supports filtering by project, assignee, date or a date window (`after`/`before`), title search (`query`), and by related people, projects, tasks, deals or budgets.
+      parameters:
+        - $ref: '#/components/parameters/filter_project_milestone'
+        - $ref: '#/components/parameters/sort_project_milestone'
+      responses:
+        '200':
+          $ref: '#/components/responses/collection_project_milestone'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+    post:
+      tags:
+        - Project Milestones
+      summary: Create a project milestone
+      operationId: project_milestones-create
+      description: |-
+        Creates a milestone on a project. Requires `title`, `date`, `icon_id` and `project_id` — the project must be visible to you and cannot be a template. When `color_id` is omitted, the milestone takes the color of its project. `assignee_id` must be an active member of the project. Requires the permission to manage project milestones.
+
+        ### Create a milestone
+
+        ```json
+        {
+          "data": {
+            "type": "project_milestones",
+            "attributes": {
+              "title": "Beta launch",
+              "date": "2026-10-15",
+              "icon_id": "icon-rocket-launch",
+              "note": "Release to beta customers.",
+              "assignee_id": 1002,
+              "project_id": 7388870
+            }
+          }
+        }
+        ```
+      requestBody:
+        $ref: '#/components/requestBodies/project_milestone'
+      responses:
+        '201':
+          $ref: '#/components/responses/single_project_milestone'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_project_milestone'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+  /api/v2/project_milestones/{id}:
+    get:
+      tags:
+        - Project Milestones
+      summary: Gets a project milestone
+      operationId: project_milestones-show
+      description: Returns a single project milestone by ID. Use `include=project,assignee,creator` to sideload related records.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the project milestone to retrieve.
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project_milestone'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+    patch:
+      tags:
+        - Project Milestones
+      summary: Update a project milestone
+      operationId: project_milestones-update
+      description: Updates a project milestone. Only the provided attributes are changed. Users who can manage milestones can change every attribute, including `project_id` to move the milestone to another project; the milestone's assignee can change only `title`, `date`, `color_id`, `icon_id` and `note`.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the project milestone to update.
+      requestBody:
+        $ref: '#/components/requestBodies/project_milestone_update'
+      responses:
+        '200':
+          $ref: '#/components/responses/single_project_milestone'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '415':
+          $ref: '#/components/responses/unsupported_media_type'
+        '422':
+          $ref: '#/components/responses/unprocessable_content_project_milestone'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+    delete:
+      tags:
+        - Project Milestones
+      summary: Deletes a project milestone
+      operationId: project_milestones-destroy
+      description: Deletes a project milestone. The milestone is moved to the recycle bin and can be restored through the deleted items endpoint.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The ID of the project milestone to delete.
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/unauthorized'
+        '403':
+          $ref: '#/components/responses/forbidden'
+        '404':
+          $ref: '#/components/responses/not_found'
+        '406':
+          $ref: '#/components/responses/not_acceptable'
+        '408':
+          $ref: '#/components/responses/request_timeout'
+        '423':
+          $ref: '#/components/responses/locked'
+        '429':
+          $ref: '#/components/responses/too_many_requests'
+        '500':
+          $ref: '#/components/responses/internal_server_error'
+components:
+  responses:
+    internal_server_error:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_server_error'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Internal Server Error
+    too_many_requests:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    detail:
+                      type: string
+                    limit:
+                      type: integer
+                    period:
+                      type: integer
+                    status:
+                      enum:
+                        - 429
+                      type: integer
+                    title:
+                      type: string
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+        X-RateLimit-Limit:
+          schema:
+            type: string
+        X-RateLimit-Reset:
+          schema:
+            type: string
+        X-RateLimit-Remaining:
+          schema:
+            type: string
+      description: Too Many Requests
+    locked:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_locked'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Locked
+    request_timeout:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_request_timeout'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Request Timeout
+    not_acceptable:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_acceptable'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Acceptable
+    not_found:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_not_found'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Not Found
+    forbidden:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_forbidden'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    meta:
+                      type: object
+                      title: Meta
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Forbidden
+    unauthorized:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unauthorized'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unauthorized
+    unprocessable_content_project_milestone:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_project_milestone'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unprocessable Content
+    unsupported_media_type:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_unsupported_media_type'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Unsupported Media Type
+    bad_request:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  title: Error
+                  properties:
+                    code:
+                      $ref: '#/components/schemas/error_code_bad_request'
+                    detail:
+                      $ref: '#/components/schemas/error/properties/detail'
+                    source:
+                      $ref: '#/components/schemas/error/properties/source'
+                    status:
+                      $ref: '#/components/schemas/error/properties/status'
+                    title:
+                      $ref: '#/components/schemas/error/properties/title'
+                title: Errors
+            required:
+              - errors
+      headers:
+        Content-Type:
+          schema:
+            type: string
+      description: Bad Request
+    single_project_milestone:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: A single project milestone record in JSON:API format.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object for the returned project milestone.
+                properties:
+                  attributes:
+                    type: object
+                    description: Project milestone attributes.
+                    properties:
+                      color_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/color_id'
+                      created_at:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/created_at'
+                      date:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/date'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/icon_id'
+                      note:
+                        anyOf:
+                          - $ref: '#/components/schemas/resource_project_milestone/properties/note'
+                          - type: 'null'
+                        description: Free-text note on this milestone, or `null`.
+                      title:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/title'
+                      updated_at:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/updated_at'
+                    example:
+                      title: Beta launch
+                      date: '2026-10-15'
+                      color_id: '6'
+                      icon_id: icon-rocket-launch
+                      note: Release to beta customers.
+                      created_at: '2026-09-01T10:15:00.000+02:00'
+                      updated_at: '2026-09-01T10:15:00.000+02:00'
+                  relationships:
+                    type: object
+                    description: Project milestone relationships.
+                    properties:
+                      assignee:
+                        $ref: '#/components/schemas/_single_relationship'
+                      creator:
+                        $ref: '#/components/schemas/_single_relationship'
+                      organization:
+                        $ref: '#/components/schemas/_single_relationship'
+                      project:
+                        $ref: '#/components/schemas/_single_relationship'
+                    example:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      creator:
+                        data:
+                          type: people
+                          id: '1001'
+                      assignee:
+                        data:
+                          type: people
+                          id: '1002'
+                      project:
+                        data:
+                          type: projects
+                          id: '7388870'
+                example:
+                  id: '42'
+                  type: project_milestones
+                  attributes:
+                    title: Beta launch
+                    date: '2026-10-15'
+                    color_id: '6'
+                    icon_id: icon-rocket-launch
+                    note: Release to beta customers.
+                    created_at: '2026-09-01T10:15:00.000+02:00'
+                    updated_at: '2026-09-01T10:15:00.000+02:00'
+                  relationships:
+                    organization:
+                      data:
+                        type: organizations
+                        id: '109'
+                    creator:
+                      data:
+                        type: people
+                        id: '1001'
+                    assignee:
+                      data:
+                        type: people
+                        id: '1002'
+                    project:
+                      data:
+                        type: projects
+                        id: '7388870'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    id: '7388870'
+                    type: projects
+                    attributes:
+                      name: Website redesign
+                description: Sideloaded related resources.
+                example:
+                  - id: '7388870'
+                    type: projects
+                    attributes:
+                      name: Website redesign
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                id: '42'
+                type: project_milestones
+                attributes:
+                  title: Beta launch
+                  date: '2026-10-15'
+                  color_id: '6'
+                  icon_id: icon-rocket-launch
+                  note: Release to beta customers.
+                  created_at: '2026-09-01T10:15:00.000+02:00'
+                  updated_at: '2026-09-01T10:15:00.000+02:00'
+                relationships:
+                  organization:
+                    data:
+                      type: organizations
+                      id: '109'
+                  creator:
+                    data:
+                      type: people
+                      id: '1001'
+                  assignee:
+                    data:
+                      type: people
+                      id: '1002'
+                  project:
+                    data:
+                      type: projects
+                      id: '7388870'
+              included:
+                - id: '7388870'
+                  type: projects
+                  attributes:
+                    name: Website redesign
+              meta: {}
+      description: A single project milestone.
+    collection_project_milestone:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Paginated list of project milestone records in JSON:API format.
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  description: A project milestone resource object.
+                  properties:
+                    attributes:
+                      type: object
+                      description: Project milestone attributes.
+                      properties:
+                        color_id:
+                          $ref: '#/components/schemas/resource_project_milestone/properties/color_id'
+                        created_at:
+                          $ref: '#/components/schemas/resource_project_milestone/properties/created_at'
+                        date:
+                          $ref: '#/components/schemas/resource_project_milestone/properties/date'
+                        icon_id:
+                          $ref: '#/components/schemas/resource_project_milestone/properties/icon_id'
+                        note:
+                          anyOf:
+                            - $ref: '#/components/schemas/resource_project_milestone/properties/note'
+                            - type: 'null'
+                          description: Free-text note on this milestone, or `null`.
+                        title:
+                          $ref: '#/components/schemas/resource_project_milestone/properties/title'
+                        updated_at:
+                          $ref: '#/components/schemas/resource_project_milestone/properties/updated_at'
+                      example:
+                        title: Beta launch
+                        date: '2026-10-15'
+                        color_id: '6'
+                        icon_id: icon-rocket-launch
+                        note: Release to beta customers.
+                        created_at: '2026-09-01T10:15:00.000+02:00'
+                        updated_at: '2026-09-01T10:15:00.000+02:00'
+                    relationships:
+                      type: object
+                      description: Project milestone relationships.
+                      properties:
+                        assignee:
+                          $ref: '#/components/schemas/_single_relationship'
+                        creator:
+                          $ref: '#/components/schemas/_single_relationship'
+                        organization:
+                          $ref: '#/components/schemas/_single_relationship'
+                        project:
+                          $ref: '#/components/schemas/_single_relationship'
+                      example:
+                        organization:
+                          data:
+                            type: organizations
+                            id: '109'
+                        creator:
+                          data:
+                            type: people
+                            id: '1001'
+                        assignee:
+                          data:
+                            type: people
+                            id: '1002'
+                        project:
+                          data:
+                            type: projects
+                            id: '7388870'
+                  example:
+                    id: '42'
+                    type: project_milestones
+                    attributes:
+                      title: Beta launch
+                      date: '2026-10-15'
+                      color_id: '6'
+                      icon_id: icon-rocket-launch
+                      note: Release to beta customers.
+                      created_at: '2026-09-01T10:15:00.000+02:00'
+                      updated_at: '2026-09-01T10:15:00.000+02:00'
+                    relationships:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      creator:
+                        data:
+                          type: people
+                          id: '1001'
+                      assignee:
+                        data:
+                          type: people
+                          id: '1002'
+                      project:
+                        data:
+                          type: projects
+                          id: '7388870'
+                description: Array of project milestone resource objects.
+                example:
+                  - id: '42'
+                    type: project_milestones
+                    attributes:
+                      title: Beta launch
+                      date: '2026-10-15'
+                      color_id: '6'
+                      icon_id: icon-rocket-launch
+                      note: Release to beta customers.
+                      created_at: '2026-09-01T10:15:00.000+02:00'
+                      updated_at: '2026-09-01T10:15:00.000+02:00'
+                    relationships:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      creator:
+                        data:
+                          type: people
+                          id: '1001'
+                      assignee:
+                        data:
+                          type: people
+                          id: '1002'
+                      project:
+                        data:
+                          type: projects
+                          id: '7388870'
+                  - id: '43'
+                    type: project_milestones
+                    attributes:
+                      title: Go-live
+                      date: '2026-11-02'
+                      color_id: '6'
+                      icon_id: icon-flag-checkered-line
+                      note: null
+                      created_at: '2026-09-01T10:15:00.000+02:00'
+                      updated_at: '2026-09-01T10:15:00.000+02:00'
+                    relationships:
+                      organization:
+                        data:
+                          type: organizations
+                          id: '109'
+                      creator:
+                        data:
+                          type: people
+                          id: '1001'
+                      assignee:
+                        data: null
+                      project:
+                        data:
+                          type: projects
+                          id: '7388870'
+              included:
+                type: array
+                items:
+                  description: A sideloaded related resource object.
+                  example:
+                    id: '7388870'
+                    type: projects
+                    attributes:
+                      name: Website redesign
+                description: Sideloaded related resources.
+                example:
+                  - id: '7388870'
+                    type: projects
+                    attributes:
+                      name: Website redesign
+              meta:
+                $ref: '#/components/schemas/_meta'
+            example:
+              data:
+                - id: '42'
+                  type: project_milestones
+                  attributes:
+                    title: Beta launch
+                    date: '2026-10-15'
+                    color_id: '6'
+                    icon_id: icon-rocket-launch
+                    note: Release to beta customers.
+                    created_at: '2026-09-01T10:15:00.000+02:00'
+                    updated_at: '2026-09-01T10:15:00.000+02:00'
+                  relationships:
+                    organization:
+                      data:
+                        type: organizations
+                        id: '109'
+                    creator:
+                      data:
+                        type: people
+                        id: '1001'
+                    assignee:
+                      data:
+                        type: people
+                        id: '1002'
+                    project:
+                      data:
+                        type: projects
+                        id: '7388870'
+                - id: '43'
+                  type: project_milestones
+                  attributes:
+                    title: Go-live
+                    date: '2026-11-02'
+                    color_id: '6'
+                    icon_id: icon-flag-checkered-line
+                    note: null
+                    created_at: '2026-09-01T10:15:00.000+02:00'
+                    updated_at: '2026-09-01T10:15:00.000+02:00'
+                  relationships:
+                    organization:
+                      data:
+                        type: organizations
+                        id: '109'
+                    creator:
+                      data:
+                        type: people
+                        id: '1001'
+                    assignee:
+                      data: null
+                    project:
+                      data:
+                        type: projects
+                        id: '7388870'
+              included: []
+              meta:
+                current_page: 1
+                total_pages: 1
+                total_count: 2
+                page_size: 30
+                max_page_size: 200
+      description: Paginated list of project milestones.
+  schemas:
+    error:
+      type: object
+      title: Error
+      description: One JSON:API error object. `code` is the stable, machine-readable identifier a client branches on; `title` and `detail` are human-facing and may be reworded without notice. Each resource publishes the codes its own endpoints can return as an `error_code_<resource>` schema.
+      properties:
+        code:
+          type: string
+          title: Code
+          description: The stable identifier for this kind of error.
+        detail:
+          type: string
+          title: Detail
+          description: A human-readable explanation specific to this occurrence of the problem.
+        source:
+          type: object
+          title: Source
+          description: What in the request caused the error.
+          properties:
+            pointer:
+              type: string
+              title: Pointer
+              description: The path to the member of the request document that caused the error, as `data/attributes/<name>`. Note that it carries no leading slash, so it is not an RFC 6901 JSON Pointer.
+        status:
+          type: string
+          title: Status
+          description: The HTTP status code for this error, as a string.
+        title:
+          type: string
+          title: Title
+          description: A short, human-readable summary of the problem.
+    error_code_server_error:
+      enum:
+        - bad_decimal_format
+        - non_finite_number
+        - null_bytes_in_params
+        - recaptcha_browser_error
+        - server_error
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 500.
+    error_code_locked:
+      enum:
+        - locked
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 423.
+    error_code_request_timeout:
+      enum:
+        - db_max_execution_time
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 408.
+    error_code_not_acceptable:
+      enum:
+        - bulk_extensions_headers_invalid
+        - not_acceptable
+        - read_only_mode_violation
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 406.
+    error_code_not_found:
+      enum:
+        - not_found
+        - record_not_found
+        - route_not_found
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 404.
+    error_code_forbidden:
+      enum:
+        - access_denied
+        - account_inactive
+        - agent_role_impersonation_denied
+        - automatic_invoicing_not_manageable
+        - billing_catalog_list_unavailable
+        - booking_conflict_resolver_unavailable
+        - budget_inaccessible
+        - budgets_not_manageable
+        - cascade_deletion_blocked
+        - custom_roles_unavailable
+        - deactivated_organization
+        - deal_proposal_analytics_unavailable
+        - deal_proposal_public_link_unavailable
+        - document_styler_unavailable
+        - document_templates_unavailable
+        - email_inbox_unavailable
+        - entry_not_editable
+        - expense_not_editable
+        - feature_unavailable
+        - finalized_invoice_permission
+        - financials_unavailable
+        - impersonation_on_account_not_allowed
+        - insufficient_automation_permission
+        - insufficient_project_access
+        - insufficient_seats
+        - invalid_impersonate_role_id_header
+        - invoices_unavailable
+        - login_unavailable
+        - mcp_access_disabled
+        - mcp_connectors_disabled
+        - mcp_provider_unavailable
+        - missing_slack_integration
+        - no_client_access
+        - no_organization_id
+        - no_person
+        - no_sandbox_access
+        - organization_red_flagged
+        - other_timer_running
+        - outgoing_emails_limit_exceeded
+        - payment_reminders_unavailable
+        - personal_access_token_limit_exceeded
+        - pipelines_limit_exceeded
+        - placeholders_limit_exceeded
+        - plan_limit_exceeded
+        - plan_unavailable
+        - private_channel_forbidden
+        - recipients_limit_exceeded
+        - record_not_owned
+        - report_templates_unavailable
+        - restricted_email_in_trialing
+        - role_bill_rate_unavailable
+        - role_impersonate_denied
+        - select_organization
+        - service_inaccessible
+        - service_type_inaccessible
+        - single_sign_on_invalid
+        - single_sign_on_login_only
+        - single_sign_on_provision_failed
+        - single_sign_on_unavailable
+        - subscription_expired
+        - subsidiaries_unavailable
+        - subsidiary_out_of_scope
+        - teams_limit_exceeded
+        - two_factor_login
+        - unallocated_expense_inaccessible
+        - webooks_limit_exceeded
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 403.
+    error_code_unauthorized:
+      enum:
+        - invalid_auth_token
+        - invalid_password
+        - invalid_proposal_token
+        - invalid_token_signature
+        - token_expired
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 401.
+    error_code_project_milestone:
+      enum:
+        - bad_decimal_format
+        - invalid_attribute_value
+        - non_finite_number
+        - null_bytes_in_params
+      type: string
+      title: Error Code
+      description: Every error `code` the project milestone endpoints can return.
+    error_code_unsupported_media_type:
+      enum:
+        - unsupported_content_type
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 415.
+    error_code_bad_request:
+      enum:
+        - account_owner_missing
+        - authorization_failure
+        - bad_filter_request
+        - bad_request
+        - bad_sort_request
+        - budget_report_failed
+        - bulk_export_failed
+        - calendar_reauthorization_required
+        - changed_since_conflict
+        - changed_since_invalid
+        - changed_since_unsupported
+        - company_export_match_changed
+        - company_not_exported
+        - cross_invoice_bulk
+        - data_not_array
+        - datev_request_failed
+        - datev_token_refresh_failed
+        - datev_token_refresh_locked
+        - einvoice_export_failed
+        - empty_body
+        - exchange_currency_invalid
+        - exchange_date_invalid
+        - export_error
+        - export_failed
+        - export_status_unavailable
+        - fields_request_invalid
+        - formulas_request_invalid
+        - group_custom_field_unsupported
+        - group_param_relationship_unsupported
+        - group_request_invalid
+        - include_request_invalid
+        - integration_error
+        - invalid_request_parameters
+        - invalid_seats_allocations
+        - json_format_invalid
+        - keyset_conflict
+        - keyset_invalid_cursor
+        - keyset_unsupported_sort
+        - missing_date_period
+        - missing_relationship_field
+        - multipart_body_invalid
+        - netsuite_credit_note_form_missing
+        - netsuite_discount_amount_missing
+        - netsuite_discount_item_missing
+        - parameter_missing
+        - peppol_transaction_failed
+        - query_parameters_invalid
+        - relationship_depth_unsupported
+        - report_keyset_requires_single_type
+        - report_keyset_restricted_access
+        - report_keyset_unsupported_filter
+        - report_keyset_unsupported_group
+        - sort_custom_field_unsupported
+        - sort_param_relationship_unsupported
+        - sort_param_unsupported
+        - tax_id_unsupported
+        - unsupported_currency
+        - unsupported_date_period
+        - unsupported_filter
+        - unsupported_filter_level
+        - unsupported_filter_operation
+        - unsupported_filter_value
+        - unsupported_filter_value_type
+        - unsupported_formula
+        - unsupported_formula_component
+        - unsupported_formula_operator
+        - unsupported_group
+        - unsupported_group_param
+        - unsupported_include
+        - unsupported_number_of_group_params
+        - unsupported_sort
+      type: string
+      title: Error Code
+      description: Every error `code` an endpoint can return with a 400.
+    _meta:
+      type: object
+      title: Meta
+      description: Pagination and response metadata returned with every collection endpoint.
+      properties:
+        current_page:
+          type: integer
+          description: The current page number in this paginated response (1-based).
+          example: 1
+        max_page_size:
+          type: integer
+          description: Maximum number of records allowed per page for this endpoint.
+          example: 200
+        organization_features:
+          type: object
+          description: Feature flags and capabilities enabled for the current organization, used for UI rendering.
+          example: []
+        page_size:
+          type: integer
+          description: Number of records returned per page in this response.
+          example: 30
+        settings:
+          type: object
+          description: Organization or user settings relevant to this resource's display.
+          example:
+            feature_x: true
+            notifications:
+              email: true
+        total_count:
+          type: integer
+          description: Total number of records matching the current query across all pages.
+          example: 42
+        total_pages:
+          type: integer
+          description: Total number of pages available for the current query and page size.
+          example: 5
+      example:
+        current_page: 1
+        total_pages: 5
+        total_count: 42
+        page_size: 30
+        max_page_size: 200
+    _single_relationship:
+      anyOf:
+        - $ref: '#/components/schemas/_single_linkage_nullable'
+        - $ref: '#/components/schemas/_not_included'
+      description: A JSON:API single relationship — links to one related resource or `null`.
+      example:
+        data:
+          type: tasks
+          id: '42'
+    _not_included:
+      type: object
+      title: Not included
+      description: Placeholder for a relationship that was not sideloaded in this response.
+      properties:
+        meta:
+          type: object
+          description: Metadata indicating the sideload status of this relationship.
+          properties:
+            included:
+              enum:
+                - false
+              type: boolean
+              description: Whether the related resource was included in the sideloaded data. Always `false` for this variant.
+              example: false
+          required:
+            - included
+          example:
+            included: false
+      required:
+        - meta
+      example:
+        meta:
+          included: false
+    _single_linkage_nullable:
+      type: object
+      title: Single nullable linkage
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/_resource'
+            - type: 'null'
+      required:
+        - data
+    _resource:
+      type: object
+      title: Resource Identifier
+      description: A JSON:API resource identifier object containing the resource type and ID.
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the resource.
+          example: 42
+        type:
+          type: string
+          description: The resource type name (e.g. `tasks`, `people`, `deals`).
+          example: tasks
+      required:
+        - id
+        - type
+      example:
+        type: tasks
+        id: '42'
+    resource_project_milestone:
+      type: object
+      title: Project milestone Resource
+      description: A dated milestone on a project, such as a launch, review or deadline. Carries a title, date, icon, color and an optional note, and can be assigned to a project member.
+      properties:
+        after:
+          type: string
+          title: After
+          format: date
+          description: 'Filter-only date: return milestones on or after this date.'
+          example: '2026-10-01'
+        assignee:
+          title: Assignee
+          description: The person responsible for this milestone, if any.
+          example:
+            data:
+              type: people
+              id: '1002'
+        assignee_id:
+          type: integer
+          title: Assignee
+          nullable: true
+          description: ID of the person responsible for this milestone; must be an active member of the project.
+          example: 1002
+        before:
+          type: string
+          title: Before
+          format: date
+          description: 'Filter-only date: return milestones on or before this date.'
+          example: '2026-12-31'
+        color_id:
+          type: string
+          title: Color
+          description: Color palette index this milestone is displayed with, the same palette as project colors. Returned as a string; defaults to the project's color on create.
+          example: '6'
+        created_at:
+          type: string
+          title: Created At
+          format: date-time
+          description: Timestamp when this milestone was created.
+          example: '2026-09-01T10:15:00.000+02:00'
+        creator:
+          title: Creator
+          description: The person who created this milestone.
+          example:
+            data:
+              type: people
+              id: '1001'
+        date:
+          type: string
+          title: Date
+          format: date
+          description: The day this milestone falls on (`YYYY-MM-DD`, without time or time zone).
+          example: '2026-10-15'
+        icon_id:
+          type: string
+          title: Icon
+          description: The icon identifier displayed for this milestone. The API accepts any string — the Productive UI uses identifiers from its icon set (e.g. `icon-rocket-launch`).
+          example: icon-rocket-launch
+        id:
+          type: integer
+          title: Id
+          description: The unique identifier of this milestone.
+          example: 42
+        note:
+          type: string
+          title: Note
+          nullable: true
+          description: Optional free-text note with more detail about this milestone.
+          example: Release to beta customers.
+        organization:
+          title: Organization
+          description: The organization this milestone belongs to.
+          example:
+            data:
+              type: organizations
+              id: '109'
+        project:
+          title: Project
+          description: The project this milestone belongs to.
+          example:
+            data:
+              type: projects
+              id: '7388870'
+        project_id:
+          type: integer
+          title: Project
+          description: ID of the project this milestone belongs to.
+          example: 7388870
+        query:
+          type: string
+          title: Query
+          description: A text search query to filter milestones by title.
+          example: launch
+        title:
+          type: string
+          title: Title
+          description: The name of this milestone (e.g. Beta launch).
+          example: Beta launch
+        updated_at:
+          type: string
+          title: Updated At
+          format: date-time
+          description: Timestamp when this milestone was last updated.
+          example: '2026-09-01T10:15:00.000+02:00'
+      example:
+        id: '42'
+        type: project_milestones
+        attributes:
+          title: Beta launch
+          date: '2026-10-15'
+          color_id: '6'
+          icon_id: icon-rocket-launch
+          note: Release to beta customers.
+          created_at: '2026-09-01T10:15:00.000+02:00'
+          updated_at: '2026-09-01T10:15:00.000+02:00'
+        relationships:
+          organization:
+            data:
+              type: organizations
+              id: '109'
+          creator:
+            data:
+              type: people
+              id: '1001'
+          assignee:
+            data:
+              type: people
+              id: '1002'
+          project:
+            data:
+              type: projects
+              id: '7388870'
+  requestBodies:
+    project_milestone_update:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for updating a project milestone.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object containing the project milestone attributes.
+                properties:
+                  attributes:
+                    type: object
+                    description: Project milestone attributes.
+                    properties:
+                      assignee_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/assignee_id'
+                      color_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/color_id'
+                      date:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/date'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/icon_id'
+                      note:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/note'
+                      project_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/project_id'
+                      title:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/title'
+                    example:
+                      date: '2026-10-22'
+                      note: Moved by one week.
+                example:
+                  type: project_milestones
+                  attributes:
+                    date: '2026-10-22'
+                    note: Moved by one week.
+            example:
+              data:
+                type: project_milestones
+                attributes:
+                  date: '2026-10-22'
+                  note: Moved by one week.
+      description: Request body for updating a project milestone. All attributes are optional; only provided attributes are changed.
+    project_milestone:
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            description: Request body for creating a project milestone.
+            properties:
+              data:
+                type: object
+                description: The JSON:API data object containing the project milestone attributes.
+                properties:
+                  attributes:
+                    type: object
+                    description: Project milestone attributes.
+                    properties:
+                      assignee_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/assignee_id'
+                      color_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/color_id'
+                      date:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/date'
+                      icon_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/icon_id'
+                      note:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/note'
+                      project_id:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/project_id'
+                      title:
+                        $ref: '#/components/schemas/resource_project_milestone/properties/title'
+                    required:
+                      - date
+                      - icon_id
+                      - project_id
+                      - title
+                    example:
+                      title: Beta launch
+                      date: '2026-10-15'
+                      icon_id: icon-rocket-launch
+                      note: Release to beta customers.
+                      assignee_id: 1002
+                      project_id: 7388870
+                example:
+                  type: project_milestones
+                  attributes:
+                    title: Beta launch
+                    date: '2026-10-15'
+                    icon_id: icon-rocket-launch
+                    note: Release to beta customers.
+                    assignee_id: 1002
+                    project_id: 7388870
+            example:
+              data:
+                type: project_milestones
+                attributes:
+                  title: Beta launch
+                  date: '2026-10-15'
+                  icon_id: icon-rocket-launch
+                  note: Release to beta customers.
+                  assignee_id: 1002
+                  project_id: 7388870
+      description: Request body for creating a project milestone.
+  parameters:
+    sort_project_milestone:
+      in: query
+      name: sort
+      style: form
+      schema:
+        type: array
+        items:
+          enum:
+            - created_at
+            - -created_at
+            - date
+            - -date
+            - id
+            - -id
+            - title
+            - -title
+          type: string
+        title: Sort project milestone
+      explode: false
+      required: false
+      description: Sort order for project milestone list results. Accepts one or more field names, comma-separated; prefix with `-` for descending.
+    filter_project_milestone:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+        description: Filter keys and their operators are listed under x-filters.project_milestone at the top of this file.
+      required: false
+      description: Filter parameter for querying project milestones.
